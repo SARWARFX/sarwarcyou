@@ -45,6 +45,30 @@ function createCurvedBox(width: number, height: number, depth: number, radius: n
   return bendGeometryHorizontally(geo, radius, 0.72);
 }
 
+// Calculate uncropped heroic dimensions preserving the native aspect ratio
+function computeHeroicDimensions(ratio: number): { w: number; h: number } {
+  const clampedRatio = Math.max(0.42, Math.min(2.4, ratio));
+
+  if (clampedRatio >= 1.25) {
+    // Landscape photo: Expand horizontally with strong presence
+    const h = Math.max(2.2, 3.8 / Math.sqrt(clampedRatio));
+    const w = h * clampedRatio;
+    return { w: Math.min(4.35, w), h: Math.min(3.2, h) };
+  } else if (clampedRatio <= 0.8) {
+    // Portrait photo: Heroic vertical height, zero cropping
+    const w = Math.max(2.1, 2.85 * Math.sqrt(clampedRatio));
+    const h = w / clampedRatio;
+    return { w: Math.min(3.2, w), h: Math.min(4.1, h) };
+  } else {
+    // Square or soft ratio
+    const size = 3.2;
+    return {
+      w: size * Math.sqrt(clampedRatio),
+      h: size / Math.sqrt(clampedRatio),
+    };
+  }
+}
+
 export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
   album,
   isActive,
@@ -77,7 +101,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     programmaticTarget: null as number | null,
   });
 
-  // When parent batchIndex changes (e.g. user clicked bottom batch navigation), smoothly spring to batch
+  // When parent batchIndex changes, smoothly spring to batch
   useEffect(() => {
     if (prevBatchRef.current !== batchIndex) {
       prevBatchRef.current = batchIndex;
@@ -94,12 +118,10 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     const totalItems = items.length;
     if (totalItems === 0) return;
 
-    console.log(`[Album 1 WeichieMarquee] Initializing 3D stage with ${totalItems} items:`, items.slice(0, 5));
-
     // --- 1. THREE.JS SCENE & PERSPECTIVE CAMERA ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.FogExp2(0x000208, 0.025);
+    scene.fog = new THREE.FogExp2(0x000208, 0.022);
 
     const isPortrait = window.innerWidth < 768;
     const camera = new THREE.PerspectiveCamera(
@@ -108,8 +130,8 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       0.1,
       1000
     );
-    // Camera centered at (0, 0, Z)
-    camera.position.set(0, 0, isPortrait ? 9.2 : 7.8);
+    // Camera centered at (0, 0, Z) with heroic framing distance
+    camera.position.set(0, 0, isPortrait ? 9.6 : 8.0);
     camera.lookAt(0, 0, 0);
 
     // --- 2. WEICHIE-GRADE TONE MAPPING & RENDERER ---
@@ -132,7 +154,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
 
     // Center Top Key Spotlight
     const topSpotLight = new THREE.SpotLight(0xffffff, 6.5, 26, Math.PI / 4.0, 0.55, 1.2);
-    topSpotLight.position.set(0, 5.8, 3.4);
+    topSpotLight.position.set(0, 6.0, 3.6);
     const spotTarget = new THREE.Object3D();
     spotTarget.position.set(0, 0, 0);
     scene.add(spotTarget);
@@ -145,42 +167,38 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     scene.add(frontKey);
 
     // Atmospheric Rim Lights (Electric Cyan & Royal Blue)
-    const leftRimLight = new THREE.PointLight(0x00d2ff, 4.0, 22);
-    leftRimLight.position.set(-5.8, 1.6, 2.2);
+    const leftRimLight = new THREE.PointLight(0x00d2ff, 4.0, 24);
+    leftRimLight.position.set(-6.2, 1.8, 2.4);
     scene.add(leftRimLight);
 
-    const rightRimLight = new THREE.PointLight(0x3b82f6, 4.0, 22);
-    rightRimLight.position.set(5.8, 1.6, 2.2);
+    const rightRimLight = new THREE.PointLight(0x3b82f6, 4.0, 24);
+    rightRimLight.position.set(6.2, 1.8, 2.4);
     scene.add(rightRimLight);
 
     // Mouse-reactive specular glow point in space
-    const mouseReactiveLight = new THREE.PointLight(0x00d2ff, 3.0, 18);
-    mouseReactiveLight.position.set(0, 0, 3.8);
+    const mouseReactiveLight = new THREE.PointLight(0x00d2ff, 3.2, 20);
+    mouseReactiveLight.position.set(0, 0, 4.0);
     scene.add(mouseReactiveLight);
 
     // --- 4. RECYCLING MESH POOL (EXACTLY 7 MESHES) ---
-    // Strictly 7 meshes in memory: zero memory leaks, locked 60+ FPS
     const POOL_SIZE = 7;
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
 
-    const cardWidth = 2.25;
-    const cardHeight = 3.25;
+    // Base template dimensions (aspect-aware scaling dynamically applies to these)
+    const baseWidth = 2.6;
+    const baseHeight = 3.6;
     const cardDepth = 0.08;
-    const cardCurveRadius = 6.8;
+    const cardCurveRadius = 7.0;
 
-    const photoWidth = cardWidth - 0.12; // 2.13 width
-    const photoHeight = cardHeight - 0.12; // 3.13 height
+    const photoWidth = baseWidth - 0.12;
+    const photoHeight = baseHeight - 0.12;
 
-    // Shared Geometries (curved cylindrical panels)
-    // 1. Chassis: Solid metallic body with depth 0.08, centered at z = 0
-    const chassisGeo = createCurvedBox(cardWidth, cardHeight, cardDepth, cardCurveRadius);
-    // 2. Beveled Metallic Framing Trim (slightly larger than photo, placed directly behind photo)
-    const frameTrimGeo = createCurvedPlane(cardWidth, cardHeight, cardCurveRadius);
-    // 3. Photo Plane: Sits at the VERY FRONT face (z = cardDepth / 2 + 0.006)
+    // Shared Base Geometries
+    const chassisGeo = createCurvedBox(baseWidth, baseHeight, cardDepth, cardCurveRadius);
+    const frameTrimGeo = createCurvedPlane(baseWidth, baseHeight, cardCurveRadius);
     const photoGeo = createCurvedPlane(photoWidth, photoHeight, cardCurveRadius);
-    // 4. Backplate: Sits at back face (z = -cardDepth / 2 - 0.002)
-    const backplateGeo = createCurvedPlane(cardWidth - 0.02, cardHeight - 0.02, cardCurveRadius);
+    const backplateGeo = createCurvedPlane(baseWidth - 0.02, baseHeight - 0.02, cardCurveRadius);
 
     // Shared Materials
     const chassisMat = new THREE.MeshPhysicalMaterial({
@@ -211,6 +229,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     textureLoader.setCrossOrigin('anonymous');
 
     const textureCache = new Map<number, THREE.Texture>();
+    const textureRatios = new Map<number, number>();
     const loadingIndices = new Set<number>();
     const fallbackCanvasTextures = new Map<number, THREE.CanvasTexture>();
 
@@ -229,6 +248,24 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       return fb;
     };
 
+    // Apply aspect-ratio aware scaling to a pool mesh group
+    const applyAspectDimensions = (meshGroup: THREE.Group, photoIdx: number) => {
+      const ratio = textureRatios.get(photoIdx) || 0.72;
+      const { w, h } = computeHeroicDimensions(ratio);
+      const sx = w / baseWidth;
+      const sy = h / baseHeight;
+
+      const chassisMesh = meshGroup.userData.chassisMesh as THREE.Mesh;
+      const borderMesh = meshGroup.userData.borderMesh as THREE.Mesh;
+      const photoMesh = meshGroup.userData.photoMesh as THREE.Mesh;
+      const backMesh = meshGroup.userData.backMesh as THREE.Mesh;
+
+      if (chassisMesh) chassisMesh.scale.set(sx, sy, 1);
+      if (borderMesh) borderMesh.scale.set(sx, sy, 1);
+      if (photoMesh) photoMesh.scale.set(sx, sy, 1);
+      if (backMesh) backMesh.scale.set(sx, sy, 1);
+    };
+
     const bindTextureToMesh = (photoIdx: number, tex: THREE.Texture) => {
       poolMeshes.forEach((meshGroup) => {
         if (meshGroup.userData.photoIndex === photoIdx) {
@@ -236,8 +273,20 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
           const mat = photoMesh.material as THREE.MeshBasicMaterial;
           mat.map = tex;
           mat.needsUpdate = true;
+          applyAspectDimensions(meshGroup, photoIdx);
         }
       });
+    };
+
+    const recordAspectRatio = (photoIdx: number, tex: THREE.Texture) => {
+      const img = tex.image as HTMLImageElement;
+      if (img && img.naturalWidth && img.naturalHeight) {
+        textureRatios.set(photoIdx, img.naturalWidth / img.naturalHeight);
+      } else if (img && img.width && img.height) {
+        textureRatios.set(photoIdx, img.width / img.height);
+      } else {
+        textureRatios.set(photoIdx, 0.72);
+      }
     };
 
     const loadTextureForIndex = (photoIdx: number) => {
@@ -252,9 +301,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       const backupUrl = fileId ? getBackupDriveUrl(fileId) : primaryUrl;
       const unsplashUrl = getUnsplashFallback(photoIdx);
 
-      console.log(`[Album 1 TextureLoader] Loading slot #${photoIdx}: "${item.title}" -> ${primaryUrl}`);
-
-      // Tier 1: High-res direct raw stream (lh3.googleusercontent.com/d/id)
+      // Tier 1: High-res direct raw stream
       textureLoader.load(
         primaryUrl,
         (loadedTex) => {
@@ -264,14 +311,13 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
           loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
           loadedTex.magFilter = THREE.LinearFilter;
           loadedTex.needsUpdate = true;
+          recordAspectRatio(photoIdx, loadedTex);
           textureCache.set(photoIdx, loadedTex);
-          console.log(`[Album 1 TextureLoader] ✓ Success (Primary) for slot #${photoIdx}: "${item.title}"`);
           bindTextureToMesh(photoIdx, loadedTex);
         },
         undefined,
-        (err1) => {
-          console.warn(`[Album 1 TextureLoader] Primary load failed for slot #${photoIdx}, trying backup:`, err1);
-          // Tier 2: Backup Google Drive direct view URL
+        () => {
+          // Tier 2: Backup Google Drive direct stream
           textureLoader.load(
             backupUrl,
             (loadedTex) => {
@@ -279,13 +325,12 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
               loadedTex.colorSpace = THREE.SRGBColorSpace;
               loadedTex.generateMipmaps = true;
               loadedTex.needsUpdate = true;
+              recordAspectRatio(photoIdx, loadedTex);
               textureCache.set(photoIdx, loadedTex);
-              console.log(`[Album 1 TextureLoader] ✓ Success (Backup) for slot #${photoIdx}`);
               bindTextureToMesh(photoIdx, loadedTex);
             },
             undefined,
-            (err2) => {
-              console.warn(`[Album 1 TextureLoader] Backup failed for slot #${photoIdx}, loading high-res Unsplash fallback:`, err2);
+            () => {
               // Tier 3: Curated Unsplash portrait fallback
               textureLoader.load(
                 unsplashUrl,
@@ -294,15 +339,14 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
                   loadedTex.colorSpace = THREE.SRGBColorSpace;
                   loadedTex.generateMipmaps = true;
                   loadedTex.needsUpdate = true;
+                  recordAspectRatio(photoIdx, loadedTex);
                   textureCache.set(photoIdx, loadedTex);
-                  console.log(`[Album 1 TextureLoader] ✓ Success (Unsplash Fallback) for slot #${photoIdx}`);
                   bindTextureToMesh(photoIdx, loadedTex);
                 },
                 undefined,
-                (err3) => {
+                () => {
                   loadingIndices.delete(photoIdx);
-                  console.error(`[Album 1 TextureLoader] All image loads failed for slot #${photoIdx}. Displaying procedural card:`, err3);
-                  // Procedural canvas fallback is already active, so card is NEVER black!
+                  // Procedural fallback already active
                 }
               );
             }
@@ -323,18 +367,18 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         item: null as StageMediaItem | null,
       };
 
-      // 1. Dark metallic obsidian chassis (center at z = 0, depth = 0.08)
+      // 1. Dark metallic obsidian chassis
       const chassisMesh = new THREE.Mesh(chassisGeo, chassisMat);
       group.add(chassisMesh);
+      group.userData.chassisMesh = chassisMesh;
 
-      // 2. Glossy metallic framing border (placed at z = 0.041, right under photo)
+      // 2. Glossy metallic framing border
       const borderMesh = new THREE.Mesh(frameTrimGeo, glossyFrameTrimMat);
       borderMesh.position.z = cardDepth / 2 + 0.002;
       group.add(borderMesh);
+      group.userData.borderMesh = borderMesh;
 
-      // 3. FRONT FACE PHOTO PLANE:
-      // Uses MeshBasicMaterial at full brightness and vivid colors, toneMapped = true.
-      // Sits unobstructed at z = 0.045 with renderOrder = 2 so it is ALWAYS in front!
+      // 3. FRONT FACE PHOTO PLANE
       const initialTex = getProceduralTexture(i % totalItems);
       const photoMat = new THREE.MeshBasicMaterial({
         map: initialTex,
@@ -348,11 +392,12 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       group.add(photoMesh);
       group.userData.photoMesh = photoMesh;
 
-      // 4. Obsidian backplate at back face (z = -0.042)
+      // 4. Obsidian backplate
       const backMesh = new THREE.Mesh(backplateGeo, backplateMat);
       backMesh.position.z = -cardDepth / 2 - 0.002;
       backMesh.rotation.y = Math.PI;
       group.add(backMesh);
+      group.userData.backMesh = backMesh;
 
       rootGroup.add(group);
       poolMeshes.push(group);
@@ -379,7 +424,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       animStateRef.current.mousePos.x = (e.clientX / window.innerWidth) * 2 - 1;
       animStateRef.current.mousePos.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-      // Raycast for hover focus on 3D cards
       pointer.x = animStateRef.current.mousePos.x;
       pointer.y = animStateRef.current.mousePos.y;
       raycaster.setFromCamera(pointer, camera);
@@ -407,7 +451,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       const now = performance.now();
       const dt = Math.max(1, now - animStateRef.current.lastTime);
 
-      // Kinetic dragging
       const sensitivity = 2.8 / window.innerWidth;
       const indexDelta = -deltaX * sensitivity;
 
@@ -453,7 +496,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     };
 
     const onWheel = (e: WheelEvent) => {
-      // Horizontal mouse wheel or trackpad swipe
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
         e.preventDefault();
         animStateRef.current.velocity += e.deltaX * 0.0006;
@@ -476,7 +518,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     const onResize = () => {
       const portraitNow = window.innerWidth < 768;
       camera.aspect = window.innerWidth / window.innerHeight;
-      camera.position.z = portraitNow ? 9.2 : 7.8;
+      camera.position.z = portraitNow ? 9.6 : 8.0;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
@@ -495,8 +537,8 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     let animationFrameId: number;
     let lastNotifiedIndex = -1;
     let frameCounter = 0;
-    const baseDriftSpeed = 0.0034; // Luxury slow drift speed
-    const globalArcRadius = 7.2;
+    const baseDriftSpeed = 0.0034;
+    const globalArcRadius = 7.6;
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
@@ -508,7 +550,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       mouseReactiveLight.position.x += (state.mousePos.x * 5.2 - mouseReactiveLight.position.x) * 0.08;
       mouseReactiveLight.position.y += (state.mousePos.y * 3.6 - mouseReactiveLight.position.y) * 0.08;
 
-      // Smooth hover pause factor (eases smoothly to 0 on hover, resumes on exit)
+      // Smooth hover pause factor
       const targetHover = state.isHoveredOverStage ? 0.0 : 1.0;
       state.hoverFactor += (targetHover - state.hoverFactor) * 0.07;
 
@@ -522,13 +564,11 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       } else if (state.isDragging) {
         // Drag position updated directly in onPointerMove
       } else {
-        // Inertia decay
         state.scrollPos += state.velocity;
         state.velocity *= 0.92;
 
         if (Math.abs(state.velocity) < 0.0004) {
           state.velocity = 0;
-          // Auto-drift marquee smoothly glides forward
           state.scrollPos += baseDriftSpeed * state.hoverFactor;
         }
       }
@@ -536,20 +576,17 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       // --- 7. VIRTUALIZED POOL MESH POSITIONING & TEXTURE RECYCLING ---
       const centerSlot = Math.round(state.scrollPos);
 
-      // Relative slot offsets: -3 to +3 (exactly 7 active slots)
       for (let k = -3; k <= 3; k++) {
         const virtualSlot = centerSlot + k;
         const offset = virtualSlot - state.scrollPos;
 
-        // Modulo 7 maps each continuous integer to a unique pool mesh
         const poolIndex = ((virtualSlot % POOL_SIZE) + POOL_SIZE) % POOL_SIZE;
         const meshGroup = poolMeshes[poolIndex];
 
-        // Modulo N maps to actual item in album
         const photoIndex = ((virtualSlot % totalItems) + totalItems) % totalItems;
         const item = items[photoIndex];
 
-        // Recycle texture when this mesh slot takes on a new photo index
+        // Recycle texture and adjust dimensions when slot changes
         if (meshGroup.userData.photoIndex !== photoIndex) {
           meshGroup.userData.photoIndex = photoIndex;
           meshGroup.userData.item = item;
@@ -566,32 +603,31 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
             photoMat.needsUpdate = true;
             loadTextureForIndex(photoIndex);
           }
+
+          applyAspectDimensions(meshGroup, photoIndex);
         }
 
         // --- 8. WEICHIE 3D HORIZONTAL CURVED PERSPECTIVE ---
-        // Global stage cylindrical arc: theta angle
-        const theta = offset * 0.38;
+        const theta = offset * 0.40;
         const x = globalArcRadius * Math.sin(theta);
         const z = globalArcRadius * (Math.cos(theta) - 1);
 
         const isHovered = meshGroup.userData.poolId === state.hoveredSlot;
-        const hoverZLift = isHovered ? 0.32 : 0;
+        const hoverZLift = isHovered ? 0.35 : 0;
         const hoverTiltX = isHovered ? -state.mousePos.y * 0.12 : 0;
         const hoverTiltY = isHovered ? state.mousePos.x * 0.12 : 0;
 
         meshGroup.position.set(x, 0, z + hoverZLift);
-        // Center card faces camera directly (rotY = 0), left/right cards angle naturally
         meshGroup.rotation.set(hoverTiltX, theta * 0.88 + hoverTiltY, 0);
 
         // Center card gets maximum scale and clarity; edges softly recede
         const scaleBoost = Math.max(0, Math.cos(theta));
-        const baseScale = 0.88 + 0.34 * Math.pow(scaleBoost, 2.8);
+        const baseScale = 0.90 + 0.32 * Math.pow(scaleBoost, 2.8);
         const finalScale = isHovered ? baseScale * 1.08 : baseScale;
         meshGroup.scale.set(finalScale, finalScale, finalScale);
       }
 
       // --- 9. OFFSCREEN TEXTURE PRUNING (<50MB GPU MEMORY) ---
-      // Runs every 25 frames to dispose offscreen textures that fell outside visible window
       if (frameCounter % 25 === 0) {
         const activeIndices = new Set<number>();
         for (let k = -4; k <= 4; k++) {
@@ -608,7 +644,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         });
       }
 
-      // Notify parent of center item changes (for batch indicator sync)
+      // Notify parent of center item changes
       const currentCenterPhotoIdx = ((centerSlot % totalItems) + totalItems) % totalItems;
       if (currentCenterPhotoIdx !== lastNotifiedIndex) {
         lastNotifiedIndex = currentCenterPhotoIdx;
@@ -632,13 +668,11 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', onResize);
 
-      // Dispose all cached textures
       textureCache.forEach((tex) => tex.dispose());
       textureCache.clear();
       fallbackCanvasTextures.forEach((tex) => tex.dispose());
       fallbackCanvasTextures.clear();
 
-      // Dispose geometries & materials
       chassisGeo.dispose();
       frameTrimGeo.dispose();
       photoGeo.dispose();

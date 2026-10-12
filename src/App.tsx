@@ -3,7 +3,6 @@ import { useMediaData } from './useMediaData';
 import { extractTwelveAlbums } from './utils/albumExtractor';
 import { AlbumStage } from './components/AlbumStage';
 import { BrandLogo } from './components/BrandLogo';
-import { AlbumNavigationControls } from './components/AlbumNavigationControls';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
 import { MediaModal } from './components/MediaModal';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
@@ -23,7 +22,7 @@ function App() {
   const [activeAlbumIndex, setActiveAlbumIndex] = useState<number>(0);
   // Track active media item index per album
   const [activeMediaIndices, setActiveMediaIndices] = useState<{ [albumIdx: number]: number }>({});
-  // Track active batch (page of 6) per album
+  // Track active batch per album
   const [albumBatches, setAlbumBatches] = useState<{ [albumIdx: number]: number }>({});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -102,25 +101,6 @@ function App() {
   const handleBackToTop = useCallback(() => {
     scrollToAlbum(0);
   }, [scrollToAlbum]);
-
-  // Batch navigation within an album
-  const handlePrevBatch = useCallback((albumIdx: number) => {
-    setAlbumBatches((prev) => {
-      const cur = prev[albumIdx] || 0;
-      if (cur > 0) return { ...prev, [albumIdx]: cur - 1 };
-      return prev;
-    });
-    setActiveMediaIndices((prev) => ({ ...prev, [albumIdx]: 0 }));
-  }, []);
-
-  const handleNextBatch = useCallback((albumIdx: number, totalBatches: number) => {
-    setAlbumBatches((prev) => {
-      const cur = prev[albumIdx] || 0;
-      if (cur < totalBatches - 1) return { ...prev, [albumIdx]: cur + 1 };
-      return prev;
-    });
-    setActiveMediaIndices((prev) => ({ ...prev, [albumIdx]: 0 }));
-  }, []);
 
   // Synchronize active snapped album index on scroll
   const handleScroll = useCallback(() => {
@@ -248,7 +228,6 @@ function App() {
     );
   }
 
-  const currentAlbum = albums[activeAlbumIndex] || albums[0];
   const isLightMode = activeAlbumIndex === 1;
 
   return (
@@ -265,7 +244,6 @@ function App() {
           const isNear = Math.abs(idx - activeAlbumIndex) <= 1;
           const currentMediaIdx = activeMediaIndices[idx] || 0;
           const currentBatch = albumBatches[idx] || 0;
-          const totalBatches = Math.max(1, Math.ceil(album.itemCount / 6));
 
           return (
             <section
@@ -298,44 +276,17 @@ function App() {
                   onSelectItem={(item) => handleSelectItem(item, idx)}
                 />
               )}
-
-              {/* Bottom Batch Navigation Indicator (Rendered for paginated 3D albums, e.g. Bandhobis and 3-10) */}
-              {album.itemCount > 6 && idx !== 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/65 border border-white/10 backdrop-blur-xl text-[10px] font-mono tracking-widest text-white/70 shadow-2xl">
-                  <button
-                    onClick={() => handlePrevBatch(idx)}
-                    disabled={currentBatch === 0}
-                    className="hover:text-[#00D2FF] transition-colors disabled:opacity-20 cursor-pointer p-0.5"
-                    title="Previous Batch"
-                  >
-                    ◀
-                  </button>
-                  <span className="text-white font-bold">
-                    BATCH {(currentBatch + 1).toString().padStart(2, '0')} / {totalBatches.toString().padStart(2, '0')}
-                  </span>
-                  <span className="text-white/30">•</span>
-                  <span className="text-white/50">{album.itemCount} ITEMS</span>
-                  <button
-                    onClick={() => handleNextBatch(idx, totalBatches)}
-                    disabled={currentBatch >= totalBatches - 1}
-                    className="hover:text-[#00D2FF] transition-colors disabled:opacity-20 cursor-pointer p-0.5"
-                    title="Next Batch"
-                  >
-                    ▶
-                  </button>
-                </div>
-              )}
             </section>
           );
         })}
       </div>
 
-      {/* ================= FIXED LUXURY OVERLAYS ================= */}
+      {/* ================= ULTRA-MINIMAL HUD (ONLY 2 ELEMENTS ON SCREEN) ================= */}
 
-      {/* 1. TOP-LEFT BRANDING (Solid glowing electric-blue play glyph + clean gradient site name; deep black/cyan on Studio White) */}
-      <BrandLogo isLightMode={isLightMode} />
+      {/* 1. DYNAMIC BRAND LOGO (Corner Cycling + Living Chromatic Sync + Synced Favicon) */}
+      <BrandLogo activeAlbumIndex={activeAlbumIndex} isLightMode={isLightMode} />
 
-      {/* 2. SUBTLE 12-DOT VERTICAL PROGRESS INDICATOR (Right Edge) */}
+      {/* 2. AUTO-HIDING RIGHT-SIDE NAVIGATION DOCK (Hidden off-screen until cursor near edge) */}
       <AlbumProgressDots
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}
@@ -343,18 +294,9 @@ function App() {
         isLightMode={isLightMode}
       />
 
-      {/* 3. BOTTOM-RIGHT NAVIGATION CONTROLS (Vertical Up/Down Arrows + Back to Top) */}
-      <AlbumNavigationControls
-        currentAlbumIndex={activeAlbumIndex}
-        totalAlbums={albums.length}
-        currentAlbumName={currentAlbum.name}
-        onPrevAlbum={handlePrevAlbum}
-        onNextAlbum={handleNextAlbum}
-        onBackToTop={handleBackToTop}
-        isLightMode={isLightMode}
-      />
+      {/* ================= MODALS (USER-TRIGGERED ONLY) ================= */}
 
-      {/* 4. DEDICATED TIKTOK/REELS-STYLE VERTICAL SHORTS PLAYER */}
+      {/* DEDICATED TIKTOK/REELS-STYLE VERTICAL SHORTS PLAYER */}
       <ShortsFeedModal
         isOpen={shortsFeedState.isOpen}
         onClose={() => setShortsFeedState((prev) => ({ ...prev, isOpen: false }))}
@@ -362,7 +304,7 @@ function App() {
         initialIndex={shortsFeedState.initialIndex}
       />
 
-      {/* 5. STANDARD PHOTOS LIGHTBOX & 16:9 VIDEO PLAYER WITH ZOOM */}
+      {/* STANDARD PHOTOS LIGHTBOX & 16:9 VIDEO PLAYER WITH ZOOM */}
       <MediaModal
         isOpen={modalState.isOpen}
         onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}
