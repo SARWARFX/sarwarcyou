@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { createProceduralFrameTexture, createComingSoonTexture } from '../utils/textureGenerator';
 import { WeichieMarqueeStage } from './WeichieMarqueeStage';
 import { Album2MasonryStage } from './Album2MasonryStage';
+import { Album3PlanetStage } from './Album3PlanetStage';
 import { getDirectImageUrl, getBackupDriveUrl, getUnsplashFallback, extractDriveFileId } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -762,6 +763,9 @@ export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
   }
   if (props.album.layoutType === 'heroic-masonry' || props.album.index === 1) {
     return <Album2MasonryStage {...props} />;
+  }
+  if (props.album.index === 2) {
+    return <Album3PlanetStage {...props} />;
   }
   return <StandardAlbumStage {...props} />;
 };
