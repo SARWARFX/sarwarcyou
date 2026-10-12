@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { createProceduralCanTexture } from '../utils/textureGenerator';
+import { createProceduralFrameTexture } from '../utils/textureGenerator';
 
 export interface StageMediaItem {
   id: string;
@@ -17,6 +17,26 @@ interface ThreeStageProps {
   activeIndex: number;
   onActiveIndexChange: (index: number) => void;
   onSelectActiveItem: (item: StageMediaItem) => void;
+}
+
+// Helper to create a rounded rectangle Shape
+function createRoundedRectShape(width: number, height: number, radius: number): THREE.Shape {
+  const shape = new THREE.Shape();
+  const x = -width / 2;
+  const y = -height / 2;
+  const r = Math.min(radius, width / 2, height / 2);
+
+  shape.moveTo(x + r, y);
+  shape.lineTo(x + width - r, y);
+  shape.quadraticCurveTo(x + width, y, x + width, y + r);
+  shape.lineTo(x + width, y + height - r);
+  shape.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  shape.lineTo(x + r, y + height);
+  shape.quadraticCurveTo(x, y + height, x, y + height - r);
+  shape.lineTo(x, y + r);
+  shape.quadraticCurveTo(x, y, x + r, y);
+
+  return shape;
 }
 
 export const ThreeStage: React.FC<ThreeStageProps> = ({
@@ -38,7 +58,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
     itemsRef.current = items;
   }, [activeIndex, onActiveIndexChange, onSelectActiveItem, items]);
 
-  // Rotation control refs for smooth interaction
+  // Rotation control refs for smooth kinetic interaction
   const rotationStateRef = useRef({
     currentAngle: 0,
     targetAngle: 0,
@@ -57,7 +77,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
     // --- 1. SCENE & CAMERA ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.FogExp2(0x000000, 0.045);
+    scene.fog = new THREE.FogExp2(0x000000, 0.042);
 
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -65,7 +85,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
       0.1,
       1000
     );
-    camera.position.set(0, 0, 7.4);
+    camera.position.set(0, 0, 7.6);
     camera.lookAt(0, 0, 0);
 
     // --- 2. RENDERER ---
@@ -77,58 +97,55 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.28;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
     // --- 3. LIGHTING ---
-    // Ambient cool fill
-    const ambientLight = new THREE.AmbientLight(0x161a26, 1.2);
+    const ambientLight = new THREE.AmbientLight(0x181c28, 1.4);
     scene.add(ambientLight);
 
-    // Center Top Spotlight shining down on the active item
-    const topSpotLight = new THREE.SpotLight(0xffffff, 5.5, 24, Math.PI / 5, 0.6, 1.2);
-    topSpotLight.position.set(0, 5.2, 2.8);
+    // Center Top Spotlight shining down on the active portrait frame
+    const topSpotLight = new THREE.SpotLight(0xffffff, 6.0, 26, Math.PI / 4.8, 0.55, 1.2);
+    topSpotLight.position.set(0, 5.6, 3.2);
     const spotTarget = new THREE.Object3D();
     spotTarget.position.set(0, 0, 0);
     scene.add(spotTarget);
     topSpotLight.target = spotTarget;
     scene.add(topSpotLight);
 
-    // Front soft key light
-    const frontKeyLight = new THREE.DirectionalLight(0xffffff, 1.4);
-    frontKeyLight.position.set(0, 1.5, 6);
+    // Front soft directional key light
+    const frontKeyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    frontKeyLight.position.set(0, 2, 6);
     scene.add(frontKeyLight);
 
     // Cyan metallic rim light on left
-    const leftRimLight = new THREE.PointLight(0x00d2ff, 3.2, 18);
-    leftRimLight.position.set(-5.5, 1.2, 2.0);
+    const leftRimLight = new THREE.PointLight(0x00d2ff, 3.4, 20);
+    leftRimLight.position.set(-5.5, 1.5, 2.2);
     scene.add(leftRimLight);
 
     // Magenta/Pink metallic rim light on right
-    const rightRimLight = new THREE.PointLight(0xff2a85, 3.2, 18);
-    rightRimLight.position.set(5.5, 1.2, 2.0);
+    const rightRimLight = new THREE.PointLight(0xff2a85, 3.4, 20);
+    rightRimLight.position.set(5.5, 1.5, 2.2);
     scene.add(rightRimLight);
 
     // Stage ground violet up-light
-    const stageGlowLight = new THREE.PointLight(0x9d00ff, 2.5, 12);
-    stageGlowLight.position.set(0, -2.5, 1.0);
+    const stageGlowLight = new THREE.PointLight(0x9d00ff, 2.8, 14);
+    stageGlowLight.position.set(0, -2.8, 1.2);
     scene.add(stageGlowLight);
 
     // --- 4. TOP FLOATING HALO RING ---
     const haloGroup = new THREE.Group();
-    haloGroup.position.set(0, 2.05, 0);
+    haloGroup.position.set(0, 2.3, 0);
 
-    // Outer cyan halo torus
-    const haloGeo1 = new THREE.TorusGeometry(1.22, 0.022, 16, 100);
+    const haloGeo1 = new THREE.TorusGeometry(1.35, 0.022, 16, 100);
     const haloMat1 = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
     const haloMesh1 = new THREE.Mesh(haloGeo1, haloMat1);
     haloMesh1.rotation.x = Math.PI / 2;
     haloGroup.add(haloMesh1);
 
-    // Inner magenta halo torus
-    const haloGeo2 = new THREE.TorusGeometry(1.32, 0.012, 16, 100);
+    const haloGeo2 = new THREE.TorusGeometry(1.45, 0.012, 16, 100);
     const haloMat2 = new THREE.MeshBasicMaterial({ color: 0xff00aa });
     const haloMesh2 = new THREE.Mesh(haloGeo2, haloMat2);
     haloMesh2.rotation.x = Math.PI / 2;
@@ -138,10 +155,9 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
 
     // --- 5. BOTTOM METALLIC PEDESTAL ---
     const pedestalGroup = new THREE.Group();
-    pedestalGroup.position.set(0, -2.0, 0);
+    pedestalGroup.position.set(0, -2.25, 0);
 
-    // Base beveled cylinder
-    const baseGeo = new THREE.CylinderGeometry(1.65, 1.9, 0.24, 64);
+    const baseGeo = new THREE.CylinderGeometry(1.75, 2.0, 0.22, 64);
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x14161f,
       metalness: 0.95,
@@ -150,37 +166,36 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
     const baseMesh = new THREE.Mesh(baseGeo, baseMat);
     pedestalGroup.add(baseMesh);
 
-    // Concentric neon ring 1 (Cyan)
-    const ringGeo1 = new THREE.TorusGeometry(1.45, 0.018, 16, 80);
+    // Concentric neon rings
+    const ringGeo1 = new THREE.TorusGeometry(1.55, 0.018, 16, 80);
     const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x00d2ff });
     const ringMesh1 = new THREE.Mesh(ringGeo1, ringMat1);
-    ringMesh1.position.y = 0.125;
+    ringMesh1.position.y = 0.115;
     ringMesh1.rotation.x = Math.PI / 2;
     pedestalGroup.add(ringMesh1);
 
-    // Concentric neon ring 2 (Pink)
-    const ringGeo2 = new THREE.TorusGeometry(1.1, 0.014, 16, 80);
+    const ringGeo2 = new THREE.TorusGeometry(1.15, 0.014, 16, 80);
     const ringMat2 = new THREE.MeshBasicMaterial({ color: 0xff007a });
     const ringMesh2 = new THREE.Mesh(ringGeo2, ringMat2);
-    ringMesh2.position.y = 0.125;
+    ringMesh2.position.y = 0.115;
     ringMesh2.rotation.x = Math.PI / 2;
     pedestalGroup.add(ringMesh2);
 
     // Glossy mirror top disk
-    const diskGeo = new THREE.CircleGeometry(1.5, 64);
+    const diskGeo = new THREE.CircleGeometry(1.6, 64);
     const diskMat = new THREE.MeshStandardMaterial({
       color: 0x08090d,
-      metalness: 0.95,
+      metalness: 0.96,
       roughness: 0.08,
     });
     const diskMesh = new THREE.Mesh(diskGeo, diskMat);
     diskMesh.rotation.x = -Math.PI / 2;
-    diskMesh.position.y = 0.126;
+    diskMesh.position.y = 0.116;
     pedestalGroup.add(diskMesh);
 
     scene.add(pedestalGroup);
 
-    // --- 6. 3D CAN MESHES & TEXTURES ---
+    // --- 6. 3D PORTRAIT PHOTO FRAMES ---
     const carouselRingGroup = new THREE.Group();
     scene.add(carouselRingGroup);
 
@@ -188,26 +203,56 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
     textureLoader.setCrossOrigin('anonymous');
 
     const totalItems = items.length;
-    // Minimum 10 slots for smooth orbital curvature
+    // Keep at least 10 slots on the ring for beautiful orbital curvature
     const ringCount = Math.max(totalItems, 10);
-    const canMeshes: THREE.Group[] = [];
+    const frameMeshes: THREE.Group[] = [];
 
-    // Shared geometry for metal rims & lids
-    const canBodyGeo = new THREE.CylinderGeometry(0.72, 0.72, 2.25, 48, 1, true);
-    const topRimGeo = new THREE.CylinderGeometry(0.68, 0.72, 0.08, 48);
-    const topLidGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.03, 48);
-    const bottomRimGeo = new THREE.CylinderGeometry(0.72, 0.66, 0.12, 48);
-    const bottomBaseGeo = new THREE.CylinderGeometry(0.64, 0.64, 0.03, 48);
+    // Frame Dimensions: Aspect ~3:4 / portrait panel
+    const frameWidth = 2.2;
+    const frameHeight = 3.1;
+    const frameDepth = 0.07;
+    const photoWidth = 2.04;
+    const photoHeight = 2.94;
 
-    const chromeMat = new THREE.MeshStandardMaterial({
-      color: 0xdddddf,
-      metalness: 0.95,
-      roughness: 0.15,
+    // Outer Frame Chassis (Dark Brushed Obsidian / Matte Finish)
+    const chassisGeo = new THREE.BoxGeometry(frameWidth, frameHeight, frameDepth);
+    const chassisMat = new THREE.MeshStandardMaterial({
+      color: 0x121318,
+      metalness: 0.9,
+      roughness: 0.32,
     });
 
-    const lidMat = new THREE.MeshStandardMaterial({
-      color: 0x9999a4,
-      metalness: 0.88,
+    // Front Metallic Chamfer Border Frame (Platinum / Chrome Physical Metal)
+    const outerShape = createRoundedRectShape(frameWidth, frameHeight, 0.08);
+    const innerHole = createRoundedRectShape(photoWidth, photoHeight, 0.03);
+    outerShape.holes.push(innerHole);
+
+    const bevelBorderGeo = new THREE.ExtrudeGeometry(outerShape, {
+      depth: 0.02,
+      bevelEnabled: true,
+      bevelThickness: 0.015,
+      bevelSize: 0.015,
+      bevelSegments: 3,
+    });
+    // Center extrusion along Z
+    bevelBorderGeo.center();
+
+    const metallicBorderMat = new THREE.MeshPhysicalMaterial({
+      color: 0xe6e8f2,
+      metalness: 0.96,
+      roughness: 0.14,
+      clearcoat: 0.8,
+      clearcoatRoughness: 0.1,
+    });
+
+    // Flat Front Photo Display Plane (No barrel distortion, proper flat UVs)
+    const photoPlaneGeo = new THREE.PlaneGeometry(photoWidth, photoHeight);
+
+    // Dark Obsidian Backplate Plane
+    const backplateGeo = new THREE.PlaneGeometry(frameWidth - 0.04, frameHeight - 0.04);
+    const backplateMat = new THREE.MeshStandardMaterial({
+      color: 0x090a0f,
+      metalness: 0.92,
       roughness: 0.28,
     });
 
@@ -215,72 +260,69 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
       const itemIndex = i % totalItems;
       const item = items[itemIndex];
 
-      const canGroup = new THREE.Group();
-      canGroup.userData = {
+      const frameGroup = new THREE.Group();
+      frameGroup.userData = {
         itemIndex,
         slotIndex: i,
         item,
       };
 
-      // Procedural fallback texture
-      const proceduralTexture = createProceduralCanTexture({
-        title: item?.title || `Item ${itemIndex + 1}`,
-        category: item?.category || 'Vault',
+      // Procedural fallback / placeholder texture
+      const proceduralTexture = createProceduralFrameTexture({
+        title: item?.title || `Photo ${itemIndex + 1}`,
+        category: item?.category || 'Bandhobis',
         index: itemIndex,
         total: totalItems,
       });
 
-      const bodyMat = new THREE.MeshStandardMaterial({
+      const photoMat = new THREE.MeshStandardMaterial({
         map: proceduralTexture,
-        metalness: 0.5,
-        roughness: 0.28,
-        side: THREE.DoubleSide,
+        metalness: 0.08,
+        roughness: 0.22,
+        side: THREE.FrontSide,
       });
 
-      // Load thumbnail asynchronously
+      // Load live thumbnail asynchronously with crisp filtering
       if (item?.thumbnail) {
         textureLoader.load(
           item.thumbnail,
           (loadedTex) => {
             loadedTex.colorSpace = THREE.SRGBColorSpace;
-            loadedTex.wrapS = THREE.ClampToEdgeWrapping;
-            loadedTex.wrapT = THREE.ClampToEdgeWrapping;
-            bodyMat.map = loadedTex;
-            bodyMat.needsUpdate = true;
+            loadedTex.generateMipmaps = true;
+            loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
+            loadedTex.magFilter = THREE.LinearFilter;
+            photoMat.map = loadedTex;
+            photoMat.needsUpdate = true;
           },
           undefined,
           () => {
-            // Keep procedural texture on error
+            // Keep sleek procedural fallback on load error
           }
         );
       }
 
-      // 1. Can Body
-      const bodyMesh = new THREE.Mesh(canBodyGeo, bodyMat);
-      canGroup.add(bodyMesh);
+      // 1. Frame Chassis Box
+      const chassisMesh = new THREE.Mesh(chassisGeo, chassisMat);
+      frameGroup.add(chassisMesh);
 
-      // 2. Top Rim
-      const topRimMesh = new THREE.Mesh(topRimGeo, chromeMat);
-      topRimMesh.position.y = 1.16;
-      canGroup.add(topRimMesh);
+      // 2. Beveled Metallic Outer Frame Border
+      const borderMesh = new THREE.Mesh(bevelBorderGeo, metallicBorderMat);
+      borderMesh.position.z = frameDepth / 2 + 0.01;
+      frameGroup.add(borderMesh);
 
-      // 3. Top Lid
-      const topLidMesh = new THREE.Mesh(topLidGeo, lidMat);
-      topLidMesh.position.y = 1.19;
-      canGroup.add(topLidMesh);
+      // 3. Flat Front Photo Display
+      const photoMesh = new THREE.Mesh(photoPlaneGeo, photoMat);
+      photoMesh.position.z = frameDepth / 2 + 0.012;
+      frameGroup.add(photoMesh);
 
-      // 4. Bottom Rim
-      const bottomRimMesh = new THREE.Mesh(bottomRimGeo, chromeMat);
-      bottomRimMesh.position.y = -1.18;
-      canGroup.add(bottomRimMesh);
+      // 4. Backplate (Visible when card turns away)
+      const backMesh = new THREE.Mesh(backplateGeo, backplateMat);
+      backMesh.position.z = -frameDepth / 2 - 0.001;
+      backMesh.rotation.y = Math.PI;
+      frameGroup.add(backMesh);
 
-      // 5. Bottom Base
-      const bottomBaseMesh = new THREE.Mesh(bottomBaseGeo, lidMat);
-      bottomBaseMesh.position.y = -1.21;
-      canGroup.add(bottomBaseMesh);
-
-      carouselRingGroup.add(canGroup);
-      canMeshes.push(canGroup);
+      carouselRingGroup.add(frameGroup);
+      frameMeshes.push(frameGroup);
     }
 
     // Set initial angle so active item is centered
@@ -317,7 +359,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
       const now = performance.now();
       const dt = Math.max(1, now - rotationStateRef.current.lastTime);
 
-      // Sensitivity factor
+      // Smooth drag sensitivity
       const sensitivity = 3.6 / window.innerWidth;
       const angleDelta = deltaX * sensitivity;
 
@@ -334,7 +376,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
       isPointerDown = false;
       rotationStateRef.current.isDragging = false;
 
-      // Handle Click / Raycast if user didn't drag significantly
+      // Click / Raycast detection
       if (!didDragSignificantly) {
         pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
         pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -343,7 +385,6 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
         const intersects = raycaster.intersectObjects(carouselRingGroup.children, true);
 
         if (intersects.length > 0) {
-          // Find parent can group
           let hitGroup: THREE.Object3D | null = intersects[0].object;
           while (hitGroup && !hitGroup.userData?.item) {
             hitGroup = hitGroup.parent;
@@ -353,14 +394,14 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
             const clickedSlot = hitGroup.userData.slotIndex;
             const clickedItem = hitGroup.userData.item;
 
-            // Check if this is the active centered item
-            const currentNearestSlot = (Math.round(-rotationStateRef.current.currentAngle / stepAngle) % ringCount + ringCount) % ringCount;
+            const currentNearestSlot =
+              (Math.round(-rotationStateRef.current.currentAngle / stepAngle) % ringCount + ringCount) % ringCount;
 
             if (clickedSlot === currentNearestSlot) {
-              // Clicked the active item -> open stream!
+              // Clicked the active frame -> open lightbox modal!
               onSelectActiveItemRef.current(clickedItem);
             } else {
-              // Clicked a background item -> rotate to it!
+              // Clicked background frame -> rotate to it!
               rotationStateRef.current.programmaticTarget = -clickedSlot * stepAngle;
             }
           }
@@ -390,7 +431,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
     // --- 8. ANIMATION LOOP ---
     let animationFrameId: number;
     const clock = new THREE.Clock();
-    const orbitalRadius = 4.8;
+    const orbitalRadius = 5.0;
     let lastNotifiedIndex = activeIndexRef.current;
 
     const animate = () => {
@@ -399,7 +440,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
       const elapsedTime = clock.getElapsedTime();
       const state = rotationStateRef.current;
 
-      // 1. Programmatic rotation (e.g. from chevron or clicking background mesh)
+      // 1. Programmatic rotation
       if (state.programmaticTarget !== null) {
         state.currentAngle += (state.programmaticTarget - state.currentAngle) * 0.12;
         if (Math.abs(state.programmaticTarget - state.currentAngle) < 0.001) {
@@ -407,11 +448,11 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
           state.programmaticTarget = null;
         }
       } else if (!state.isDragging) {
-        // 2. Kinetic inertia damping
+        // 2. Inertia physics
         state.currentAngle += state.velocity;
-        state.velocity *= 0.91; // smooth deceleration
+        state.velocity *= 0.91;
 
-        // 3. Auto-snap when slow
+        // 3. Auto-snap
         if (Math.abs(state.velocity) < 0.0015) {
           const nearestSlot = Math.round(-state.currentAngle / stepAngle);
           const snapTarget = -nearestSlot * stepAngle;
@@ -419,22 +460,22 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
         }
       }
 
-      // Floating halo animation
-      haloGroup.position.y = 2.05 + Math.sin(elapsedTime * 2.2) * 0.04;
+      // Halo levitation
+      haloGroup.position.y = 2.3 + Math.sin(elapsedTime * 2.2) * 0.04;
       haloGroup.rotation.z = elapsedTime * 0.35;
 
-      // Pedestal pulsing light
+      // Pedestal pulse
       ringMesh1.scale.setScalar(1 + Math.sin(elapsedTime * 3) * 0.02);
 
-      // Position each can on the orbital cylinder
+      // Position each portrait frame on the orbital circle
       let closestDistance = Infinity;
       let activeSlot = 0;
 
-      canMeshes.forEach((mesh) => {
+      frameMeshes.forEach((mesh) => {
         const slot = mesh.userData.slotIndex;
         const angle = slot * stepAngle + state.currentAngle;
 
-        // Normalize angle to [-PI, PI]
+        // Normalize to [-PI, PI]
         const normalizedAngle = THREE.MathUtils.euclideanModulo(angle + Math.PI, 2 * Math.PI) - Math.PI;
 
         const x = orbitalRadius * Math.sin(normalizedAngle);
@@ -449,12 +490,12 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
           activeSlot = slot;
         }
 
-        // Active center item scaling (~1.25x) & background items falloff (~0.85x)
+        // Active center item scaling (~1.25x) & background items depth scale (~0.85x)
         const scaleBoost = Math.max(0, Math.cos(normalizedAngle));
         const scale = 0.85 + 0.40 * Math.pow(scaleBoost, 2.5);
         mesh.scale.set(scale, scale, scale);
 
-        // Gentle levitation for active center item
+        // Organic idle hover for active center frame
         if (absNormAngle < 0.25) {
           mesh.position.y = Math.sin(elapsedTime * 1.8) * 0.05;
         } else {
@@ -462,7 +503,6 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
         }
       });
 
-      // Notify parent when active index changes
       const calculatedActiveIndex = activeSlot % totalItems;
       if (calculatedActiveIndex !== lastNotifiedIndex) {
         lastNotifiedIndex = calculatedActiveIndex;
@@ -483,7 +523,7 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
       dom.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', onResize);
 
-      canMeshes.forEach((group) => {
+      frameMeshes.forEach((group) => {
         group.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {
             obj.geometry?.dispose();
@@ -505,16 +545,16 @@ export const ThreeStage: React.FC<ThreeStageProps> = ({
     };
   }, [items]);
 
-  // Synchronize when activeIndex prop is triggered from UI (chevrons / scrubber)
+  // Synchronize when activeIndex prop updates from UI (chevrons / scrubber)
   useEffect(() => {
     if (!items.length) return;
     const ringCount = Math.max(items.length, 10);
     const stepAngle = (2 * Math.PI) / ringCount;
-    const currentNearestSlot = (Math.round(-rotationStateRef.current.currentAngle / stepAngle) % ringCount + ringCount) % ringCount;
+    const currentNearestSlot =
+      (Math.round(-rotationStateRef.current.currentAngle / stepAngle) % ringCount + ringCount) % ringCount;
     const targetSlot = activeIndex % ringCount;
 
     if (currentNearestSlot !== targetSlot) {
-      // Find shortest angular distance
       let diff = targetSlot - currentNearestSlot;
       if (diff > ringCount / 2) diff -= ringCount;
       if (diff < -ringCount / 2) diff += ringCount;

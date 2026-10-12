@@ -4,12 +4,13 @@ import { ThreeStage, type StageMediaItem } from './components/ThreeStage';
 import { HudOverlay } from './components/HudOverlay';
 import { MenuDrawer, type CategoryKey } from './components/MenuDrawer';
 import { MediaModal } from './components/MediaModal';
+import { FALLBACK_MEDIA_DATA } from './data/fallbackData';
 import { Loader2 } from 'lucide-react';
 
 function App() {
   const { data, isLoading, isError } = useMediaData();
 
-  const [activeCategory, setActiveCategory] = useState<CategoryKey>('trailers');
+  const [activeCategory, setActiveCategory] = useState<CategoryKey>('bandhobis');
   const [activeVideoFolderId, setActiveVideoFolderId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
@@ -22,7 +23,7 @@ function App() {
   }>({
     isOpen: false,
     url: null,
-    type: 'video',
+    type: 'image',
     title: '',
   });
 
@@ -31,6 +32,64 @@ function App() {
     if (!data) return [];
 
     switch (activeCategory) {
+      case 'bandhobis': {
+        // 1. Check leftImageFolder for "bandhobis" (case-insensitive)
+        if (data.leftImageFolder?.name?.toLowerCase().includes('bandhobis') && data.leftImageFolder.files?.length) {
+          return data.leftImageFolder.files.map((img) => ({
+            id: img.id,
+            title: img.name,
+            url: img.url,
+            thumbnail: img.thumbnail,
+            category: data.leftImageFolder.name || 'Bandhobis',
+            type: 'image',
+          }));
+        }
+
+        // 2. Check centerImageFolders for "bandhobis" (case-insensitive)
+        const centerMatch = data.centerImageFolders?.find((f) =>
+          f.name?.toLowerCase().includes('bandhobis')
+        );
+        if (centerMatch && centerMatch.files?.length) {
+          return centerMatch.files.map((img) => ({
+            id: img.id,
+            title: img.name,
+            url: img.url,
+            thumbnail: img.thumbnail,
+            category: centerMatch.name,
+            type: 'image',
+          }));
+        }
+
+        // 3. Check videoFolders
+        const videoMatch = data.videoFolders?.find((f) =>
+          f.name?.toLowerCase().includes('bandhobis')
+        );
+        if (videoMatch && videoMatch.files?.length) {
+          return videoMatch.files.map((file) => ({
+            id: file.id,
+            title: file.name,
+            url: file.url,
+            thumbnail: file.thumbnail,
+            category: videoMatch.name,
+            type: 'video',
+          }));
+        }
+
+        // 4. Default fallback to leftImageFolder or static fallback data
+        const fallbackList = data.leftImageFolder?.files?.length
+          ? data.leftImageFolder.files
+          : FALLBACK_MEDIA_DATA.leftImageFolder.files;
+
+        return fallbackList.map((img) => ({
+          id: img.id,
+          title: img.name,
+          url: img.url,
+          thumbnail: img.thumbnail,
+          category: 'Bandhobis',
+          type: 'image',
+        }));
+      }
+
       case 'trailers':
         return (data.trailerImages || []).map((t) => ({
           id: t.id,
@@ -145,8 +204,8 @@ function App() {
     setActiveIndex(0);
   };
 
-  // Loading Screen
-  if (isLoading || !data) {
+  // Loading Screen (only if no fallback data is available yet)
+  if (!data && isLoading) {
     return (
       <div className="fixed inset-0 bg-[#000000] flex flex-col items-center justify-center text-white z-50">
         <div className="relative flex flex-col items-center gap-6">
@@ -170,8 +229,8 @@ function App() {
     );
   }
 
-  // Error Screen
-  if (isError) {
+  // Error Screen (only if no data is present at all)
+  if (!data && isError) {
     return (
       <div className="fixed inset-0 bg-[#000000] flex items-center justify-center text-white p-6 font-mono">
         <div className="max-w-md p-8 rounded-2xl bg-red-950/20 border border-red-500/30 text-center space-y-4">

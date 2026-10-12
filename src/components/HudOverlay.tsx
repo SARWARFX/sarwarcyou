@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Maximize2 } from 'lucide-react';
 import type { StageMediaItem } from './ThreeStage';
 
 interface HudOverlayProps {
@@ -134,7 +134,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
             <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse"></span>
             REC // LIVE 4K
           </div>
-          <div className="text-[9px] text-white/40 tracking-widest">STAGE_PBR_CAN</div>
+          <div className="text-[9px] text-white/40 tracking-widest">PORTRAIT_FRAME_3D</div>
         </div>
       </div>
 
@@ -230,13 +230,17 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
             <span>MENU</span>
           </button>
 
-          {/* White Rounded "PLAY" Pill Button */}
+          {/* White Rounded "VIEW / OPEN" Pill Button */}
           <button
             onClick={onPlay}
             className="flex items-center gap-2 bg-white text-black font-black uppercase text-xs tracking-wider px-5 sm:px-6 py-2 sm:py-2.5 rounded-full hover:bg-neutral-200 transition-all shadow-[0_0_25px_rgba(255,255,255,0.45)] hover:shadow-[0_0_35px_rgba(255,255,255,0.65)] hover:scale-105 active:scale-95 cursor-pointer"
           >
-            <Play className="w-3.5 h-3.5 fill-black" />
-            <span>PLAY</span>
+            {activeItem?.type === 'video' ? (
+              <Play className="w-3.5 h-3.5 fill-black" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5 text-black stroke-[2.5]" />
+            )}
+            <span>{activeItem?.type === 'video' ? 'PLAY' : 'VIEW / OPEN'}</span>
           </button>
         </div>
       </header>
@@ -319,7 +323,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
 
         {/* Interactive Helper Text */}
         <div className="mt-2 text-[10px] font-mono tracking-widest text-white/35 uppercase">
-          DRAG TO ROTATE • SCROLL TO CYCLE • CLICK ACTIVE OR PLAY TO STREAM
+          DRAG TO ROTATE • SCROLL TO CYCLE • CLICK ACTIVE OR OPEN FOR LIGHTBOX
         </div>
       </footer>
     </div>

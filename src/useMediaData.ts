@@ -1,6 +1,7 @@
 import useSWR from 'swr';
 import fetchJsonp from 'fetch-jsonp';
 import type { ApiResponse } from './types';
+import { FALLBACK_MEDIA_DATA } from './data/fallbackData';
 
 export const API_URL = 'https://script.google.com/macros/s/AKfycbz1ychvuBzDmsaDFtq3qpaCcdVClu4NU4f0nb1tWI94y7BgAziANmEANbor9vMYSRPd/exec';
 
@@ -35,6 +36,7 @@ const fetcher = async (url: string): Promise<ApiResponse> => {
 export const useMediaData = (flush: boolean = false) => {
   const url = flush ? `${API_URL}?flush=true` : API_URL;
   const { data, error, isLoading, mutate } = useSWR<ApiResponse>(url, fetcher, {
+    fallbackData: { status: 'success', cached: true, data: FALLBACK_MEDIA_DATA },
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     dedupingInterval: 60000,
@@ -51,7 +53,7 @@ export const useMediaData = (flush: boolean = false) => {
   };
 
   return {
-    data: data?.data,
+    data: data?.data || FALLBACK_MEDIA_DATA,
     isLoading,
     isError: error,
     syncMedia,

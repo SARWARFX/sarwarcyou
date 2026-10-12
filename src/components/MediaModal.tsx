@@ -94,12 +94,35 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             />
           </div>
         ) : (
-          <div className="relative w-full h-[75vh] flex items-center justify-center p-4 bg-black">
-            <img
-              src={url}
-              alt={title || 'Media Image'}
-              className="max-w-full max-h-full object-contain rounded-lg"
-            />
+          <div className="relative w-full h-[78vh] flex items-center justify-center p-2 sm:p-4 bg-black/50">
+            {/* If Google Drive file ID is present, use high-res direct image CDN */}
+            {(() => {
+              const driveIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+              const driveId = driveIdMatch ? driveIdMatch[1] : null;
+              const directImgUrl = driveId
+                ? `https://lh3.googleusercontent.com/u/0/d/${driveId}=w2560`
+                : url;
+
+              return (
+                <img
+                  src={directImgUrl}
+                  alt={title || 'Photo Lightbox'}
+                  className="max-w-full max-h-full object-contain rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/5"
+                  onError={(e) => {
+                    // Fallback to Drive preview iframe if direct image loading is restricted
+                    const parent = e.currentTarget.parentElement;
+                    if (parent && streamUrl) {
+                      e.currentTarget.style.display = 'none';
+                      const iframe = document.createElement('iframe');
+                      iframe.src = streamUrl;
+                      iframe.className = 'w-full h-full border-0 rounded-xl';
+                      iframe.allow = 'fullscreen';
+                      parent.appendChild(iframe);
+                    }
+                  }}
+                />
+              );
+            })()}
           </div>
         )}
       </div>

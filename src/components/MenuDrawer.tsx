@@ -1,8 +1,8 @@
 import React from 'react';
-import { X, Film, Video, Zap, Image, Check, Folder } from 'lucide-react';
+import { X, Film, Video, Zap, Image, Check, Folder, Sparkles } from 'lucide-react';
 import type { ApiResponseData } from '../types';
 
-export type CategoryKey = 'trailers' | 'videos' | 'shorts' | 'vault';
+export type CategoryKey = 'bandhobis' | 'trailers' | 'videos' | 'shorts' | 'vault';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -27,6 +27,10 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
     (data.centerImageFolders?.reduce((acc, f) => acc + (f.files?.length || 0), 0) || 0);
 
   const totalVideosCount = data.videoFolders?.reduce((acc, f) => acc + (f.files?.length || 0), 0) || 0;
+
+  const bandhobisCount = (data.leftImageFolder?.name?.toLowerCase().includes('bandhobis') ? data.leftImageFolder.files?.length : 0) ||
+    (data.centerImageFolders?.find(f => f.name?.toLowerCase().includes('bandhobis'))?.files?.length) ||
+    data.leftImageFolder?.files?.length || 16;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-md transition-opacity">
@@ -56,6 +60,35 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
           <div className="text-[11px] font-mono tracking-widest text-white/40 uppercase">
             SELECT 3D MEDIA CAROUSEL
           </div>
+
+          {/* 0. BANDHOBIS (FEATURED 3D PORTRAIT COLLECTION) */}
+          <button
+            onClick={() => {
+              onSelectCategory('bandhobis', null);
+              onClose();
+            }}
+            className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all text-left cursor-pointer group ${
+              activeCategory === 'bandhobis'
+                ? 'bg-gradient-to-r from-cyan-950/60 to-purple-950/60 border-cyan-400/60 text-white shadow-[0_0_25px_rgba(0,210,255,0.25)]'
+                : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/15 text-white/80'
+            }`}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="p-2.5 rounded-lg bg-cyan-400/20 text-cyan-400 group-hover:scale-105 transition-transform">
+                <Sparkles className="w-5 h-5 text-cyan-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm tracking-wide">BANDHOBIS</span>
+                  <span className="text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 uppercase">
+                    FEATURED 3D
+                  </span>
+                </div>
+                <div className="text-xs text-white/40">{bandhobisCount} PORTRAIT PHOTOS</div>
+              </div>
+            </div>
+            {activeCategory === 'bandhobis' && <Check className="w-5 h-5 text-cyan-400" />}
+          </button>
 
           {/* 1. TRAILERS */}
           <button

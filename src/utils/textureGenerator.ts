@@ -20,72 +20,106 @@ const COLOR_PALETTES = [
   { primary: '#E59DE6', secondary: '#71BD96', accent: '#00A6E2' }, // Ciao Pastel
 ];
 
-export function createProceduralCanTexture(options: TextureOptions): THREE.CanvasTexture {
+export function createProceduralFrameTexture(options: TextureOptions): THREE.CanvasTexture {
   const { title, category, index, total } = options;
   const canvas = document.createElement('canvas');
+  // 3:4 portrait resolution
   canvas.width = 1024;
-  canvas.height = 1024;
+  canvas.height = 1440;
   const ctx = canvas.getContext('2d')!;
 
   const palette = options.colorTheme || COLOR_PALETTES[index % COLOR_PALETTES.length];
 
-  // 1. Dark metallic brushed background
-  const bgGrad = ctx.createLinearGradient(0, 0, 1024, 1024);
-  bgGrad.addColorStop(0, '#0a0b10');
-  bgGrad.addColorStop(0.5, '#12141f');
-  bgGrad.addColorStop(1, '#050608');
+  // 1. Dark obsidian background
+  const bgGrad = ctx.createLinearGradient(0, 0, 1024, 1440);
+  bgGrad.addColorStop(0, '#0d0e14');
+  bgGrad.addColorStop(0.5, '#131520');
+  bgGrad.addColorStop(1, '#08080c');
   ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, 1024, 1024);
+  ctx.fillRect(0, 0, 1024, 1440);
 
-  // Subtle metallic texture lines
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+  // Subtle carbon fiber diagonal texture
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
   ctx.lineWidth = 1;
-  for (let y = 0; y < 1024; y += 4) {
+  for (let i = -1440; i < 2464; i += 12) {
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(1024, y);
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + 1440, 1440);
     ctx.stroke();
   }
 
-  // 2. Neon gradient decorative accent panels
-  const barGrad = ctx.createLinearGradient(0, 0, 1024, 0);
-  barGrad.addColorStop(0, palette.primary);
-  barGrad.addColorStop(0.5, palette.secondary);
-  barGrad.addColorStop(1, palette.accent);
+  // 2. Inner fine framing line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(60, 60, 904, 1320);
 
-  ctx.fillStyle = barGrad;
-  ctx.fillRect(80, 120, 864, 12);
-  ctx.fillRect(80, 900, 864, 12);
+  // Corner viewfinder brackets on the canvas
+  const cornerLen = 40;
+  ctx.strokeStyle = palette.primary;
+  ctx.lineWidth = 4;
 
-  // Vertical cyber side marks
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-  ctx.fillRect(80, 150, 4, 730);
-  ctx.fillRect(940, 150, 4, 730);
+  // Top-left
+  ctx.beginPath();
+  ctx.moveTo(40, 40 + cornerLen);
+  ctx.lineTo(40, 40);
+  ctx.lineTo(40 + cornerLen, 40);
+  ctx.stroke();
 
-  // 3. Category & Stage Tag
+  // Top-right
+  ctx.beginPath();
+  ctx.moveTo(984 - cornerLen, 40);
+  ctx.lineTo(984, 40);
+  ctx.lineTo(984, 40 + cornerLen);
+  ctx.stroke();
+
+  // Bottom-left
+  ctx.beginPath();
+  ctx.moveTo(40, 1400 - cornerLen);
+  ctx.lineTo(40, 1400);
+  ctx.lineTo(40 + cornerLen, 1400);
+  ctx.stroke();
+
+  // Bottom-right
+  ctx.beginPath();
+  ctx.moveTo(984 - cornerLen, 1400);
+  ctx.lineTo(984, 1400);
+  ctx.lineTo(984, 1400 - cornerLen);
+  ctx.stroke();
+
+  // 3. Top Category Tag
   ctx.fillStyle = palette.primary;
-  ctx.font = 'bold 32px "Space Grotesk", sans-serif';
-  ctx.letterSpacing = '4px';
-  ctx.fillText(`[ ${category.toUpperCase()} // #0${(index + 1).toString().padStart(2, '0')} ]`, 120, 220);
+  ctx.font = 'bold 30px "Space Grotesk", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`[ ${category.toUpperCase()} // PHOTO ${(index + 1).toString().padStart(2, '0')} ]`, 90, 120);
 
-  // 4. Large Index Number in Background
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-  ctx.font = 'bold 340px "Space Grotesk", sans-serif';
+  // 4. Center Glowing Circular Watermark & Large Index
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+  ctx.font = 'bold 440px "Space Grotesk", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`${(index + 1).toString().padStart(2, '0')}`, 512, 620);
+  ctx.fillText(`${(index + 1).toString().padStart(2, '0')}`, 512, 850);
 
-  // 5. Main Title
+  // Center portrait silhouette frame
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(262, 380, 500, 660);
+
+  // Neon glowing center icon
+  ctx.fillStyle = palette.primary;
+  ctx.font = 'bold 28px "Space Grotesk", monospace';
+  ctx.fillText('PORTRAIT FRAME • 3D', 512, 720);
+
+  // 5. Clean Title Wrap at Bottom
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = '900 italic 54px "Space Grotesk", sans-serif';
+  ctx.font = '900 italic 52px "Space Grotesk", sans-serif';
 
-  // Multi-line wrap title
-  const words = title.replace(/\.[^/.]+$/, '').split(/[\s_-]+/);
+  const cleanName = title.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
+  const words = cleanName.split(' ');
   let line = '';
   const lines: string[] = [];
   for (let i = 0; i < words.length; i++) {
     const testLine = line + (line ? ' ' : '') + words[i];
-    if (testLine.length > 16 && line) {
+    if (testLine.length > 18 && line) {
       lines.push(line);
       line = words[i];
     } else {
@@ -94,27 +128,21 @@ export function createProceduralCanTexture(options: TextureOptions): THREE.Canva
   }
   lines.push(line);
 
-  const startY = 480 - ((lines.length - 1) * 35);
+  const startY = 1140 - ((lines.length - 1) * 35);
   lines.forEach((l, i) => {
-    ctx.fillText(l.toUpperCase(), 512, startY + (i * 70));
+    ctx.fillText(l.toUpperCase(), 512, startY + (i * 64));
   });
 
-  // 6. Holographic Badge in Center
-  ctx.strokeStyle = palette.primary;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(362, 700, 300, 60);
-
-  ctx.fillStyle = palette.primary;
-  ctx.font = 'bold 24px "Space Grotesk", monospace';
-  ctx.fillText('SARWAR.CYOU 3D', 512, 738);
-
-  // 7. Tech specs readout
+  // 6. Bottom spec footer
   ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.font = '20px monospace';
-  ctx.fillText(`STREAM // GOOGLE DRIVE CLOUD • ${index + 1}/${total}`, 512, 850);
+  ctx.font = '22px monospace';
+  ctx.fillText(`PHOTO ${index + 1} OF ${total} • SARWAR.CYOU`, 512, 1330);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
 }
+
+// Keep alias for backward compatibility
+export const createProceduralCanTexture = createProceduralFrameTexture;
