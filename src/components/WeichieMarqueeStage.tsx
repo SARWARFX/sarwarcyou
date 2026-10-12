@@ -131,7 +131,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       1000
     );
     // Camera centered at (0, 0, Z) with heroic framing distance
-    camera.position.set(0, 0, isPortrait ? 9.6 : 8.0);
+    camera.position.set(0, 0, isPortrait ? 9.8 : 8.2);
     camera.lookAt(0, 0, 0);
 
     // --- 2. WEICHIE-GRADE TONE MAPPING & RENDERER ---
@@ -180,8 +180,8 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     mouseReactiveLight.position.set(0, 0, 4.0);
     scene.add(mouseReactiveLight);
 
-    // --- 4. RECYCLING MESH POOL (EXACTLY 7 MESHES) ---
-    const POOL_SIZE = 7;
+    // --- 4. RECYCLING MESH POOL (EXACTLY 9 MESHES FOR FULL VIEWPORT COVERAGE) ---
+    const POOL_SIZE = 9;
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
 
@@ -246,6 +246,13 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         fallbackCanvasTextures.set(photoIdx, fb);
       }
       return fb;
+    };
+
+    // Helper: Exact rendered width of any card based on its native aspect ratio
+    const getCardRenderedWidth = (pIdx: number): number => {
+      const ratio = textureRatios.get(pIdx) || 0.72;
+      const { w } = computeHeroicDimensions(ratio);
+      return w;
     };
 
     // Apply aspect-ratio aware scaling to a pool mesh group
@@ -346,7 +353,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
                 undefined,
                 () => {
                   loadingIndices.delete(photoIdx);
-                  // Procedural fallback already active
                 }
               );
             }
@@ -355,7 +361,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       );
     };
 
-    // Instantiate exactly 7 mesh groups
+    // Instantiate exactly 9 mesh groups
     const poolMeshes: THREE.Group[] = [];
 
     for (let i = 0; i < POOL_SIZE; i++) {
@@ -451,7 +457,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       const now = performance.now();
       const dt = Math.max(1, now - animStateRef.current.lastTime);
 
-      const sensitivity = 2.8 / window.innerWidth;
+      const sensitivity = 2.4 / window.innerWidth;
       const indexDelta = -deltaX * sensitivity;
 
       animStateRef.current.scrollPos += indexDelta;
@@ -518,7 +524,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     const onResize = () => {
       const portraitNow = window.innerWidth < 768;
       camera.aspect = window.innerWidth / window.innerHeight;
-      camera.position.z = portraitNow ? 9.6 : 8.0;
+      camera.position.z = portraitNow ? 9.8 : 8.2;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
@@ -533,12 +539,23 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onResize);
 
-    // --- 6. 60+ FPS VIRTUALIZED MARQUEE ANIMATION LOOP ---
+    // --- 6. DYNAMIC BOUNDING-BOX ARC POSITIONING & MARQUEE ANIMATION LOOP ---
     let animationFrameId: number;
     let lastNotifiedIndex = -1;
     let frameCounter = 0;
     const baseDriftSpeed = 0.0034;
-    const globalArcRadius = 7.6;
+    const globalArcRadius = 8.2;
+    // Mandatory buffer gap between adjacent outer edges (0.4 to 0.6 units)
+    const MANDATORY_BUFFER_GAP = 0.55;
+
+    // Helper: Calculate distance step between center of slot j and slot j + 1
+    const getSlotStepDistance = (slot: number): number => {
+      const p1 = ((slot % totalItems) + totalItems) % totalItems;
+      const p2 = (((slot + 1) % totalItems) + totalItems) % totalItems;
+      const w1 = getCardRenderedWidth(p1);
+      const w2 = getCardRenderedWidth(p2);
+      return (w1 + w2) * 0.5 + MANDATORY_BUFFER_GAP;
+    };
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
@@ -573,24 +590,37 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         }
       }
 
-      // --- 7. VIRTUALIZED POOL MESH POSITIONING & TEXTURE RECYCLING ---
-      const centerSlot = Math.round(state.scrollPos);
+      // --- 7. DYNAMIC BOUNDING-BOX ARC POSITIONING ---
+      // Reference slot kRef and fractional progress frac in [0, 1)
+      const kRef = Math.floor(state.scrollPos);
+      const frac = state.scrollPos - kRef;
+      const stepRef = getSlotStepDistance(kRef);
+      const focusArc = frac * stepRef;
 
-      for (let k = -3; k <= 3; k++) {
-        const virtualSlot = centerSlot + k;
-        const offset = virtualSlot - state.scrollPos;
+      // Calculate cumulative arc positions relative to kRef for slots [kRef - 4, kRef + 4]
+      const arcDistances: { [k: number]: number } = {};
+      arcDistances[kRef] = 0;
 
-        const poolIndex = ((virtualSlot % POOL_SIZE) + POOL_SIZE) % POOL_SIZE;
+      for (let k = kRef + 1; k <= kRef + 4; k++) {
+        arcDistances[k] = arcDistances[k - 1] + getSlotStepDistance(k - 1);
+      }
+      for (let k = kRef - 1; k >= kRef - 4; k--) {
+        arcDistances[k] = arcDistances[k + 1] - getSlotStepDistance(k);
+      }
+
+      // Render the 9 visible slots centered around kRef
+      for (let k = kRef - 4; k <= kRef + 4; k++) {
+        const poolIndex = ((k % POOL_SIZE) + POOL_SIZE) % POOL_SIZE;
         const meshGroup = poolMeshes[poolIndex];
 
-        const photoIndex = ((virtualSlot % totalItems) + totalItems) % totalItems;
+        const photoIndex = ((k % totalItems) + totalItems) % totalItems;
         const item = items[photoIndex];
 
-        // Recycle texture and adjust dimensions when slot changes
+        // Recycle texture and apply dynamic aspect-ratio dimensions
         if (meshGroup.userData.photoIndex !== photoIndex) {
           meshGroup.userData.photoIndex = photoIndex;
           meshGroup.userData.item = item;
-          meshGroup.userData.virtualSlot = virtualSlot;
+          meshGroup.userData.virtualSlot = k;
 
           const photoMesh = meshGroup.userData.photoMesh as THREE.Mesh;
           const photoMat = photoMesh.material as THREE.MeshBasicMaterial;
@@ -607,8 +637,9 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
           applyAspectDimensions(meshGroup, photoIndex);
         }
 
-        // --- 8. WEICHIE 3D HORIZONTAL CURVED PERSPECTIVE ---
-        const theta = offset * 0.40;
+        // Relative arc distance along the cylindrical curve
+        const arcPos = (arcDistances[k] ?? 0) - focusArc;
+        const theta = arcPos / globalArcRadius;
         const x = globalArcRadius * Math.sin(theta);
         const z = globalArcRadius * (Math.cos(theta) - 1);
 
@@ -618,6 +649,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         const hoverTiltY = isHovered ? state.mousePos.x * 0.12 : 0;
 
         meshGroup.position.set(x, 0, z + hoverZLift);
+        // Concave curvature faces camera at center, softly angles left/right
         meshGroup.rotation.set(hoverTiltX, theta * 0.88 + hoverTiltY, 0);
 
         // Center card gets maximum scale and clarity; edges softly recede
@@ -627,12 +659,11 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         meshGroup.scale.set(finalScale, finalScale, finalScale);
       }
 
-      // --- 9. OFFSCREEN TEXTURE PRUNING (<50MB GPU MEMORY) ---
+      // --- 8. OFFSCREEN TEXTURE PRUNING (<50MB GPU MEMORY) ---
       if (frameCounter % 25 === 0) {
         const activeIndices = new Set<number>();
-        for (let k = -4; k <= 4; k++) {
-          const v = centerSlot + k;
-          const idx = ((v % totalItems) + totalItems) % totalItems;
+        for (let k = kRef - 4; k <= kRef + 4; k++) {
+          const idx = ((k % totalItems) + totalItems) % totalItems;
           activeIndices.add(idx);
         }
 
@@ -645,7 +676,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       }
 
       // Notify parent of center item changes
-      const currentCenterPhotoIdx = ((centerSlot % totalItems) + totalItems) % totalItems;
+      const currentCenterPhotoIdx = ((Math.round(state.scrollPos) % totalItems) + totalItems) % totalItems;
       if (currentCenterPhotoIdx !== lastNotifiedIndex) {
         lastNotifiedIndex = currentCenterPhotoIdx;
         onActiveIndexChangeRef.current(currentCenterPhotoIdx);
@@ -656,7 +687,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
 
     animate();
 
-    // --- 10. CLEANUP & MEMORY DISPOSAL ---
+    // --- 9. CLEANUP & MEMORY DISPOSAL ---
     return () => {
       cancelAnimationFrame(animationFrameId);
       dom.removeEventListener('pointerdown', onPointerDown);
