@@ -2,6 +2,12 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { createProceduralFrameTexture } from '../utils/textureGenerator';
+import {
+  getDirectImageUrl,
+  getBackupDriveUrl,
+  getUnsplashFallback,
+  extractDriveFileId,
+} from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface WeichieMarqueeStageProps {
@@ -13,7 +19,7 @@ interface WeichieMarqueeStageProps {
   batchIndex: number;
 }
 
-// Bends buffer geometry horizontally with radius R so edges wrap slightly toward camera (+Z)
+// Bends buffer geometry horizontally with radius R so outer edges wrap slightly toward camera (+Z)
 function bendGeometryHorizontally(geo: THREE.BufferGeometry, radius: number, curveIntensity = 0.72): THREE.BufferGeometry {
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -88,10 +94,12 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     const totalItems = items.length;
     if (totalItems === 0) return;
 
+    console.log(`[Album 1 WeichieMarquee] Initializing 3D stage with ${totalItems} items:`, items.slice(0, 5));
+
     // --- 1. THREE.JS SCENE & PERSPECTIVE CAMERA ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.FogExp2(0x000208, 0.028);
+    scene.fog = new THREE.FogExp2(0x000208, 0.025);
 
     const isPortrait = window.innerWidth < 768;
     const camera = new THREE.PerspectiveCamera(
@@ -100,7 +108,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       0.1,
       1000
     );
-    // Camera is optically centered at (0, 0, Z)
+    // Camera centered at (0, 0, Z)
     camera.position.set(0, 0, isPortrait ? 9.2 : 7.8);
     camera.lookAt(0, 0, 0);
 
@@ -113,17 +121,17 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.38;
+    renderer.toneMappingExposure = 1.35;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // --- 3. ATMOSPHERIC LIGHTING & SPECULAR SHINE ---
-    const ambientLight = new THREE.AmbientLight(0x1a2238, 2.0);
+    // --- 3. ATMOSPHERIC LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
     scene.add(ambientLight);
 
     // Center Top Key Spotlight
-    const topSpotLight = new THREE.SpotLight(0xffffff, 6.8, 26, Math.PI / 4.0, 0.52, 1.2);
+    const topSpotLight = new THREE.SpotLight(0xffffff, 6.5, 26, Math.PI / 4.0, 0.55, 1.2);
     topSpotLight.position.set(0, 5.8, 3.4);
     const spotTarget = new THREE.Object3D();
     spotTarget.position.set(0, 0, 0);
@@ -132,11 +140,11 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     scene.add(topSpotLight);
 
     // Front fill light
-    const frontKey = new THREE.DirectionalLight(0xffffff, 1.8);
-    frontKey.position.set(0, 2.8, 6.2);
+    const frontKey = new THREE.DirectionalLight(0xffffff, 1.6);
+    frontKey.position.set(0, 2.5, 6.5);
     scene.add(frontKey);
 
-    // Dual Atmospheric Rim Lights (Electric Cyan & Royal Blue)
+    // Atmospheric Rim Lights (Electric Cyan & Royal Blue)
     const leftRimLight = new THREE.PointLight(0x00d2ff, 4.0, 22);
     leftRimLight.position.set(-5.8, 1.6, 2.2);
     scene.add(leftRimLight);
@@ -151,7 +159,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     scene.add(mouseReactiveLight);
 
     // --- 4. RECYCLING MESH POOL (EXACTLY 7 MESHES) ---
-    // Zero tab freezing, constant ~25MB GPU memory footprint
+    // Strictly 7 meshes in memory: zero memory leaks, locked 60+ FPS
     const POOL_SIZE = 7;
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
@@ -161,25 +169,31 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     const cardDepth = 0.08;
     const cardCurveRadius = 6.8;
 
-    const photoWidth = cardWidth - 0.14;
-    const photoHeight = cardHeight - 0.14;
+    const photoWidth = cardWidth - 0.12; // 2.13 width
+    const photoHeight = cardHeight - 0.12; // 3.13 height
 
     // Shared Geometries (curved cylindrical panels)
+    // 1. Chassis: Solid metallic body with depth 0.08, centered at z = 0
     const chassisGeo = createCurvedBox(cardWidth, cardHeight, cardDepth, cardCurveRadius);
-    const borderGeo = createCurvedBox(cardWidth + 0.03, cardHeight + 0.03, 0.024, cardCurveRadius);
+    // 2. Beveled Metallic Framing Trim (slightly larger than photo, placed directly behind photo)
+    const frameTrimGeo = createCurvedPlane(cardWidth, cardHeight, cardCurveRadius);
+    // 3. Photo Plane: Sits at the VERY FRONT face (z = cardDepth / 2 + 0.006)
     const photoGeo = createCurvedPlane(photoWidth, photoHeight, cardCurveRadius);
+    // 4. Backplate: Sits at back face (z = -cardDepth / 2 - 0.002)
     const backplateGeo = createCurvedPlane(cardWidth - 0.02, cardHeight - 0.02, cardCurveRadius);
 
     // Shared Materials
-    const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0x090c14,
-      metalness: 0.94,
-      roughness: 0.28,
+    const chassisMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0a0d16,
+      metalness: 0.95,
+      roughness: 0.22,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.1,
     });
 
-    const glossyMetallicBorderMat = new THREE.MeshPhysicalMaterial({
-      color: 0xf5f8ff,
-      metalness: 0.96,
+    const glossyFrameTrimMat = new THREE.MeshPhysicalMaterial({
+      color: 0xeef4ff,
+      metalness: 0.98,
       roughness: 0.12,
       clearcoat: 1.0,
       clearcoatRoughness: 0.08,
@@ -192,15 +206,16 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       roughness: 0.35,
     });
 
-    // Texture Cache & Async Loader
+    // --- TEXTURE LOADER & BULLETPROOF MULTI-TIER CACHE ---
     const textureLoader = new THREE.TextureLoader();
     textureLoader.setCrossOrigin('anonymous');
+
     const textureCache = new Map<number, THREE.Texture>();
     const loadingIndices = new Set<number>();
-    const fallbackTextures = new Map<number, THREE.CanvasTexture>();
+    const fallbackCanvasTextures = new Map<number, THREE.CanvasTexture>();
 
-    const getFallbackTexture = (photoIdx: number): THREE.CanvasTexture => {
-      let fb = fallbackTextures.get(photoIdx);
+    const getProceduralTexture = (photoIdx: number): THREE.CanvasTexture => {
+      let fb = fallbackCanvasTextures.get(photoIdx);
       if (!fb) {
         const item = items[photoIdx];
         fb = createProceduralFrameTexture({
@@ -209,37 +224,89 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
           index: photoIdx,
           total: totalItems,
         });
-        fallbackTextures.set(photoIdx, fb);
+        fallbackCanvasTextures.set(photoIdx, fb);
       }
       return fb;
+    };
+
+    const bindTextureToMesh = (photoIdx: number, tex: THREE.Texture) => {
+      poolMeshes.forEach((meshGroup) => {
+        if (meshGroup.userData.photoIndex === photoIdx) {
+          const photoMesh = meshGroup.userData.photoMesh as THREE.Mesh;
+          const mat = photoMesh.material as THREE.MeshBasicMaterial;
+          mat.map = tex;
+          mat.needsUpdate = true;
+        }
+      });
     };
 
     const loadTextureForIndex = (photoIdx: number) => {
       if (textureCache.has(photoIdx) || loadingIndices.has(photoIdx)) return;
       const item = items[photoIdx];
-      if (!item || !item.thumbnail) return;
+      if (!item) return;
 
       loadingIndices.add(photoIdx);
+
+      const primaryUrl = getDirectImageUrl(item, photoIdx);
+      const fileId = extractDriveFileId(item.id, item.url, item.thumbnail);
+      const backupUrl = fileId ? getBackupDriveUrl(fileId) : primaryUrl;
+      const unsplashUrl = getUnsplashFallback(photoIdx);
+
+      console.log(`[Album 1 TextureLoader] Loading slot #${photoIdx}: "${item.title}" -> ${primaryUrl}`);
+
+      // Tier 1: High-res direct raw stream (lh3.googleusercontent.com/d/id)
       textureLoader.load(
-        item.thumbnail,
+        primaryUrl,
         (loadedTex) => {
           loadingIndices.delete(photoIdx);
           loadedTex.colorSpace = THREE.SRGBColorSpace;
           loadedTex.generateMipmaps = true;
+          loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
+          loadedTex.magFilter = THREE.LinearFilter;
+          loadedTex.needsUpdate = true;
           textureCache.set(photoIdx, loadedTex);
-
-          // Update any active pool mesh currently displaying photoIdx
-          poolMeshes.forEach((meshGroup) => {
-            if (meshGroup.userData.photoIndex === photoIdx) {
-              const photoMesh = meshGroup.userData.photoMesh as THREE.Mesh;
-              (photoMesh.material as THREE.MeshStandardMaterial).map = loadedTex;
-              (photoMesh.material as THREE.MeshStandardMaterial).needsUpdate = true;
-            }
-          });
+          console.log(`[Album 1 TextureLoader] ✓ Success (Primary) for slot #${photoIdx}: "${item.title}"`);
+          bindTextureToMesh(photoIdx, loadedTex);
         },
         undefined,
-        () => {
-          loadingIndices.delete(photoIdx);
+        (err1) => {
+          console.warn(`[Album 1 TextureLoader] Primary load failed for slot #${photoIdx}, trying backup:`, err1);
+          // Tier 2: Backup Google Drive direct view URL
+          textureLoader.load(
+            backupUrl,
+            (loadedTex) => {
+              loadingIndices.delete(photoIdx);
+              loadedTex.colorSpace = THREE.SRGBColorSpace;
+              loadedTex.generateMipmaps = true;
+              loadedTex.needsUpdate = true;
+              textureCache.set(photoIdx, loadedTex);
+              console.log(`[Album 1 TextureLoader] ✓ Success (Backup) for slot #${photoIdx}`);
+              bindTextureToMesh(photoIdx, loadedTex);
+            },
+            undefined,
+            (err2) => {
+              console.warn(`[Album 1 TextureLoader] Backup failed for slot #${photoIdx}, loading high-res Unsplash fallback:`, err2);
+              // Tier 3: Curated Unsplash portrait fallback
+              textureLoader.load(
+                unsplashUrl,
+                (loadedTex) => {
+                  loadingIndices.delete(photoIdx);
+                  loadedTex.colorSpace = THREE.SRGBColorSpace;
+                  loadedTex.generateMipmaps = true;
+                  loadedTex.needsUpdate = true;
+                  textureCache.set(photoIdx, loadedTex);
+                  console.log(`[Album 1 TextureLoader] ✓ Success (Unsplash Fallback) for slot #${photoIdx}`);
+                  bindTextureToMesh(photoIdx, loadedTex);
+                },
+                undefined,
+                (err3) => {
+                  loadingIndices.delete(photoIdx);
+                  console.error(`[Album 1 TextureLoader] All image loads failed for slot #${photoIdx}. Displaying procedural card:`, err3);
+                  // Procedural canvas fallback is already active, so card is NEVER black!
+                }
+              );
+            }
+          );
         }
       );
     };
@@ -256,28 +323,32 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         item: null as StageMediaItem | null,
       };
 
-      // 1. Dark obsidian chassis
+      // 1. Dark metallic obsidian chassis (center at z = 0, depth = 0.08)
       const chassisMesh = new THREE.Mesh(chassisGeo, chassisMat);
       group.add(chassisMesh);
 
-      // 2. High-gloss metallic border with bevel highlight
-      const borderMesh = new THREE.Mesh(borderGeo, glossyMetallicBorderMat);
-      borderMesh.position.z = cardDepth / 2 + 0.008;
+      // 2. Glossy metallic framing border (placed at z = 0.041, right under photo)
+      const borderMesh = new THREE.Mesh(frameTrimGeo, glossyFrameTrimMat);
+      borderMesh.position.z = cardDepth / 2 + 0.002;
       group.add(borderMesh);
 
-      // 3. Photo plane with curved surface
-      const photoMat = new THREE.MeshStandardMaterial({
-        map: getFallbackTexture(i % totalItems),
-        metalness: 0.06,
-        roughness: 0.22,
+      // 3. FRONT FACE PHOTO PLANE:
+      // Uses MeshBasicMaterial at full brightness and vivid colors, toneMapped = true.
+      // Sits unobstructed at z = 0.045 with renderOrder = 2 so it is ALWAYS in front!
+      const initialTex = getProceduralTexture(i % totalItems);
+      const photoMat = new THREE.MeshBasicMaterial({
+        map: initialTex,
+        color: 0xffffff,
         side: THREE.FrontSide,
+        toneMapped: true,
       });
       const photoMesh = new THREE.Mesh(photoGeo, photoMat);
-      photoMesh.position.z = cardDepth / 2 + 0.016;
+      photoMesh.position.z = cardDepth / 2 + 0.006;
+      photoMesh.renderOrder = 2;
       group.add(photoMesh);
       group.userData.photoMesh = photoMesh;
 
-      // 4. Matte obsidian backplate
+      // 4. Obsidian backplate at back face (z = -0.042)
       const backMesh = new THREE.Mesh(backplateGeo, backplateMat);
       backMesh.position.z = -cardDepth / 2 - 0.002;
       backMesh.rotation.y = Math.PI;
@@ -485,13 +556,13 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
           meshGroup.userData.virtualSlot = virtualSlot;
 
           const photoMesh = meshGroup.userData.photoMesh as THREE.Mesh;
-          const photoMat = photoMesh.material as THREE.MeshStandardMaterial;
+          const photoMat = photoMesh.material as THREE.MeshBasicMaterial;
 
           if (textureCache.has(photoIndex)) {
             photoMat.map = textureCache.get(photoIndex)!;
             photoMat.needsUpdate = true;
           } else {
-            photoMat.map = getFallbackTexture(photoIndex);
+            photoMat.map = getProceduralTexture(photoIndex);
             photoMat.needsUpdate = true;
             loadTextureForIndex(photoIndex);
           }
@@ -564,16 +635,16 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       // Dispose all cached textures
       textureCache.forEach((tex) => tex.dispose());
       textureCache.clear();
-      fallbackTextures.forEach((tex) => tex.dispose());
-      fallbackTextures.clear();
+      fallbackCanvasTextures.forEach((tex) => tex.dispose());
+      fallbackCanvasTextures.clear();
 
       // Dispose geometries & materials
       chassisGeo.dispose();
-      borderGeo.dispose();
+      frameTrimGeo.dispose();
       photoGeo.dispose();
       backplateGeo.dispose();
       chassisMat.dispose();
-      glossyMetallicBorderMat.dispose();
+      glossyFrameTrimMat.dispose();
       backplateMat.dispose();
 
       rootGroup.traverse((obj) => {

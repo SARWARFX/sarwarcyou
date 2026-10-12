@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { createProceduralFrameTexture, createComingSoonTexture } from '../utils/textureGenerator';
 import { WeichieMarqueeStage } from './WeichieMarqueeStage';
+import { getDirectImageUrl, getBackupDriveUrl, getUnsplashFallback, extractDriveFileId } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface AlbumStageProps {
@@ -298,26 +299,58 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
           total: album.itemCount,
         });
 
-        const photoMat = new THREE.MeshStandardMaterial({
+        const photoMat = new THREE.MeshBasicMaterial({
           map: fallbackTex,
-          metalness: 0.08,
-          roughness: 0.22,
+          color: 0xffffff,
           side: THREE.FrontSide,
+          toneMapped: true,
         });
 
-        if (item.thumbnail) {
-          textureLoader.load(
-            item.thumbnail,
-            (loadedTex) => {
-              loadedTex.colorSpace = THREE.SRGBColorSpace;
-              loadedTex.generateMipmaps = true;
-              photoMat.map = loadedTex;
-              photoMat.needsUpdate = true;
-            },
-            undefined,
-            () => {}
-          );
-        }
+        const primaryUrl = getDirectImageUrl(item, startIdx + index);
+        const fileId = extractDriveFileId(item.id, item.url, item.thumbnail);
+        const backupUrl = fileId ? getBackupDriveUrl(fileId) : primaryUrl;
+        const unsplashUrl = getUnsplashFallback(startIdx + index);
+
+        textureLoader.load(
+          primaryUrl,
+          (loadedTex) => {
+            loadedTex.colorSpace = THREE.SRGBColorSpace;
+            loadedTex.generateMipmaps = true;
+            loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
+            loadedTex.magFilter = THREE.LinearFilter;
+            loadedTex.needsUpdate = true;
+            photoMat.map = loadedTex;
+            photoMat.needsUpdate = true;
+          },
+          undefined,
+          () => {
+            textureLoader.load(
+              backupUrl,
+              (backupTex) => {
+                backupTex.colorSpace = THREE.SRGBColorSpace;
+                backupTex.generateMipmaps = true;
+                backupTex.needsUpdate = true;
+                photoMat.map = backupTex;
+                photoMat.needsUpdate = true;
+              },
+              undefined,
+              () => {
+                textureLoader.load(
+                  unsplashUrl,
+                  (unsplashTex) => {
+                    unsplashTex.colorSpace = THREE.SRGBColorSpace;
+                    unsplashTex.generateMipmaps = true;
+                    unsplashTex.needsUpdate = true;
+                    photoMat.map = unsplashTex;
+                    photoMat.needsUpdate = true;
+                  },
+                  undefined,
+                  () => {}
+                );
+              }
+            );
+          }
+        );
 
         const chassisMesh = new THREE.Mesh(chassisGeo, chassisMat);
         cardGroup.add(chassisMesh);
@@ -327,7 +360,8 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
         cardGroup.add(borderMesh);
 
         const photoMesh = new THREE.Mesh(photoPlaneGeo, photoMat);
-        photoMesh.position.z = cardDepth / 2 + 0.012;
+        photoMesh.position.z = cardDepth / 2 + 0.032;
+        photoMesh.renderOrder = 2;
         cardGroup.add(photoMesh);
 
         const backMesh = new THREE.Mesh(backplateGeo, backplateMat);
