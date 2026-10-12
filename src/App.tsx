@@ -281,6 +281,15 @@ function App() {
                   activeIndex={currentMediaIdx}
                   onActiveIndexChange={(newIdx) => {
                     setActiveMediaIndices((prev) => ({ ...prev, [idx]: newIdx }));
+                    if (idx === 0) {
+                      const computedBatch = Math.floor(newIdx / 6);
+                      setAlbumBatches((prev) => {
+                        if (prev[0] !== computedBatch) {
+                          return { ...prev, [0]: computedBatch };
+                        }
+                        return prev;
+                      });
+                    }
                   }}
                   batchIndex={currentBatch}
                   onSelectItem={(item) => handleSelectItem(item, idx)}

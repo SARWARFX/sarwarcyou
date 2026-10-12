@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { createProceduralFrameTexture, createComingSoonTexture } from '../utils/textureGenerator';
+import { WeichieMarqueeStage } from './WeichieMarqueeStage';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface AlbumStageProps {
@@ -33,7 +34,7 @@ function createRoundedRectShape(width: number, height: number, radius: number): 
   return shape;
 }
 
-export const AlbumStage: React.FC<AlbumStageProps> = ({
+const StandardAlbumStage: React.FC<AlbumStageProps> = ({
   album,
   isActive,
   onSelectItem,
@@ -718,4 +719,11 @@ export const AlbumStage: React.FC<AlbumStageProps> = ({
       className="absolute inset-0 w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-black z-0"
     />
   );
+};
+
+export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
+  if (props.album.layoutType === 'weichie-curved' || props.album.index === 0) {
+    return <WeichieMarqueeStage {...props} />;
+  }
+  return <StandardAlbumStage {...props} />;
 };

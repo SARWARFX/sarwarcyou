@@ -53,8 +53,8 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       type: 'image',
       itemCount: bandhobisFiles.length,
       items: bandhobisFiles,
-      layoutType: 'shallow-arc',
-      subtitle: 'Portrait Gallery Arc',
+      layoutType: 'weichie-curved',
+      subtitle: 'Weichie 3D Curved Marquee',
     },
     // Album 2: Works
     {
