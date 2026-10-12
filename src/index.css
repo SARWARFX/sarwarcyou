@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --font-inter: 'Inter', sans-serif;
+  --font-space: 'Space Grotesk', sans-serif;
+
+  --color-brand-blue: #0066FF;
+  --color-brand-cyan: #00D2FF;
+  --color-brand-dark: #09090B;
+  --color-brand-darker: #0E0E12;
+  --color-brand-light: #EDEDED;
+  --color-brand-white: #FFFFFF;
+}
+
+@layer utilities {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px rgba(0, 102, 255, 0.5), 0 0 20px rgba(0, 210, 255, 0.3);
+  }
+}
+
+body {
+  font-family: var(--font-inter);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-space);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
