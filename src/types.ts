@@ -68,3 +68,28 @@ export interface MediaFolderEntry {
   items: StageMediaItem[];
 }
 
+export type AlbumLayoutType =
+  | 'shallow-arc'
+  | 'depth-cascade'
+  | 'ribbon-slider'
+  | 'showcase-hero'
+  | 'grid-wall'
+  | 'theater-cylinder'
+  | 'spiral-helix'
+  | 'perspective-tunnel'
+  | 'curved-billboard'
+  | 'vertical-waterfall'
+  | 'coming-soon-photos'
+  | 'coming-soon-videos';
+
+export interface AlbumData {
+  id: string;
+  index: number; // 0 to 11
+  name: string;
+  type: 'image' | 'video';
+  itemCount: number;
+  items: StageMediaItem[];
+  layoutType: AlbumLayoutType;
+  subtitle?: string;
+}
+

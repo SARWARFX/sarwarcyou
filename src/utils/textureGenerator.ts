@@ -146,3 +146,61 @@ export function createProceduralFrameTexture(options: TextureOptions): THREE.Can
 
 // Keep alias for backward compatibility
 export const createProceduralCanTexture = createProceduralFrameTexture;
+
+export function createComingSoonTexture(title: string, subtitle: string): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 1024;
+  const ctx = canvas.getContext('2d')!;
+
+  // Dark cyber glass
+  ctx.fillStyle = 'rgba(6, 12, 24, 0.9)';
+  ctx.fillRect(0, 0, 1024, 1024);
+
+  // Outer glowing border
+  ctx.strokeStyle = '#00D2FF';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(30, 30, 964, 964);
+
+  // Inner dashed border
+  ctx.setLineDash([16, 12]);
+  ctx.strokeStyle = 'rgba(0, 210, 255, 0.45)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(55, 55, 914, 914);
+  ctx.setLineDash([]);
+
+  // Top system tag
+  ctx.fillStyle = '#00D2FF';
+  ctx.font = 'bold 26px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('// FUTURE VAULT ARCHIVE //', 512, 160);
+
+  // Big Glowing COMING SOON
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 84px "Space Grotesk", sans-serif';
+  ctx.shadowColor = '#00D2FF';
+  ctx.shadowBlur = 35;
+  ctx.fillText('COMING SOON', 512, 450);
+  ctx.shadowBlur = 0;
+
+  // Title
+  ctx.fillStyle = '#00D2FF';
+  ctx.font = 'bold 42px "Space Grotesk", sans-serif';
+  ctx.fillText(title.toUpperCase(), 512, 550);
+
+  // Subtitle
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+  ctx.font = '26px monospace';
+  ctx.fillText(subtitle.toUpperCase(), 512, 640);
+
+  // Bottom Status
+  ctx.fillStyle = 'rgba(0, 210, 255, 0.8)';
+  ctx.font = 'bold 24px monospace';
+  ctx.fillText('ENCRYPTED QUEUE • 0 ITEMS CURRENTLY LOADED', 512, 850);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
