@@ -1,4 +1,4 @@
-/* oxlint-disable react/set-state-in-effect */
+/* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { getDirectImageUrl, getUnsplashFallback } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
@@ -10,139 +10,103 @@ interface Album2MasonryStageProps {
   onActiveIndexChange?: (index: number) => void;
 }
 
-interface MasonryCardProps {
+interface MosaicCellProps {
   item: StageMediaItem;
+  incomingItem: StageMediaItem | null;
   slotIndex: number;
-  displayIndex: number;
-  motionPhase: 'idle' | 'sliding-out' | 'pre-slide-in';
-  slideVector: { x: number; y: number; rotate: number };
+  className?: string;
   onSelect: (item: StageMediaItem) => void;
 }
 
-const MasonryCard: React.FC<MasonryCardProps> = ({
+const MosaicCell: React.FC<MosaicCellProps> = ({
   item,
+  incomingItem,
   slotIndex,
-  displayIndex,
-  motionPhase,
-  slideVector,
+  className = '',
   onSelect,
 }) => {
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0, isHovered: false });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isIncomingLoaded, setIsIncomingLoaded] = useState(false);
 
-  const directUrl = useMemo(() => {
-    return getDirectImageUrl(item, displayIndex);
-  }, [item, displayIndex]);
+  const currentUrl = useMemo(() => {
+    return getDirectImageUrl(item, slotIndex);
+  }, [item, slotIndex]);
 
-  const fallbackUrl = useMemo(() => {
-    return getUnsplashFallback(displayIndex);
-  }, [displayIndex]);
+  const currentFallback = useMemo(() => {
+    return getUnsplashFallback(slotIndex);
+  }, [slotIndex]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = cardRef.current;
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: x * 7, y: -y * 7, isHovered: true });
-  };
+  const incomingUrl = useMemo(() => {
+    if (!incomingItem) return null;
+    return getDirectImageUrl(incomingItem, slotIndex + 17);
+  }, [incomingItem, slotIndex]);
 
-  const handleMouseLeave = () => {
-    setTilt({ x: 0, y: 0, isHovered: false });
-  };
+  const incomingFallback = useMemo(() => {
+    if (!incomingItem) return null;
+    return getUnsplashFallback(slotIndex + 17);
+  }, [incomingItem, slotIndex]);
 
-  // Compute transform & opacity according to sliding shuffle phase and mouse tilt
-  let transformStyle = 'translate3d(0, 0, 0) scale3d(1, 1, 1) rotate(0deg)';
-  let opacityStyle = 1;
-  let transitionStyle =
-    'transform 0.75s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease';
-
-  if (motionPhase === 'sliding-out') {
-    transformStyle = `translate3d(${slideVector.x}px, ${slideVector.y}px, 0) scale3d(0.91, 0.91, 0.91) rotate(${slideVector.rotate}deg)`;
-    opacityStyle = 0;
-    transitionStyle =
-      'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1)';
-  } else if (motionPhase === 'pre-slide-in') {
-    transformStyle = `translate3d(${-slideVector.x * 0.75}px, ${-slideVector.y * 0.75}px, 0) scale3d(0.93, 0.93, 0.93) rotate(${-slideVector.rotate * 0.5}deg)`;
-    opacityStyle = 0;
-    transitionStyle = 'none';
-  } else if (tilt.isHovered) {
-    transformStyle = `perspective(1000px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg) scale3d(1.03, 1.03, 1.03) translateY(-4px)`;
-    transitionStyle = 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease';
-  }
+  useEffect(() => {
+    if (incomingItem) {
+      setIsIncomingLoaded(false);
+    }
+  }, [incomingItem]);
 
   return (
     <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={() => onSelect(item)}
+      onClick={() => onSelect(incomingItem && isIncomingLoaded ? incomingItem : item)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
-        transform: transformStyle,
-        opacity: opacityStyle,
-        transition: transitionStyle,
-        animation: `singleViewportFloat 8s ease-in-out infinite`,
-        animationDelay: `${(slotIndex * 0.6) % 4}s`,
+        transform: isHovered
+          ? 'scale3d(1.028, 1.028, 1.028) translateY(-3px)'
+          : 'scale3d(1, 1, 1) translateY(0px)',
+        zIndex: isHovered ? 30 : 1,
       }}
-      className="group relative cursor-pointer rounded-2xl bg-white p-2.5 sm:p-3 border border-black/[0.06] shadow-[0_16px_36px_-8px_rgba(0,0,0,0.12),0_6px_16px_-4px_rgba(0,0,0,0.06)] hover:shadow-[0_28px_55px_-12px_rgba(0,0,0,0.20),0_12px_24px_-4px_rgba(0,0,0,0.08)] select-none will-change-transform flex items-center justify-center max-h-[38vh] sm:max-h-[40vh] max-w-full"
+      className={`relative w-full h-full overflow-hidden rounded-xl sm:rounded-2xl cursor-pointer group bg-[#11141c] border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.6)] hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] select-none will-change-transform ${className}`}
     >
-      {/* Physical Museum Mount Bevel & Fine Outer Trim */}
-      <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl bg-[#F0F2F5] transition-transform duration-300">
-        {/* Aspect Ratio Container (Clamped to 34vh so it NEVER exceeds single screen viewport) */}
-        <div
-          style={{
-            aspectRatio: aspectRatio ? `${aspectRatio}` : '4 / 3',
-            maxHeight: 'calc((100vh - 190px) / 2)',
+      {/* 1. Base Active Image Layer (Always visible underneath so NEVER exposing empty void) */}
+      <img
+        src={currentUrl}
+        alt={item.title || 'Editorial Print'}
+        loading="lazy"
+        onError={(e) => {
+          e.currentTarget.src = currentFallback;
+        }}
+        className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      />
+
+      {/* 2. Seamless Incoming Image Layer (Morph/Cross-Slide on Swap) */}
+      {incomingItem && (
+        <img
+          src={incomingUrl || currentFallback}
+          alt={incomingItem.title || 'Incoming Editorial Print'}
+          loading="lazy"
+          onLoad={() => setIsIncomingLoaded(true)}
+          onError={(e) => {
+            if (incomingFallback) e.currentTarget.src = incomingFallback;
+            setIsIncomingLoaded(true);
           }}
-          className="relative w-auto h-auto max-h-[32vh] sm:max-h-[34vh] max-w-full flex items-center justify-center transition-[aspect-ratio] duration-300"
-        >
-          {/* Skeleton Pulse before load */}
-          {!isLoaded && (
-            <div className="absolute inset-0 bg-gradient-to-r from-neutral-200 via-neutral-100 to-neutral-200 animate-pulse rounded-xl" />
-          )}
+          style={{
+            opacity: isIncomingLoaded ? 1 : 0,
+            transform: isIncomingLoaded
+              ? 'translate3d(0, 0, 0) scale(1)'
+              : 'translate3d(0, 16px, 0) scale(1.06)',
+            transition:
+              'opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-108 will-change-transform"
+        />
+      )}
 
-          <img
-            src={hasError ? fallbackUrl : directUrl}
-            alt={item.title || `Gallery Print #${displayIndex + 1}`}
-            loading="lazy"
-            onLoad={(e) => {
-              const img = e.currentTarget;
-              if (img.naturalWidth && img.naturalHeight) {
-                const ratio = img.naturalWidth / img.naturalHeight;
-                setAspectRatio(ratio);
-              }
-              setIsLoaded(true);
-            }}
-            onError={() => {
-              if (!hasError) {
-                setHasError(true);
-              }
-            }}
-            className={`max-h-[32vh] sm:max-h-[34vh] max-w-full w-auto h-auto object-contain rounded-lg transition-opacity duration-500 ${
-              isLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
+      {/* 3. Subtle Glossy Specular Sheen Reflection on Hover */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.16] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-          {/* Subtle glossy photo print sheen reflection */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.06] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-        </div>
-      </div>
+      {/* 4. Fine Museum Inner Rim Highlight */}
+      <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-white/10 group-hover:border-[#00D2FF]/40 transition-colors duration-300" />
     </div>
   );
 };
-
-// Characteristic slide vectors for kinetic position shuffle
-const SLIDE_VECTORS = [
-  { x: -85, y: -35, rotate: -3.5 }, // Slot 0: Top-left
-  { x: 0, y: -80, rotate: 2.0 },    // Slot 1: Top-center
-  { x: 85, y: -35, rotate: 3.5 },    // Slot 2: Top-right
-  { x: -85, y: 35, rotate: -2.5 },   // Slot 3: Bottom-left
-  { x: 0, y: 80, rotate: -2.0 },     // Slot 4: Bottom-center
-  { x: 85, y: 35, rotate: 2.5 },     // Slot 5: Bottom-right
-];
 
 export const Album2MasonryStage: React.FC<Album2MasonryStageProps> = ({
   album,
@@ -152,174 +116,289 @@ export const Album2MasonryStage: React.FC<Album2MasonryStageProps> = ({
   const items = useMemo(() => album.items || [], [album.items]);
   const totalItems = items.length;
 
-  // Single-screen visible slot count: 6 slots on desktop, 4 on mobile
-  const [isDesktop, setIsDesktop] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
-  );
+  // Track responsive screen size
+  const [screenTier, setScreenTier] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
+    const checkTier = () => {
+      const w = window.innerWidth;
+      if (w >= 1200) setScreenTier('desktop');
+      else if (w >= 768) setScreenTier('tablet');
+      else setScreenTier('mobile');
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    checkTier();
+    window.addEventListener('resize', checkTier);
+    return () => window.removeEventListener('resize', checkTier);
   }, []);
 
-  const slotCount = isDesktop ? 6 : 4;
+  const slotCount = screenTier === 'desktop' ? 10 : screenTier === 'tablet' ? 8 : 4;
 
-  // Track the active item index per visible slot
-  const [slotIndices, setSlotIndices] = useState<number[]>(() => {
-    return Array.from({ length: 6 }, (_, i) => i % (totalItems || 1));
+  // Active items currently filling each slot
+  const [activeItems, setActiveItems] = useState<StageMediaItem[]>(() => {
+    return Array.from({ length: 10 }, (_, i) => items[i % Math.max(1, totalItems)] || items[0]);
   });
 
-  // Track motion phase for each slot ('idle' | 'sliding-out' | 'pre-slide-in')
-  const [motionPhases, setMotionPhases] = useState<{
-    [slot: number]: 'idle' | 'sliding-out' | 'pre-slide-in';
-  }>({
-    0: 'idle',
-    1: 'idle',
-    2: 'idle',
-    3: 'idle',
-    4: 'idle',
-    5: 'idle',
-  });
+  // Incoming items currently in transition per slot
+  const [incomingItems, setIncomingItems] = useState<{ [slot: number]: StageMediaItem | null }>({});
 
-  const nextItemQueueIdxRef = useRef<number>(6 % Math.max(1, totalItems));
-  const activeBatchRef = useRef<number>(0);
+  const nextQueueIdxRef = useRef<number>(10 % Math.max(1, totalItems));
+  const batchCycleRef = useRef<number>(0);
 
-  // Initialize/reset slots when album items change
+  // Re-sync items if album changes
   useEffect(() => {
-    setSlotIndices(Array.from({ length: 6 }, (_, i) => i % Math.max(1, totalItems)));
-    nextItemQueueIdxRef.current = 6 % Math.max(1, totalItems);
-    activeBatchRef.current = 0;
-    setMotionPhases({
-      0: 'idle',
-      1: 'idle',
-      2: 'idle',
-      3: 'idle',
-      4: 'idle',
-      5: 'idle',
-    });
+    if (totalItems > 0) {
+      setActiveItems(Array.from({ length: 10 }, (_, i) => items[i % totalItems]));
+      nextQueueIdxRef.current = 10 % totalItems;
+      setIncomingItems({});
+    }
   }, [totalItems]);
 
-  // RAPID BATCHED PHOTO SWAPPING & SHUFFLE CHOREOGRAPHY:
-  // Alternating batches transition every 2.65s so each photo stays on screen for exactly ~5.3s max!
+  // LIVING DYNAMIC BATCHED SWAP & SHUFFLE:
+  // Every 5.2s, transition 3 to 4 photos with seamless cross-morph
   useEffect(() => {
     if (!isActive || totalItems <= slotCount) return;
 
     const interval = setInterval(() => {
-      // Define 2 alternating batches (3 cards each on desktop, 2 on mobile)
-      const batchSlots =
-        activeBatchRef.current === 0
-          ? isDesktop
-            ? [0, 2, 4]
-            : [0, 3]
-          : isDesktop
-          ? [1, 3, 5]
-          : [1, 2];
+      // Rotate between 3 alternating batches of 3-4 slots
+      const batches =
+        screenTier === 'desktop'
+          ? [
+              [0, 2, 5, 8],
+              [1, 3, 6, 9],
+              [4, 7, 1, 5],
+            ]
+          : screenTier === 'tablet'
+          ? [
+              [0, 2, 5],
+              [1, 4, 7],
+              [3, 6, 0],
+            ]
+          : [
+              [0, 2],
+              [1, 3],
+            ];
 
-      activeBatchRef.current = activeBatchRef.current === 0 ? 1 : 0;
+      const currentBatch = batches[batchCycleRef.current % batches.length];
+      batchCycleRef.current++;
 
-      // Staggered slide-out for each card in the batch
-      batchSlots.forEach((slot, idx) => {
-        const staggerDelay = idx * 80;
+      currentBatch.forEach((slot, idx) => {
+        const stagger = idx * 110;
 
         setTimeout(() => {
-          // Phase 1: Slide Out & rotate
-          setMotionPhases((prev) => ({ ...prev, [slot]: 'sliding-out' }));
+          const nextItem = items[nextQueueIdxRef.current];
+          nextQueueIdxRef.current = (nextQueueIdxRef.current + 1) % totalItems;
 
-          // Phase 2: Content Swap & Pre-slide-in offset
+          // Stage 1: Mount incoming item over the active item (cross-morph begins)
+          setIncomingItems((prev) => ({ ...prev, [slot]: nextItem }));
+
+          // Stage 2: Settle incoming item as current after 750ms
           setTimeout(() => {
-            const nextItemIdx = nextItemQueueIdxRef.current;
-            nextItemQueueIdxRef.current = (nextItemQueueIdxRef.current + 1) % totalItems;
-
-            setSlotIndices((prev) => {
+            setActiveItems((prev) => {
               const updated = [...prev];
-              updated[slot] = nextItemIdx;
+              updated[slot] = nextItem;
               return updated;
             });
-
-            setMotionPhases((prev) => ({ ...prev, [slot]: 'pre-slide-in' }));
-
-            // Phase 3: Slide gracefully into home position
-            setTimeout(() => {
-              setMotionPhases((prev) => ({ ...prev, [slot]: 'idle' }));
-            }, 60);
-          }, 550);
-        }, staggerDelay);
+            setIncomingItems((prev) => ({ ...prev, [slot]: null }));
+          }, 780);
+        }, stagger);
       });
-    }, 2650);
+    }, 5200);
 
     return () => clearInterval(interval);
-  }, [isActive, totalItems, slotCount, isDesktop]);
+  }, [isActive, totalItems, slotCount, screenTier]);
 
   return (
-    <div className="absolute inset-0 w-full h-full bg-[#F7F8FA] overflow-hidden select-none z-0">
-      <style>{`
-        @keyframes singleViewportFloat {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-3.5px);
-          }
-        }
-      `}</style>
+    <div className="absolute inset-0 w-screen h-screen overflow-hidden p-2 sm:p-2.5 md:p-3 bg-[#07090e] select-none box-border z-0">
+      {/* ================= DESKTOP 10-SLOT FULL-BLEED MOSAIC (100vw x 100vh) ================= */}
+      {screenTier === 'desktop' && (
+        <div className="w-full h-full grid grid-cols-5 grid-rows-3 gap-2 sm:gap-2.5 md:gap-3">
+          {/* Row 1 & 2: Slot 0 (Tall Portrait, col 1, rows 1-2) */}
+          <MosaicCell
+            item={activeItems[0] || items[0]}
+            incomingItem={incomingItems[0] || null}
+            slotIndex={0}
+            className="col-span-1 row-span-2"
+            onSelect={onSelectItem}
+          />
 
-      {/* Background Studio Light Wash */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white via-[#F7F8FA] to-[#EEF0F4] opacity-90" />
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[380px] bg-gradient-to-b from-[#00D2FF]/[0.04] to-transparent blur-3xl" />
+          {/* Row 1: Slot 1 (Wide Landscape, cols 2-3, row 1) */}
+          <MosaicCell
+            item={activeItems[1] || items[1]}
+            incomingItem={incomingItems[1] || null}
+            slotIndex={1}
+            className="col-span-2 row-span-1"
+            onSelect={onSelectItem}
+          />
 
-      {/* Strict 100vh Single-Screen Viewport Container (Zero internal scrolling) */}
-      <div className="relative w-full h-full flex flex-col justify-center items-center px-4 sm:px-8 md:px-12 py-16 sm:py-20 box-border overflow-hidden">
-        {/* Desktop 6-Card Single-Screen Dynamic Matrix (3 Columns x 2 Rows) */}
-        {isDesktop && (
-          <div className="w-full max-w-7xl h-full grid grid-cols-3 grid-rows-2 gap-4 sm:gap-6 lg:gap-8 items-center justify-center">
-            {[0, 1, 2, 3, 4, 5].map((slot) => {
-              const itemIdx = slotIndices[slot];
-              const item = items[itemIdx] || items[0];
-              if (!item) return null;
+          {/* Row 1: Slot 2 (Square, col 4, row 1) */}
+          <MosaicCell
+            item={activeItems[2] || items[2]}
+            incomingItem={incomingItems[2] || null}
+            slotIndex={2}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
 
-              return (
-                <div key={`desktop-cell-${slot}`} className="w-full h-full flex items-center justify-center overflow-hidden">
-                  <MasonryCard
-                    item={item}
-                    slotIndex={slot}
-                    displayIndex={itemIdx}
-                    motionPhase={motionPhases[slot] || 'idle'}
-                    slideVector={SLIDE_VECTORS[slot]}
-                    onSelect={onSelectItem}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
+          {/* Row 1 & 2: Slot 3 (Tall Portrait, col 5, rows 1-2) */}
+          <MosaicCell
+            item={activeItems[3] || items[3]}
+            incomingItem={incomingItems[3] || null}
+            slotIndex={3}
+            className="col-span-1 row-span-2"
+            onSelect={onSelectItem}
+          />
 
-        {/* Mobile / Tablet 4-Card Single-Screen Matrix (2 Columns x 2 Rows) */}
-        {!isDesktop && (
-          <div className="w-full max-w-2xl h-full grid grid-cols-2 grid-rows-2 gap-3 sm:gap-4 items-center justify-center">
-            {[0, 1, 2, 3].map((slot) => {
-              const itemIdx = slotIndices[slot];
-              const item = items[itemIdx] || items[0];
-              if (!item) return null;
+          {/* Row 2: Slot 4 (Square, col 2, row 2) */}
+          <MosaicCell
+            item={activeItems[4] || items[4]}
+            incomingItem={incomingItems[4] || null}
+            slotIndex={4}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
 
-              return (
-                <div key={`mobile-cell-${slot}`} className="w-full h-full flex items-center justify-center overflow-hidden">
-                  <MasonryCard
-                    item={item}
-                    slotIndex={slot}
-                    displayIndex={itemIdx}
-                    motionPhase={motionPhases[slot] || 'idle'}
-                    slideVector={SLIDE_VECTORS[slot]}
-                    onSelect={onSelectItem}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+          {/* Row 2 & 3: Slot 5 (Tall Portrait, col 3, rows 2-3) */}
+          <MosaicCell
+            item={activeItems[5] || items[5]}
+            incomingItem={incomingItems[5] || null}
+            slotIndex={5}
+            className="col-span-1 row-span-2"
+            onSelect={onSelectItem}
+          />
+
+          {/* Row 2: Slot 6 (Square, col 4, row 2) */}
+          <MosaicCell
+            item={activeItems[6] || items[6]}
+            incomingItem={incomingItems[6] || null}
+            slotIndex={6}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+
+          {/* Row 3: Slot 7 (Square, col 1, row 3) */}
+          <MosaicCell
+            item={activeItems[7] || items[7]}
+            incomingItem={incomingItems[7] || null}
+            slotIndex={7}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+
+          {/* Row 3: Slot 8 (Square, col 2, row 3) */}
+          <MosaicCell
+            item={activeItems[8] || items[8]}
+            incomingItem={incomingItems[8] || null}
+            slotIndex={8}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+
+          {/* Row 3: Slot 9 (Wide Landscape, cols 4-5, row 3) */}
+          <MosaicCell
+            item={activeItems[9] || items[9]}
+            incomingItem={incomingItems[9] || null}
+            slotIndex={9}
+            className="col-span-2 row-span-1"
+            onSelect={onSelectItem}
+          />
+        </div>
+      )}
+
+      {/* ================= TABLET 8-SLOT FULL-BLEED MOSAIC (4 Cols x 3 Rows) ================= */}
+      {screenTier === 'tablet' && (
+        <div className="w-full h-full grid grid-cols-4 grid-rows-3 gap-2 sm:gap-2.5">
+          <MosaicCell
+            item={activeItems[0] || items[0]}
+            incomingItem={incomingItems[0] || null}
+            slotIndex={0}
+            className="col-span-1 row-span-2"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[1] || items[1]}
+            incomingItem={incomingItems[1] || null}
+            slotIndex={1}
+            className="col-span-2 row-span-1"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[2] || items[2]}
+            incomingItem={incomingItems[2] || null}
+            slotIndex={2}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[3] || items[3]}
+            incomingItem={incomingItems[3] || null}
+            slotIndex={3}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[4] || items[4]}
+            incomingItem={incomingItems[4] || null}
+            slotIndex={4}
+            className="col-span-1 row-span-2"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[5] || items[5]}
+            incomingItem={incomingItems[5] || null}
+            slotIndex={5}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[6] || items[6]}
+            incomingItem={incomingItems[6] || null}
+            slotIndex={6}
+            className="col-span-2 row-span-1"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[7] || items[7]}
+            incomingItem={incomingItems[7] || null}
+            slotIndex={7}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+        </div>
+      )}
+
+      {/* ================= MOBILE 4-SLOT FULL-BLEED MOSAIC (2 Cols x 3 Rows) ================= */}
+      {screenTier === 'mobile' && (
+        <div className="w-full h-full grid grid-cols-2 grid-rows-3 gap-2">
+          <MosaicCell
+            item={activeItems[0] || items[0]}
+            incomingItem={incomingItems[0] || null}
+            slotIndex={0}
+            className="col-span-1 row-span-2"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[1] || items[1]}
+            incomingItem={incomingItems[1] || null}
+            slotIndex={1}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[2] || items[2]}
+            incomingItem={incomingItems[2] || null}
+            slotIndex={2}
+            className="col-span-1 row-span-1"
+            onSelect={onSelectItem}
+          />
+          <MosaicCell
+            item={activeItems[3] || items[3]}
+            incomingItem={incomingItems[3] || null}
+            slotIndex={3}
+            className="col-span-2 row-span-1"
+            onSelect={onSelectItem}
+          />
+        </div>
+      )}
     </div>
   );
 };

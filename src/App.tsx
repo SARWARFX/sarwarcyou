@@ -228,7 +228,7 @@ function App() {
     );
   }
 
-  const isLightMode = activeAlbumIndex === 1;
+  const isLightMode = false;
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
@@ -249,9 +249,7 @@ function App() {
             <section
               id={`album-section-${idx}`}
               key={album.id}
-              className={`relative w-screen h-screen snap-start snap-always overflow-hidden flex-shrink-0 transition-colors duration-700 ${
-                idx === 1 ? 'bg-[#F7F8FA]' : 'bg-black'
-              }`}
+              className="relative w-screen h-screen snap-start snap-always overflow-hidden flex-shrink-0 bg-black"
               style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
             >
               {/* Perfectly Centered 3D / Masonry Stage (Rendered for active & adjacent albums) */}
