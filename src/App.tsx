@@ -4,29 +4,32 @@ import { extractTwelveAlbums } from './utils/albumExtractor';
 import { AlbumStage } from './components/AlbumStage';
 import { BrandLogo } from './components/BrandLogo';
 import { AlbumNavigationControls } from './components/AlbumNavigationControls';
-import { VerticalFolderMenu } from './components/VerticalFolderMenu';
+import { AlbumProgressDots } from './components/AlbumProgressDots';
 import { MediaModal } from './components/MediaModal';
+import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { FALLBACK_MEDIA_DATA } from './data/fallbackData';
 import type { StageMediaItem } from './types';
-import { Play, Maximize2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 function App() {
   const { data, isLoading, isError } = useMediaData();
 
-  // Extract exactly 12 Albums corresponding to the 12 Google Drive folders
+  // 12 Distinct Google Drive Albums
   const albums = useMemo(() => {
     return extractTwelveAlbums(data || FALLBACK_MEDIA_DATA);
   }, [data]);
 
-  // Current active snapped album index (0 to 11)
+  // Active snapped album index (0 to 11)
   const [activeAlbumIndex, setActiveAlbumIndex] = useState<number>(0);
-  // Track active media card index per album (default 0)
+  // Track active media item index per album
   const [activeMediaIndices, setActiveMediaIndices] = useState<{ [albumIdx: number]: number }>({});
+  // Track active batch (page of 6) per album
+  const [albumBatches, setAlbumBatches] = useState<{ [albumIdx: number]: number }>({});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
 
-  // Fullscreen Modal State
+  // Standard Photo & Widescreen Video Lightbox State
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     url: string | null;
@@ -39,17 +42,40 @@ function App() {
     title: '',
   });
 
-  const handleOpenModal = useCallback((item: StageMediaItem) => {
-    if (!item || !item.url) return;
-    setModalState({
-      isOpen: true,
-      url: item.url,
-      type: item.type,
-      title: item.title,
-    });
-  }, []);
+  // Dedicated TikTok / Reels-style Vertical Shorts Modal State
+  const [shortsFeedState, setShortsFeedState] = useState<{
+    isOpen: boolean;
+    shorts: StageMediaItem[];
+    initialIndex: number;
+  }>({
+    isOpen: false,
+    shorts: [],
+    initialIndex: 0,
+  });
 
-  // Programmatic scroll strictly to exact fullpage album
+  // Handle clicking any media item in the 3D scene
+  const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number) => {
+    const curAlbum = albums[albumIdx];
+    // If it's the dedicated Shorts & Reels album (or vertical waterfall layout):
+    if (curAlbum && (curAlbum.layoutType === 'vertical-waterfall' || curAlbum.name.toLowerCase().includes('short'))) {
+      const itemIdx = curAlbum.items.findIndex((s) => s.id === item.id);
+      setShortsFeedState({
+        isOpen: true,
+        shorts: curAlbum.items,
+        initialIndex: Math.max(0, itemIdx),
+      });
+    } else {
+      // Standard Photo Lightbox or Widescreen Video Player
+      setModalState({
+        isOpen: true,
+        url: item.url,
+        type: item.type,
+        title: item.title,
+      });
+    }
+  }, [albums]);
+
+  // Programmatic fullpage snap navigation
   const scrollToAlbum = useCallback((targetIndex: number) => {
     if (!scrollContainerRef.current) return;
     const clamped = Math.max(0, Math.min(albums.length - 1, targetIndex));
@@ -77,7 +103,26 @@ function App() {
     scrollToAlbum(0);
   }, [scrollToAlbum]);
 
-  // Handle scroll events to synchronize active album index
+  // Batch navigation within an album
+  const handlePrevBatch = useCallback((albumIdx: number) => {
+    setAlbumBatches((prev) => {
+      const cur = prev[albumIdx] || 0;
+      if (cur > 0) return { ...prev, [albumIdx]: cur - 1 };
+      return prev;
+    });
+    setActiveMediaIndices((prev) => ({ ...prev, [albumIdx]: 0 }));
+  }, []);
+
+  const handleNextBatch = useCallback((albumIdx: number, totalBatches: number) => {
+    setAlbumBatches((prev) => {
+      const cur = prev[albumIdx] || 0;
+      if (cur < totalBatches - 1) return { ...prev, [albumIdx]: cur + 1 };
+      return prev;
+    });
+    setActiveMediaIndices((prev) => ({ ...prev, [albumIdx]: 0 }));
+  }, []);
+
+  // Synchronize active snapped album index on scroll
   const handleScroll = useCallback(() => {
     if (!scrollContainerRef.current) return;
     const scrollY = scrollContainerRef.current.scrollTop;
@@ -88,14 +133,13 @@ function App() {
     }
   }, [activeAlbumIndex, albums.length]);
 
-  // Vertical snap observer on mouse wheel (strictly snaps to next/prev album)
+  // Mouse wheel strictly snaps to exact next or previous album
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const onWheel = (e: WheelEvent) => {
-      if (modalState.isOpen) return;
-      // Only capture vertical scroll intent
+      if (modalState.isOpen || shortsFeedState.isOpen) return;
       if (Math.abs(e.deltaY) > 28) {
         e.preventDefault();
         if (isScrollingRef.current) return;
@@ -113,9 +157,9 @@ function App() {
 
     container.addEventListener('wheel', onWheel, { passive: false });
     return () => container.removeEventListener('wheel', onWheel);
-  }, [modalState.isOpen, handleNextAlbum, handlePrevAlbum]);
+  }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum]);
 
-  // Touch swipe support for mobile snap
+  // Mobile Touch Swipe Snap
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -125,7 +169,7 @@ function App() {
       touchStartY = e.touches[0].clientY;
     };
     const onTouchEnd = (e: TouchEvent) => {
-      if (modalState.isOpen) return;
+      if (modalState.isOpen || shortsFeedState.isOpen) return;
       const touchEndY = e.changedTouches[0].clientY;
       const deltaY = touchStartY - touchEndY;
       if (Math.abs(deltaY) > 50) {
@@ -143,12 +187,12 @@ function App() {
       container.removeEventListener('touchstart', onTouchStart);
       container.removeEventListener('touchend', onTouchEnd);
     };
-  }, [modalState.isOpen, handleNextAlbum, handlePrevAlbum]);
+  }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum]);
 
-  // Full keyboard navigation
+  // Keyboard navigation
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (modalState.isOpen) return;
+      if (modalState.isOpen || shortsFeedState.isOpen) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
         handleNextAlbum();
@@ -165,9 +209,9 @@ function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [modalState.isOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
+  }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
 
-  // Loading Screen (only if no fallback data is present)
+  // Loading Screen
   if (!data && isLoading) {
     return (
       <div className="fixed inset-0 bg-[#000000] flex flex-col items-center justify-center text-white z-50">
@@ -219,8 +263,8 @@ function App() {
           const isActive = idx === activeAlbumIndex;
           const isNear = Math.abs(idx - activeAlbumIndex) <= 1;
           const currentMediaIdx = activeMediaIndices[idx] || 0;
-          const activeMediaItem = album.items[currentMediaIdx] || album.items[0];
-          const isComingSoon = album.itemCount === 0 || album.layoutType.startsWith('coming-soon');
+          const currentBatch = albumBatches[idx] || 0;
+          const totalBatches = Math.max(1, Math.ceil(album.itemCount / 6));
 
           return (
             <section
@@ -229,7 +273,7 @@ function App() {
               className="relative w-screen h-screen snap-start snap-always overflow-hidden flex-shrink-0"
               style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
             >
-              {/* 3D Stage for this Album (Only rendered when active or adjacent) */}
+              {/* Perfectly Centered 3D Stage (Rendered for active & adjacent albums) */}
               {isNear && (
                 <AlbumStage
                   album={album}
@@ -238,37 +282,34 @@ function App() {
                   onActiveIndexChange={(newIdx) => {
                     setActiveMediaIndices((prev) => ({ ...prev, [idx]: newIdx }));
                   }}
-                  onSelectItem={handleOpenModal}
+                  batchIndex={currentBatch}
+                  onSelectItem={(item) => handleSelectItem(item, idx)}
                 />
               )}
 
-              {/* Minimalist Top Album Tag */}
-              <header className="absolute top-6 left-6 sm:top-8 sm:left-8 z-30 pointer-events-auto flex items-center gap-3">
-                <div className="px-3.5 py-1.5 rounded-full bg-black/65 border border-white/10 backdrop-blur-xl flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF] shadow-[0_0_8px_#00D2FF]" />
-                  <span className="text-[11px] font-mono font-bold tracking-widest text-[#00D2FF] uppercase">
-                    {(idx + 1).toString().padStart(2, '0')} // {album.name}
+              {/* Bottom Batch Navigation Indicator ("BATCH 1/9 • 51 ITEMS") */}
+              {album.itemCount > 6 && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/65 border border-white/10 backdrop-blur-xl text-[10px] font-mono tracking-widest text-white/70 shadow-2xl">
+                  <button
+                    onClick={() => handlePrevBatch(idx)}
+                    disabled={currentBatch === 0}
+                    className="hover:text-[#00D2FF] transition-colors disabled:opacity-20 cursor-pointer p-0.5"
+                    title="Previous Batch"
+                  >
+                    ◀
+                  </button>
+                  <span className="text-white font-bold">
+                    BATCH {(currentBatch + 1).toString().padStart(2, '0')} / {totalBatches.toString().padStart(2, '0')}
                   </span>
                   <span className="text-white/30">•</span>
-                  <span className="text-[10px] font-mono text-white/50 tracking-wider">
-                    {isComingSoon ? 'COMING SOON' : `${album.itemCount} ITEMS`}
-                  </span>
-                </div>
-              </header>
-
-              {/* Top-Right Expand Button for Active Media */}
-              {!isComingSoon && activeMediaItem && (
-                <div className="absolute top-6 right-6 sm:top-8 sm:right-8 z-30 pointer-events-auto">
+                  <span className="text-white/50">{album.itemCount} ITEMS</span>
                   <button
-                    onClick={() => handleOpenModal(activeMediaItem)}
-                    className="flex items-center gap-2 px-5 py-2 rounded-full bg-white text-black font-space font-bold uppercase text-xs tracking-wider hover:bg-neutral-200 transition-all shadow-[0_0_25px_rgba(255,255,255,0.35)] hover:shadow-[0_0_35px_rgba(0,210,255,0.6)] hover:scale-105 active:scale-95 cursor-pointer"
+                    onClick={() => handleNextBatch(idx, totalBatches)}
+                    disabled={currentBatch >= totalBatches - 1}
+                    className="hover:text-[#00D2FF] transition-colors disabled:opacity-20 cursor-pointer p-0.5"
+                    title="Next Batch"
                   >
-                    {album.type === 'video' ? (
-                      <Play className="w-3.5 h-3.5 fill-black" />
-                    ) : (
-                      <Maximize2 className="w-3.5 h-3.5 text-black stroke-[2.5]" />
-                    )}
-                    <span>{album.type === 'video' ? 'PLAY' : 'EXPAND'}</span>
+                    ▶
                   </button>
                 </div>
               )}
@@ -279,10 +320,17 @@ function App() {
 
       {/* ================= FIXED LUXURY OVERLAYS ================= */}
 
-      {/* 1. Bottom-Left Modern Electric-Blue Play Logo & Branding */}
+      {/* 1. TOP-LEFT BRANDING (Solid glowing electric-blue play glyph + clean gradient site name, no subtitle, no borders) */}
       <BrandLogo />
 
-      {/* 2. Bottom-Right Navigation Controls (Up/Down Arrows & Back to Top) */}
+      {/* 2. SUBTLE 12-DOT VERTICAL PROGRESS INDICATOR (Right Edge) */}
+      <AlbumProgressDots
+        albums={albums}
+        activeAlbumIndex={activeAlbumIndex}
+        onSelectAlbum={scrollToAlbum}
+      />
+
+      {/* 3. BOTTOM-RIGHT NAVIGATION CONTROLS (Vertical Up/Down Arrows + Back to Top) */}
       <AlbumNavigationControls
         currentAlbumIndex={activeAlbumIndex}
         totalAlbums={albums.length}
@@ -292,14 +340,15 @@ function App() {
         onBackToTop={handleBackToTop}
       />
 
-      {/* 3. Right-Side Floating 12-Album Navigation Dock */}
-      <VerticalFolderMenu
-        albums={albums}
-        activeAlbumIndex={activeAlbumIndex}
-        onSelectAlbum={scrollToAlbum}
+      {/* 4. DEDICATED TIKTOK/REELS-STYLE VERTICAL SHORTS PLAYER */}
+      <ShortsFeedModal
+        isOpen={shortsFeedState.isOpen}
+        onClose={() => setShortsFeedState((prev) => ({ ...prev, isOpen: false }))}
+        shorts={shortsFeedState.shorts}
+        initialIndex={shortsFeedState.initialIndex}
       />
 
-      {/* 4. Fullscreen Lightbox & 16:9 Video Player */}
+      {/* 5. STANDARD PHOTOS LIGHTBOX & 16:9 VIDEO PLAYER WITH ZOOM */}
       <MediaModal
         isOpen={modalState.isOpen}
         onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}

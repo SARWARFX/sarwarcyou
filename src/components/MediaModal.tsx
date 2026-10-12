@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { X, ExternalLink } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, ExternalLink, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -16,6 +16,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   type,
   title,
 }) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [prevMediaKey, setPrevMediaKey] = useState({ url, isOpen });
+  if (prevMediaKey.url !== url || prevMediaKey.isOpen !== isOpen) {
+    setPrevMediaKey({ url, isOpen });
+    setIsZoomed(false);
+  }
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -60,6 +67,18 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     >
       {/* Top action bar */}
       <div className="absolute top-4 sm:top-6 right-4 sm:right-6 flex items-center gap-3 z-[110]">
+        {type === 'image' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsZoomed(!isZoomed);
+            }}
+            className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white cursor-pointer"
+            title={isZoomed ? 'Zoom Out' : 'Zoom In'}
+          >
+            {isZoomed ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
+          </button>
+        )}
         <a
           href={url}
           target="_blank"
@@ -86,7 +105,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       >
         <div className="w-full px-5 py-3 border-b border-white/10 bg-white/[0.02] flex items-center justify-between text-xs font-mono text-white/60">
           <span className="truncate max-w-[80%] font-bold text-white uppercase tracking-wider">{displayTitle}</span>
-          <span className="text-[#00D2FF] font-semibold">{type === 'video' ? 'STREAMING 1080P' : 'HIGH DEFINITION'}</span>
+          <span className="text-[#00D2FF] font-semibold">{type === 'video' ? 'STREAMING 1080P' : (isZoomed ? 'ZOOMED 160%' : 'HIGH DEFINITION')}</span>
         </div>
 
         {type === 'video' ? (
@@ -100,7 +119,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             />
           </div>
         ) : (
-          <div className="relative w-full h-[78vh] flex items-center justify-center p-2 sm:p-4 bg-black/50">
+          <div className="relative w-full h-[78vh] flex items-center justify-center p-2 sm:p-4 bg-black/50 overflow-hidden">
             {/* If Google Drive file ID is present, use high-res direct image CDN */}
             {(() => {
               const driveIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
@@ -113,9 +132,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 <img
                   src={directImgUrl}
                   alt={title || 'Photo Lightbox'}
-                  className="max-w-full max-h-full object-contain rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/5"
+                  onClick={() => setIsZoomed(!isZoomed)}
+                  className={`max-w-full max-h-full object-contain rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/5 transition-transform duration-300 ${
+                    isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
+                  }`}
                   onError={(e) => {
-                    // Fallback to Drive preview iframe if direct image loading is restricted
                     const parent = e.currentTarget.parentElement;
                     if (parent && streamUrl) {
                       e.currentTarget.style.display = 'none';
