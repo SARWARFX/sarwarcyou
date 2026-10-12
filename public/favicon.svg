@@ -1,28 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#080c18" />
-      <stop offset="100%" stop-color="#020408" />
-    </linearGradient>
-    <linearGradient id="electricGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="35%" stop-color="#00D2FF" />
-      <stop offset="100%" stop-color="#3B82F6" />
-    </linearGradient>
-    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="3.5" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  </defs>
-  <!-- Outer Rounded Capsule / Frame -->
-  <rect width="64" height="64" rx="20" fill="url(#bgGrad)" stroke="#00D2FF" stroke-width="1.8" stroke-opacity="0.8"/>
-  
-  <!-- Subtle Inner Glow Ring -->
-  <circle cx="32" cy="32" r="21" stroke="url(#electricGrad)" stroke-width="1.5" stroke-opacity="0.35" fill="#00D2FF" fill-opacity="0.06"/>
-  
-  <!-- Neon Electric Blue Play Triangle -->
-  <polygon points="26,20 44,32 26,44" fill="url(#electricGrad)" filter="url(#neonGlow)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- Solid electric-blue play button with no outlines or borders -->
+  <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" fill="#00D2FF"/>
 </svg>

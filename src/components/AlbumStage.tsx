@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { createProceduralFrameTexture, createComingSoonTexture } from '../utils/textureGenerator';
 import { WeichieMarqueeStage } from './WeichieMarqueeStage';
+import { Album2MasonryStage } from './Album2MasonryStage';
 import { getDirectImageUrl, getBackupDriveUrl, getUnsplashFallback, extractDriveFileId } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -758,6 +759,9 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
 export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
   if (props.album.layoutType === 'weichie-curved' || props.album.index === 0) {
     return <WeichieMarqueeStage {...props} />;
+  }
+  if (props.album.layoutType === 'heroic-masonry' || props.album.index === 1) {
+    return <Album2MasonryStage {...props} />;
   }
   return <StandardAlbumStage {...props} />;
 };

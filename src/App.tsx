@@ -249,6 +249,7 @@ function App() {
   }
 
   const currentAlbum = albums[activeAlbumIndex] || albums[0];
+  const isLightMode = activeAlbumIndex === 1;
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
@@ -270,10 +271,12 @@ function App() {
             <section
               id={`album-section-${idx}`}
               key={album.id}
-              className="relative w-screen h-screen snap-start snap-always overflow-hidden flex-shrink-0"
+              className={`relative w-screen h-screen snap-start snap-always overflow-hidden flex-shrink-0 transition-colors duration-700 ${
+                idx === 1 ? 'bg-[#F7F8FA]' : 'bg-black'
+              }`}
               style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
             >
-              {/* Perfectly Centered 3D Stage (Rendered for active & adjacent albums) */}
+              {/* Perfectly Centered 3D / Masonry Stage (Rendered for active & adjacent albums) */}
               {isNear && (
                 <AlbumStage
                   album={album}
@@ -296,8 +299,8 @@ function App() {
                 />
               )}
 
-              {/* Bottom Batch Navigation Indicator ("BATCH 1/9 • 51 ITEMS") */}
-              {album.itemCount > 6 && (
+              {/* Bottom Batch Navigation Indicator (Rendered for paginated 3D albums, e.g. Bandhobis and 3-10) */}
+              {album.itemCount > 6 && idx !== 1 && (
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/65 border border-white/10 backdrop-blur-xl text-[10px] font-mono tracking-widest text-white/70 shadow-2xl">
                   <button
                     onClick={() => handlePrevBatch(idx)}
@@ -329,14 +332,15 @@ function App() {
 
       {/* ================= FIXED LUXURY OVERLAYS ================= */}
 
-      {/* 1. TOP-LEFT BRANDING (Solid glowing electric-blue play glyph + clean gradient site name, no subtitle, no borders) */}
-      <BrandLogo />
+      {/* 1. TOP-LEFT BRANDING (Solid glowing electric-blue play glyph + clean gradient site name; deep black/cyan on Studio White) */}
+      <BrandLogo isLightMode={isLightMode} />
 
       {/* 2. SUBTLE 12-DOT VERTICAL PROGRESS INDICATOR (Right Edge) */}
       <AlbumProgressDots
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}
         onSelectAlbum={scrollToAlbum}
+        isLightMode={isLightMode}
       />
 
       {/* 3. BOTTOM-RIGHT NAVIGATION CONTROLS (Vertical Up/Down Arrows + Back to Top) */}
@@ -347,6 +351,7 @@ function App() {
         onPrevAlbum={handlePrevAlbum}
         onNextAlbum={handleNextAlbum}
         onBackToTop={handleBackToTop}
+        isLightMode={isLightMode}
       />
 
       {/* 4. DEDICATED TIKTOK/REELS-STYLE VERTICAL SHORTS PLAYER */}

@@ -65,8 +65,8 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       type: 'image',
       itemCount: worksFolder?.files?.length || 0,
       items: mapFiles(worksFolder?.files, 'Works', 'image'),
-      layoutType: 'depth-cascade',
-      subtitle: 'Depth Cascade Archive',
+      layoutType: 'heroic-masonry',
+      subtitle: 'Heroic Editorial Masonry',
     },
     // Album 3: H2026 Photos
     {
