@@ -1,20 +1,210 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useMediaData } from './useMediaData';
 import { ThreeStage, type StageMediaItem } from './components/ThreeStage';
 import { HudOverlay } from './components/HudOverlay';
-import { MenuDrawer, type CategoryKey } from './components/MenuDrawer';
+import { BrandLogo } from './components/BrandLogo';
+import { VerticalFolderMenu } from './components/VerticalFolderMenu';
 import { MediaModal } from './components/MediaModal';
 import { FALLBACK_MEDIA_DATA } from './data/fallbackData';
+import type { ApiResponseData, MediaFolderEntry } from './types';
 import { Loader2 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 6;
+
+// Dynamic folder discovery from API payload
+function extractAllFolders(data: ApiResponseData): MediaFolderEntry[] {
+  const folders: MediaFolderEntry[] = [];
+
+  // 1. Bandhobis (Primary / Featured Folder)
+  const bandhobisItems: StageMediaItem[] = [];
+  if (data.leftImageFolder?.name?.toLowerCase().includes('bandhobis')) {
+    data.leftImageFolder.files?.forEach((f) => {
+      bandhobisItems.push({
+        id: f.id,
+        title: f.name,
+        url: f.url,
+        thumbnail: f.thumbnail,
+        category: 'Bandhobis',
+        type: 'image',
+      });
+    });
+  }
+  // Check centerImageFolders if leftImageFolder didn't match
+  if (bandhobisItems.length === 0) {
+    const centerB = data.centerImageFolders?.find((f) =>
+      f.name?.toLowerCase().includes('bandhobis')
+    );
+    if (centerB && centerB.files) {
+      centerB.files.forEach((f) => {
+        bandhobisItems.push({
+          id: f.id,
+          title: f.name,
+          url: f.url,
+          thumbnail: f.thumbnail,
+          category: centerB.name,
+          type: 'image',
+        });
+      });
+    }
+  }
+  // Fallback to static fallbackData if still empty
+  if (bandhobisItems.length === 0 && FALLBACK_MEDIA_DATA.leftImageFolder?.files) {
+    FALLBACK_MEDIA_DATA.leftImageFolder.files.forEach((f) => {
+      bandhobisItems.push({
+        id: f.id,
+        title: f.name,
+        url: f.url,
+        thumbnail: f.thumbnail,
+        category: 'Bandhobis',
+        type: 'image',
+      });
+    });
+  }
+
+  folders.push({
+    id: 'bandhobis',
+    name: 'Bandhobis',
+    type: 'image',
+    count: bandhobisItems.length,
+    items: bandhobisItems,
+  });
+
+  // 2. Trailers
+  if (data.trailerImages && data.trailerImages.length > 0) {
+    folders.push({
+      id: 'trailers',
+      name: 'Trailers',
+      type: 'video',
+      count: data.trailerImages.length,
+      items: data.trailerImages.map((t) => ({
+        id: t.id,
+        title: t.name,
+        url: t.url,
+        thumbnail: t.thumbnail,
+        category: t.folderName || 'Trailers',
+        type: 'video',
+      })),
+    });
+  }
+
+  // 3. Shorts & Reels
+  if (data.shortsFolder && data.shortsFolder.files?.length > 0) {
+    folders.push({
+      id: 'shorts',
+      name: data.shortsFolder.name || 'Shorts',
+      type: 'video',
+      count: data.shortsFolder.files.length,
+      items: data.shortsFolder.files.map((s) => ({
+        id: s.id,
+        title: s.name,
+        url: s.url,
+        thumbnail: s.thumbnail,
+        category: 'Shorts',
+        type: 'video',
+      })),
+    });
+  }
+
+  // 4. Video Albums
+  if (data.videoFolders && data.videoFolders.length > 0) {
+    data.videoFolders.forEach((vf) => {
+      if (vf.files && vf.files.length > 0 && !vf.name?.toLowerCase().includes('bandhobis')) {
+        folders.push({
+          id: `video-${vf.id}`,
+          name: vf.name,
+          type: 'video',
+          count: vf.files.length,
+          items: vf.files.map((f) => ({
+            id: f.id,
+            title: f.name,
+            url: f.url,
+            thumbnail: f.thumbnail,
+            category: vf.name,
+            type: 'video',
+          })),
+        });
+      }
+    });
+  }
+
+  // 5. Image Folders (other than Bandhobis)
+  if (data.centerImageFolders && data.centerImageFolders.length > 0) {
+    data.centerImageFolders.forEach((cif) => {
+      if (cif.files && cif.files.length > 0 && !cif.name?.toLowerCase().includes('bandhobis')) {
+        folders.push({
+          id: `image-${cif.id}`,
+          name: cif.name,
+          type: 'image',
+          count: cif.files.length,
+          items: cif.files.map((f) => ({
+            id: f.id,
+            title: f.name,
+            url: f.url,
+            thumbnail: f.thumbnail,
+            category: cif.name,
+            type: 'image',
+          })),
+        });
+      }
+    });
+  }
+
+  // 6. Left image folder if named something other than Bandhobis
+  if (
+    data.leftImageFolder?.files &&
+    data.leftImageFolder.files.length > 0 &&
+    !data.leftImageFolder.name?.toLowerCase().includes('bandhobis')
+  ) {
+    folders.push({
+      id: `image-${data.leftImageFolder.id}`,
+      name: data.leftImageFolder.name,
+      type: 'image',
+      count: data.leftImageFolder.files.length,
+      items: data.leftImageFolder.files.map((f) => ({
+        id: f.id,
+        title: f.name,
+        url: f.url,
+        thumbnail: f.thumbnail,
+        category: data.leftImageFolder.name,
+        type: 'image',
+      })),
+    });
+  }
+
+  return folders;
+}
 
 function App() {
   const { data, isLoading, isError } = useMediaData();
 
-  const [activeCategory, setActiveCategory] = useState<CategoryKey>('bandhobis');
-  const [activeVideoFolderId, setActiveVideoFolderId] = useState<string | null>(null);
-  const [activeIndex, setActiveIndex] = useState<number>(0);
-  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  // Dynamic folders list from data
+  const allFolders = useMemo(() => {
+    return extractAllFolders(data || FALLBACK_MEDIA_DATA);
+  }, [data]);
 
+  // Active folder selection (defaults to 'bandhobis')
+  const [activeFolderId, setActiveFolderId] = useState<string>('bandhobis');
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [activeSlotIndex, setActiveSlotIndex] = useState<number>(0);
+
+  // Active Folder Entry
+  const selectedFolder = useMemo(() => {
+    return allFolders.find((f) => f.id === activeFolderId) || allFolders[0];
+  }, [allFolders, activeFolderId]);
+
+  const totalFolderItems = selectedFolder ? selectedFolder.items.length : 0;
+  const totalPages = Math.max(1, Math.ceil(totalFolderItems / ITEMS_PER_PAGE));
+
+  // Current batch of 5 to 6 items displayed in the 3D space
+  const currentBatchItems = useMemo<StageMediaItem[]>(() => {
+    if (!selectedFolder || !selectedFolder.items.length) return [];
+    const start = currentPage * ITEMS_PER_PAGE;
+    return selectedFolder.items.slice(start, start + ITEMS_PER_PAGE);
+  }, [selectedFolder, currentPage]);
+
+  const activeItem = currentBatchItems[activeSlotIndex] || currentBatchItems[0];
+
+  // Fullscreen Modal State
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     url: string | null;
@@ -27,167 +217,7 @@ function App() {
     title: '',
   });
 
-  // Transform current folder items into 3D Stage items
-  const currentItems = useMemo<StageMediaItem[]>(() => {
-    if (!data) return [];
-
-    switch (activeCategory) {
-      case 'bandhobis': {
-        // 1. Check leftImageFolder for "bandhobis" (case-insensitive)
-        if (data.leftImageFolder?.name?.toLowerCase().includes('bandhobis') && data.leftImageFolder.files?.length) {
-          return data.leftImageFolder.files.map((img) => ({
-            id: img.id,
-            title: img.name,
-            url: img.url,
-            thumbnail: img.thumbnail,
-            category: data.leftImageFolder.name || 'Bandhobis',
-            type: 'image',
-          }));
-        }
-
-        // 2. Check centerImageFolders for "bandhobis" (case-insensitive)
-        const centerMatch = data.centerImageFolders?.find((f) =>
-          f.name?.toLowerCase().includes('bandhobis')
-        );
-        if (centerMatch && centerMatch.files?.length) {
-          return centerMatch.files.map((img) => ({
-            id: img.id,
-            title: img.name,
-            url: img.url,
-            thumbnail: img.thumbnail,
-            category: centerMatch.name,
-            type: 'image',
-          }));
-        }
-
-        // 3. Check videoFolders
-        const videoMatch = data.videoFolders?.find((f) =>
-          f.name?.toLowerCase().includes('bandhobis')
-        );
-        if (videoMatch && videoMatch.files?.length) {
-          return videoMatch.files.map((file) => ({
-            id: file.id,
-            title: file.name,
-            url: file.url,
-            thumbnail: file.thumbnail,
-            category: videoMatch.name,
-            type: 'video',
-          }));
-        }
-
-        // 4. Default fallback to leftImageFolder or static fallback data
-        const fallbackList = data.leftImageFolder?.files?.length
-          ? data.leftImageFolder.files
-          : FALLBACK_MEDIA_DATA.leftImageFolder.files;
-
-        return fallbackList.map((img) => ({
-          id: img.id,
-          title: img.name,
-          url: img.url,
-          thumbnail: img.thumbnail,
-          category: 'Bandhobis',
-          type: 'image',
-        }));
-      }
-
-      case 'trailers':
-        return (data.trailerImages || []).map((t) => ({
-          id: t.id,
-          title: t.name,
-          url: t.url,
-          thumbnail: t.thumbnail,
-          category: t.folderName || 'Trailers',
-          type: 'video',
-        }));
-
-      case 'videos': {
-        if (activeVideoFolderId) {
-          const folder = data.videoFolders?.find((f) => f.id === activeVideoFolderId);
-          return (folder?.files || []).map((f) => ({
-            id: f.id,
-            title: f.name,
-            url: f.url,
-            thumbnail: f.thumbnail,
-            category: folder?.name || 'Videos',
-            type: 'video',
-          }));
-        }
-        // All video albums combined
-        const allVideos: StageMediaItem[] = [];
-        data.videoFolders?.forEach((f) => {
-          f.files?.forEach((file) => {
-            allVideos.push({
-              id: file.id,
-              title: file.name,
-              url: file.url,
-              thumbnail: file.thumbnail,
-              category: f.name,
-              type: 'video',
-            });
-          });
-        });
-        return allVideos;
-      }
-
-      case 'shorts':
-        return (data.shortsFolder?.files || []).map((s) => ({
-          id: s.id,
-          title: s.name,
-          url: s.url,
-          thumbnail: s.thumbnail,
-          category: 'Shorts',
-          type: 'video',
-        }));
-
-      case 'vault': {
-        const vaultItems: StageMediaItem[] = [];
-        data.leftImageFolder?.files?.forEach((img) => {
-          vaultItems.push({
-            id: img.id,
-            title: img.name,
-            url: img.url,
-            thumbnail: img.thumbnail,
-            category: data.leftImageFolder.name || 'Vault',
-            type: 'image',
-          });
-        });
-        data.centerImageFolders?.forEach((folder) => {
-          folder.files?.forEach((img) => {
-            vaultItems.push({
-              id: img.id,
-              title: img.name,
-              url: img.url,
-              thumbnail: img.thumbnail,
-              category: folder.name || 'Vault',
-              type: 'image',
-            });
-          });
-        });
-        return vaultItems;
-      }
-
-      default:
-        return [];
-    }
-  }, [data, activeCategory, activeVideoFolderId]);
-
-  const activeItem = currentItems[activeIndex] || currentItems[0];
-
-  const handlePrev = useCallback(() => {
-    if (currentItems.length === 0) return;
-    setActiveIndex((prev) => (prev > 0 ? prev - 1 : currentItems.length - 1));
-  }, [currentItems.length]);
-
-  const handleNext = useCallback(() => {
-    if (currentItems.length === 0) return;
-    setActiveIndex((prev) => (prev < currentItems.length - 1 ? prev + 1 : 0));
-  }, [currentItems.length]);
-
-  const handleScrub = useCallback((targetIndex: number) => {
-    setActiveIndex(targetIndex);
-  }, []);
-
-  const handleOpenPlay = useCallback((item?: StageMediaItem) => {
+  const handleOpenModal = useCallback((item?: StageMediaItem) => {
     const target = item || activeItem;
     if (!target) return;
     setModalState({
@@ -198,51 +228,96 @@ function App() {
     });
   }, [activeItem]);
 
-  const handleSelectCategory = (cat: CategoryKey, folderId?: string | null) => {
-    setActiveCategory(cat);
-    setActiveVideoFolderId(folderId || null);
-    setActiveIndex(0);
-  };
+  // Folder selection with page reset
+  const handleSelectFolder = useCallback((folderId: string) => {
+    setActiveFolderId(folderId);
+    setCurrentPage(0);
+    setActiveSlotIndex(0);
+  }, []);
 
-  // Loading Screen (only if no fallback data is available yet)
+  // Item Navigation
+  const handlePrevItem = useCallback(() => {
+    setActiveSlotIndex((prev) => {
+      if (prev > 0) return prev - 1;
+      if (currentPage > 0) {
+        setCurrentPage((p) => p - 1);
+        return ITEMS_PER_PAGE - 1;
+      }
+      return currentBatchItems.length - 1;
+    });
+  }, [currentPage, currentBatchItems.length]);
+
+  const handleNextItem = useCallback(() => {
+    setActiveSlotIndex((prev) => {
+      if (prev < currentBatchItems.length - 1) return prev + 1;
+      if (currentPage < totalPages - 1) {
+        setCurrentPage((p) => p + 1);
+        return 0;
+      }
+      return 0;
+    });
+  }, [currentPage, totalPages, currentBatchItems.length]);
+
+  // Batch / Page Navigation
+  const handlePrevPage = useCallback(() => {
+    if (currentPage > 0) {
+      setCurrentPage((p) => p - 1);
+      setActiveSlotIndex(0);
+    }
+  }, [currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage((p) => p + 1);
+      setActiveSlotIndex(0);
+    }
+  }, [currentPage, totalPages]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (modalState.isOpen) return;
+      if (e.key === 'ArrowLeft') handlePrevItem();
+      if (e.key === 'ArrowRight') handleNextItem();
+      if (e.key === ' ' || e.key === 'Enter') {
+        if (activeItem) handleOpenModal(activeItem);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [modalState.isOpen, handlePrevItem, handleNextItem, activeItem, handleOpenModal]);
+
+  // Loading Screen (only if no fallback data is available)
   if (!data && isLoading) {
     return (
       <div className="fixed inset-0 bg-[#000000] flex flex-col items-center justify-center text-white z-50">
         <div className="relative flex flex-col items-center gap-6">
-          {/* Futuristic Concentric Spinner */}
           <div className="relative flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
-            <div className="absolute w-12 h-12 rounded-full border-2 border-pink-500/20 border-b-pink-500 animate-spin" style={{ animationDirection: 'reverse' }} />
-            <Loader2 className="absolute w-6 h-6 text-white animate-pulse" />
+            <div className="w-16 h-16 rounded-full border-2 border-[#00D2FF]/20 border-t-[#00D2FF] animate-spin" />
+            <Loader2 className="absolute w-5 h-5 text-white animate-pulse" />
           </div>
-
-          <div className="flex flex-col items-center gap-1.5 font-mono text-center">
-            <div className="text-sm font-bold tracking-[0.3em] text-white uppercase drop-shadow-[0_0_10px_rgba(0,210,255,0.5)]">
-              INITIALIZING 3D WEBGL ENGINE...
-            </div>
-            <div className="text-[11px] tracking-widest text-white/40 uppercase">
-              STREAMING ASSETS // SARWARCYOU STAGE
-            </div>
+          <div className="text-xs font-mono tracking-[0.3em] text-white/50 uppercase">
+            INITIALIZING 3D STAGE...
           </div>
         </div>
       </div>
     );
   }
 
-  // Error Screen (only if no data is present at all)
+  // Error Screen
   if (!data && isError) {
     return (
       <div className="fixed inset-0 bg-[#000000] flex items-center justify-center text-white p-6 font-mono">
-        <div className="max-w-md p-8 rounded-2xl bg-red-950/20 border border-red-500/30 text-center space-y-4">
-          <div className="text-red-500 text-3xl font-black">[ ERR: 500 ]</div>
-          <p className="text-sm text-red-200">
-            UNABLE TO STREAM CLOUD MEDIA DATA. PLEASE CHECK NETWORK CONNECTION.
+        <div className="max-w-md p-8 rounded-2xl bg-neutral-900 border border-white/10 text-center space-y-4">
+          <div className="text-red-400 text-2xl font-bold">[ CONNECTION ERROR ]</div>
+          <p className="text-xs text-white/60">
+            Unable to stream cloud media. Please check your internet connection.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-xs uppercase hover:bg-neutral-200 transition-colors"
+            className="px-6 py-2 rounded-full bg-white text-black font-bold text-xs uppercase hover:bg-neutral-200 transition-colors"
           >
-            RETRY CONNECTION
+            RETRY
           </button>
         </div>
       </div>
@@ -250,38 +325,41 @@ function App() {
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black select-none">
-      {/* 1. Full-Viewport Three.js 3D Orbital Cylindrical Ring Canvas */}
+    <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
+      {/* 1. 3D Portrait Stage — 5 to 6 Items Only in Shallow Orbital Arc */}
       <ThreeStage
-        items={currentItems}
-        activeIndex={activeIndex}
-        onActiveIndexChange={setActiveIndex}
-        onSelectActiveItem={handleOpenPlay}
+        items={currentBatchItems}
+        activeIndex={activeSlotIndex}
+        onActiveIndexChange={setActiveSlotIndex}
+        onSelectActiveItem={handleOpenModal}
       />
 
-      {/* 2. Ciao Energy HUD & Viewfinder Staging */}
+      {/* 2. Sleek Minimalist HUD Overlay (No debug badges, tech labels, or raw filenames) */}
       <HudOverlay
         activeItem={activeItem}
-        activeIndex={activeIndex}
-        totalItems={currentItems.length}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onScrub={handleScrub}
-        onPlay={() => handleOpenPlay()}
-        onToggleMenu={() => setIsMenuOpen(true)}
+        activeIndex={activeSlotIndex}
+        totalBatchItems={currentBatchItems.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalFolderItems={totalFolderItems}
+        onPrevItem={handlePrevItem}
+        onNextItem={handleNextItem}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
+        onOpenModal={() => handleOpenModal()}
       />
 
-      {/* 3. Folder Selector Drawer */}
-      <MenuDrawer
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        data={data}
-        activeCategory={activeCategory}
-        activeVideoFolderId={activeVideoFolderId}
-        onSelectCategory={handleSelectCategory}
+      {/* 3. Bottom-Left Modern Electric-Blue Play Logo & Branding */}
+      <BrandLogo />
+
+      {/* 4. Right-Side Floating Vertical Navigation Folder Menu */}
+      <VerticalFolderMenu
+        folders={allFolders}
+        activeFolderId={activeFolderId}
+        onSelectFolder={handleSelectFolder}
       />
 
-      {/* 4. Stream Media Modal Player */}
+      {/* 5. Fullscreen High-Definition Image Lightbox & Responsive Video Modal */}
       <MediaModal
         isOpen={modalState.isOpen}
         onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}
@@ -289,7 +367,7 @@ function App() {
         type={modalState.type}
         title={modalState.title}
       />
-    </div>
+    </main>
   );
 }
 

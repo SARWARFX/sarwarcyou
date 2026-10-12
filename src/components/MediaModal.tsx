@@ -45,9 +45,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   }
 
+  // Clean up title to remove raw camera/screenshot filenames
+  const cleanTitle = title
+    ? title.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim()
+    : type === 'video' ? 'VIDEO STREAM' : 'PORTRAIT VIEW';
+  const displayTitle = /^smartselect|videocapture|screenshot|photo\s+[a-z0-9]/i.test(cleanTitle)
+    ? (type === 'video' ? 'VIDEO STREAM' : 'PORTRAIT VIEW')
+    : cleanTitle;
+
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-3 sm:p-6 md:p-10 animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92 backdrop-blur-2xl p-3 sm:p-6 md:p-10 animate-fade-in"
       onClick={onClose}
     >
       {/* Top action bar */}
@@ -76,12 +84,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         className="relative w-full max-w-5xl max-h-[85vh] rounded-2xl overflow-hidden bg-black/95 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        {title && (
-          <div className="w-full px-5 py-3 border-b border-white/10 bg-white/[0.02] flex items-center justify-between text-xs font-mono text-white/60">
-            <span className="truncate max-w-[80%] font-bold text-white uppercase">{title}</span>
-            <span className="text-cyan-400">STREAMING</span>
-          </div>
-        )}
+        <div className="w-full px-5 py-3 border-b border-white/10 bg-white/[0.02] flex items-center justify-between text-xs font-mono text-white/60">
+          <span className="truncate max-w-[80%] font-bold text-white uppercase tracking-wider">{displayTitle}</span>
+          <span className="text-[#00D2FF] font-semibold">{type === 'video' ? 'STREAMING 1080P' : 'HIGH DEFINITION'}</span>
+        </div>
 
         {type === 'video' ? (
           <div className="w-full aspect-video bg-black flex items-center justify-center">

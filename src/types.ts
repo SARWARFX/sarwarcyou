@@ -50,3 +50,21 @@ export interface ApiResponse {
   cached: boolean;
   data: ApiResponseData;
 }
+
+export interface StageMediaItem {
+  id: string;
+  title: string;
+  url: string;
+  thumbnail: string;
+  category: string;
+  type: 'video' | 'image';
+}
+
+export interface MediaFolderEntry {
+  id: string;
+  name: string;
+  type: 'image' | 'video';
+  count: number;
+  items: StageMediaItem[];
+}
+
