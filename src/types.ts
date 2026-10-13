@@ -41,6 +41,7 @@ export interface HfMediaItem {
   name: string;
   path: string;
   url: string;
+  thumbnails?: string[];
 }
 
 export interface HfMediaCatalog {
@@ -71,6 +72,7 @@ export interface StageMediaItem {
   category: string;
   type: 'video' | 'image';
   posterUrl?: string;
+  thumbnails?: string[];
 }
 
 export interface MediaFolderEntry {

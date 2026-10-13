@@ -68,6 +68,7 @@ export function extractTwelveAlbums(
           thumbnail: type === 'image' ? safeUrl : getDirectImageUrl({ id: item.path, url: item.url, type }, idx),
           category: categoryName,
           type,
+          thumbnails: item.thumbnails,
         };
       });
     };

@@ -29,6 +29,7 @@ import {
   prewarmVideoStream,
 } from '../utils/videoPosterGenerator';
 import { useVideoThumbnail, getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
+import { resolveMultiFrameThumbnails, useHoverThumbnailScrub } from '../utils/thumbnailResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface YouTubeTheaterModalProps {
@@ -69,15 +70,35 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
   onSelectItem,
   hasDragged,
 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const multiFrameThumbnails = useMemo(() => {
+    return isVideo ? resolveMultiFrameThumbnails(item) : [];
+  }, [isVideo, item]);
+
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
     isVideo ? item.url : undefined,
     album.layoutType === 'vertical-waterfall'
   );
 
   const directThumb = getDirectImageUrl(item, idx);
-  const activeThumb = isVideo
+  const staticFallbackThumbnail = isVideo
     ? videoThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || item.thumbnail
     : directThumb;
+
+  const {
+    activeThumbnail: scrubThumbnail,
+    activeFrameIndex,
+    isScrubbing,
+    totalFrames,
+  } = useHoverThumbnailScrub({
+    thumbnails: multiFrameThumbnails,
+    defaultThumbnail: staticFallbackThumbnail,
+    isHovered,
+    intervalMs: 380,
+    enabled: isVideo && multiFrameThumbnails.length > 0,
+  });
+
+  const activeThumb = scrubThumbnail || staticFallbackThumbnail;
 
   const itemTitle = (item.title || `${album.name} ${idx + 1}`)
     .replace(/\.[^/.]+$/, '')
@@ -86,6 +107,8 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
 
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
         e.stopPropagation();
         if (!hasDragged()) {
@@ -109,19 +132,38 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
       {/* Visual Thumbnail Image */}
       {activeThumb ? (
         <img
+          key={activeThumb}
           src={activeThumb}
           alt={itemTitle}
           loading="lazy"
-          className="w-full h-full object-cover pointer-events-none relative z-10 group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover pointer-events-none relative z-10 group-hover:scale-105 transition-transform duration-300"
         />
       ) : null}
 
-      {/* Hover Play / Stream Badge */}
-      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-200 z-20 pointer-events-none">
-        <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+      {/* Multi-Frame Hover Scrubbing Progress Dots */}
+      {isVideo && isScrubbing && totalFrames > 1 && (
+        <div className="absolute top-1.5 right-1.5 z-30 pointer-events-none flex items-center gap-1 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-white/15 animate-fade-in">
+          {Array.from({ length: totalFrames }).map((_, fIdx) => (
+            <div
+              key={fIdx}
+              className={`h-1 rounded-full transition-all duration-200 ${
+                fIdx === activeFrameIndex
+                  ? 'w-2.5 bg-zinc-100'
+                  : 'w-1 bg-zinc-600'
+              }`}
+            />
+          ))}
         </div>
-      </div>
+      )}
+
+      {/* Hover Play / Stream Badge */}
+      {(!isScrubbing || totalFrames <= 1) && (
+        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-200 z-20 pointer-events-none">
+          <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+          </div>
+        </div>
+      )}
 
       {/* Micro Badge */}
       <div className="absolute top-1.5 left-1.5 z-20 pointer-events-none">
@@ -142,15 +184,32 @@ interface QueueCardItemProps {
 
 const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSelect }) => {
   const isVideo = item.type === 'video';
+  const [isHovered, setIsHovered] = useState(false);
+  const multiFrameThumbnails = useMemo(() => {
+    return isVideo ? resolveMultiFrameThumbnails(item) : [];
+  }, [isVideo, item]);
+
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
     isVideo ? item.url : undefined,
     false
   );
 
   const directThumb = getDirectImageUrl(item, idx);
-  const activeThumb = isVideo
+  const staticFallbackThumbnail = isVideo
     ? videoThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || item.thumbnail
     : directThumb;
+
+  const {
+    activeThumbnail: scrubThumbnail,
+  } = useHoverThumbnailScrub({
+    thumbnails: multiFrameThumbnails,
+    defaultThumbnail: staticFallbackThumbnail,
+    isHovered,
+    intervalMs: 380,
+    enabled: isVideo && multiFrameThumbnails.length > 0,
+  });
+
+  const activeThumb = scrubThumbnail || staticFallbackThumbnail;
 
   const itemTitle = (item.title || `Media ${idx + 1}`)
     .replace(/\.[^/.]+$/, '')
@@ -161,8 +220,10 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
     <div
       onClick={onSelect}
       onMouseEnter={() => {
+        setIsHovered(true);
         if (isVideo) prewarmVideoStream(item.url);
       }}
+      onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => {
         if (isVideo) prewarmVideoStream(item.url);
       }}
@@ -176,6 +237,7 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
       <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.05] flex-shrink-0">
         {activeThumb ? (
           <img
+            key={activeThumb}
             src={activeThumb}
             alt={itemTitle}
             loading="lazy"

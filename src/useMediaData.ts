@@ -95,6 +95,38 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
   const shorts: HfMediaItem[] = [];
   const images: HfMediaItem[] = [];
 
+  // Index all pre-rendered WebP thumbnails from .thumbnails/
+  const thumbnailsByFolder = new Map<string, string[]>();
+  for (const item of tree) {
+    if (item.type !== 'file' || !item.path) continue;
+    if (item.path.startsWith('.thumbnails/') && item.path.endsWith('.webp')) {
+      const lastSlash = item.path.lastIndexOf('/');
+      if (lastSlash > 0) {
+        const folder = item.path.substring(0, lastSlash);
+        const url = buildHfMediaUrl(item.path);
+        const list = thumbnailsByFolder.get(folder) || [];
+        list.push(url);
+        thumbnailsByFolder.set(folder, list);
+      }
+    }
+  }
+
+  // Sort thumbnails within each folder to ensure thumb_0, thumb_1, thumb_2... order
+  for (const [folder, list] of thumbnailsByFolder.entries()) {
+    list.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    thumbnailsByFolder.set(folder, list);
+  }
+
+  // Helper to match thumbnail folder for a video path
+  const getThumbnailsForVideo = (videoPath: string): string[] | undefined => {
+    const lastSlash = videoPath.lastIndexOf('/');
+    const parentDir = lastSlash > 0 ? videoPath.substring(0, lastSlash) : '';
+    const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
+    const stem = fileName.replace(/\.[^/.]+$/, '');
+    const thumbFolder = parentDir ? `.thumbnails/${parentDir}/${stem}` : `.thumbnails/${stem}`;
+    return thumbnailsByFolder.get(thumbFolder);
+  };
+
   for (const item of tree) {
     if (item.type !== 'file' || !item.path) continue;
     const path = item.path;
@@ -102,9 +134,11 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
     const url = buildHfMediaUrl(path);
 
     if (path.startsWith('Clips/') && VIDEO_EXTENSIONS.test(path)) {
-      clips.push({ name, path, url });
+      const thumbnails = getThumbnailsForVideo(path);
+      clips.push({ name, path, url, thumbnails });
     } else if (path.startsWith('Shorts/') && VIDEO_EXTENSIONS.test(path)) {
-      shorts.push({ name, path, url });
+      const thumbnails = getThumbnailsForVideo(path);
+      shorts.push({ name, path, url, thumbnails });
     } else if (path.startsWith('Images/') && MEDIA_EXTENSIONS.test(path)) {
       images.push({ name, path, url });
     }
