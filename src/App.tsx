@@ -19,6 +19,21 @@ function App() {
     return extractTwelveAlbums(data || FALLBACK_HF_CATALOG);
   }, [data]);
 
+  // First 6 video items in the feed for thumbnail preloading
+  const initialVideoUrls = useMemo(() => {
+    const urls: string[] = [];
+    for (const album of albums) {
+      for (const item of album.items) {
+        if (item.type === 'video' && item.url) {
+          urls.push(item.url);
+          if (urls.length >= 6) break;
+        }
+      }
+      if (urls.length >= 6) break;
+    }
+    return urls;
+  }, [albums]);
+
   // Active snapped album index (0 to 11)
   const [activeAlbumIndex, setActiveAlbumIndex] = useState<number>(0);
   const [prevAlbumIndex, setPrevAlbumIndex] = useState<number>(0);
@@ -275,7 +290,10 @@ function App() {
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
       {/* ================= RESILIENT OLED SPLASH PRELOADER ================= */}
-      <SplashPreloader isReady={!isLoading && !!data} />
+      <SplashPreloader
+        isReady={!isLoading && !!data}
+        initialVideoUrls={initialVideoUrls}
+      />
 
       {/* ================= VERTICAL LUXURY ELEVATOR CONTAINER ================= */}
       <div

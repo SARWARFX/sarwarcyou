@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { preloadInitialThumbnails } from '../utils/clientVideoThumbnails';
 
 interface SplashPreloaderProps {
   isReady?: boolean;
+  initialVideoUrls?: string[];
 }
 
-export const SplashPreloader: React.FC<SplashPreloaderProps> = ({ isReady = false }) => {
+export const SplashPreloader: React.FC<SplashPreloaderProps> = ({
+  isReady = false,
+  initialVideoUrls = [],
+}) => {
   const [status, setStatus] = useState<'SYNCING VAULT...' | 'READY'>('SYNCING VAULT...');
   const [isVisible, setIsVisible] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -26,8 +31,11 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({ isReady = fals
   useEffect(() => {
     let fadeTimer: number;
     let removeTimer: number;
+    let hasCompleted = false;
 
     const completePreload = () => {
+      if (hasCompleted) return;
+      hasCompleted = true;
       setStatus('READY');
       fadeTimer = window.setTimeout(() => {
         setIsFadingOut(true);
@@ -37,26 +45,28 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({ isReady = fals
       }, 200);
     };
 
-    // If data is ready early
-    if (isReady) {
-      completePreload();
-      return () => {
-        clearTimeout(fadeTimer);
-        clearTimeout(removeTimer);
-      };
-    }
-
-    // Fail-safe hard timeout: max 1500ms guarantees zero lockout
+    // Safety fallback timeout: max 2.8 seconds guarantees zero permanent lockout
     const hardTimeout = window.setTimeout(() => {
       completePreload();
-    }, 1500);
+    }, 2800);
+
+    // Coordinate with client-side thumbnail generator for initial 4-6 video cards
+    if (isReady) {
+      if (initialVideoUrls && initialVideoUrls.length > 0) {
+        preloadInitialThumbnails(initialVideoUrls, 6, 2600).then(() => {
+          completePreload();
+        });
+      } else {
+        completePreload();
+      }
+    }
 
     return () => {
       clearTimeout(hardTimeout);
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
     };
-  }, [isReady]);
+  }, [isReady, initialVideoUrls]);
 
   if (!isVisible) return null;
 

@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Play, Sparkles } from 'lucide-react';
 import { getDirectImageUrl, ensureHttps } from '../utils/imageUrlResolver';
-import { formatVideoPosterUrl, prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
+import { prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
+import { useVideoThumbnail, getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
 import type { AlbumData, StageMediaItem } from '../types';
 
 export type DriftimeVariant =
@@ -22,6 +23,160 @@ interface DriftimeEditorialStageProps {
   isVisible?: boolean;
   isLoading?: boolean;
 }
+
+interface DriftimeMediaCardProps {
+  item: StageMediaItem;
+  idx: number;
+  album: AlbumData;
+  variant: DriftimeVariant;
+  heightClass: string;
+  staggeredOffset: string;
+  diptychMargin: string;
+  isHovered: boolean;
+  onHover: (idx: number | null) => void;
+  onSelectItem: (item: StageMediaItem, posterUrl?: string) => void;
+  onActiveIndexChange?: (index: number) => void;
+  updateMaxScroll: () => void;
+  hasDragged: () => boolean;
+}
+
+const DriftimeMediaCard: React.FC<DriftimeMediaCardProps> = ({
+  item,
+  idx,
+  album,
+  variant,
+  heightClass,
+  staggeredOffset,
+  diptychMargin,
+  isHovered,
+  onHover,
+  onSelectItem,
+  onActiveIndexChange,
+  updateMaxScroll,
+  hasDragged,
+}) => {
+  const isVideo = item.type === 'video';
+  const isShort =
+    variant === 'shorts' ||
+    album.name.toLowerCase().includes('short') ||
+    album.name.toLowerCase().includes('reel');
+
+  const { thumbnail: videoThumbnail } = useVideoThumbnail(
+    isVideo ? item.url : undefined,
+    isShort
+  );
+
+  const directImgUrl = getDirectImageUrl(item, idx);
+  const activeThumbnail = isVideo
+    ? videoThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || item.thumbnail
+    : directImgUrl;
+
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const cleanCardTitle = (item.title || album.name)
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[-_]+/g, ' ')
+    .trim();
+
+  const badgeLabel = isVideo ? (isShort ? 'SHORT' : 'VIDEO') : 'PHOTO';
+
+  return (
+    <div
+      onMouseEnter={() => {
+        onHover(idx);
+        if (isVideo) prewarmVideoStream(item.url);
+      }}
+      onTouchStart={() => {
+        if (isVideo) prewarmVideoStream(item.url);
+      }}
+      onMouseLeave={() => onHover(null)}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!hasDragged()) {
+          onActiveIndexChange?.(idx);
+          onSelectItem(item, activeThumbnail || undefined);
+        }
+      }}
+      role="article"
+      aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
+      className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
+    >
+      {/* Intentional Obsidian Typography Surface (Zero Black Screen Fallback) */}
+      <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
+        <div className="flex items-center justify-between">
+          <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+            <Play className="w-3 h-3 text-zinc-400 fill-current ml-0.5" />
+          </div>
+          <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest font-semibold">
+            SARWARCYOU
+          </span>
+        </div>
+        <div className="mt-auto">
+          <span className="text-xs sm:text-sm font-medium text-zinc-200 tracking-wide line-clamp-2 block leading-snug">
+            {cleanCardTitle}
+          </span>
+          <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider block mt-1">
+            {badgeLabel} STREAM
+          </span>
+        </div>
+      </div>
+
+      {/* Subtle Micro-Badge (VIDEO, SHORT, PHOTO) */}
+      <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
+        <span className="px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/10 text-[8px] font-mono font-semibold tracking-wider text-zinc-300 uppercase shadow-md">
+          {badgeLabel}
+        </span>
+      </div>
+
+      {/* Visual Thumbnail Presentation: Clean <img> tag with smooth cross-fade */}
+      {activeThumbnail ? (
+        <img
+          src={activeThumbnail}
+          alt={cleanCardTitle}
+          loading="lazy"
+          draggable={false}
+          onLoad={() => {
+            setImageLoaded(true);
+            updateMaxScroll();
+          }}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+          className={`h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none relative z-10 ${
+            imageLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      ) : null}
+
+      {/* Video Hover Preview (smooth silent loop on hover) */}
+      {isVideo && isHovered && (
+        <video
+          src={`${ensureHttps(item.url)}#t=0.5`}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-15 pointer-events-none"
+        />
+      )}
+
+      {/* Specular gloss highlight on hover */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />
+
+      {/* Video Play Glyph indicator for cinematic/video formats */}
+      {isVideo && !isHovered && (
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/25 backdrop-blur-[1px] pointer-events-none z-20">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
+            <Play className="w-4 h-4 fill-current ml-0.5" />
+          </div>
+        </div>
+      )}
+
+      {/* Razor-thin border sheen on hover */}
+      <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-transparent group-hover:border-white/15 transition-colors duration-300 z-20" />
+    </div>
+  );
+};
 
 export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   album,
@@ -337,13 +492,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
           })
         ) : (
           items.map((item, idx) => {
-            const directUrl = getDirectImageUrl(item, idx);
-            const isCardHovered = hoveredCardIdx === idx;
-            const cleanCardTitle = (item.title || album.name)
-              .replace(/\.[^/.]+$/, '')
-              .replace(/[-_]+/g, ' ')
-              .trim();
-
             // Alternating vertical rhythm for staggered variant
             const staggeredOffset =
               variant === 'staggered'
@@ -368,123 +516,23 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
               heightClass = 'h-[38vh] sm:h-[46vh] md:h-[50vh]';
             }
 
-            // Determine micro-badge label
-            const isShort =
-              variant === 'shorts' ||
-              album.name.toLowerCase().includes('short') ||
-              album.name.toLowerCase().includes('reel');
-            const badgeLabel = item.type === 'video' ? (isShort ? 'SHORT' : 'VIDEO') : 'PHOTO';
-
-            // Construct safe poster URL with #t=0.5
-            const videoPosterStreamUrl = formatVideoPosterUrl(
-              encodeURI(ensureHttps(item.url)),
-              0.5
-            );
-
             return (
-              <div
+              <DriftimeMediaCard
                 key={item.id || `driftime-card-${idx}`}
-                onMouseEnter={() => {
-                  setHoveredCardIdx(idx);
-                  if (item.type === 'video') prewarmVideoStream(item.url);
-                }}
-                onTouchStart={() => {
-                  if (item.type === 'video') prewarmVideoStream(item.url);
-                }}
-                onMouseLeave={() => setHoveredCardIdx(null)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!hasDraggedRef.current) {
-                    onActiveIndexChange?.(idx);
-                    const cardPoster = item.type === 'video'
-                      ? (getCachedVideoPoster(item.url) || item.thumbnail || directUrl)
-                      : directUrl;
-                    onSelectItem(item, cardPoster);
-                  }
-                }}
-                role="article"
-                aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
-                className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
-              >
-                {/* Intentional Obsidian Typography Surface (Zero Black Screen Fallback) */}
-                <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                      <Play className="w-3 h-3 text-zinc-400 fill-current ml-0.5" />
-                    </div>
-                    <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest font-semibold">
-                      SARWARCYOU
-                    </span>
-                  </div>
-                  <div className="mt-auto">
-                    <span className="text-xs sm:text-sm font-medium text-zinc-200 tracking-wide line-clamp-2 block leading-snug">
-                      {cleanCardTitle}
-                    </span>
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider block mt-1">
-                      {badgeLabel} STREAM
-                    </span>
-                  </div>
-                </div>
-
-                {/* Subtle Micro-Badge (VIDEO, SHORT, PHOTO) */}
-                <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
-                  <span className="px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/10 text-[8px] font-mono font-semibold tracking-wider text-zinc-300 uppercase shadow-md">
-                    {badgeLabel}
-                  </span>
-                </div>
-
-                {/* Media Card Presentation: Native Video with #t=0.5 or Image */}
-                {item.type === 'video' && item.url.includes('huggingface.co') ? (
-                  <video
-                    src={videoPosterStreamUrl}
-                    preload="metadata"
-                    muted
-                    playsInline
-                    autoPlay={isCardHovered}
-                    loop
-                    aria-label={item.title ? `${item.title} — Video Stream` : 'Cinematic Video Stream'}
-                    onLoadedMetadata={updateMaxScroll}
-                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none relative z-10"
-                  />
-                ) : (
-                  <img
-                    src={directUrl}
-                    alt={item.title ? `${item.title} — ${album.name}` : `Editorial Photography — ${album.name}`}
-                    loading="lazy"
-                    draggable={false}
-                    onLoad={updateMaxScroll}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none relative z-10"
-                  />
-                )}
-
-                {/* Legacy iframe fallback for non-direct video items */}
-                {item.type === 'video' && !item.url.includes('huggingface.co') && isCardHovered && (
-                  <iframe
-                    src={`${ensureHttps(item.url)}?autoplay=1&mute=1`}
-                    className="absolute inset-0 w-full h-full border-0 pointer-events-none z-10 scale-105"
-                    allow="autoplay; encrypted-media"
-                    title="Silent Looping Video Preview"
-                  />
-                )}
-
-                {/* Specular gloss highlight on hover */}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                {/* Video Play Glyph indicator for cinematic/video formats */}
-                {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && !isCardHovered && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/25 backdrop-blur-[1px] pointer-events-none">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
-                      <Play className="w-4 h-4 fill-current ml-0.5" />
-                    </div>
-                  </div>
-                )}
-
-                {/* Razor-thin border sheen on hover */}
-                <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-transparent group-hover:border-white/15 transition-colors duration-300" />
-              </div>
+                item={item}
+                idx={idx}
+                album={album}
+                variant={variant}
+                heightClass={heightClass}
+                staggeredOffset={staggeredOffset}
+                diptychMargin={diptychMargin}
+                isHovered={hoveredCardIdx === idx}
+                onHover={setHoveredCardIdx}
+                onSelectItem={onSelectItem}
+                onActiveIndexChange={onActiveIndexChange}
+                updateMaxScroll={updateMaxScroll}
+                hasDragged={() => hasDraggedRef.current}
+              />
             );
           })
         )}
