@@ -78,7 +78,19 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   useEffect(() => {
     updateMaxScroll();
     window.addEventListener('resize', updateMaxScroll);
-    return () => window.removeEventListener('resize', updateMaxScroll);
+
+    let observer: ResizeObserver | null = null;
+    if (trackRef.current && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        updateMaxScroll();
+      });
+      observer.observe(trackRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateMaxScroll);
+      observer?.disconnect();
+    };
   }, [items, updateMaxScroll]);
 
   // ================= 60/120 FPS PHYSICS & MOMENTUM LOOP =================
@@ -318,27 +330,25 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
           // Alternating vertical rhythm for staggered variant
           const staggeredOffset =
             variant === 'staggered'
-              ? idx % 3 === 0
-                ? 'translate-y-[-24px] sm:translate-y-[-36px]'
-                : idx % 3 === 1
-                ? 'translate-y-[24px] sm:translate-y-[36px]'
-                : 'translate-y-0'
+              ? idx % 2 === 0
+                ? 'translate-y-[-20px] sm:translate-y-[-30px]'
+                : 'translate-y-[20px] sm:translate-y-[30px]'
               : '';
 
-          // Aspect ratios per variant
-          let aspectClass = 'h-[52vh] sm:h-[62vh] md:h-[68vh] aspect-[3/4]';
+          // Architectural diptych pairing: tight hairline gap within a pair, wider gap between pairs
+          const diptychMargin =
+            variant === 'diptych'
+              ? idx % 2 === 0
+                ? 'mr-1 sm:mr-2.5'
+                : 'mr-5 sm:mr-8'
+              : '';
+
+          // Height bounds fitting dynamically within the viewport
+          let heightClass = 'h-[50vh] sm:h-[60vh] md:h-[66vh]';
           if (variant === 'cinematic') {
-            aspectClass = 'h-[46vh] sm:h-[54vh] md:h-[58vh] aspect-[16/9]';
+            heightClass = 'h-[44vh] sm:h-[52vh] md:h-[58vh]';
           } else if (variant === 'shorts') {
-            aspectClass = 'h-[55vh] sm:h-[65vh] md:h-[72vh] aspect-[9/16]';
-          } else if (variant === 'diptych') {
-            aspectClass = idx % 2 === 0
-              ? 'h-[50vh] sm:h-[60vh] md:h-[66vh] aspect-[4/5]'
-              : 'h-[50vh] sm:h-[60vh] md:h-[66vh] aspect-[1/1]';
-          } else {
-            // Filmstrip: alternating landscape, portrait, and classic proportions
-            const ratios = ['aspect-[3/4]', 'aspect-[4/3]', 'aspect-[1/1]', 'aspect-[16/10]', 'aspect-[4/5]'];
-            aspectClass = `h-[50vh] sm:h-[60vh] md:h-[68vh] ${ratios[idx % ratios.length]}`;
+            heightClass = 'h-[54vh] sm:h-[64vh] md:h-[70vh]';
           }
 
           return (
@@ -350,18 +360,19 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                   onSelectItem(item);
                 }
               }}
-              className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0e1017] border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_28px_70px_rgba(0,0,0,0.95),0_0_25px_rgba(0,210,255,0.25)] hover:border-[#00D2FF]/60 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] hover:-translate-y-1.5 select-none ${aspectClass} ${staggeredOffset}`}
+              className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e14] border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_28px_70px_rgba(0,0,0,0.95),0_0_25px_rgba(0,210,255,0.25)] hover:border-[#00D2FF]/60 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] hover:-translate-y-1.5 select-none ${heightClass} ${staggeredOffset} ${diptychMargin}`}
             >
-              {/* Pure Photography Image Layer (ZERO text, labels, badges) */}
+              {/* Pure Photography Image Layer (100% UNCROPPED in native aspect ratio, ZERO text) */}
               <img
                 src={directUrl}
                 alt="Editorial Photography"
                 loading="lazy"
                 draggable={false}
+                onLoad={updateMaxScroll}
                 onError={(e) => {
                   e.currentTarget.src = fallbackUrl;
                 }}
-                className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-106 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
+                className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
               />
 
               {/* Specular gloss highlight on hover */}

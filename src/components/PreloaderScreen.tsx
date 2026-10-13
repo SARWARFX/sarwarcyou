@@ -1,5 +1,5 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import type { AlbumData } from '../types';
 
@@ -15,6 +15,7 @@ export const PreloaderScreen: React.FC<PreloaderScreenProps> = ({
   const [progress, setProgress] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const hasStartedRef = useRef(false);
 
   // Living chromatic color stops for branding pulse
   const [currentColor, setCurrentColor] = useState('#00D2FF');
@@ -37,6 +38,9 @@ export const PreloaderScreen: React.FC<PreloaderScreenProps> = ({
 
   // Asset pre-caching engine
   useEffect(() => {
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+
     const urlsToPreload: string[] = [];
 
     // Harvest critical photo assets across all albums
