@@ -10,6 +10,36 @@ function isHfCatalog(data: unknown): data is HfMediaCatalog {
   );
 }
 
+/**
+ * Interleaving Algorithm:
+ * Alternates populated albums on the feed: Image Album ➔ Video Album ➔ Image Album ➔ Video Album...
+ * Any empty / pending folders (count === 0) are placed cleanly at the very bottom.
+ */
+export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
+  const populated = albums.filter((a) => a.items && a.items.length > 0);
+  const empty = albums.filter((a) => !a.items || a.items.length === 0);
+
+  const images = populated.filter((a) => a.type === 'image');
+  const videos = populated.filter((a) => a.type === 'video');
+
+  const interleaved: AlbumData[] = [];
+  const maxLen = Math.max(images.length, videos.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    if (i < images.length) interleaved.push(images[i]);
+    if (i < videos.length) interleaved.push(videos[i]);
+  }
+
+  // Combine interleaved populated albums with empty/pending folders at the bottom
+  const finalAlbums = [...interleaved, ...empty];
+
+  // Re-index all albums cleanly with their final 0-based index
+  return finalAlbums.map((album, idx) => ({
+    ...album,
+    index: idx,
+  }));
+}
+
 export function extractTwelveAlbums(
   data: HfMediaCatalog | ApiResponseData | null | undefined
 ): AlbumData[] {
@@ -300,7 +330,7 @@ export function extractTwelveAlbums(
       });
     });
 
-    return baseAlbums;
+    return interleaveAlbums(baseAlbums);
   }
 
   // Fallback to legacy Google Drive data structure if ever supplied:
@@ -341,7 +371,7 @@ export function extractTwelveAlbums(
 
   const shortsFolder = source.shortsFolder;
 
-  return [
+  return interleaveAlbums([
     {
       id: 'album-bandhobis',
       index: 0,
@@ -462,5 +492,5 @@ export function extractTwelveAlbums(
       layoutType: 'coming-soon-videos',
       subtitle: 'Future Vault // In Queue',
     },
-  ];
+  ]);
 }

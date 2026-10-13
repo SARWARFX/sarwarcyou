@@ -94,32 +94,45 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
     };
   }, [items, updateMaxScroll]);
 
-  // ================= 60/120 FPS PHYSICS & MOMENTUM LOOP =================
+  // ================= 60/120 FPS CONTINUOUS AUTO-SLIDE & MOMENTUM LOOP =================
   useEffect(() => {
     let animId: number;
     let lastTime = performance.now();
+    const AUTO_SLIDE_SPEED = 30; // 30px per second: gentle, continuous right-to-left glide
 
     const loop = (now: number) => {
       const dt = Math.min((now - lastTime) / 16.67, 2.5);
+      const secondsElapsed = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
       if (!isDraggingRef.current) {
-        // 1. Momentum glide damping
+        // 1. Momentum glide damping when user just released a drag or wheel flick
         if (Math.abs(velocityRef.current) > 0.1) {
           scrollOffsetRef.current += velocityRef.current * dt;
           velocityRef.current *= Math.pow(0.92, dt);
         } else {
           velocityRef.current = 0;
+
+          // 2. Continuous auto-slide (Right to Left): gently glides forward unless hovered/interacting
+          const isInteracting =
+            isHoveredRef.current ||
+            Date.now() - lastInteractionTimeRef.current < 1200;
+
+          if (!isInteracting && !isComingSoon && isActive && items.length > 0) {
+            scrollOffsetRef.current += AUTO_SLIDE_SPEED * secondsElapsed;
+          }
         }
 
-        // 2. Elastic edge bounds
+        // 3. Elastic edge bounds and seamless loop
         const maxScroll = maxScrollRef.current;
-        if (scrollOffsetRef.current < 0) {
-          scrollOffsetRef.current += (0 - scrollOffsetRef.current) * 0.12 * dt;
-          velocityRef.current *= 0.5;
-        } else if (scrollOffsetRef.current > maxScroll && maxScroll > 0) {
-          scrollOffsetRef.current += (maxScroll - scrollOffsetRef.current) * 0.12 * dt;
-          velocityRef.current *= 0.5;
+        if (maxScroll > 10) {
+          if (scrollOffsetRef.current >= maxScroll + 30) {
+            // Smoothly wrap around to beginning of reel
+            scrollOffsetRef.current = 0;
+          } else if (scrollOffsetRef.current < -60) {
+            scrollOffsetRef.current += (0 - scrollOffsetRef.current) * 0.12 * dt;
+            velocityRef.current *= 0.5;
+          }
         }
       }
 
@@ -133,50 +146,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, []);
-
-  // ================= 5-SECOND IDLE AUTO-DRIFT =================
-  useEffect(() => {
-    if (isComingSoon || !isActive) return;
-
-    const timer = setInterval(() => {
-      const now = Date.now();
-      // If user hasn't interacted in the last 4.5 seconds and is not hovering
-      if (!isHoveredRef.current && !isDraggingRef.current && now - lastInteractionTimeRef.current >= 4500) {
-        const step = window.innerWidth < 768 ? 280 : 420;
-        const maxScroll = maxScrollRef.current;
-
-        // Smooth drift from right to left
-        let nextTarget = scrollOffsetRef.current + step;
-        if (nextTarget > maxScroll) {
-          nextTarget = 0; // Seamless loop back to origin
-        }
-
-        // Spring ease to nextTarget
-        const start = scrollOffsetRef.current;
-        const distance = nextTarget - start;
-        const startTime = performance.now();
-        const duration = 1200;
-
-        const animateDrift = (t: number) => {
-          if (isDraggingRef.current || isHoveredRef.current) return;
-          const elapsed = t - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          // Cubic ease-out
-          const ease = 1 - Math.pow(1 - progress, 3);
-          scrollOffsetRef.current = start + distance * ease;
-
-          if (progress < 1) {
-            requestAnimationFrame(animateDrift);
-          }
-        };
-
-        requestAnimationFrame(animateDrift);
-      }
-    }, 5000);
-
-    return () => clearInterval(timer);
-  }, [isComingSoon, isActive]);
+  }, [isActive, isComingSoon, items.length]);
 
   // ================= POINTER DRAG & SWIPE HANDLERS =================
   const isPointerCapturedRef = useRef(false);
@@ -309,7 +279,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         isHoveredRef.current = false;
       }}
       style={{ touchAction: 'none' }}
-      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-black z-0 flex flex-col justify-end pb-8 sm:pb-12 md:pb-16"
+      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-black z-0 flex flex-col justify-end pb-8 sm:pb-12 md:pb-16 scrollbar-none [&::-webkit-scrollbar]:hidden"
     >
       {/* 1. Subtle hairline architectural dot grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.035] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]" />

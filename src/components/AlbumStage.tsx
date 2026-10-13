@@ -16,47 +16,33 @@ export interface AlbumStageProps {
 export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
   const { album } = props;
 
-  // Unified Driftime Editorial Layout Rhythms for all 12 albums:
+  // Dynamic Driftime Editorial Layout Rhythms for interleaved albums:
   let variant: DriftimeVariant = 'filmstrip';
 
-  switch (album.index) {
-    case 0: // Album 1: Favorites / Bandhobis
+  if (album.itemCount === 0 || album.layoutType?.startsWith('coming-soon')) {
+    variant = 'coming-soon';
+  } else if (
+    album.id.includes('short') ||
+    album.name.toLowerCase().includes('short') ||
+    album.name.toLowerCase().includes('reel') ||
+    album.layoutType === 'vertical-waterfall'
+  ) {
+    variant = 'shorts';
+  } else if (album.type === 'video') {
+    variant = 'cinematic';
+  } else {
+    // Curated photography rhythms
+    if (album.id.includes('bandhobis')) {
       variant = 'filmstrip';
-      break;
-    case 1: // Album 2: Works
+    } else if (album.id.includes('work')) {
       variant = 'staggered';
-      break;
-    case 2: // Album 3: Portfolio / Street
+    } else if (album.id.includes('h2026')) {
       variant = 'diptych';
-      break;
-    case 3: // Album 4: Portraits / Editorial
+    } else if (album.id.includes('h2025')) {
       variant = 'staggered';
-      break;
-    case 4: // Album 5: Classic
+    } else {
       variant = 'filmstrip';
-      break;
-    case 5: // Album 6: Favorite Videos
-      variant = 'cinematic';
-      break;
-    case 6: // Album 7: H2026 Videos
-      variant = 'cinematic';
-      break;
-    case 7: // Album 8: H2025 Videos
-      variant = 'cinematic';
-      break;
-    case 8: // Album 9: Others Videos
-      variant = 'cinematic';
-      break;
-    case 9: // Album 10: Shorts & Reels
-      variant = 'shorts';
-      break;
-    case 10: // Album 11: H2027 Photos
-    case 11: // Album 12: H2027 Videos
-      variant = 'coming-soon';
-      break;
-    default:
-      variant = album.type === 'video' ? 'cinematic' : 'filmstrip';
-      break;
+    }
   }
 
   return <DriftimeEditorialStage {...props} variant={variant} />;

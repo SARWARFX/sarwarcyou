@@ -52,6 +52,189 @@ function formatTime(seconds: number): string {
 
 const PLAYBACK_RATES = [0.5, 1, 1.25, 1.5, 2];
 
+interface SuggestedAlbumReelProps {
+  album: AlbumData;
+  onSelectItem: (album: AlbumData, itemIndex: number) => void;
+}
+
+const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelectItem }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const scrollOffsetRef = useRef(0);
+  const isHoveredRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, scrollX: 0 });
+  const hasDraggedRef = useRef(false);
+  const maxScrollRef = useRef(0);
+
+  const items = useMemo(() => album.items || [], [album.items]);
+
+  const updateMaxScroll = useCallback(() => {
+    if (!containerRef.current || !trackRef.current) return;
+    const cWidth = containerRef.current.clientWidth;
+    const tWidth = trackRef.current.scrollWidth;
+    maxScrollRef.current = Math.max(0, tWidth - cWidth + 60);
+  }, []);
+
+  useEffect(() => {
+    updateMaxScroll();
+    window.addEventListener('resize', updateMaxScroll);
+    return () => window.removeEventListener('resize', updateMaxScroll);
+  }, [items, updateMaxScroll]);
+
+  // Continuous gentle auto-slide (Right to Left)
+  useEffect(() => {
+    let animId: number;
+    let lastTime = performance.now();
+    const SPEED = 24; // 24px per second gentle drift
+
+    const loop = (now: number) => {
+      const seconds = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      if (!isHoveredRef.current && !isDraggingRef.current && items.length > 0) {
+        scrollOffsetRef.current += SPEED * seconds;
+        const max = maxScrollRef.current;
+        if (max > 10 && scrollOffsetRef.current >= max + 20) {
+          scrollOffsetRef.current = 0;
+        }
+      }
+
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translate3d(${-scrollOffsetRef.current}px, 0, 0)`;
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [items.length]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isDraggingRef.current = true;
+    hasDraggedRef.current = false;
+    dragStartRef.current = { x: e.clientX, scrollX: scrollOffsetRef.current };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    if (Math.abs(dx) > 6) hasDraggedRef.current = true;
+    scrollOffsetRef.current = Math.max(0, dragStartRef.current.scrollX - dx);
+  };
+
+  const handlePointerUp = () => {
+    isDraggingRef.current = false;
+    setTimeout(() => {
+      hasDraggedRef.current = false;
+    }, 50);
+  };
+
+  const isVideo = album.type === 'video';
+
+  return (
+    <div className="w-full flex flex-col gap-2.5 select-none">
+      {/* Folder Header: Prominent clean title with count in parentheses, pure borderless */}
+      <div className="flex items-center justify-between px-1">
+        <h4 className="text-xs sm:text-sm font-black font-space text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+          <span>{album.name}</span>
+          <span className="text-zinc-500 font-mono text-[11px] font-normal">
+            ({album.itemCount || items.length})
+          </span>
+        </h4>
+        <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest hidden sm:inline">
+          {isVideo ? 'CINEMA VAULT' : 'PHOTO VAULT'}
+        </span>
+      </div>
+
+      {/* Auto-sliding Horizontal Reel */}
+      <div
+        ref={containerRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onMouseEnter={() => {
+          isHoveredRef.current = true;
+        }}
+        onMouseLeave={() => {
+          isHoveredRef.current = false;
+        }}
+        className="w-full overflow-hidden cursor-grab active:cursor-grabbing scrollbar-none [&::-webkit-scrollbar]:hidden py-1"
+        style={{ touchAction: 'pan-y' }}
+      >
+        <div ref={trackRef} className="flex items-center gap-3 will-change-transform">
+          {items.map((item, idx) => {
+            const thumbUrl = getDirectImageUrl(item, idx);
+            const itemTitle = (item.title || `${album.name} ${idx + 1}`)
+              .replace(/\.[^/.]+$/, '')
+              .replace(/[-_]+/g, ' ')
+              .trim();
+
+            return (
+              <div
+                key={item.id || `sug-${album.id}-${idx}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!hasDraggedRef.current) {
+                    onSelectItem(album, idx);
+                  }
+                }}
+                className={`relative flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.06] hover:border-white/25 shadow-lg hover:shadow-2xl transition-all duration-300 ${
+                  isVideo ? 'w-48 sm:w-56 aspect-video' : 'w-36 sm:w-44 aspect-[3/4]'
+                }`}
+              >
+                {/* Intentional Obsidian Surface Background */}
+                <div className="absolute inset-0 flex flex-col justify-between p-2.5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
+                  <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center">
+                    <Play className="w-2.5 h-2.5 text-zinc-400 fill-current ml-0.5" />
+                  </div>
+                  <span className="text-[10px] font-medium text-zinc-300 truncate">
+                    {itemTitle}
+                  </span>
+                </div>
+
+                {/* Media Preview: Video #t=0.5 or Photo */}
+                {item.type === 'video' && item.url.includes('huggingface.co') ? (
+                  <video
+                    src={formatVideoPosterUrl(encodeURI(ensureHttps(item.url)), 0.5)}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover pointer-events-none relative z-10 group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : thumbUrl ? (
+                  <img
+                    src={thumbUrl}
+                    alt={itemTitle}
+                    loading="lazy"
+                    className="w-full h-full object-cover pointer-events-none relative z-10 group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : null}
+
+                {/* Hover Play / Stream Badge */}
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-200 z-20 pointer-events-none">
+                  <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                  </div>
+                </div>
+
+                {/* Micro Badge */}
+                <div className="absolute top-1.5 left-1.5 z-20 pointer-events-none">
+                  <span className="px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[8px] font-mono text-zinc-400 uppercase tracking-widest">
+                    {item.type === 'video' ? 'VIDEO' : 'PHOTO'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   isOpen,
   onClose,
@@ -1071,9 +1254,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
         {/* ===== CONTEXT-AWARE RECOMMENDED ALBUMS (BELOW THE PLAYER) ===== */}
         {suggestedAlbums.length > 0 && (
-          <div className="w-full mt-2 px-1 sm:px-2 pb-8 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
-              <div className="flex items-center gap-2">
+          <div className="w-full mt-4 px-1 sm:px-2 pb-12 flex flex-col gap-6">
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2.5">
                 {currentItem.type === 'video' ? (
                   <Film className="w-4 h-4 text-cyan-400" />
                 ) : (
@@ -1089,84 +1272,23 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 </div>
               </div>
               <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider hidden sm:inline">
-                Click to switch album
+                Click any reel item to switch playback
               </span>
             </div>
 
-            {/* Horizontal Grid of Suggested Albums */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {suggestedAlbums.map((sugAlbum) => {
-                const previewItem = sugAlbum.items[0];
-                const previewCount = sugAlbum.itemCount || sugAlbum.items.length;
-                const isVideo = sugAlbum.type === 'video';
-                const previewPoster = previewItem
-                  ? isVideo
-                    ? getCachedVideoPoster(previewItem.url) || previewItem.thumbnail || ''
-                    : getDirectImageUrl(previewItem, 0)
-                  : '';
-
-                return (
-                  <div
-                    key={sugAlbum.id}
-                    onClick={() => {
-                      if (onSwitchAlbum) {
-                        onSwitchAlbum(sugAlbum, 0);
-                      }
-                    }}
-                    className="group relative rounded-xl overflow-hidden bg-[#0a0d14] border border-white/[0.07] hover:border-white/25 p-3 flex flex-col gap-2.5 cursor-pointer transition-all duration-300 hover:scale-[1.015] hover:shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
-                  >
-                    {/* Preview Media Box */}
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.05]">
-                      {previewItem && isVideo && previewItem.url.includes('huggingface.co') ? (
-                        <video
-                          src={formatVideoPosterUrl(encodeURI(ensureHttps(previewItem.url)), 0.5)}
-                          preload="metadata"
-                          muted
-                          playsInline
-                          className="w-full h-full object-cover pointer-events-none group-hover:scale-104 transition-transform duration-500"
-                        />
-                      ) : previewPoster ? (
-                        <img
-                          src={previewPoster}
-                          alt={sugAlbum.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover pointer-events-none group-hover:scale-104 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-3">
-                          <Play className="w-5 h-5 text-zinc-600 mb-1" />
-                          <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest text-center">
-                            {sugAlbum.name}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Stream Badge Overlay */}
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-200">
-                        <div className="px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-white/20 text-white font-mono text-[9px] uppercase tracking-widest flex items-center gap-1.5">
-                          <span>STREAM</span>
-                          <Play className="w-2.5 h-2.5 fill-current" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Album Info */}
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs sm:text-sm font-semibold font-space text-zinc-100 uppercase tracking-tight truncate group-hover:text-cyan-400 transition-colors">
-                          {sugAlbum.name}
-                        </h4>
-                        <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider block mt-0.5">
-                          {previewCount} Curated Files
-                        </span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 font-mono text-[8px] font-semibold uppercase tracking-wider flex-shrink-0 ml-2">
-                        {isVideo ? 'CINEMA' : 'PHOTO'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Horizontal Auto-Sliding Preview Reels (Pure Borderless) */}
+            <div className="flex flex-col gap-6">
+              {suggestedAlbums.map((sugAlbum) => (
+                <SuggestedAlbumReel
+                  key={sugAlbum.id}
+                  album={sugAlbum}
+                  onSelectItem={(targetAlbum, itemIdx) => {
+                    if (onSwitchAlbum) {
+                      onSwitchAlbum(targetAlbum, itemIdx);
+                    }
+                  }}
+                />
+              ))}
             </div>
           </div>
         )}

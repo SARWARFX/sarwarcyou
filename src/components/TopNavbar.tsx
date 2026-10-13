@@ -47,16 +47,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
-      <div className="w-full bg-black px-4 sm:px-6 py-3 flex items-center justify-between">
-        {/* Left: Brand Monogram & Wordmark */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="flex items-center justify-center w-6 h-6">
+      <div className="w-full bg-black px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between">
+        {/* Left: Brand Monogram & Wordmark (Prominent & Bold) */}
+        <div className="flex items-center gap-3 sm:gap-3.5 flex-shrink-0">
+          <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9">
             <svg
-              width="16"
-              height="16"
+              width="24"
+              height="24"
               viewBox="0 0 24 24"
               fill={currentColor}
-              style={{ filter: `drop-shadow(0 0 10px ${currentColor}88)`, transition: 'filter 0.3s ease' }}
+              style={{ filter: `drop-shadow(0 0 14px ${currentColor}aa)`, transition: 'filter 0.3s ease' }}
+              className="w-6 h-6 sm:w-7 sm:h-7"
             >
               <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
             </svg>
@@ -65,7 +66,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = () => {
             style={{
               backgroundImage: `linear-gradient(135deg, #FFFFFF 0%, ${currentColor} 60%, #FFFFFF 100%)`,
             }}
-            className="font-space font-black tracking-[0.2em] text-[11px] sm:text-xs bg-clip-text text-transparent uppercase select-none leading-none"
+            className="font-space font-black tracking-[0.22em] text-sm sm:text-base md:text-lg bg-clip-text text-transparent uppercase select-none leading-none"
           >
             SARWARCYOU
           </span>
