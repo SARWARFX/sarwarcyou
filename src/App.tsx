@@ -144,8 +144,8 @@ function App() {
 
       wheelDeltaAccumulatorRef.current += e.deltaY;
 
-      // Threshold ensures deliberate elevator floor command without jitter
-      const THRESHOLD = 35;
+      // Threshold ensures deliberate elevator floor command without jitter (higher threshold for interactive canvas Album 4)
+      const THRESHOLD = activeAlbumIndexRef.current === 3 ? 65 : 35;
       if (Math.abs(wheelDeltaAccumulatorRef.current) >= THRESHOLD) {
         const direction = wheelDeltaAccumulatorRef.current > 0 ? 1 : -1;
         wheelDeltaAccumulatorRef.current = 0;
@@ -174,6 +174,9 @@ function App() {
     const onTouchEnd = (e: TouchEvent) => {
       if (modalState.isOpen || shortsFeedState.isOpen) return;
       if (isTransitioningRef.current) return;
+
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-disable-page-swipe="true"]')) return;
 
       const touchEndY = e.changedTouches[0].clientY;
       const touchEndX = e.changedTouches[0].clientX;

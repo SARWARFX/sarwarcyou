@@ -5,6 +5,7 @@ import { createProceduralFrameTexture, createComingSoonTexture } from '../utils/
 import { WeichieMarqueeStage } from './WeichieMarqueeStage';
 import { Album2MasonryStage } from './Album2MasonryStage';
 import { Album3BentoStage } from './Album3BentoStage';
+import { Album4CanvasStage } from './Album4CanvasStage';
 import { getDirectImageUrl, getBackupDriveUrl, getUnsplashFallback, extractDriveFileId } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -787,6 +788,9 @@ export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
   }
   if (props.album.layoutType === 'bento-grid' || props.album.index === 2) {
     return <Album3BentoStage {...props} />;
+  }
+  if (props.album.layoutType === 'scattered-canvas' || props.album.index === 3) {
+    return <Album4CanvasStage {...props} />;
   }
   return <StandardAlbumStage {...props} />;
 };

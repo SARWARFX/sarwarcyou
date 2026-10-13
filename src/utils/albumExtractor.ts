@@ -87,8 +87,8 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       type: 'image',
       itemCount: h2025PhotoFolder?.files?.length || 0,
       items: mapFiles(h2025PhotoFolder?.files, 'H2025 Photos', 'image'),
-      layoutType: 'showcase-hero',
-      subtitle: 'Showcase Hero Stage',
+      layoutType: 'scattered-canvas',
+      subtitle: 'Interactive Drifting Canvas',
     },
     // Album 5: Classic
     {

@@ -72,6 +72,7 @@ export type AlbumLayoutType =
   | 'weichie-curved'
   | 'heroic-masonry'
   | 'bento-grid'
+  | 'scattered-canvas'
   | 'shallow-arc'
   | 'depth-cascade'
   | 'ribbon-slider'
