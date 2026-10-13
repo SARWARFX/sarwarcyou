@@ -1,7 +1,8 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Play, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Sparkles } from 'lucide-react';
 import { getDirectImageUrl, getUnsplashFallback, ensureHttps } from '../utils/imageUrlResolver';
+import { formatVideoPosterUrl } from '../utils/videoPosterGenerator';
 import type { AlbumData, StageMediaItem } from '../types';
 
 export type DriftimeVariant =
@@ -64,8 +65,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   const hasDraggedRef = useRef(false);
   const isHoveredRef = useRef(false);
   const lastInteractionTimeRef = useRef(Date.now());
-
-
 
   // Maximum scroll constraint computed dynamically
   const maxScrollRef = useRef(0);
@@ -237,7 +236,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
       isDraggingRef.current = false;
       isPointerCapturedRef.current = false;
       lastInteractionTimeRef.current = Date.now();
-      // Reset hasDragged after a microtask so any pending click handlers on this tick can read it
       setTimeout(() => {
         hasDraggedRef.current = false;
       }, 50);
@@ -246,7 +244,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
 
   // Trackpad / Horizontal Wheel
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    // If horizontal or trackpad delta is present
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     if (Math.abs(delta) > 4) {
       scrollOffsetRef.current += delta * 0.75;
@@ -256,46 +253,24 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
     }
   }, [updateMaxScroll]);
 
-  // Arrow button step
-  const handleStep = useCallback((direction: 'left' | 'right') => {
-    const step = window.innerWidth < 768 ? 320 : 500;
-    const target = direction === 'right'
-      ? Math.min(scrollOffsetRef.current + step, maxScrollRef.current)
-      : Math.max(scrollOffsetRef.current - step, 0);
-
-    const start = scrollOffsetRef.current;
-    const distance = target - start;
-    const startTime = performance.now();
-    const duration = 650;
-
-    const animStep = (t: number) => {
-      const elapsed = t - startTime;
-      const p = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - p, 3);
-      scrollOffsetRef.current = start + distance * ease;
-
-      if (p < 1) {
-        requestAnimationFrame(animStep);
-      }
-    };
-
-    requestAnimationFrame(animStep);
-    lastInteractionTimeRef.current = Date.now();
-  }, []);
-
-  // Keyboard navigation
+  // Keyboard navigation for left/right scrubbing
   useEffect(() => {
     if (!isActive) return;
     const onKey = (e: KeyboardEvent) => {
+      const step = window.innerWidth < 768 ? 320 : 500;
       if (e.key === 'ArrowRight') {
-        handleStep('right');
+        const target = Math.min(scrollOffsetRef.current + step, maxScrollRef.current);
+        scrollOffsetRef.current = target;
+        lastInteractionTimeRef.current = Date.now();
       } else if (e.key === 'ArrowLeft') {
-        handleStep('left');
+        const target = Math.max(scrollOffsetRef.current - step, 0);
+        scrollOffsetRef.current = target;
+        lastInteractionTimeRef.current = Date.now();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isActive, handleStep]);
+  }, [isActive]);
 
   // ================= COMING SOON MONOLITH =================
   if (isComingSoon) {
@@ -384,7 +359,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
             return (
               <div
                 key={`skeleton-card-${idx}`}
-                className={`relative flex-shrink-0 rounded-xl sm:rounded-2xl overflow-hidden bg-[#09090b] border border-white/[0.04] shadow-xl select-none ${heightClass} ${staggeredOffset} ${diptychMargin} animate-pulse`}
+                className={`relative flex-shrink-0 rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.04] shadow-xl select-none ${heightClass} ${staggeredOffset} ${diptychMargin} animate-pulse`}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent animate-shimmer" />
               </div>
@@ -404,7 +379,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                   : 'translate-y-[16px] sm:translate-y-[24px]'
                 : '';
 
-            // Architectural diptych pairing: tight hairline gap within a pair, wider gap between pairs
+            // Architectural diptych pairing
             const diptychMargin =
               variant === 'diptych'
                 ? idx % 2 === 0
@@ -412,13 +387,26 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                   : 'mr-5 sm:mr-8'
                 : '';
 
-            // Height bounds fitting dynamically beneath the massive headline
+            // Height bounds fitting dynamically beneath headline
             let heightClass = 'h-[36vh] sm:h-[42vh] md:h-[46vh]';
             if (variant === 'cinematic') {
               heightClass = 'h-[34vh] sm:h-[38vh] md:h-[42vh]';
             } else if (variant === 'shorts') {
               heightClass = 'h-[38vh] sm:h-[46vh] md:h-[50vh]';
             }
+
+            // Determine micro-badge label
+            const isShort =
+              variant === 'shorts' ||
+              album.name.toLowerCase().includes('short') ||
+              album.name.toLowerCase().includes('reel');
+            const badgeLabel = item.type === 'video' ? (isShort ? 'SHORT' : 'VIDEO') : 'PHOTO';
+
+            // Construct safe poster URL with #t=0.5
+            const videoPosterStreamUrl = formatVideoPosterUrl(
+              encodeURI(ensureHttps(item.url)),
+              0.5
+            );
 
             return (
               <div
@@ -434,80 +422,70 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                 }}
                 role="article"
                 aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
-                className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e12] border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
+                className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
               >
-              {/* Media Card Presentation: Native Video for clips or Image for photos */}
-              {item.type === 'video' && item.url.includes('huggingface.co') ? (
-                <video
-                  src={encodeURI(ensureHttps(item.url))}
-                  preload="metadata"
-                  muted
-                  playsInline
-                  autoPlay={isCardHovered}
-                  loop
-                  aria-label={item.title ? `${item.title} — Video Stream` : 'Cinematic Video Stream'}
-                  onLoadedMetadata={updateMaxScroll}
-                  className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
-                />
-              ) : (
-                <img
-                  src={directUrl}
-                  alt={item.title ? `${item.title} — ${album.name}` : `Editorial Photography — ${album.name}`}
-                  loading="lazy"
-                  draggable={false}
-                  onLoad={updateMaxScroll}
-                  onError={(e) => {
-                    e.currentTarget.src = fallbackUrl;
-                  }}
-                  className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
-                />
-              )}
-
-              {/* Legacy iframe fallback for non-direct video items */}
-              {item.type === 'video' && !item.url.includes('huggingface.co') && isCardHovered && (
-                <iframe
-                  src={`${ensureHttps(item.url)}?autoplay=1&mute=1`}
-                  className="absolute inset-0 w-full h-full border-0 pointer-events-none z-10 scale-105"
-                  allow="autoplay; encrypted-media"
-                  title="Silent Looping Video Preview"
-                />
-              )}
-
-              {/* Specular gloss highlight on hover */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-              {/* Video Play Glyph indicator for cinematic/video formats */}
-              {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && !isCardHovered && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/25 backdrop-blur-[1px]">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
-                    <Play className="w-4 h-4 fill-current ml-0.5" />
-                  </div>
+                {/* Subtle Micro-Badge (VIDEO, SHORT, PHOTO) */}
+                <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
+                  <span className="px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/10 text-[8px] font-mono font-semibold tracking-wider text-zinc-300 uppercase shadow-md">
+                    {badgeLabel}
+                  </span>
                 </div>
-              )}
 
-              {/* Razor-thin border sheen on hover */}
-              <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-transparent group-hover:border-white/15 transition-colors duration-300" />
-            </div>
-          );
-        }))}
-      </div>
+                {/* Media Card Presentation: Native Video with #t=0.5 or Image */}
+                {item.type === 'video' && item.url.includes('huggingface.co') ? (
+                  <video
+                    src={videoPosterStreamUrl}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    autoPlay={isCardHovered}
+                    loop
+                    aria-label={item.title ? `${item.title} — Video Stream` : 'Cinematic Video Stream'}
+                    onLoadedMetadata={updateMaxScroll}
+                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
+                  />
+                ) : (
+                  <img
+                    src={directUrl}
+                    alt={item.title ? `${item.title} — ${album.name}` : `Editorial Photography — ${album.name}`}
+                    loading="lazy"
+                    draggable={false}
+                    onLoad={updateMaxScroll}
+                    onError={(e) => {
+                      e.currentTarget.src = fallbackUrl;
+                    }}
+                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
+                  />
+                )}
 
-      {/* 4. Minimalist Navigation Chevrons */}
-      <div className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 z-30 flex items-center gap-1.5">
-        <button
-          onClick={(e) => { e.stopPropagation(); handleStep('left'); }}
-          className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-100 border border-white/[0.07] hover:border-white/15 backdrop-blur-xl transition-all duration-200 cursor-pointer"
-          title="Previous"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); handleStep('right'); }}
-          className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-100 border border-white/[0.07] hover:border-white/15 backdrop-blur-xl transition-all duration-200 cursor-pointer"
-          title="Next"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+                {/* Legacy iframe fallback for non-direct video items */}
+                {item.type === 'video' && !item.url.includes('huggingface.co') && isCardHovered && (
+                  <iframe
+                    src={`${ensureHttps(item.url)}?autoplay=1&mute=1`}
+                    className="absolute inset-0 w-full h-full border-0 pointer-events-none z-10 scale-105"
+                    allow="autoplay; encrypted-media"
+                    title="Silent Looping Video Preview"
+                  />
+                )}
+
+                {/* Specular gloss highlight on hover */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Video Play Glyph indicator for cinematic/video formats */}
+                {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && !isCardHovered && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/25 backdrop-blur-[1px] pointer-events-none">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Razor-thin border sheen on hover */}
+                <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-transparent group-hover:border-white/15 transition-colors duration-300" />
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

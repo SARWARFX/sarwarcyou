@@ -1,9 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { ArrowUp } from 'lucide-react';
 import { useMediaData } from './useMediaData';
 import { extractTwelveAlbums } from './utils/albumExtractor';
 import { AlbumStage } from './components/AlbumStage';
 import { TopNavbar } from './components/TopNavbar';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
+import { SplashPreloader } from './components/SplashPreloader';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
@@ -79,7 +81,7 @@ function App() {
     initialIndex: 0,
   });
 
-  // Handle clicking any media item in the 3D / Driftime scene
+  // Handle clicking any media item in the Driftime scene
   const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number) => {
     const curAlbum = albums[albumIdx];
     const itemIdx = curAlbum ? curAlbum.items.findIndex((s) => s.id === item.id) : 0;
@@ -248,8 +250,8 @@ function App() {
   // Network Error Screen
   if (!data && isError) {
     return (
-      <div className="fixed inset-0 bg-[#0a0a0c] flex items-center justify-center text-white p-6 font-mono">
-        <div className="max-w-md p-8 rounded-2xl bg-[#10121a] border border-white/10 text-center space-y-4">
+      <div className="fixed inset-0 bg-black flex items-center justify-center text-white p-6 font-mono">
+        <div className="max-w-md p-8 rounded-2xl bg-zinc-950 border border-white/10 text-center space-y-4">
           <div className="text-red-400 text-2xl font-bold">[ NETWORK ERROR ]</div>
           <p className="text-xs text-white/60">
             Unable to stream cloud media. Please check your internet connection.
@@ -269,6 +271,9 @@ function App() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
+      {/* ================= RESILIENT OLED SPLASH PRELOADER ================= */}
+      <SplashPreloader isReady={!isLoading && !!data} />
+
       {/* ================= VERTICAL LUXURY ELEVATOR CONTAINER ================= */}
       <div
         className="absolute inset-0 w-full will-change-transform"
@@ -293,7 +298,7 @@ function App() {
               key={album.id}
               className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-black"
             >
-              {/* Perfectly Centered 3D / Masonry Stage */}
+              {/* Perfectly Centered Editorial Stage */}
               {isNear && (
                 <AlbumStage
                   album={album}
@@ -322,20 +327,35 @@ function App() {
         })}
       </div>
 
-      {/* ================= TOP NAVBAR & HAMBURGER DRAWER ================= */}
+      {/* ================= CLEAN OLED TOP NAVBAR ================= */}
       <TopNavbar
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}
         onSelectAlbum={scrollToAlbum}
       />
 
-      {/* ================= AUTO-HIDING RIGHT-SIDE NAVIGATION DOCK ================= */}
+      {/* ================= RIGHT-SIDE NAVIGATION DOCK ================= */}
       <AlbumProgressDots
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}
         onSelectAlbum={scrollToAlbum}
         isLightMode={isLightMode}
       />
+
+      {/* ================= FLOATING "BACK TO TOP" PILL ================= */}
+      {activeAlbumIndex > 0 && (
+        <button
+          onClick={handleBackToTop}
+          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/80 hover:bg-zinc-900 border border-white/10 hover:border-white/25 backdrop-blur-xl text-zinc-300 hover:text-white shadow-2xl transition-all duration-300 ease-out cursor-pointer group"
+          title="Back to Top"
+          aria-label="Back to Top"
+        >
+          <ArrowUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-widest hidden sm:inline">
+            Top
+          </span>
+        </button>
+      )}
 
       {/* ================= YOUTUBE-STYLE MEDIA THEATER ================= */}
       <YouTubeTheaterModal
