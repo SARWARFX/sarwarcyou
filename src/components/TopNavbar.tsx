@@ -47,7 +47,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
-      <div className="w-full bg-black border-b border-white/[0.05] px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div className="w-full bg-black px-4 sm:px-6 py-3 flex items-center justify-between">
         {/* Left: Brand Monogram & Wordmark */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="flex items-center justify-center w-6 h-6">
@@ -67,7 +67,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = () => {
             }}
             className="font-space font-black tracking-[0.2em] text-[11px] sm:text-xs bg-clip-text text-transparent uppercase select-none leading-none"
           >
-            SARWAR C YOU
+            SARWARCYOU
           </span>
         </div>
       </div>

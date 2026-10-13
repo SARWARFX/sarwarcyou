@@ -19,6 +19,8 @@ import {
   Repeat,
   PictureInPicture2,
   Gauge,
+  Film,
+  Camera,
 } from 'lucide-react';
 import { getDirectImageUrl, ensureHttps } from '../utils/imageUrlResolver';
 import { downloadMedia } from '../utils/downloadMedia';
@@ -33,8 +35,10 @@ interface YouTubeTheaterModalProps {
   isOpen: boolean;
   onClose: () => void;
   album: AlbumData | null;
+  allAlbums?: AlbumData[];
   initialIndex: number;
   posterUrl?: string;
+  onSwitchAlbum?: (album: AlbumData, initialIndex?: number) => void;
   onNextAlbum?: () => void;
   onPrevAlbum?: () => void;
 }
@@ -52,8 +56,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   isOpen,
   onClose,
   album,
+  allAlbums = [],
   initialIndex,
   posterUrl,
+  onSwitchAlbum,
   onNextAlbum: _onNextAlbum,
   onPrevAlbum: _onPrevAlbum,
 }) => {
@@ -95,6 +101,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const playlistContainerRef = useRef<HTMLDivElement>(null);
 
+  // Auto-sliding queue refs
+  const isQueueHoveredRef = useRef(false);
+  const isQueueInteractingRef = useRef(false);
+
   // Sync index when initialIndex changes
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -112,6 +122,18 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const items = useMemo(() => album?.items || [], [album]);
   const currentItem: StageMediaItem | undefined = items[currentIndex] || items[0];
 
+  // Context-Aware Suggested Albums (Filtered strictly by media type)
+  const suggestedAlbums = useMemo(() => {
+    if (!allAlbums || allAlbums.length === 0) return [];
+    const isVideo = currentItem?.type === 'video';
+    return allAlbums.filter(
+      (a) =>
+        a.id !== album?.id &&
+        (isVideo ? a.type === 'video' : a.type === 'image') &&
+        a.items.length > 0
+    );
+  }, [allAlbums, album?.id, currentItem?.type]);
+
   // Auto-hide HUD after 2.5s of inactivity
   const resetHudTimer = useCallback(() => {
     setIsHudVisible(true);
@@ -119,7 +141,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       window.clearTimeout(hudTimeoutRef.current);
     }
     hudTimeoutRef.current = window.setTimeout(() => {
-      // Don't auto-hide if paused or if user is tweaking loop or speed menu
       if (videoRef.current && !videoRef.current.paused && !showSpeedMenu) {
         setIsHudVisible(false);
       }
@@ -164,6 +185,34 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, currentIndex, items.length, onClose, isFullscreen, currentItem?.type, resetHudTimer]);
+
+  // Auto-sliding queue: Gentle slow upward scroll animation
+  useEffect(() => {
+    if (!isOpen) return;
+    let animId: number;
+    let lastTime = performance.now();
+
+    const loop = (now: number) => {
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      const el = playlistContainerRef.current;
+      if (el && !isQueueHoveredRef.current && !isQueueInteractingRef.current) {
+        const maxScroll = el.scrollHeight - el.clientHeight;
+        if (maxScroll > 15) {
+          if (el.scrollTop >= maxScroll - 2) {
+            el.scrollTop = 0;
+          } else {
+            el.scrollTop += 18 * dt; // Gentle 18px per second drift
+          }
+        }
+      }
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [isOpen, currentIndex, items.length]);
 
   const goToIndex = useCallback(
     (idx: number) => {
@@ -243,7 +292,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const handleStageTouchMove = useCallback((e: React.TouchEvent) => {
     if (!touchStartRef.current) return;
     const dy = e.touches[0].clientY - touchStartRef.current.y;
-    // Allow dragging downwards to dismiss
     if (dy > 0) {
       setDismissOffsetY(dy);
     }
@@ -270,7 +318,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     const isRightHalf = relativeX > rect.width / 2;
 
     if (lastTapRef.current && now - lastTapRef.current.time < 300 && Math.abs(tapX - lastTapRef.current.x) < 50) {
-      // Double tap!
       if (isRightHalf) {
         seekRelative(10);
       } else {
@@ -485,81 +532,97 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         </div>
       </div>
 
-      {/* ===== MAIN CINEMA STAGE & QUEUE ===== */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden p-2.5 sm:p-4 lg:p-5 gap-3.5">
-        {/* ===== LEFT MAIN VIEWPORT (~72% DESKTOP) ===== */}
-        <div className="w-full lg:w-[72%] flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden flex-shrink-0 h-[48vh] sm:h-[58vh] lg:h-full shadow-2xl relative group/stage">
-          {/* Cinema Stage Container with Ambilight */}
-          <div
-            ref={videoContainerRef}
-            onTouchStart={handleStageTouchStart}
-            onTouchMove={handleStageTouchMove}
-            onTouchEnd={handleStageTouchEnd}
-            onClick={resetHudTimer}
-            className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 ${
-              isCrossfading ? 'opacity-30' : 'opacity-100'
-            }`}
-          >
-            {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
-            {currentItem.type === 'video' && isDirectVideo && (
-              <video
-                src={streamUrl}
-                aria-hidden="true"
-                muted
-                loop
-                playsInline
-                autoPlay
-                className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 scale-105 pointer-events-none z-0"
-              />
-            )}
+      {/* ===== VERTICALLY SCROLLABLE MODAL BODY ===== */}
+      <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col p-2.5 sm:p-4 lg:p-5 gap-4">
+        {/* ===== MAIN CINEMA STAGE & QUEUE ROW ===== */}
+        <div className="w-full flex flex-col lg:flex-row gap-3.5 h-[56vh] sm:h-[65vh] lg:h-[72vh] min-h-[460px] flex-shrink-0">
+          {/* ===== LEFT MAIN VIEWPORT (~72% DESKTOP) ===== */}
+          <div className="w-full lg:w-[72%] h-full flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden flex-shrink-0 shadow-2xl relative group/stage">
+            {/* Cinema Stage Container with Ambilight */}
+            <div
+              ref={videoContainerRef}
+              onTouchStart={handleStageTouchStart}
+              onTouchMove={handleStageTouchMove}
+              onTouchEnd={handleStageTouchEnd}
+              onClick={resetHudTimer}
+              className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 ${
+                isCrossfading ? 'opacity-30' : 'opacity-100'
+              }`}
+            >
+              {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
+              {currentItem.type === 'video' && isDirectVideo && (
+                <video
+                  src={streamUrl}
+                  aria-hidden="true"
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                  className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 scale-105 pointer-events-none z-0"
+                />
+              )}
 
-            {/* Video Player */}
-            {currentItem.type === 'video' ? (
-              isDirectVideo ? (
-                <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
-                  <video
-                    ref={videoRef}
-                    key={streamUrl}
-                    src={streamUrl}
-                    poster={activePoster}
-                    autoPlay
-                    playsInline
-                    preload="auto"
-                    controls={false}
-                    muted={isMuted}
-                    onClick={togglePlay}
-                    onTimeUpdate={handleTimeUpdate}
-                    onLoadedMetadata={() => {
-                      if (videoRef.current) setDuration(videoRef.current.duration);
-                    }}
-                    onPlaying={() => {
-                      setHasStarted(true);
-                      setIsPlaying(true);
-                      setIsBuffering(false);
-                    }}
-                    onWaiting={() => {
-                      setIsBuffering(true);
-                    }}
-                    onCanPlay={() => {
-                      setIsBuffering(false);
-                    }}
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
-                    className="w-full h-full object-contain cursor-pointer relative z-10"
-                  />
+              {/* Video Player */}
+              {currentItem.type === 'video' ? (
+                isDirectVideo ? (
+                  <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
+                    <video
+                      ref={videoRef}
+                      key={streamUrl}
+                      src={streamUrl}
+                      poster={activePoster}
+                      autoPlay
+                      playsInline
+                      preload="auto"
+                      controls={false}
+                      muted={isMuted}
+                      onClick={togglePlay}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={() => {
+                        if (videoRef.current) setDuration(videoRef.current.duration);
+                      }}
+                      onPlaying={() => {
+                        setHasStarted(true);
+                        setIsPlaying(true);
+                        setIsBuffering(false);
+                      }}
+                      onWaiting={() => {
+                        setIsBuffering(true);
+                      }}
+                      onCanPlay={() => {
+                        setIsBuffering(false);
+                      }}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                      className="w-full h-full object-contain cursor-pointer relative z-10"
+                    />
 
-                  {/* YouTube-Style Zero-Black-Screen Poster Hand-off */}
-                  {activePoster && (
+                    {/* Seamless YouTube-Style Zero-Black-Screen Poster & Typography Hand-off */}
                     <div
-                      className={`absolute inset-0 z-20 flex items-center justify-center bg-black transition-opacity duration-300 ease-out pointer-events-none ${
+                      className={`absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-black transition-opacity duration-300 ease-out pointer-events-none ${
                         hasStarted ? 'opacity-0' : 'opacity-100'
                       }`}
                     >
-                      <img
-                        src={activePoster}
-                        alt={cleanTitle}
-                        className="w-full h-full object-contain pointer-events-none select-none"
-                      />
+                      {activePoster ? (
+                        <img
+                          src={activePoster}
+                          alt={cleanTitle}
+                          className="w-full h-full object-contain pointer-events-none select-none"
+                        />
+                      ) : (
+                        /* Aesthetic Obsidian Typography Card (Never an Unsplash Photo or Empty Black Card) */
+                        <div className="flex flex-col items-center justify-center p-6 text-center max-w-md">
+                          <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+                            <Play className="w-6 h-6 text-zinc-300 fill-current ml-0.5" />
+                          </div>
+                          <h3 className="text-sm sm:text-base font-bold font-space text-zinc-100 uppercase tracking-wide truncate max-w-xs">
+                            {cleanTitle}
+                          </h3>
+                          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-1">
+                            {album?.name || 'SARWARCYOU CINEMA'}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Sleek Minimal Glowing Buffering Indicator over Poster */}
                       {!hasStarted && isBuffering && (
@@ -570,441 +633,543 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                               <Play className="w-3.5 h-3.5 text-zinc-300 fill-current ml-0.5" />
                             </div>
                           </div>
-                          <span className="mt-3 font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-300">
+                          <span className="mt-3 font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-300 font-semibold">
                             BUFFERING STREAM...
                           </span>
                         </div>
                       )}
                     </div>
-                  )}
 
-                  {/* In-stream buffering spinner if video stalls during playback */}
-                  {hasStarted && isBuffering && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-25 bg-black/20">
-                      <div className="w-10 h-10 rounded-full border-2 border-white/15 border-t-white animate-spin" />
-                    </div>
-                  )}
-
-                  {/* Center Play/Pause Animated Ripple */}
-                  {centerRipple && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                      <div className="w-16 h-16 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white animate-ripple shadow-2xl">
-                        {centerRipple === 'play' ? (
-                          <Play className="w-7 h-7 fill-current ml-1" />
-                        ) : (
-                          <Pause className="w-7 h-7" />
-                        )}
+                    {/* In-stream buffering spinner if video stalls during playback */}
+                    {hasStarted && isBuffering && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-25 bg-black/20">
+                        <div className="w-10 h-10 rounded-full border-2 border-white/15 border-t-white animate-spin" />
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Double-tap Seek Indicator (Left / Right) */}
-                  {seekRipple && (
+                    {/* Center Play/Pause Animated Ripple */}
+                    {centerRipple && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                        <div className="w-16 h-16 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white animate-ripple shadow-2xl">
+                          {centerRipple === 'play' ? (
+                            <Play className="w-7 h-7 fill-current ml-1" />
+                          ) : (
+                            <Pause className="w-7 h-7" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Double-tap Seek Indicator (Left / Right) */}
+                    {seekRipple && (
+                      <div
+                        className={`absolute top-1/2 -translate-y-1/2 z-30 pointer-events-none animate-double-tap ${
+                          seekRipple.side === 'right' ? 'right-12 sm:right-20' : 'left-12 sm:left-20'
+                        }`}
+                      >
+                        <div className="px-4 py-2.5 rounded-full bg-black/75 border border-white/20 text-zinc-100 text-xs font-mono font-bold tracking-wider flex items-center gap-1.5 shadow-2xl backdrop-blur-xl">
+                          {seekRipple.side === 'right' ? (
+                            <>
+                              <span>{seekRipple.text}</span>
+                              <RotateCw className="w-4 h-4 text-emerald-400" />
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="w-4 h-4 text-emerald-400" />
+                              <span>{seekRipple.text}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ================= DETACHED FLOATING GLASS HUD DOCK ================= */}
                     <div
-                      className={`absolute top-1/2 -translate-y-1/2 z-30 pointer-events-none animate-double-tap ${
-                        seekRipple.side === 'right' ? 'right-12 sm:right-20' : 'left-12 sm:left-20'
+                      onMouseEnter={() => {
+                        if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
+                        setIsHudVisible(true);
+                      }}
+                      onMouseLeave={resetHudTimer}
+                      className={`absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 w-[94%] sm:w-[88%] max-w-3xl backdrop-blur-2xl bg-black/80 border border-white/10 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-2 transition-all duration-300 ${
+                        isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
                       }`}
                     >
-                      <div className="px-4 py-2.5 rounded-full bg-black/75 border border-white/20 text-zinc-100 text-xs font-mono font-bold tracking-wider flex items-center gap-1.5 shadow-2xl backdrop-blur-xl">
-                        {seekRipple.side === 'right' ? (
-                          <>
-                            <span>{seekRipple.text}</span>
-                            <RotateCw className="w-4 h-4 text-emerald-400" />
-                          </>
-                        ) : (
-                          <>
-                            <RotateCcw className="w-4 h-4 text-emerald-400" />
-                            <span>{seekRipple.text}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                      {/* Magnetic Scrubber Bar + A-B Loop Visualizer */}
+                      <div className="relative w-full group/scrub py-1">
+                        <div className="relative w-full h-1 group-hover/scrub:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-200">
+                          <div
+                            className="h-full bg-zinc-200 transition-all duration-75"
+                            style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                          />
 
-                  {/* ================= DETACHED FLOATING GLASS HUD DOCK ================= */}
-                  <div
-                    onMouseEnter={() => {
-                      if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
-                      setIsHudVisible(true);
-                    }}
-                    onMouseLeave={resetHudTimer}
-                    className={`absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 w-[94%] sm:w-[88%] max-w-3xl backdrop-blur-2xl bg-black/80 border border-white/10 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-2 transition-all duration-300 ${
-                      isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-                    }`}
-                  >
-                    {/* Magnetic Scrubber Bar + A-B Loop Visualizer */}
-                    <div className="relative w-full group/scrub py-1">
-                      {/* Base Track */}
-                      <div className="relative w-full h-1 group-hover/scrub:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-200">
-                        {/* Buffered / Played Track */}
-                        <div
-                          className="h-full bg-zinc-200 transition-all duration-75"
-                          style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                          {isAbLoopActive && loopStart !== null && (
+                            <div
+                              className="absolute top-0 bottom-0 bg-emerald-500/50 border-x border-emerald-400 pointer-events-none"
+                              style={{
+                                left: `${loopStartPct}%`,
+                                width: `${Math.max(2, loopEndPct - loopStartPct)}%`,
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        <input
+                          type="range"
+                          min="0"
+                          max={duration || 100}
+                          step="0.1"
+                          value={currentTime}
+                          onChange={handleSeek}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
 
-                        {/* A-B Active Loop Highlight Band */}
                         {isAbLoopActive && loopStart !== null && (
                           <div
-                            className="absolute top-0 bottom-0 bg-emerald-500/50 border-x border-emerald-400 pointer-events-none"
-                            style={{
-                              left: `${loopStartPct}%`,
-                              width: `${Math.max(2, loopEndPct - loopStartPct)}%`,
-                            }}
+                            className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-amber-400 rounded-sm shadow-md pointer-events-none z-10"
+                            style={{ left: `${loopStartPct}%` }}
+                            title={`Point A: ${formatTime(loopStart)}`}
+                          />
+                        )}
+
+                        {isAbLoopActive && loopEnd !== null && (
+                          <div
+                            className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-emerald-400 rounded-sm shadow-md pointer-events-none z-10"
+                            style={{ left: `${loopEndPct}%` }}
+                            title={`Point B: ${formatTime(loopEnd)}`}
                           />
                         )}
                       </div>
 
-                      {/* Interactive Input Range Overlay */}
-                      <input
-                        type="range"
-                        min="0"
-                        max={duration || 100}
-                        step="0.1"
-                        value={currentTime}
-                        onChange={handleSeek}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-
-                      {/* Point A Marker Pin */}
-                      {isAbLoopActive && loopStart !== null && (
-                        <div
-                          className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-amber-400 rounded-sm shadow-md pointer-events-none z-10"
-                          style={{ left: `${loopStartPct}%` }}
-                          title={`Point A: ${formatTime(loopStart)}`}
-                        />
-                      )}
-
-                      {/* Point B Marker Pin */}
-                      {isAbLoopActive && loopEnd !== null && (
-                        <div
-                          className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-emerald-400 rounded-sm shadow-md pointer-events-none z-10"
-                          style={{ left: `${loopEndPct}%` }}
-                          title={`Point B: ${formatTime(loopEnd)}`}
-                        />
-                      )}
-                    </div>
-
-                    {/* HUD Controls Row */}
-                    <div className="flex items-center justify-between text-xs font-mono text-zinc-300 gap-2">
-                      {/* Left: Playback, Quick Seek, Time */}
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <button
-                          onClick={togglePlay}
-                          className="p-1 hover:text-white transition-colors cursor-pointer"
-                          title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-                        >
-                          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-                        </button>
-
-                        {/* ±10s Quick Skip Buttons */}
-                        <button
-                          onClick={() => seekRelative(-10)}
-                          className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
-                          title="Rewind 10s (J)"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span className="text-[9px] hidden sm:inline">-10s</span>
-                        </button>
-
-                        <button
-                          onClick={() => seekRelative(10)}
-                          className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
-                          title="Skip 10s (L)"
-                        >
-                          <RotateCw className="w-3.5 h-3.5" />
-                          <span className="text-[9px] hidden sm:inline">+10s</span>
-                        </button>
-
-                        {/* Mute & Volume */}
-                        <div className="flex items-center gap-1.5 group/vol">
+                      {/* HUD Controls Row */}
+                      <div className="flex items-center justify-between text-xs font-mono text-zinc-300 gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <button
-                            onClick={handleMuteToggle}
+                            onClick={togglePlay}
                             className="p-1 hover:text-white transition-colors cursor-pointer"
-                            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+                            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
                           >
-                            {isMuted || volume === 0 ? (
-                              <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
-                            ) : (
-                              <Volume2 className="w-3.5 h-3.5" />
-                            )}
+                            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
                           </button>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={isMuted ? 0 : volume}
-                            onChange={handleVolumeChange}
-                            className="w-12 sm:w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-zinc-200 hidden sm:inline"
-                          />
+
+                          <button
+                            onClick={() => seekRelative(-10)}
+                            className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
+                            title="Rewind 10s (J)"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span className="text-[9px] hidden sm:inline">-10s</span>
+                          </button>
+
+                          <button
+                            onClick={() => seekRelative(10)}
+                            className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
+                            title="Skip 10s (L)"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                            <span className="text-[9px] hidden sm:inline">+10s</span>
+                          </button>
+
+                          <div className="flex items-center gap-1.5 group/vol">
+                            <button
+                              onClick={handleMuteToggle}
+                              className="p-1 hover:text-white transition-colors cursor-pointer"
+                              title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+                            >
+                              {isMuted || volume === 0 ? (
+                                <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
+                              ) : (
+                                <Volume2 className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.05"
+                              value={isMuted ? 0 : volume}
+                              onChange={handleVolumeChange}
+                              className="w-12 sm:w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-zinc-200 hidden sm:inline"
+                            />
+                          </div>
+
+                          <span className="text-[10px] text-zinc-400 tracking-wider hidden sm:inline">
+                            {formatTime(currentTime)} / {formatTime(duration)}
+                          </span>
                         </div>
 
-                        {/* Time Counter */}
-                        <span className="text-[10px] text-zinc-400 tracking-wider hidden sm:inline">
-                          {formatTime(currentTime)} / {formatTime(duration)}
-                        </span>
-                      </div>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setIsAbLoopActive(!isAbLoopActive);
+                                if (!isAbLoopActive) {
+                                  setLoopStart(currentTime);
+                                  setLoopEnd(Math.min(duration, currentTime + 5));
+                                }
+                              }}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono transition-all cursor-pointer border ${
+                                isAbLoopActive
+                                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                  : 'bg-zinc-900/80 border-white/[0.08] text-zinc-400 hover:text-white'
+                              }`}
+                              title="Toggle A-B Section Repeat Mode"
+                            >
+                              <Repeat className="w-3 h-3" />
+                              <span>A-B</span>
+                            </button>
 
-                      {/* Right: A-B Loop, Speed, PiP, Fullscreen */}
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        {/* A-B Section Repeat Mode Toggle */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setIsAbLoopActive(!isAbLoopActive);
-                              if (!isAbLoopActive) {
-                                // Default Point A to current, Point B to current + 5s
-                                setLoopStart(currentTime);
-                                setLoopEnd(Math.min(duration, currentTime + 5));
-                              }
-                            }}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono transition-all cursor-pointer border ${
-                              isAbLoopActive
-                                ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                                : 'bg-zinc-900/80 border-white/[0.08] text-zinc-400 hover:text-white'
-                            }`}
-                            title="Toggle A-B Section Repeat Mode"
-                          >
-                            <Repeat className="w-3 h-3" />
-                            <span>A-B</span>
-                          </button>
-
-                          {/* Quick A-B set buttons when active */}
-                          {isAbLoopActive && (
-                            <div className="hidden sm:flex items-center gap-1 text-[9px]">
-                              <button
-                                onClick={() => setLoopStart(currentTime)}
-                                className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 cursor-pointer"
-                                title="Set current time as Point A"
-                              >
-                                Set A
-                              </button>
-                              <button
-                                onClick={() => setLoopEnd(currentTime)}
-                                className="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer"
-                                title="Set current time as Point B"
-                              >
-                                Set B
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setLoopStart(0);
-                                  setLoopEnd(duration);
-                                }}
-                                className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                                title="Reset A-B boundaries"
-                              >
-                                Clear
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Playback Speed Menu */}
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900/80 border border-white/[0.08] text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                            title="Playback Speed"
-                          >
-                            <Gauge className="w-3 h-3 text-zinc-400" />
-                            <span>{playbackRate}x</span>
-                          </button>
-
-                          {showSpeedMenu && (
-                            <div className="absolute bottom-9 right-0 bg-black/95 border border-white/15 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5 z-40">
-                              {PLAYBACK_RATES.map((rate) => (
+                            {isAbLoopActive && (
+                              <div className="hidden sm:flex items-center gap-1 text-[9px]">
                                 <button
-                                  key={rate}
-                                  onClick={() => handleSpeedSelect(rate)}
-                                  className={`px-3 py-1 rounded-lg text-[10px] font-mono text-left transition-colors cursor-pointer ${
-                                    playbackRate === rate
-                                      ? 'bg-zinc-800 text-white font-bold'
-                                      : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
-                                  }`}
+                                  onClick={() => setLoopStart(currentTime)}
+                                  className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 cursor-pointer"
+                                  title="Set current time as Point A"
                                 >
-                                  {rate}x
+                                  Set A
                                 </button>
-                              ))}
-                            </div>
-                          )}
+                                <button
+                                  onClick={() => setLoopEnd(currentTime)}
+                                  className="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer"
+                                  title="Set current time as Point B"
+                                >
+                                  Set B
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setLoopStart(0);
+                                    setLoopEnd(duration);
+                                  }}
+                                  className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                                  title="Reset A-B boundaries"
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900/80 border border-white/[0.08] text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                              title="Playback Speed"
+                            >
+                              <Gauge className="w-3 h-3 text-zinc-400" />
+                              <span>{playbackRate}x</span>
+                            </button>
+
+                            {showSpeedMenu && (
+                              <div className="absolute bottom-9 right-0 bg-black/95 border border-white/15 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5 z-40">
+                                {PLAYBACK_RATES.map((rate) => (
+                                  <button
+                                    key={rate}
+                                    onClick={() => handleSpeedSelect(rate)}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-mono text-left transition-colors cursor-pointer ${
+                                      playbackRate === rate
+                                        ? 'bg-zinc-800 text-white font-bold'
+                                        : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
+                                    }`}
+                                  >
+                                    {rate}x
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={togglePiP}
+                            className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
+                            title="Picture in Picture"
+                          >
+                            <PictureInPicture2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={toggleFullscreen}
+                            className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title={isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'}
+                          >
+                            {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+                          </button>
                         </div>
-
-                        {/* Picture-in-Picture */}
-                        <button
-                          onClick={togglePiP}
-                          className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
-                          title="Picture in Picture"
-                        >
-                          <PictureInPicture2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Fullscreen */}
-                        <button
-                          onClick={toggleFullscreen}
-                          className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                          title={isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'}
-                        >
-                          {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
-                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <iframe
+                    src={`${streamUrl}?autoplay=1`}
+                    className="w-full h-full border-0 relative z-10"
+                    allow="autoplay; encrypted-media; fullscreen"
+                    allowFullScreen
+                    title={cleanTitle}
+                  />
+                )
               ) : (
-                <iframe
-                  src={`${streamUrl}?autoplay=1`}
-                  className="w-full h-full border-0 relative z-10"
-                  allow="autoplay; encrypted-media; fullscreen"
-                  allowFullScreen
-                  title={cleanTitle}
-                />
-              )
-            ) : (
-              /* Image Lightbox View */
-              <div
-                onClick={() => setIsZoomed(!isZoomed)}
-                className="w-full h-full flex items-center justify-center p-3 cursor-pointer overflow-hidden z-10"
-              >
-                <img
-                  src={directImgUrl}
-                  alt={cleanTitle}
-                  loading="lazy"
-                  className={`max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-transform duration-300 ease-out ${
-                    isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
-                  }`}
-                />
+                /* Image Lightbox View */
+                <div
+                  onClick={() => setIsZoomed(!isZoomed)}
+                  className="w-full h-full flex items-center justify-center p-3 cursor-pointer overflow-hidden z-10"
+                >
+                  <img
+                    src={directImgUrl}
+                    alt={cleanTitle}
+                    loading="lazy"
+                    className={`max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-transform duration-300 ease-out ${
+                      isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
+                    }`}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Under-player Editorial Status Bar */}
+            <div className="px-4 py-2.5 border-t border-white/[0.06] bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0">
+              <div className="truncate max-w-[70%]">
+                <span className="font-medium text-zinc-100 text-[11px] tracking-wide block truncate">
+                  {cleanTitle}
+                </span>
+                <span className="text-zinc-500 text-[9px] tracking-wider uppercase block mt-0.5">
+                  {currentItem.type === 'video'
+                    ? 'SPATIAL HUD • 1080P CINEMATIC STREAM'
+                    : isZoomed
+                    ? 'ZOOMED 165% • LOSSLESS PHOTOGRAPHY'
+                    : 'HIGH DEFINITION PHOTOGRAPHY'}
+                </span>
               </div>
-            )}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => goToIndex(currentIndex - 1)}
+                  className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer border border-white/[0.05]"
+                  title="Previous (←)"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => goToIndex(currentIndex + 1)}
+                  className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer border border-white/[0.05]"
+                  title="Next (→)"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Under-player Editorial Status Bar */}
-          <div className="px-4 py-2.5 border-t border-white/[0.06] bg-[#09090b] flex items-center justify-between text-xs font-mono">
-            <div className="truncate max-w-[70%]">
-              <span className="font-medium text-zinc-100 text-[11px] tracking-wide block truncate">
-                {cleanTitle}
+          {/* ===== RIGHT PLAYLIST QUEUE (~28% DESKTOP) ===== */}
+          <div className="w-full lg:w-[28%] h-full flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden shadow-xl flex-shrink-0">
+            {/* Queue Header */}
+            <div className="px-4 py-3 border-b border-white/[0.06] bg-[#09090b] flex items-center justify-between text-[10px] font-mono flex-shrink-0">
+              <span className="font-semibold text-zinc-300 tracking-wider uppercase">
+                QUEUE ({items.length})
               </span>
-              <span className="text-zinc-500 text-[9px] tracking-wider uppercase block mt-0.5">
-                {currentItem.type === 'video'
-                  ? 'SPATIAL HUD • 1080P CINEMATIC STREAM'
-                  : isZoomed
-                  ? 'ZOOMED 165% • LOSSLESS PHOTOGRAPHY'
-                  : 'HIGH DEFINITION PHOTOGRAPHY'}
+              <span className="text-zinc-500 flex items-center gap-1">
+                <Check className="w-3 h-3 text-emerald-400" /> READY
               </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => goToIndex(currentIndex - 1)}
-                className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer border border-white/[0.05]"
-                title="Previous (←)"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => goToIndex(currentIndex + 1)}
-                className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer border border-white/[0.05]"
-                title="Next (→)"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+
+            {/* Scrollable Playlist Cards (With Slow Auto-Slide) */}
+            <div
+              ref={playlistContainerRef}
+              onMouseEnter={() => {
+                isQueueHoveredRef.current = true;
+              }}
+              onMouseLeave={() => {
+                isQueueHoveredRef.current = false;
+              }}
+              onPointerDown={() => {
+                isQueueInteractingRef.current = true;
+              }}
+              onPointerUp={() => {
+                isQueueInteractingRef.current = false;
+              }}
+              className="flex-1 overflow-y-auto p-2.5 space-y-1.5 no-scrollbar"
+            >
+              {items.map((item, idx) => {
+                const isActive = idx === currentIndex;
+                const thumbUrl = getDirectImageUrl(item, idx);
+                const itemTitle = (item.title || `Media ${idx + 1}`)
+                  .replace(/\.[^/.]+$/, '')
+                  .replace(/[-_]+/g, ' ')
+                  .trim();
+
+                return (
+                  <div
+                    key={item.id || `queue-${idx}`}
+                    onClick={() => goToIndex(idx)}
+                    onMouseEnter={() => {
+                      if (item.type === 'video') prewarmVideoStream(item.url);
+                    }}
+                    onTouchStart={() => {
+                      if (item.type === 'video') prewarmVideoStream(item.url);
+                    }}
+                    className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all duration-200 group ${
+                      isActive
+                        ? 'bg-zinc-800/80 border border-white/[0.12] shadow-md'
+                        : 'hover:bg-zinc-900/80 border border-transparent'
+                    }`}
+                  >
+                    {/* Thumbnail Container (Obsidian Surface Backing) */}
+                    <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.05] flex-shrink-0">
+                      {item.type === 'video' && item.url.includes('huggingface.co') ? (
+                        <video
+                          src={formatVideoPosterUrl(encodeURI(ensureHttps(item.url)), 0.5)}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover pointer-events-none"
+                        />
+                      ) : thumbUrl ? (
+                        <img
+                          src={thumbUrl}
+                          alt={itemTitle}
+                          loading="lazy"
+                          className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-zinc-950">
+                          <Play className="w-3.5 h-3.5 text-zinc-600" />
+                        </div>
+                      )}
+
+                      {isActive ? (
+                        <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-black font-mono font-bold text-[8px] tracking-widest uppercase">
+                            PLAYING
+                          </span>
+                        </div>
+                      ) : item.type === 'video' ? (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-3 h-3 text-white fill-current" />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Meta */}
+                    <div className="flex-1 min-w-0">
+                      <span
+                        className={`text-[11px] font-medium truncate block leading-tight ${
+                          isActive ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
+                        } transition-colors duration-200`}
+                      >
+                        {itemTitle}
+                      </span>
+                      <span className="text-[9px] font-mono text-zinc-500 tracking-wider uppercase block mt-0.5">
+                        {String(idx + 1).padStart(2, '0')} • {item.type === 'video' ? 'VIDEO' : 'PHOTO'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="px-4 py-2 border-t border-white/[0.04] bg-black text-center text-[9px] font-mono tracking-widest text-zinc-600 uppercase flex-shrink-0">
+              CLICK OR SCROLL QUEUE
             </div>
           </div>
         </div>
 
-        {/* ===== RIGHT PLAYLIST QUEUE (~28% DESKTOP) ===== */}
-        <div
-          ref={playlistContainerRef}
-          className="w-full lg:w-[28%] flex-1 lg:h-full flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden shadow-xl"
-        >
-          {/* Queue Header */}
-          <div className="px-4 py-3 border-b border-white/[0.06] bg-[#09090b] flex items-center justify-between text-[10px] font-mono flex-shrink-0">
-            <span className="font-semibold text-zinc-300 tracking-wider uppercase">
-              QUEUE ({items.length})
-            </span>
-            <span className="text-zinc-500 flex items-center gap-1">
-              <Check className="w-3 h-3 text-emerald-400" /> READY
-            </span>
-          </div>
+        {/* ===== CONTEXT-AWARE RECOMMENDED ALBUMS (BELOW THE PLAYER) ===== */}
+        {suggestedAlbums.length > 0 && (
+          <div className="w-full mt-2 px-1 sm:px-2 pb-8 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+              <div className="flex items-center gap-2">
+                {currentItem.type === 'video' ? (
+                  <Film className="w-4 h-4 text-cyan-400" />
+                ) : (
+                  <Camera className="w-4 h-4 text-emerald-400" />
+                )}
+                <div>
+                  <span className="text-[9px] font-mono tracking-[0.25em] text-zinc-500 uppercase block">
+                    {currentItem.type === 'video' ? 'CURATED CINEMA VAULT' : 'CURATED PHOTOGRAPHY VAULT'}
+                  </span>
+                  <h3 className="text-sm sm:text-base font-bold font-space text-zinc-100 uppercase tracking-tight">
+                    {currentItem.type === 'video' ? 'Suggested Video Albums' : 'Suggested Photo Albums'}
+                  </h3>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider hidden sm:inline">
+                Click to switch album
+              </span>
+            </div>
 
-          {/* Scrollable Playlist Cards */}
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 no-scrollbar">
-            {items.map((item, idx) => {
-              const isActive = idx === currentIndex;
-              const thumbUrl = getDirectImageUrl(item, idx);
-              const itemTitle = (item.title || `Media ${idx + 1}`)
-                .replace(/\.[^/.]+$/, '')
-                .replace(/[-_]+/g, ' ')
-                .trim();
+            {/* Horizontal Grid of Suggested Albums */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {suggestedAlbums.map((sugAlbum) => {
+                const previewItem = sugAlbum.items[0];
+                const previewCount = sugAlbum.itemCount || sugAlbum.items.length;
+                const isVideo = sugAlbum.type === 'video';
+                const previewPoster = previewItem
+                  ? isVideo
+                    ? getCachedVideoPoster(previewItem.url) || previewItem.thumbnail || ''
+                    : getDirectImageUrl(previewItem, 0)
+                  : '';
 
-              return (
-                <div
-                  key={item.id || `queue-${idx}`}
-                  onClick={() => goToIndex(idx)}
-                  onMouseEnter={() => {
-                    if (item.type === 'video') prewarmVideoStream(item.url);
-                  }}
-                  onTouchStart={() => {
-                    if (item.type === 'video') prewarmVideoStream(item.url);
-                  }}
-                  className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all duration-200 group ${
-                    isActive
-                      ? 'bg-zinc-800/80 border border-white/[0.12] shadow-md'
-                      : 'hover:bg-zinc-900/80 border border-transparent'
-                  }`}
-                >
-                  {/* Thumbnail */}
-                  <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0">
-                    {item.type === 'video' && item.url.includes('huggingface.co') ? (
-                      <video
-                        src={formatVideoPosterUrl(encodeURI(ensureHttps(item.url)), 0.5)}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover pointer-events-none"
-                      />
-                    ) : (
-                      <img
-                        src={thumbUrl}
-                        alt={itemTitle}
-                        loading="lazy"
-                        className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
-                      />
-                    )}
-                    {isActive ? (
-                      <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
-                        <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-black font-mono font-bold text-[8px] tracking-widest uppercase">
-                          PLAYING
+                return (
+                  <div
+                    key={sugAlbum.id}
+                    onClick={() => {
+                      if (onSwitchAlbum) {
+                        onSwitchAlbum(sugAlbum, 0);
+                      }
+                    }}
+                    className="group relative rounded-xl overflow-hidden bg-[#0a0d14] border border-white/[0.07] hover:border-white/25 p-3 flex flex-col gap-2.5 cursor-pointer transition-all duration-300 hover:scale-[1.015] hover:shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
+                  >
+                    {/* Preview Media Box */}
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.05]">
+                      {previewItem && isVideo && previewItem.url.includes('huggingface.co') ? (
+                        <video
+                          src={formatVideoPosterUrl(encodeURI(ensureHttps(previewItem.url)), 0.5)}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover pointer-events-none group-hover:scale-104 transition-transform duration-500"
+                        />
+                      ) : previewPoster ? (
+                        <img
+                          src={previewPoster}
+                          alt={sugAlbum.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover pointer-events-none group-hover:scale-104 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-3">
+                          <Play className="w-5 h-5 text-zinc-600 mb-1" />
+                          <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest text-center">
+                            {sugAlbum.name}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Stream Badge Overlay */}
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-200">
+                        <div className="px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-white/20 text-white font-mono text-[9px] uppercase tracking-widest flex items-center gap-1.5">
+                          <span>STREAM</span>
+                          <Play className="w-2.5 h-2.5 fill-current" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Album Info */}
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-sm font-semibold font-space text-zinc-100 uppercase tracking-tight truncate group-hover:text-cyan-400 transition-colors">
+                          {sugAlbum.name}
+                        </h4>
+                        <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider block mt-0.5">
+                          {previewCount} Curated Files
                         </span>
                       </div>
-                    ) : item.type === 'video' ? (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Play className="w-3 h-3 text-white fill-current" />
-                      </div>
-                    ) : null}
+                      <span className="px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 font-mono text-[8px] font-semibold uppercase tracking-wider flex-shrink-0 ml-2">
+                        {isVideo ? 'CINEMA' : 'PHOTO'}
+                      </span>
+                    </div>
                   </div>
-
-                  {/* Meta */}
-                  <div className="flex-1 min-w-0">
-                    <span
-                      className={`text-[11px] font-medium truncate block leading-tight ${
-                        isActive ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
-                      } transition-colors duration-200`}
-                    >
-                      {itemTitle}
-                    </span>
-                    <span className="text-[9px] font-mono text-zinc-500 tracking-wider uppercase block mt-0.5">
-                      {String(idx + 1).padStart(2, '0')} • {item.type === 'video' ? 'VIDEO' : 'PHOTO'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-
-          <div className="px-4 py-2 border-t border-white/[0.04] bg-black text-center text-[9px] font-mono tracking-widest text-zinc-600 uppercase flex-shrink-0">
-            SWIPE DOWN OR SCROLL TO DISMISS
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

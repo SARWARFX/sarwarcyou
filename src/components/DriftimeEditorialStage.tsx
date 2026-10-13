@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Play, Sparkles } from 'lucide-react';
-import { getDirectImageUrl, getUnsplashFallback, ensureHttps } from '../utils/imageUrlResolver';
+import { getDirectImageUrl, ensureHttps } from '../utils/imageUrlResolver';
 import { formatVideoPosterUrl, prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -368,8 +368,11 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         ) : (
           items.map((item, idx) => {
             const directUrl = getDirectImageUrl(item, idx);
-            const fallbackUrl = getUnsplashFallback(idx);
             const isCardHovered = hoveredCardIdx === idx;
+            const cleanCardTitle = (item.title || album.name)
+              .replace(/\.[^/.]+$/, '')
+              .replace(/[-_]+/g, ' ')
+              .trim();
 
             // Alternating vertical rhythm for staggered variant
             const staggeredOffset =
@@ -433,6 +436,26 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                 aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
                 className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
               >
+                {/* Intentional Obsidian Typography Surface (Zero Black Screen Fallback) */}
+                <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <Play className="w-3 h-3 text-zinc-400 fill-current ml-0.5" />
+                    </div>
+                    <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest font-semibold">
+                      SARWARCYOU
+                    </span>
+                  </div>
+                  <div className="mt-auto">
+                    <span className="text-xs sm:text-sm font-medium text-zinc-200 tracking-wide line-clamp-2 block leading-snug">
+                      {cleanCardTitle}
+                    </span>
+                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider block mt-1">
+                      {badgeLabel} STREAM
+                    </span>
+                  </div>
+                </div>
+
                 {/* Subtle Micro-Badge (VIDEO, SHORT, PHOTO) */}
                 <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
                   <span className="px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/10 text-[8px] font-mono font-semibold tracking-wider text-zinc-300 uppercase shadow-md">
@@ -451,7 +474,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                     loop
                     aria-label={item.title ? `${item.title} — Video Stream` : 'Cinematic Video Stream'}
                     onLoadedMetadata={updateMaxScroll}
-                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
+                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none relative z-10"
                   />
                 ) : (
                   <img
@@ -461,9 +484,9 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                     draggable={false}
                     onLoad={updateMaxScroll}
                     onError={(e) => {
-                      e.currentTarget.src = fallbackUrl;
+                      e.currentTarget.style.display = 'none';
                     }}
-                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
+                    className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none relative z-10"
                   />
                 )}
 

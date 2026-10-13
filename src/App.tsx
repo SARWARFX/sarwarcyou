@@ -34,7 +34,7 @@ function App() {
     activeAlbumIndexRef.current = activeAlbumIndex;
     const currentAlbum = albums[activeAlbumIndex];
     if (currentAlbum) {
-      document.title = `${currentAlbum.name} (${currentAlbum.itemCount}) — Sarwar C You`;
+      document.title = 'Sarwar C You';
       const slug = currentAlbum.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       if (window.location.hash !== `#${slug}`) {
         window.history.replaceState(null, '', `#${slug}`);
@@ -338,12 +338,14 @@ function App() {
       />
 
       {/* ================= RIGHT-SIDE NAVIGATION DOCK ================= */}
-      <AlbumProgressDots
-        albums={albums}
-        activeAlbumIndex={activeAlbumIndex}
-        onSelectAlbum={scrollToAlbum}
-        isLightMode={isLightMode}
-      />
+      {!isModalOpen && (
+        <AlbumProgressDots
+          albums={albums}
+          activeAlbumIndex={activeAlbumIndex}
+          onSelectAlbum={scrollToAlbum}
+          isLightMode={isLightMode}
+        />
+      )}
 
       {/* ================= FLOATING "BACK TO TOP" PILL ================= */}
       {activeAlbumIndex > 0 && (
@@ -365,8 +367,18 @@ function App() {
         isOpen={theaterState.isOpen}
         onClose={() => setTheaterState((prev) => ({ ...prev, isOpen: false }))}
         album={theaterState.album}
+        allAlbums={albums}
         initialIndex={theaterState.initialIndex}
         posterUrl={theaterState.posterUrl}
+        onSwitchAlbum={(targetAlbum, itemIdx = 0) => {
+          setTheaterState({
+            isOpen: true,
+            album: targetAlbum,
+            initialIndex: itemIdx,
+            posterUrl: undefined,
+          });
+          setActiveAlbumIndex(targetAlbum.index);
+        }}
         onNextAlbum={handleNextAlbum}
         onPrevAlbum={handlePrevAlbum}
       />

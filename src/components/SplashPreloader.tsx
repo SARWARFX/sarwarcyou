@@ -108,7 +108,7 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({ isReady = fals
         {/* Wordmark */}
         <div className="flex flex-col items-center gap-2">
           <span className="font-space font-black tracking-[0.3em] text-xs sm:text-sm text-zinc-100 uppercase">
-            SARWAR C YOU
+            SARWARCYOU
           </span>
           <div className="flex items-center gap-2">
             <span

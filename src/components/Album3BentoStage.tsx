@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { getDirectImageUrl, getUnsplashFallback } from '../utils/imageUrlResolver';
+import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface Album3BentoStageProps {
@@ -33,10 +33,6 @@ const BentoCell: React.FC<BentoCellProps> = ({
     return getDirectImageUrl(item, slotIndex);
   }, [item, slotIndex]);
 
-  const currentFallback = useMemo(() => {
-    return getUnsplashFallback(slotIndex);
-  }, [slotIndex]);
-
   return (
     <div
       onClick={() => {
@@ -60,7 +56,7 @@ const BentoCell: React.FC<BentoCellProps> = ({
         alt={item.title || 'Dropbox Bento Photo'}
         loading="lazy"
         onError={(e) => {
-          e.currentTarget.src = currentFallback;
+          e.currentTarget.style.display = 'none';
         }}
         className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
       />

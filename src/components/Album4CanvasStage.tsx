@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { RotateCcw, Compass } from 'lucide-react';
-import { getDirectImageUrl, getUnsplashFallback } from '../utils/imageUrlResolver';
+import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface Album4CanvasStageProps {
@@ -435,7 +435,6 @@ export const Album4CanvasStage: React.FC<Album4CanvasStageProps> = ({
       >
         {items.map((item, idx) => {
           const directUrl = getDirectImageUrl(item, idx);
-          const fallbackUrl = getUnsplashFallback(idx);
           const isHovered = hoveredCardIdx === idx;
 
           return (
@@ -470,7 +469,7 @@ export const Album4CanvasStage: React.FC<Album4CanvasStageProps> = ({
                   loading="lazy"
                   draggable={false}
                   onError={(e) => {
-                    e.currentTarget.src = fallbackUrl;
+                    e.currentTarget.style.display = 'none';
                   }}
                   className="w-full h-full object-cover object-center pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none"
                 />

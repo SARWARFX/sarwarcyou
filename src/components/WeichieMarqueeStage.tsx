@@ -5,7 +5,6 @@ import { createProceduralFrameTexture } from '../utils/textureGenerator';
 import {
   getDirectImageUrl,
   getBackupDriveUrl,
-  getUnsplashFallback,
   extractDriveFileId,
 } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
@@ -311,7 +310,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       const primaryUrl = getDirectImageUrl(item, photoIdx);
       const fileId = extractDriveFileId(item.id, item.url, item.thumbnail);
       const backupUrl = fileId ? getBackupDriveUrl(fileId) : primaryUrl;
-      const unsplashUrl = getUnsplashFallback(photoIdx);
 
       // Tier 1: High-res direct raw stream
       textureLoader.load(
@@ -343,23 +341,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
             },
             undefined,
             () => {
-              // Tier 3: Curated Unsplash portrait fallback
-              textureLoader.load(
-                unsplashUrl,
-                (loadedTex) => {
-                  loadingIndices.delete(photoIdx);
-                  loadedTex.colorSpace = THREE.SRGBColorSpace;
-                  loadedTex.generateMipmaps = true;
-                  loadedTex.needsUpdate = true;
-                  recordAspectRatio(photoIdx, loadedTex);
-                  textureCache.set(photoIdx, loadedTex);
-                  bindTextureToMesh(photoIdx, loadedTex);
-                },
-                undefined,
-                () => {
-                  loadingIndices.delete(photoIdx);
-                }
-              );
+              loadingIndices.delete(photoIdx);
             }
           );
         }
