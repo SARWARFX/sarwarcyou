@@ -55,7 +55,8 @@ export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
       variant = 'coming-soon';
       break;
     default:
-      variant = 'filmstrip';
+      variant = album.type === 'video' ? 'cinematic' : 'filmstrip';
+      break;
   }
 
   return <DriftimeEditorialStage {...props} variant={variant} />;

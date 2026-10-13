@@ -103,7 +103,7 @@ export function extractTwelveAlbums(
       'video'
     );
 
-    return [
+    const baseAlbums: AlbumData[] = [
       {
         id: 'album-bandhobis',
         index: 0,
@@ -225,6 +225,82 @@ export function extractTwelveAlbums(
         subtitle: 'Future Vault // In Queue',
       },
     ];
+
+    // Dynamic Discovery for any newly added custom folders in Images/ or Clips/:
+    const isStandardImageFolder = (sub: string) =>
+      sub === 'bandhobis' ||
+      sub.includes('work') ||
+      sub === 'h2026' ||
+      sub === 'h2025' ||
+      sub.includes('classic') ||
+      sub === 'h2027';
+
+    const isStandardClipFolder = (sub: string) =>
+      sub.includes('favorite') ||
+      sub === 'h2026' ||
+      sub === 'h2025' ||
+      sub.includes('other') ||
+      sub === 'h2027';
+
+    const extraImageFolders = new Map<string, HfMediaItem[]>();
+    for (const img of catalog.images) {
+      const sub = getSubfolder(img.path);
+      if (sub && !isStandardImageFolder(sub)) {
+        const list = extraImageFolders.get(sub) || [];
+        list.push(img);
+        extraImageFolders.set(sub, list);
+      }
+    }
+
+    const extraClipFolders = new Map<string, HfMediaItem[]>();
+    for (const clip of catalog.clips) {
+      const sub = getSubfolder(clip.path);
+      if (sub && !isStandardClipFolder(sub)) {
+        const list = extraClipFolders.get(sub) || [];
+        list.push(clip);
+        extraClipFolders.set(sub, list);
+      }
+    }
+
+    let nextIndex = baseAlbums.length;
+
+    extraImageFolders.forEach((files, folderKey) => {
+      const title = folderKey
+        .split(/[-_]+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+      const mapped = mapHfItems(files, title, 'image');
+      baseAlbums.push({
+        id: `album-${folderKey}`,
+        index: nextIndex++,
+        name: title,
+        type: 'image',
+        itemCount: mapped.length,
+        items: mapped,
+        layoutType: 'heroic-masonry',
+        subtitle: 'Editorial Gallery',
+      });
+    });
+
+    extraClipFolders.forEach((files, folderKey) => {
+      const title = folderKey
+        .split(/[-_]+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+      const mapped = mapHfItems(files, title, 'video');
+      baseAlbums.push({
+        id: `album-${folderKey}`,
+        index: nextIndex++,
+        name: title,
+        type: 'video',
+        itemCount: mapped.length,
+        items: mapped,
+        layoutType: 'theater-cylinder',
+        subtitle: 'Cinematic Theater',
+      });
+    });
+
+    return baseAlbums;
   }
 
   // Fallback to legacy Google Drive data structure if ever supplied:
