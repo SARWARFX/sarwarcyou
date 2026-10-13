@@ -420,7 +420,7 @@ export const Album4CanvasStage: React.FC<Album4CanvasStageProps> = ({
       onWheel={handleWheel}
       style={{ touchAction: 'none' }}
       data-disable-page-swipe="true"
-      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-[#050508] z-0"
+      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-[#0a0a0c] z-0"
     >
       {/* 1. Subtle tactile architectural drafting grid watermark */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.035] bg-[radial-gradient(#ffffff_1.2px,transparent_1.2px)] [background-size:36px_36px]" />

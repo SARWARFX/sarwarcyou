@@ -274,7 +274,7 @@ export const Album3BentoStage: React.FC<Album3BentoStageProps> = ({
       onMouseEnter={() => setIsHoveredOverStage(true)}
       onMouseLeave={() => setIsHoveredOverStage(false)}
       style={{ touchAction: 'none' }}
-      className="absolute inset-0 w-screen h-screen overflow-hidden bg-black select-none z-0 cursor-grab active:cursor-grabbing"
+      className="absolute inset-0 w-screen h-screen overflow-hidden bg-[#0a0a0c] select-none z-0 cursor-grab active:cursor-grabbing"
     >
       {/* ================= UNIVERSAL HORIZONTAL SLIDER TRACK ================= */}
       <div

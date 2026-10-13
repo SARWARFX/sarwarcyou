@@ -6,12 +6,13 @@ import { BrandLogo } from './components/BrandLogo';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
 import { MediaModal } from './components/MediaModal';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
+import { PreloaderScreen } from './components/PreloaderScreen';
 import { FALLBACK_MEDIA_DATA } from './data/fallbackData';
 import type { StageMediaItem } from './types';
-import { Loader2 } from 'lucide-react';
 
 function App() {
-  const { data, isLoading, isError } = useMediaData();
+  const { data, isError } = useMediaData();
+  const [, setIsPreloaded] = useState(false);
 
   // 12 Distinct Google Drive Albums
   const albums = useMemo(() => {
@@ -223,28 +224,11 @@ function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
 
-  // Loading Screen
-  if (!data && isLoading) {
-    return (
-      <div className="fixed inset-0 bg-[#000000] flex flex-col items-center justify-center text-white z-50">
-        <div className="relative flex flex-col items-center gap-6">
-          <div className="relative flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full border-2 border-[#00D2FF]/20 border-t-[#00D2FF] animate-spin" />
-            <Loader2 className="absolute w-5 h-5 text-white animate-pulse" />
-          </div>
-          <div className="text-xs font-mono tracking-[0.3em] text-white/50 uppercase">
-            INITIALIZING 12 3D ALBUMS...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error Screen
+  // Network Error Screen
   if (!data && isError) {
     return (
-      <div className="fixed inset-0 bg-[#000000] flex items-center justify-center text-white p-6 font-mono">
-        <div className="max-w-md p-8 rounded-2xl bg-neutral-900 border border-white/10 text-center space-y-4">
+      <div className="fixed inset-0 bg-[#0a0a0c] flex items-center justify-center text-white p-6 font-mono">
+        <div className="max-w-md p-8 rounded-2xl bg-[#10121a] border border-white/10 text-center space-y-4">
           <div className="text-red-400 text-2xl font-bold">[ NETWORK ERROR ]</div>
           <p className="text-xs text-white/60">
             Unable to stream cloud media. Please check your internet connection.
@@ -263,7 +247,13 @@ function App() {
   const isLightMode = false;
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
+    <main className="relative w-screen h-screen overflow-hidden bg-[#0a0a0c] select-none">
+      {/* ================= HIGH-END ASSET PRELOADER (ZERO RUNTIME LOADING) ================= */}
+      <PreloaderScreen
+        albums={albums}
+        onLoaded={() => setIsPreloaded(true)}
+      />
+
       {/* ================= VERTICAL LUXURY ELEVATOR CONTAINER ================= */}
       <div
         className="w-full h-full will-change-transform"
@@ -286,7 +276,7 @@ function App() {
             <section
               id={`album-section-${idx}`}
               key={album.id}
-              className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-black"
+              className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-[#0a0a0c]"
             >
               {/* Perfectly Centered 3D / Masonry Stage */}
               {isNear && (
