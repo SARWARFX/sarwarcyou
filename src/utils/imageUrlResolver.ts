@@ -8,6 +8,11 @@ export const FALLBACK_PORTRAIT_URLS = [
   'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=1000&q=80',
 ];
 
+export function ensureHttps(url?: string): string {
+  if (!url) return '';
+  return url.replace(/^http:\/\//i, 'https://');
+}
+
 export function extractDriveFileId(id?: string, url?: string, thumbnail?: string): string | null {
   if (id && id.length >= 15 && !id.includes('/') && !id.includes('.')) {
     return id;
@@ -29,10 +34,10 @@ export function getDirectImageUrl(
     return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
 
-  const rawThumb = item.thumbnail || item.url || '';
-  if (rawThumb.startsWith('http')) {
-    // Clean up any /u/0/ or =w1000 suffixes
-    return rawThumb.replace(/\/u\/\d+\/d\//, '/d/').replace(/=w\d+/, '');
+  const rawThumb = ensureHttps(item.thumbnail || item.url || '');
+  if (rawThumb.startsWith('https://') || rawThumb.startsWith('http://')) {
+    // Clean up any /u/0/ or =w1000 suffixes and guarantee HTTPS
+    return ensureHttps(rawThumb).replace(/\/u\/\d+\/d\//, '/d/').replace(/=w\d+/, '');
   }
 
   // Return high-res Unsplash portrait fallback

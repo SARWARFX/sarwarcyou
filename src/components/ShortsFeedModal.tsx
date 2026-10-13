@@ -95,9 +95,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   if (!isOpen || !shorts.length) return null;
 
   const currentShort = shorts[currentIndex] || shorts[0];
+  const secureUrl = (currentShort.url || '').replace(/^http:\/\//i, 'https://');
 
   // Convert Google Drive preview URL with autoplay
-  let streamUrl = currentShort.url;
+  let streamUrl = secureUrl;
   if (streamUrl.includes('drive.google.com')) {
     if (!streamUrl.includes('/preview')) {
       streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
@@ -123,7 +124,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* Top Action Bar */}
       <div className="absolute top-5 right-5 sm:top-7 sm:right-7 flex items-center gap-3 z-[130]">
         <a
-          href={currentShort.url}
+          href={secureUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"

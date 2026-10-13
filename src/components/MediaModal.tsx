@@ -43,8 +43,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   if (!isOpen || !url) return null;
 
+  // Enforce HTTPS
+  const secureUrl = url.replace(/^http:\/\//i, 'https://');
+
   // Ensure Google Drive URL is iframe embeddable
-  let streamUrl = url;
+  let streamUrl = secureUrl;
   if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
     streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
     if (!streamUrl.includes('/preview')) {
@@ -80,7 +83,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           </button>
         )}
         <a
-          href={url}
+          href={secureUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"

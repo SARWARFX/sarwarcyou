@@ -1,6 +1,6 @@
 import type { ApiResponseData, AlbumData, StageMediaItem } from '../types';
 import { FALLBACK_MEDIA_DATA } from '../data/fallbackData';
-import { getDirectImageUrl } from './imageUrlResolver';
+import { getDirectImageUrl, ensureHttps } from './imageUrlResolver';
 
 export function extractTwelveAlbums(data: ApiResponseData | null | undefined): AlbumData[] {
   const source = data || FALLBACK_MEDIA_DATA;
@@ -15,7 +15,7 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
     return files.map((f, idx) => ({
       id: f.id,
       title: f.name,
-      url: f.url,
+      url: ensureHttps(f.url),
       thumbnail: getDirectImageUrl({ id: f.id, url: f.url, thumbnail: f.thumbnail }, idx),
       category: categoryName,
       type: (f.type as 'image' | 'video') || defaultType,
