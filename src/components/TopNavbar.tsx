@@ -147,7 +147,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             </div>
 
             {/* Scrollable Album List */}
-            <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-4 divide-y divide-white/5 space-y-1 no-scrollbar">
+            <nav aria-label="Curated Archives" className="flex-1 overflow-y-auto px-6 sm:px-8 py-4 divide-y divide-white/5 space-y-1 no-scrollbar">
               {albums.map((album, idx) => {
                 const isActive = idx === activeAlbumIndex;
                 const formattedNum = String(idx + 1).padStart(2, '0');
@@ -211,7 +211,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                   </button>
                 );
               })}
-            </div>
+            </nav>
 
             {/* Drawer Footer */}
             <div className="px-6 sm:px-8 py-4 border-t border-white/10 bg-black/40 flex items-center justify-between text-[10px] font-mono tracking-widest text-white/40">

@@ -29,7 +29,28 @@ function App() {
   const activeAlbumIndexRef = useRef(activeAlbumIndex);
   useEffect(() => {
     activeAlbumIndexRef.current = activeAlbumIndex;
-  }, [activeAlbumIndex]);
+    const currentAlbum = albums[activeAlbumIndex];
+    if (currentAlbum) {
+      document.title = `${currentAlbum.name} (${currentAlbum.itemCount}) — Sarwar C You`;
+      const slug = currentAlbum.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      if (window.location.hash !== `#${slug}`) {
+        window.history.replaceState(null, '', `#${slug}`);
+      }
+    }
+  }, [activeAlbumIndex, albums]);
+
+  // Deep-linking hash support on mount (e.g., #shorts, #works)
+  useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, '').toLowerCase();
+    if (hash && albums.length > 0) {
+      const foundIdx = albums.findIndex(
+        (a) => a.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === hash
+      );
+      if (foundIdx >= 0 && foundIdx !== activeAlbumIndexRef.current) {
+        setActiveAlbumIndex(foundIdx);
+      }
+    }
+  }, [albums]);
 
   const isTransitioningRef = useRef(false);
   const wheelDeltaAccumulatorRef = useRef(0);

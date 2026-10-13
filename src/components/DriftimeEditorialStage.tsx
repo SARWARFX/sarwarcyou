@@ -407,6 +407,8 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                     onSelectItem(item);
                   }
                 }}
+                role="article"
+                aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
                 className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e14] border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_28px_70px_rgba(0,0,0,0.95),0_0_25px_rgba(0,210,255,0.25)] hover:border-[#00D2FF]/60 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] hover:-translate-y-1.5 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
               >
               {/* Media Card Presentation: Native Video for clips or Image for photos */}
@@ -418,13 +420,14 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                   playsInline
                   autoPlay={isCardHovered}
                   loop
+                  aria-label={item.title ? `${item.title} — Video Stream` : 'Cinematic Video Stream'}
                   onLoadedMetadata={updateMaxScroll}
                   className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
                 />
               ) : (
                 <img
                   src={directUrl}
-                  alt="Editorial Photography"
+                  alt={item.title ? `${item.title} — ${album.name}` : `Editorial Photography — ${album.name}`}
                   loading="lazy"
                   draggable={false}
                   onLoad={updateMaxScroll}
