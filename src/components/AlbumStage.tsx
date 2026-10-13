@@ -1,6 +1,4 @@
 import React from 'react';
-import { Album3BentoStage } from './Album3BentoStage';
-import { Album4CanvasStage } from './Album4CanvasStage';
 import { DriftimeEditorialStage, type DriftimeVariant } from './DriftimeEditorialStage';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -17,40 +15,36 @@ export interface AlbumStageProps {
 export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
   const { album } = props;
 
-  // Album 3: Asymmetric Bento Grid
-  if (album.index === 2 || album.layoutType === 'bento-grid') {
-    return <Album3BentoStage {...props} />;
-  }
-
-  // Album 4: Interactive Drifting Artboard Canvas
-  if (album.index === 3 || album.layoutType === 'scattered-canvas') {
-    return <Album4CanvasStage {...props} />;
-  }
-
-  // Unified Driftime Editorial Layout Rhythms for all other albums:
+  // Unified Driftime Editorial Layout Rhythms for all 12 albums:
   let variant: DriftimeVariant = 'filmstrip';
 
   switch (album.index) {
-    case 0: // Album 1: Bandhobis
+    case 0: // Album 1: Favorites / Bandhobis
       variant = 'filmstrip';
       break;
     case 1: // Album 2: Works
       variant = 'staggered';
       break;
-    case 4: // Album 5: Classic
+    case 2: // Album 3: Portfolio / Street
       variant = 'diptych';
+      break;
+    case 3: // Album 4: Portraits / Editorial
+      variant = 'staggered';
+      break;
+    case 4: // Album 5: Classic
+      variant = 'filmstrip';
       break;
     case 5: // Album 6: Favorite Videos
       variant = 'cinematic';
       break;
     case 6: // Album 7: H2026 Videos
-      variant = 'staggered';
+      variant = 'cinematic';
       break;
     case 7: // Album 8: H2025 Videos
-      variant = 'filmstrip';
+      variant = 'cinematic';
       break;
     case 8: // Album 9: Others Videos
-      variant = 'diptych';
+      variant = 'cinematic';
       break;
     case 9: // Album 10: Shorts & Reels
       variant = 'shorts';

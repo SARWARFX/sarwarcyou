@@ -2,10 +2,9 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useMediaData } from './useMediaData';
 import { extractTwelveAlbums } from './utils/albumExtractor';
 import { AlbumStage } from './components/AlbumStage';
-import { BrandLogo } from './components/BrandLogo';
+import { TopNavbar } from './components/TopNavbar';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
-import { MediaModal } from './components/MediaModal';
-import { ShortsFeedModal } from './components/ShortsFeedModal';
+import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
 import { PreloaderScreen } from './components/PreloaderScreen';
 import { FALLBACK_MEDIA_DATA } from './data/fallbackData';
 import type { StageMediaItem } from './types';
@@ -38,50 +37,26 @@ function App() {
   const wheelDeltaAccumulatorRef = useRef(0);
   const lastWheelTimeRef = useRef(0);
 
-  // Standard Photo & Widescreen Video Lightbox State
-  const [modalState, setModalState] = useState<{
+  // YouTube-Style Media Theater Modal State
+  const [theaterState, setTheaterState] = useState<{
     isOpen: boolean;
-    url: string | null;
-    type: 'video' | 'image';
-    title?: string;
-  }>({
-    isOpen: false,
-    url: null,
-    type: 'image',
-    title: '',
-  });
-
-  // Dedicated TikTok / Reels-style Vertical Shorts Modal State
-  const [shortsFeedState, setShortsFeedState] = useState<{
-    isOpen: boolean;
-    shorts: StageMediaItem[];
+    album: typeof albums[0] | null;
     initialIndex: number;
   }>({
     isOpen: false,
-    shorts: [],
+    album: null,
     initialIndex: 0,
   });
 
-  // Handle clicking any media item in the 3D scene
+  // Handle clicking any media item in the 3D / Driftime scene
   const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number) => {
     const curAlbum = albums[albumIdx];
-    // If it's the dedicated Shorts & Reels album (or vertical waterfall layout):
-    if (curAlbum && (curAlbum.layoutType === 'vertical-waterfall' || curAlbum.name.toLowerCase().includes('short'))) {
-      const itemIdx = curAlbum.items.findIndex((s) => s.id === item.id);
-      setShortsFeedState({
-        isOpen: true,
-        shorts: curAlbum.items,
-        initialIndex: Math.max(0, itemIdx),
-      });
-    } else {
-      // Standard Photo Lightbox or Widescreen Video Player
-      setModalState({
-        isOpen: true,
-        url: item.url,
-        type: item.type,
-        title: item.title,
-      });
-    }
+    const itemIdx = curAlbum ? curAlbum.items.findIndex((s) => s.id === item.id) : 0;
+    setTheaterState({
+      isOpen: true,
+      album: curAlbum || null,
+      initialIndex: Math.max(0, itemIdx),
+    });
   }, [albums]);
 
   // Luxury Elevator Smooth Navigation
@@ -121,9 +96,9 @@ function App() {
   // Mouse wheel dampening & smooth elevator gliding
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      if (modalState.isOpen || shortsFeedState.isOpen) return;
+      if (theaterState.isOpen) return;
 
-      // Allow horizontal scrubbing inside Albums 1 & 2
+      // Allow horizontal scrubbing inside albums
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 
       e.preventDefault();
@@ -145,8 +120,8 @@ function App() {
 
       wheelDeltaAccumulatorRef.current += e.deltaY;
 
-      // Threshold ensures deliberate elevator floor command without jitter (higher threshold for interactive canvas Album 4)
-      const THRESHOLD = activeAlbumIndexRef.current === 3 ? 65 : 35;
+      // Threshold ensures deliberate elevator floor command without jitter
+      const THRESHOLD = 35;
       if (Math.abs(wheelDeltaAccumulatorRef.current) >= THRESHOLD) {
         const direction = wheelDeltaAccumulatorRef.current > 0 ? 1 : -1;
         wheelDeltaAccumulatorRef.current = 0;
@@ -160,7 +135,7 @@ function App() {
 
     window.addEventListener('wheel', onWheel, { passive: false });
     return () => window.removeEventListener('wheel', onWheel);
-  }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum]);
+  }, [theaterState.isOpen, handleNextAlbum, handlePrevAlbum]);
 
   // Mobile Touch Swipe with Dampening
   useEffect(() => {
@@ -173,7 +148,7 @@ function App() {
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (modalState.isOpen || shortsFeedState.isOpen) return;
+      if (theaterState.isOpen) return;
       if (isTransitioningRef.current) return;
 
       const target = e.target as HTMLElement | null;
@@ -200,12 +175,12 @@ function App() {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum]);
+  }, [theaterState.isOpen, handleNextAlbum, handlePrevAlbum]);
 
   // Keyboard navigation
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (modalState.isOpen || shortsFeedState.isOpen) return;
+      if (theaterState.isOpen) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
         handleNextAlbum();
@@ -222,7 +197,7 @@ function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
+  }, [theaterState.isOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
 
   // Network Error Screen
   if (!data && isError) {
@@ -306,12 +281,14 @@ function App() {
         })}
       </div>
 
-      {/* ================= ULTRA-MINIMAL HUD ================= */}
+      {/* ================= TOP NAVBAR & HAMBURGER DRAWER ================= */}
+      <TopNavbar
+        albums={albums}
+        activeAlbumIndex={activeAlbumIndex}
+        onSelectAlbum={scrollToAlbum}
+      />
 
-      {/* 1. DYNAMIC BRAND LOGO (Corner Cycling + Living Chromatic Sync + Synced Favicon) */}
-      <BrandLogo activeAlbumIndex={activeAlbumIndex} isLightMode={isLightMode} />
-
-      {/* 2. AUTO-HIDING RIGHT-SIDE NAVIGATION DOCK */}
+      {/* ================= AUTO-HIDING RIGHT-SIDE NAVIGATION DOCK ================= */}
       <AlbumProgressDots
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}
@@ -319,23 +296,14 @@ function App() {
         isLightMode={isLightMode}
       />
 
-      {/* ================= MODALS (USER-TRIGGERED ONLY) ================= */}
-
-      {/* DEDICATED TIKTOK/REELS-STYLE VERTICAL SHORTS PLAYER */}
-      <ShortsFeedModal
-        isOpen={shortsFeedState.isOpen}
-        onClose={() => setShortsFeedState((prev) => ({ ...prev, isOpen: false }))}
-        shorts={shortsFeedState.shorts}
-        initialIndex={shortsFeedState.initialIndex}
-      />
-
-      {/* STANDARD PHOTOS LIGHTBOX & 16:9 VIDEO PLAYER WITH ZOOM */}
-      <MediaModal
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}
-        url={modalState.url}
-        type={modalState.type}
-        title={modalState.title}
+      {/* ================= YOUTUBE-STYLE MEDIA THEATER ================= */}
+      <YouTubeTheaterModal
+        isOpen={theaterState.isOpen}
+        onClose={() => setTheaterState((prev) => ({ ...prev, isOpen: false }))}
+        album={theaterState.album}
+        initialIndex={theaterState.initialIndex}
+        onNextAlbum={handleNextAlbum}
+        onPrevAlbum={handlePrevAlbum}
       />
     </main>
   );

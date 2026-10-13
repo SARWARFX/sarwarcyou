@@ -1,7 +1,7 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Play, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getDirectImageUrl, getUnsplashFallback } from '../utils/imageUrlResolver';
+import { getDirectImageUrl, getUnsplashFallback, ensureHttps } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 export type DriftimeVariant =
@@ -30,6 +30,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const [hoveredCardIdx, setHoveredCardIdx] = useState<number | null>(null);
 
   const isComingSoon =
     album.itemCount === 0 || album.layoutType.startsWith('coming-soon');
@@ -310,13 +311,20 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         isHoveredRef.current = false;
       }}
       style={{ touchAction: 'none' }}
-      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-[#0a0a0c] z-0 flex items-center"
+      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-[#0a0a0c] z-0 flex flex-col justify-end pb-8 sm:pb-12 md:pb-16"
     >
       {/* 1. Subtle hairline architectural dot grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.035] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]" />
 
       {/* 2. Soft atmospheric vignette */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.85)_100%)] z-10" />
+
+      {/* ================= GIANT DRIP-TIME HERO HEADLINE ================= */}
+      <div className="absolute top-24 sm:top-28 md:top-32 left-6 sm:left-12 md:left-20 z-10 pointer-events-none select-none max-w-[90vw]">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black font-space tracking-tight text-white/90 uppercase leading-none truncate drop-shadow-[0_12px_40px_rgba(0,0,0,0.85)]">
+          {album.name} <span className="text-[#00D2FF]/80 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-mono align-baseline">({isComingSoon ? 0 : album.items.length})</span>
+        </h1>
+      </div>
 
       {/* 3. The Continuous Driftime Editorial Horizontal Track */}
       <div
@@ -326,13 +334,14 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         {items.map((item, idx) => {
           const directUrl = getDirectImageUrl(item, idx);
           const fallbackUrl = getUnsplashFallback(idx);
+          const isCardHovered = hoveredCardIdx === idx;
 
           // Alternating vertical rhythm for staggered variant
           const staggeredOffset =
             variant === 'staggered'
               ? idx % 2 === 0
-                ? 'translate-y-[-20px] sm:translate-y-[-30px]'
-                : 'translate-y-[20px] sm:translate-y-[30px]'
+                ? 'translate-y-[-16px] sm:translate-y-[-24px]'
+                : 'translate-y-[16px] sm:translate-y-[24px]'
               : '';
 
           // Architectural diptych pairing: tight hairline gap within a pair, wider gap between pairs
@@ -343,17 +352,19 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                 : 'mr-5 sm:mr-8'
               : '';
 
-          // Height bounds fitting dynamically within the viewport
-          let heightClass = 'h-[50vh] sm:h-[60vh] md:h-[66vh]';
+          // Height bounds fitting dynamically beneath the massive headline
+          let heightClass = 'h-[36vh] sm:h-[42vh] md:h-[46vh]';
           if (variant === 'cinematic') {
-            heightClass = 'h-[44vh] sm:h-[52vh] md:h-[58vh]';
+            heightClass = 'h-[34vh] sm:h-[38vh] md:h-[42vh]';
           } else if (variant === 'shorts') {
-            heightClass = 'h-[54vh] sm:h-[64vh] md:h-[70vh]';
+            heightClass = 'h-[38vh] sm:h-[46vh] md:h-[50vh]';
           }
 
           return (
             <div
               key={item.id || `driftime-card-${idx}`}
+              onMouseEnter={() => setHoveredCardIdx(idx)}
+              onMouseLeave={() => setHoveredCardIdx(null)}
               onClick={() => {
                 if (!hasDraggedRef.current) {
                   onActiveIndexChange?.(idx);
@@ -375,11 +386,21 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                 className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
               />
 
+              {/* Silent looping video previews on hover/drift for video items */}
+              {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && isCardHovered && (
+                <iframe
+                  src={`${ensureHttps(item.url)}?autoplay=1&mute=1`}
+                  className="absolute inset-0 w-full h-full border-0 pointer-events-none z-10 scale-105"
+                  allow="autoplay; encrypted-media"
+                  title="Silent Looping Video Preview"
+                />
+              )}
+
               {/* Specular gloss highlight on hover */}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
               {/* Video Play Glyph indicator for cinematic/video formats */}
-              {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && (
+              {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && !isCardHovered && (
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30 backdrop-blur-[2px]">
                   <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#00D2FF]/20 border border-[#00D2FF]/60 flex items-center justify-center text-[#00D2FF] shadow-[0_0_25px_rgba(0,210,255,0.4)]">
                     <Play className="w-5 h-5 fill-current ml-0.5" />
