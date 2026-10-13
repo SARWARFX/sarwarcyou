@@ -226,11 +226,11 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const scrollOffsetRef = useRef(0);
-  const isHoveredRef = useRef(false);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, scrollX: 0 });
   const hasDraggedRef = useRef(false);
   const maxScrollRef = useRef(0);
+  const lastWheelTimeRef = useRef(0);
 
   const items = useMemo(() => album.items || [], [album.items]);
 
@@ -247,7 +247,7 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
     return () => window.removeEventListener('resize', updateMaxScroll);
   }, [items, updateMaxScroll]);
 
-  // Continuous gentle auto-slide (Right to Left)
+  // Continuous gentle auto-slide (Right to Left) without hover pausing
   useEffect(() => {
     let animId: number;
     let lastTime = performance.now();
@@ -257,7 +257,8 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
       const seconds = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
-      if (!isHoveredRef.current && !isDraggingRef.current && items.length > 0) {
+      const isWheelActive = Date.now() - lastWheelTimeRef.current < 800;
+      if (!isDraggingRef.current && !isWheelActive && items.length > 0) {
         scrollOffsetRef.current += SPEED * seconds;
         const max = maxScrollRef.current;
         if (max > 10 && scrollOffsetRef.current >= max + 20) {
@@ -296,6 +297,14 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
     }, 50);
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(delta) > 4) {
+      scrollOffsetRef.current = Math.max(0, scrollOffsetRef.current + delta * 0.75);
+      lastWheelTimeRef.current = Date.now();
+    }
+  };
+
   const isVideo = album.type === 'video';
 
   return (
@@ -320,12 +329,7 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onMouseEnter={() => {
-          isHoveredRef.current = true;
-        }}
-        onMouseLeave={() => {
-          isHoveredRef.current = false;
-        }}
+        onWheel={handleWheel}
         className="w-full overflow-hidden cursor-grab active:cursor-grabbing scrollbar-none [&::-webkit-scrollbar]:hidden py-1"
         style={{ touchAction: 'pan-y' }}
       >

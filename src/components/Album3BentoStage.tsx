@@ -143,7 +143,7 @@ export const Album3BentoStage: React.FC<Album3BentoStageProps> = ({
       autoSlideTimerRef.current = null;
     }
 
-    if (!isHoveredOverStage && !isDragging) {
+    if (!isDragging) {
       autoSlideTimerRef.current = window.setInterval(() => {
         nextPanel();
       }, 5000);

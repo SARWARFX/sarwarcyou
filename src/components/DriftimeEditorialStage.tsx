@@ -218,8 +218,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, scrollX: 0, time: 0 });
   const hasDraggedRef = useRef(false);
-  const isHoveredRef = useRef(false);
-  const lastInteractionTimeRef = useRef(Date.now());
+  const lastWheelTimeRef = useRef(0);
 
   // Maximum scroll constraint computed dynamically
   const maxScrollRef = useRef(0);
@@ -268,12 +267,11 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         } else {
           velocityRef.current = 0;
 
-          // 2. Continuous auto-slide (Right to Left): gently glides forward unless hovered/interacting
-          const isInteracting =
-            isHoveredRef.current ||
-            Date.now() - lastInteractionTimeRef.current < 1200;
+          // 2. Continuous auto-slide (Right to Left): keeps moving continuously even when cursor hovers
+          // Pauses briefly on horizontal wheel/trackpad scroll, automatically resuming 800ms after scrolling stops
+          const isWheelActive = Date.now() - lastWheelTimeRef.current < 800;
 
-          if (!isInteracting && !isComingSoon && isActive && items.length > 0) {
+          if (!isWheelActive && !isComingSoon && isActive && items.length > 0) {
             scrollOffsetRef.current += AUTO_SLIDE_SPEED * secondsElapsed;
           }
         }
@@ -313,7 +311,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
     hasDraggedRef.current = false;
     isPointerCapturedRef.current = false;
     velocityRef.current = 0;
-    lastInteractionTimeRef.current = Date.now();
 
     dragStartRef.current = {
       x: e.clientX,
@@ -345,7 +342,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
 
       scrollOffsetRef.current = dragStartRef.current.scrollX - dx;
       velocityRef.current = instantVelocity * 0.7;
-      lastInteractionTimeRef.current = Date.now();
     }
   }, []);
 
@@ -360,7 +356,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
       }
       isDraggingRef.current = false;
       isPointerCapturedRef.current = false;
-      lastInteractionTimeRef.current = Date.now();
       setTimeout(() => {
         hasDraggedRef.current = false;
       }, 50);
@@ -373,7 +368,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
     if (Math.abs(delta) > 4) {
       scrollOffsetRef.current += delta * 0.75;
       velocityRef.current = delta * 0.2;
-      lastInteractionTimeRef.current = Date.now();
+      lastWheelTimeRef.current = Date.now();
       updateMaxScroll();
     }
   }, [updateMaxScroll]);
@@ -386,11 +381,11 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
       if (e.key === 'ArrowRight') {
         const target = Math.min(scrollOffsetRef.current + step, maxScrollRef.current);
         scrollOffsetRef.current = target;
-        lastInteractionTimeRef.current = Date.now();
+        lastWheelTimeRef.current = Date.now();
       } else if (e.key === 'ArrowLeft') {
         const target = Math.max(scrollOffsetRef.current - step, 0);
         scrollOffsetRef.current = target;
-        lastInteractionTimeRef.current = Date.now();
+        lastWheelTimeRef.current = Date.now();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -427,12 +422,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       onWheel={handleWheel}
-      onMouseEnter={() => {
-        isHoveredRef.current = true;
-      }}
-      onMouseLeave={() => {
-        isHoveredRef.current = false;
-      }}
       style={{ touchAction: 'none' }}
       className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-black z-0 flex flex-col justify-end pb-8 sm:pb-12 md:pb-16 scrollbar-none [&::-webkit-scrollbar]:hidden"
     >

@@ -557,8 +557,8 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       mouseReactiveLight.position.x += (state.mousePos.x * 5.2 - mouseReactiveLight.position.x) * 0.08;
       mouseReactiveLight.position.y += (state.mousePos.y * 3.6 - mouseReactiveLight.position.y) * 0.08;
 
-      // Smooth hover pause factor
-      const targetHover = state.isHoveredOverStage ? 0.0 : 1.0;
+      // Keep continuous drift active without hover pause
+      const targetHover = 1.0;
       state.hoverFactor += (targetHover - state.hoverFactor) * 0.07;
 
       // Physics: Programmatic spring target OR Inertia & Auto-drift
