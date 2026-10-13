@@ -5,13 +5,11 @@ import { AlbumStage } from './components/AlbumStage';
 import { TopNavbar } from './components/TopNavbar';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
-import { PreloaderScreen } from './components/PreloaderScreen';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
 import type { StageMediaItem } from './types';
 
 function App() {
-  const { data, isError } = useMediaData();
-  const [, setIsPreloaded] = useState(false);
+  const { data, isLoading, isError } = useMediaData();
 
   // 12 Distinct Curated Albums (Powered by Hugging Face CDN)
   const albums = useMemo(() => {
@@ -223,12 +221,6 @@ function App() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-[#0a0a0c] select-none">
-      {/* ================= HIGH-END ASSET PRELOADER (ZERO RUNTIME LOADING) ================= */}
-      <PreloaderScreen
-        albums={albums}
-        onLoaded={() => setIsPreloaded(true)}
-      />
-
       {/* ================= VERTICAL LUXURY ELEVATOR CONTAINER ================= */}
       <div
         className="w-full h-full will-change-transform"
@@ -259,6 +251,7 @@ function App() {
                   album={album}
                   isActive={isActive && !isTransitioning}
                   isVisible={isNear}
+                  isLoading={isLoading}
                   activeIndex={currentMediaIdx}
                   onActiveIndexChange={(newIdx) => {
                     setActiveMediaIndices((prev) => ({ ...prev, [idx]: newIdx }));

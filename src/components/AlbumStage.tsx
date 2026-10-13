@@ -10,6 +10,7 @@ export interface AlbumStageProps {
   onActiveIndexChange: (index: number) => void;
   batchIndex: number;
   isVisible?: boolean;
+  isLoading?: boolean;
 }
 
 export const AlbumStage: React.FC<AlbumStageProps> = (props) => {

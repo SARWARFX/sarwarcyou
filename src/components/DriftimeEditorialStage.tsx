@@ -19,6 +19,7 @@ interface DriftimeEditorialStageProps {
   onActiveIndexChange?: (index: number) => void;
   variant?: DriftimeVariant;
   isVisible?: boolean;
+  isLoading?: boolean;
 }
 
 export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
@@ -331,48 +332,83 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         ref={trackRef}
         className="flex items-center gap-4 sm:gap-6 px-8 sm:px-16 md:px-24 will-change-transform z-20"
       >
-        {items.map((item, idx) => {
-          const directUrl = getDirectImageUrl(item, idx);
-          const fallbackUrl = getUnsplashFallback(idx);
-          const isCardHovered = hoveredCardIdx === idx;
+        {items.length === 0 ? (
+          /* Non-blocking skeleton pulse placeholders while catalog resolves */
+          Array.from({ length: 6 }).map((_, idx) => {
+            const staggeredOffset =
+              variant === 'staggered'
+                ? idx % 2 === 0
+                  ? 'translate-y-[-16px] sm:translate-y-[-24px]'
+                  : 'translate-y-[16px] sm:translate-y-[24px]'
+                : '';
 
-          // Alternating vertical rhythm for staggered variant
-          const staggeredOffset =
-            variant === 'staggered'
-              ? idx % 2 === 0
-                ? 'translate-y-[-16px] sm:translate-y-[-24px]'
-                : 'translate-y-[16px] sm:translate-y-[24px]'
-              : '';
+            const diptychMargin =
+              variant === 'diptych'
+                ? idx % 2 === 0
+                  ? 'mr-1 sm:mr-2.5'
+                  : 'mr-5 sm:mr-8'
+                : '';
 
-          // Architectural diptych pairing: tight hairline gap within a pair, wider gap between pairs
-          const diptychMargin =
-            variant === 'diptych'
-              ? idx % 2 === 0
-                ? 'mr-1 sm:mr-2.5'
-                : 'mr-5 sm:mr-8'
-              : '';
+            let heightClass = 'h-[36vh] sm:h-[42vh] md:h-[46vh] aspect-[3/4]';
+            if (variant === 'cinematic') {
+              heightClass = 'h-[34vh] sm:h-[38vh] md:h-[42vh] aspect-[16/9]';
+            } else if (variant === 'shorts') {
+              heightClass = 'h-[38vh] sm:h-[46vh] md:h-[50vh] aspect-[9/16]';
+            }
 
-          // Height bounds fitting dynamically beneath the massive headline
-          let heightClass = 'h-[36vh] sm:h-[42vh] md:h-[46vh]';
-          if (variant === 'cinematic') {
-            heightClass = 'h-[34vh] sm:h-[38vh] md:h-[42vh]';
-          } else if (variant === 'shorts') {
-            heightClass = 'h-[38vh] sm:h-[46vh] md:h-[50vh]';
-          }
+            return (
+              <div
+                key={`skeleton-card-${idx}`}
+                className={`relative flex-shrink-0 rounded-xl sm:rounded-2xl overflow-hidden bg-[#0d0f17] border border-white/5 shadow-[0_16px_40px_rgba(0,0,0,0.6)] select-none ${heightClass} ${staggeredOffset} ${diptychMargin} animate-pulse`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-shimmer" />
+                <div className="absolute inset-0 rounded-xl sm:rounded-2xl border border-white/5 pointer-events-none" />
+              </div>
+            );
+          })
+        ) : (
+          items.map((item, idx) => {
+            const directUrl = getDirectImageUrl(item, idx);
+            const fallbackUrl = getUnsplashFallback(idx);
+            const isCardHovered = hoveredCardIdx === idx;
 
-          return (
-            <div
-              key={item.id || `driftime-card-${idx}`}
-              onMouseEnter={() => setHoveredCardIdx(idx)}
-              onMouseLeave={() => setHoveredCardIdx(null)}
-              onClick={() => {
-                if (!hasDraggedRef.current) {
-                  onActiveIndexChange?.(idx);
-                  onSelectItem(item);
-                }
-              }}
-              className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e14] border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_28px_70px_rgba(0,0,0,0.95),0_0_25px_rgba(0,210,255,0.25)] hover:border-[#00D2FF]/60 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] hover:-translate-y-1.5 select-none ${heightClass} ${staggeredOffset} ${diptychMargin}`}
-            >
+            // Alternating vertical rhythm for staggered variant
+            const staggeredOffset =
+              variant === 'staggered'
+                ? idx % 2 === 0
+                  ? 'translate-y-[-16px] sm:translate-y-[-24px]'
+                  : 'translate-y-[16px] sm:translate-y-[24px]'
+                : '';
+
+            // Architectural diptych pairing: tight hairline gap within a pair, wider gap between pairs
+            const diptychMargin =
+              variant === 'diptych'
+                ? idx % 2 === 0
+                  ? 'mr-1 sm:mr-2.5'
+                  : 'mr-5 sm:mr-8'
+                : '';
+
+            // Height bounds fitting dynamically beneath the massive headline
+            let heightClass = 'h-[36vh] sm:h-[42vh] md:h-[46vh]';
+            if (variant === 'cinematic') {
+              heightClass = 'h-[34vh] sm:h-[38vh] md:h-[42vh]';
+            } else if (variant === 'shorts') {
+              heightClass = 'h-[38vh] sm:h-[46vh] md:h-[50vh]';
+            }
+
+            return (
+              <div
+                key={item.id || `driftime-card-${idx}`}
+                onMouseEnter={() => setHoveredCardIdx(idx)}
+                onMouseLeave={() => setHoveredCardIdx(null)}
+                onClick={() => {
+                  if (!hasDraggedRef.current) {
+                    onActiveIndexChange?.(idx);
+                    onSelectItem(item);
+                  }
+                }}
+                className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e14] border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_28px_70px_rgba(0,0,0,0.95),0_0_25px_rgba(0,210,255,0.25)] hover:border-[#00D2FF]/60 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] hover:-translate-y-1.5 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
+              >
               {/* Media Card Presentation: Native Video for clips or Image for photos */}
               {item.type === 'video' && item.url.includes('huggingface.co') ? (
                 <video
@@ -425,7 +461,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
               <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-white/10 group-hover:border-[#00D2FF]/60 transition-colors duration-300" />
             </div>
           );
-        })}
+        }))}
       </div>
 
       {/* 4. Minimalist Driftime Navigation Chevrons */}
