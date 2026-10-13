@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Play, Sparkles } from 'lucide-react';
 import { getDirectImageUrl, getUnsplashFallback, ensureHttps } from '../utils/imageUrlResolver';
-import { formatVideoPosterUrl } from '../utils/videoPosterGenerator';
+import { formatVideoPosterUrl, prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
 import type { AlbumData, StageMediaItem } from '../types';
 
 export type DriftimeVariant =
@@ -16,7 +16,7 @@ export type DriftimeVariant =
 interface DriftimeEditorialStageProps {
   album: AlbumData;
   isActive: boolean;
-  onSelectItem: (item: StageMediaItem) => void;
+  onSelectItem: (item: StageMediaItem, posterUrl?: string) => void;
   onActiveIndexChange?: (index: number) => void;
   variant?: DriftimeVariant;
   isVisible?: boolean;
@@ -411,13 +411,22 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
             return (
               <div
                 key={item.id || `driftime-card-${idx}`}
-                onMouseEnter={() => setHoveredCardIdx(idx)}
+                onMouseEnter={() => {
+                  setHoveredCardIdx(idx);
+                  if (item.type === 'video') prewarmVideoStream(item.url);
+                }}
+                onTouchStart={() => {
+                  if (item.type === 'video') prewarmVideoStream(item.url);
+                }}
                 onMouseLeave={() => setHoveredCardIdx(null)}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!hasDraggedRef.current) {
                     onActiveIndexChange?.(idx);
-                    onSelectItem(item);
+                    const cardPoster = item.type === 'video'
+                      ? (getCachedVideoPoster(item.url) || item.thumbnail || directUrl)
+                      : directUrl;
+                    onSelectItem(item, cardPoster);
                   }
                 }}
                 role="article"

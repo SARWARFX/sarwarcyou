@@ -70,6 +70,7 @@ export interface StageMediaItem {
   thumbnail: string;
   category: string;
   type: 'video' | 'image';
+  posterUrl?: string;
 }
 
 export interface MediaFolderEntry {

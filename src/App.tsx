@@ -64,10 +64,12 @@ function App() {
     isOpen: boolean;
     album: typeof albums[0] | null;
     initialIndex: number;
+    posterUrl?: string;
   }>({
     isOpen: false,
     album: null,
     initialIndex: 0,
+    posterUrl: undefined,
   });
 
   // Dedicated 9:16 Vertical Shorts Reel Modal State
@@ -82,7 +84,7 @@ function App() {
   });
 
   // Handle clicking any media item in the Driftime scene
-  const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number) => {
+  const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number, posterUrl?: string) => {
     const curAlbum = albums[albumIdx];
     const itemIdx = curAlbum ? curAlbum.items.findIndex((s) => s.id === item.id) : 0;
     const isShorts =
@@ -101,6 +103,7 @@ function App() {
         isOpen: true,
         album: curAlbum || null,
         initialIndex: Math.max(0, itemIdx),
+        posterUrl,
       });
     }
   }, [albums]);
@@ -319,7 +322,7 @@ function App() {
                     }
                   }}
                   batchIndex={currentBatch}
-                  onSelectItem={(item) => handleSelectItem(item, idx)}
+                  onSelectItem={(item, posterUrl) => handleSelectItem(item, idx, posterUrl)}
                 />
               )}
             </section>
@@ -363,6 +366,7 @@ function App() {
         onClose={() => setTheaterState((prev) => ({ ...prev, isOpen: false }))}
         album={theaterState.album}
         initialIndex={theaterState.initialIndex}
+        posterUrl={theaterState.posterUrl}
         onNextAlbum={handleNextAlbum}
         onPrevAlbum={handlePrevAlbum}
       />

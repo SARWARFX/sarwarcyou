@@ -1,10 +1,19 @@
 /**
  * videoPosterGenerator.ts
  * Utility for native and off-screen canvas poster extraction for video streams.
- * Includes media fragment appending (#t=0.5) and resilient error handling.
+ * Includes media fragment appending (#t=0.5), stream pre-warming, and resilient error handling.
  */
 
 const posterCache = new Map<string, string>();
+const prewarmedUrls = new Set<string>();
+
+/**
+ * Returns any cached poster data URL or null.
+ */
+export function getCachedVideoPoster(videoUrl: string): string | null {
+  if (!videoUrl) return null;
+  return posterCache.get(videoUrl) || null;
+}
 
 /**
  * Appends a time fragment to direct video stream URLs so browsers decode
@@ -12,7 +21,6 @@ const posterCache = new Map<string, string>();
  */
 export function formatVideoPosterUrl(url: string, timeSec = 0.5): string {
   if (!url) return '';
-  // If already contains a hash, don't duplicate
   const cleanUrl = url.split('#')[0];
   return `${cleanUrl}#t=${timeSec}`;
 }
@@ -88,7 +96,7 @@ export async function extractVideoThumbnail(
             return;
           }
         } catch {
-          // Canvas tainted or CORS failure
+          // Canvas tainted or CORS restriction
         }
         cleanup();
         resolve(null);
@@ -108,4 +116,34 @@ export async function extractVideoThumbnail(
       resolve(null);
     }
   });
+}
+
+/**
+ * Pre-warms video stream connection on hover or touch before user click.
+ * Sets preconnect origin and primes decoder metadata.
+ */
+export function prewarmVideoStream(videoUrl: string): void {
+  if (!videoUrl || typeof document === 'undefined' || prewarmedUrls.has(videoUrl)) return;
+  prewarmedUrls.add(videoUrl);
+
+  try {
+    // 1. Preconnect link tag
+    try {
+      const origin = new URL(videoUrl).origin;
+      if (!document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'preconnect';
+        link.href = origin;
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+      }
+    } catch {
+      // ignore URL parsing
+    }
+
+    // 2. Prime stream metadata in background
+    extractVideoThumbnail(videoUrl, 0.5).catch(() => {});
+  } catch {
+    // ignore
+  }
 }

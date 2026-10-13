@@ -5,7 +5,7 @@ import type { AlbumData, StageMediaItem } from '../types';
 export interface AlbumStageProps {
   album: AlbumData;
   isActive: boolean;
-  onSelectItem: (item: StageMediaItem) => void;
+  onSelectItem: (item: StageMediaItem, posterUrl?: string) => void;
   activeIndex: number;
   onActiveIndexChange: (index: number) => void;
   batchIndex: number;

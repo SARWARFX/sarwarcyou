@@ -22,6 +22,11 @@ import {
 } from 'lucide-react';
 import { getDirectImageUrl, ensureHttps } from '../utils/imageUrlResolver';
 import { downloadMedia } from '../utils/downloadMedia';
+import {
+  getCachedVideoPoster,
+  prewarmVideoStream,
+  formatVideoPosterUrl,
+} from '../utils/videoPosterGenerator';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface YouTubeTheaterModalProps {
@@ -29,6 +34,7 @@ interface YouTubeTheaterModalProps {
   onClose: () => void;
   album: AlbumData | null;
   initialIndex: number;
+  posterUrl?: string;
   onNextAlbum?: () => void;
   onPrevAlbum?: () => void;
 }
@@ -47,6 +53,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   onClose,
   album,
   initialIndex,
+  posterUrl,
   onNextAlbum: _onNextAlbum,
   onPrevAlbum: _onPrevAlbum,
 }) => {
@@ -54,7 +61,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [isZoomed, setIsZoomed] = useState(false);
   const [isCrossfading, setIsCrossfading] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -90,7 +99,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   useEffect(() => {
     setCurrentIndex(initialIndex);
     setIsZoomed(false);
-    setIsPlaying(true);
+    setHasStarted(false);
+    setIsPlaying(false);
+    setIsBuffering(true);
     setCurrentTime(0);
     setDismissOffsetY(0);
     setIsAbLoopActive(false);
@@ -160,6 +171,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       const next = (idx + items.length) % items.length;
       setIsCrossfading(true);
       setIsZoomed(false);
+      setHasStarted(false);
+      setIsPlaying(false);
+      setIsBuffering(true);
       setCurrentIndex(next);
       setDismissOffsetY(0);
       setIsAbLoopActive(false);
@@ -346,9 +360,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     }
   }, []);
 
-  if (!isOpen || !currentItem) return null;
-
-  const rawUrl = ensureHttps(currentItem.url);
+  const rawUrl = currentItem ? ensureHttps(currentItem.url) : '';
   let streamUrl = rawUrl;
   if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
     streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
@@ -356,6 +368,35 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       streamUrl = streamUrl.replace(/\?usp=.*$/, '') + '/preview';
     }
   }
+
+  const activePoster = useMemo(() => {
+    if (!currentItem) return '';
+    if (currentIndex === initialIndex && posterUrl) return posterUrl;
+    return (
+      getCachedVideoPoster(currentItem.url) ||
+      currentItem.posterUrl ||
+      currentItem.thumbnail ||
+      getDirectImageUrl(currentItem, currentIndex)
+    );
+  }, [currentItem, currentIndex, initialIndex, posterUrl]);
+
+  // Aggressive Playback Initialization: immediately invoke .play().catch(...)
+  useEffect(() => {
+    if (!isOpen || currentItem?.type !== 'video' || !videoRef.current) return;
+    videoRef.current.currentTime = 0;
+    const playPromise = videoRef.current.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch(() => {
+          // Handled via user tap if blocked by browser policy
+        });
+    }
+  }, [currentIndex, isOpen, streamUrl, currentItem?.type]);
+
+  if (!isOpen || !currentItem) return null;
 
   const directImgUrl = getDirectImageUrl(currentItem, currentIndex);
   const rawTitle = currentItem.title || '';
@@ -480,18 +521,69 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     ref={videoRef}
                     key={streamUrl}
                     src={streamUrl}
+                    poster={activePoster}
                     autoPlay
                     playsInline
+                    preload="auto"
+                    controls={false}
                     muted={isMuted}
                     onClick={togglePlay}
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={() => {
                       if (videoRef.current) setDuration(videoRef.current.duration);
                     }}
+                    onPlaying={() => {
+                      setHasStarted(true);
+                      setIsPlaying(true);
+                      setIsBuffering(false);
+                    }}
+                    onWaiting={() => {
+                      setIsBuffering(true);
+                    }}
+                    onCanPlay={() => {
+                      setIsBuffering(false);
+                    }}
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
-                    className="w-full h-full object-contain cursor-pointer"
+                    className="w-full h-full object-contain cursor-pointer relative z-10"
                   />
+
+                  {/* YouTube-Style Zero-Black-Screen Poster Hand-off */}
+                  {activePoster && (
+                    <div
+                      className={`absolute inset-0 z-20 flex items-center justify-center bg-black transition-opacity duration-300 ease-out pointer-events-none ${
+                        hasStarted ? 'opacity-0' : 'opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={activePoster}
+                        alt={cleanTitle}
+                        className="w-full h-full object-contain pointer-events-none select-none"
+                      />
+
+                      {/* Sleek Minimal Glowing Buffering Indicator over Poster */}
+                      {!hasStarted && isBuffering && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 backdrop-blur-[2px]">
+                          <div className="relative w-12 h-12 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                              <Play className="w-3.5 h-3.5 text-zinc-300 fill-current ml-0.5" />
+                            </div>
+                          </div>
+                          <span className="mt-3 font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-300">
+                            BUFFERING STREAM...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* In-stream buffering spinner if video stalls during playback */}
+                  {hasStarted && isBuffering && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-25 bg-black/20">
+                      <div className="w-10 h-10 rounded-full border-2 border-white/15 border-t-white animate-spin" />
+                    </div>
+                  )}
 
                   {/* Center Play/Pause Animated Ripple */}
                   {centerRipple && (
@@ -848,6 +940,12 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 <div
                   key={item.id || `queue-${idx}`}
                   onClick={() => goToIndex(idx)}
+                  onMouseEnter={() => {
+                    if (item.type === 'video') prewarmVideoStream(item.url);
+                  }}
+                  onTouchStart={() => {
+                    if (item.type === 'video') prewarmVideoStream(item.url);
+                  }}
                   className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all duration-200 group ${
                     isActive
                       ? 'bg-zinc-800/80 border border-white/[0.12] shadow-md'
@@ -858,7 +956,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0">
                     {item.type === 'video' && item.url.includes('huggingface.co') ? (
                       <video
-                        src={encodeURI(ensureHttps(item.url))}
+                        src={formatVideoPosterUrl(encodeURI(ensureHttps(item.url)), 0.5)}
                         preload="metadata"
                         muted
                         playsInline

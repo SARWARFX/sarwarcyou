@@ -15,6 +15,11 @@ import {
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadMedia } from '../utils/downloadMedia';
+import {
+  formatVideoPosterUrl,
+  prewarmVideoStream,
+  getCachedVideoPoster,
+} from '../utils/videoPosterGenerator';
 
 interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -69,6 +74,18 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       setDismissOffsetY(0);
     }
   }, [currentIndex]);
+
+  // Aggressive playback trigger and adjacent reel pre-warming
+  useEffect(() => {
+    if (!isOpen) return;
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+    // Pre-warm next and previous reels for instant swipe
+    if (shorts[currentIndex + 1]?.url) prewarmVideoStream(shorts[currentIndex + 1].url);
+    if (shorts[currentIndex - 1]?.url) prewarmVideoStream(shorts[currentIndex - 1].url);
+  }, [currentIndex, isOpen, shorts]);
 
   // Keyboard navigation & Escape
   useEffect(() => {
@@ -271,7 +288,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 ref={videoRef}
                 key={currentShort.id}
                 src={streamUrl}
+                poster={getCachedVideoPoster(currentShort.url) || currentShort.thumbnail || formatVideoPosterUrl(streamUrl, 0.5)}
                 autoPlay
+                preload="auto"
                 loop={isLooping}
                 muted={isMuted}
                 playsInline
