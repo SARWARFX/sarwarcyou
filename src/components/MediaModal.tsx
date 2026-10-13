@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, ExternalLink, ZoomIn, ZoomOut } from 'lucide-react';
+import { X, ExternalLink, ZoomIn, ZoomOut, Download } from 'lucide-react';
+import { downloadMedia } from '../utils/downloadMedia';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -82,6 +83,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             {isZoomed ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
           </button>
         )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (url) downloadMedia(url, title);
+          }}
+          className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white cursor-pointer"
+          title="Download original file"
+        >
+          <Download className="w-5 h-5" />
+        </button>
         <a
           href={secureUrl}
           target="_blank"

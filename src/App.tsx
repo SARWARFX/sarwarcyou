@@ -5,6 +5,7 @@ import { AlbumStage } from './components/AlbumStage';
 import { TopNavbar } from './components/TopNavbar';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
+import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
 import type { StageMediaItem } from './types';
 
@@ -67,15 +68,39 @@ function App() {
     initialIndex: 0,
   });
 
+  // Dedicated 9:16 Vertical Shorts Reel Modal State
+  const [shortsState, setShortsState] = useState<{
+    isOpen: boolean;
+    shorts: StageMediaItem[];
+    initialIndex: number;
+  }>({
+    isOpen: false,
+    shorts: [],
+    initialIndex: 0,
+  });
+
   // Handle clicking any media item in the 3D / Driftime scene
   const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number) => {
     const curAlbum = albums[albumIdx];
     const itemIdx = curAlbum ? curAlbum.items.findIndex((s) => s.id === item.id) : 0;
-    setTheaterState({
-      isOpen: true,
-      album: curAlbum || null,
-      initialIndex: Math.max(0, itemIdx),
-    });
+    const isShorts =
+      curAlbum?.name.toLowerCase().includes('short') ||
+      curAlbum?.name.toLowerCase().includes('reel') ||
+      curAlbum?.layoutType === 'vertical-waterfall';
+
+    if (isShorts && curAlbum) {
+      setShortsState({
+        isOpen: true,
+        shorts: curAlbum.items,
+        initialIndex: Math.max(0, itemIdx),
+      });
+    } else {
+      setTheaterState({
+        isOpen: true,
+        album: curAlbum || null,
+        initialIndex: Math.max(0, itemIdx),
+      });
+    }
   }, [albums]);
 
   // Luxury Elevator Smooth Navigation
@@ -112,10 +137,12 @@ function App() {
     scrollToAlbum(0);
   }, [scrollToAlbum]);
 
+  const isModalOpen = theaterState.isOpen || shortsState.isOpen;
+
   // Mouse wheel dampening & smooth elevator gliding
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      if (theaterState.isOpen) return;
+      if (isModalOpen) return;
 
       // Allow horizontal scrubbing inside albums
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
@@ -154,7 +181,7 @@ function App() {
 
     window.addEventListener('wheel', onWheel, { passive: false });
     return () => window.removeEventListener('wheel', onWheel);
-  }, [theaterState.isOpen, handleNextAlbum, handlePrevAlbum]);
+  }, [isModalOpen, handleNextAlbum, handlePrevAlbum]);
 
   // Mobile Touch Swipe with Dampening
   useEffect(() => {
@@ -167,7 +194,7 @@ function App() {
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (theaterState.isOpen) return;
+      if (isModalOpen) return;
       if (isTransitioningRef.current) return;
 
       const target = e.target as HTMLElement | null;
@@ -194,12 +221,12 @@ function App() {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [theaterState.isOpen, handleNextAlbum, handlePrevAlbum]);
+  }, [isModalOpen, handleNextAlbum, handlePrevAlbum]);
 
   // Keyboard navigation
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (theaterState.isOpen) return;
+      if (isModalOpen) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
         handleNextAlbum();
@@ -216,7 +243,7 @@ function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [theaterState.isOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
+  }, [isModalOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
 
   // Network Error Screen
   if (!data && isError) {
@@ -241,10 +268,10 @@ function App() {
   const isLightMode = false;
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-[#0a0a0c] select-none">
+    <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
       {/* ================= VERTICAL LUXURY ELEVATOR CONTAINER ================= */}
       <div
-        className="w-full h-full will-change-transform"
+        className="absolute inset-0 w-full will-change-transform"
         style={{
           transform: `translate3d(0, -${activeAlbumIndex * 100}vh, 0)`,
           transition: isTransitioning
@@ -264,7 +291,7 @@ function App() {
             <section
               id={`album-section-${idx}`}
               key={album.id}
-              className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-[#0a0a0c]"
+              className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-black"
             >
               {/* Perfectly Centered 3D / Masonry Stage */}
               {isNear && (
@@ -318,6 +345,14 @@ function App() {
         initialIndex={theaterState.initialIndex}
         onNextAlbum={handleNextAlbum}
         onPrevAlbum={handlePrevAlbum}
+      />
+
+      {/* ================= 9:16 VERTICAL SHORTS REELS MODAL ================= */}
+      <ShortsFeedModal
+        isOpen={shortsState.isOpen}
+        onClose={() => setShortsState((prev) => ({ ...prev, isOpen: false }))}
+        shorts={shortsState.shorts}
+        initialIndex={shortsState.initialIndex}
       />
     </main>
   );

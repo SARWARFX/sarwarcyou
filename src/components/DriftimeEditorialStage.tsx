@@ -278,19 +278,19 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   // ================= COMING SOON MONOLITH =================
   if (isComingSoon) {
     return (
-      <div className="relative w-full h-full flex items-center justify-center bg-[#0a0a0c] select-none p-6">
-        <div className="absolute inset-0 pointer-events-none opacity-[0.035] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]" />
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_100%)]" />
+      <div className="relative w-full h-full flex items-center justify-center bg-black select-none p-6">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.025] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]" />
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.9)_100%)]" />
 
         {/* Minimalist Editorial Monolith Card */}
-        <div className="relative z-10 w-full max-w-lg aspect-[4/5] sm:aspect-[16/10] rounded-2xl bg-[#0e1017] border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.9)] flex flex-col items-center justify-center p-8 overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#00D2FF]/[0.03] to-transparent pointer-events-none" />
-          <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-6 bg-white/[0.02] shadow-[0_0_30px_rgba(0,210,255,0.15)]">
-            <Sparkles className="w-6 h-6 text-[#00D2FF] animate-pulse" />
+        <div className="relative z-10 w-full max-w-lg aspect-[4/5] sm:aspect-[16/10] rounded-2xl bg-[#09090b] border border-white/[0.07] shadow-2xl flex flex-col items-center justify-center p-8 overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-transparent pointer-events-none" />
+          <div className="w-12 h-12 rounded-full border border-white/[0.08] flex items-center justify-center mb-6 bg-white/[0.02]">
+            <Sparkles className="w-5 h-5 text-zinc-600 animate-pulse" />
           </div>
-          <div className="w-12 h-[1px] bg-white/20 mb-4" />
-          <span className="font-mono text-xs tracking-[0.3em] text-white/50 uppercase text-center">
-            FUTURE VAULT // UNRELEASED ARCHIVE
+          <div className="w-8 h-[1px] bg-white/10 mb-4" />
+          <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-700 uppercase text-center">
+            Future Vault / Unreleased
           </span>
         </div>
       </div>
@@ -312,7 +312,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         isHoveredRef.current = false;
       }}
       style={{ touchAction: 'none' }}
-      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-[#0a0a0c] z-0 flex flex-col justify-end pb-8 sm:pb-12 md:pb-16"
+      className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-black z-0 flex flex-col justify-end pb-8 sm:pb-12 md:pb-16"
     >
       {/* 1. Subtle hairline architectural dot grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.035] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]" />
@@ -320,10 +320,13 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
       {/* 2. Soft atmospheric vignette */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.85)_100%)] z-10" />
 
-      {/* ================= GIANT DRIP-TIME HERO HEADLINE ================= */}
-      <div className="absolute top-24 sm:top-28 md:top-32 left-6 sm:left-12 md:left-20 z-10 pointer-events-none select-none max-w-[90vw]">
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black font-space tracking-tight text-white/90 uppercase leading-none truncate drop-shadow-[0_12px_40px_rgba(0,0,0,0.85)]">
-          {album.name} <span className="text-[#00D2FF]/80 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-mono align-baseline">({isComingSoon ? 0 : album.items.length})</span>
+      {/* ================= REFINED ALBUM HEADLINE ================= */}
+      <div className="absolute top-16 sm:top-20 md:top-24 left-5 sm:left-10 md:left-16 z-10 pointer-events-none select-none max-w-[85vw]">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black font-space tracking-tight text-zinc-100 uppercase leading-none truncate">
+          {album.name}{' '}
+          <span className="text-zinc-600 text-xl sm:text-3xl md:text-4xl font-mono align-baseline">
+            ({isComingSoon ? 0 : album.items.length})
+          </span>
         </h1>
       </div>
 
@@ -359,10 +362,9 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
             return (
               <div
                 key={`skeleton-card-${idx}`}
-                className={`relative flex-shrink-0 rounded-xl sm:rounded-2xl overflow-hidden bg-[#0d0f17] border border-white/5 shadow-[0_16px_40px_rgba(0,0,0,0.6)] select-none ${heightClass} ${staggeredOffset} ${diptychMargin} animate-pulse`}
+                className={`relative flex-shrink-0 rounded-xl sm:rounded-2xl overflow-hidden bg-[#09090b] border border-white/[0.04] shadow-xl select-none ${heightClass} ${staggeredOffset} ${diptychMargin} animate-pulse`}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-shimmer" />
-                <div className="absolute inset-0 rounded-xl sm:rounded-2xl border border-white/5 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent animate-shimmer" />
               </div>
             );
           })
@@ -409,7 +411,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                 }}
                 role="article"
                 aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
-                className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e14] border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_28px_70px_rgba(0,0,0,0.95),0_0_25px_rgba(0,210,255,0.25)] hover:border-[#00D2FF]/60 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] hover:-translate-y-1.5 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
+                className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e12] border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
               >
               {/* Media Card Presentation: Native Video for clips or Image for photos */}
               {item.type === 'video' && item.url.includes('huggingface.co') ? (
@@ -453,40 +455,33 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
 
               {/* Video Play Glyph indicator for cinematic/video formats */}
               {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && !isCardHovered && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30 backdrop-blur-[2px]">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#00D2FF]/20 border border-[#00D2FF]/60 flex items-center justify-center text-[#00D2FF] shadow-[0_0_25px_rgba(0,210,255,0.4)]">
-                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/25 backdrop-blur-[1px]">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
                   </div>
                 </div>
               )}
 
-              {/* Razor-thin museum border sheen */}
-              <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-white/10 group-hover:border-[#00D2FF]/60 transition-colors duration-300" />
+              {/* Razor-thin border sheen on hover */}
+              <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-transparent group-hover:border-white/15 transition-colors duration-300" />
             </div>
           );
         }))}
       </div>
 
-      {/* 4. Minimalist Driftime Navigation Chevrons */}
-      <div className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 flex items-center gap-2">
+      {/* 4. Minimalist Navigation Chevrons */}
+      <div className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 z-30 flex items-center gap-1.5">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleStep('left');
-          }}
-          className="p-2 sm:p-2.5 rounded-full bg-black/50 hover:bg-[#00D2FF]/10 text-white/60 hover:text-[#00D2FF] border border-white/10 hover:border-[#00D2FF]/40 backdrop-blur-xl transition-all duration-300 cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-          title="Previous Photos"
+          onClick={(e) => { e.stopPropagation(); handleStep('left'); }}
+          className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-100 border border-white/[0.07] hover:border-white/15 backdrop-blur-xl transition-all duration-200 cursor-pointer"
+          title="Previous"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleStep('right');
-          }}
-          className="p-2 sm:p-2.5 rounded-full bg-black/50 hover:bg-[#00D2FF]/10 text-white/60 hover:text-[#00D2FF] border border-white/10 hover:border-[#00D2FF]/40 backdrop-blur-xl transition-all duration-300 cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-          title="Next Photos"
+          onClick={(e) => { e.stopPropagation(); handleStep('right'); }}
+          className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-100 border border-white/[0.07] hover:border-white/15 backdrop-blur-xl transition-all duration-200 cursor-pointer"
+          title="Next"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
