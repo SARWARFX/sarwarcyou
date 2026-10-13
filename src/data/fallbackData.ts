@@ -1,4 +1,7 @@
-import type { ApiResponseData } from '../types';
+import type { ApiResponseData, HfMediaCatalog } from '../types';
+import fallbackJson from './mediaFallback.json';
+
+export const FALLBACK_HF_CATALOG: HfMediaCatalog = fallbackJson as HfMediaCatalog;
 
 export const FALLBACK_MEDIA_DATA: ApiResponseData = {
   trailerImages: [

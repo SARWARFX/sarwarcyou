@@ -1,11 +1,235 @@
-import type { ApiResponseData, AlbumData, StageMediaItem } from '../types';
-import { FALLBACK_MEDIA_DATA } from '../data/fallbackData';
+import type { ApiResponseData, HfMediaCatalog, HfMediaItem, AlbumData, StageMediaItem } from '../types';
+import { FALLBACK_HF_CATALOG, FALLBACK_MEDIA_DATA } from '../data/fallbackData';
 import { getDirectImageUrl, ensureHttps } from './imageUrlResolver';
 
-export function extractTwelveAlbums(data: ApiResponseData | null | undefined): AlbumData[] {
-  const source = data || FALLBACK_MEDIA_DATA;
+function isHfCatalog(data: unknown): data is HfMediaCatalog {
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    ('images' in data || 'clips' in data || 'shorts' in data)
+  );
+}
 
-  // Helper to map files with direct raw image stream URLs
+export function extractTwelveAlbums(
+  data: HfMediaCatalog | ApiResponseData | null | undefined
+): AlbumData[] {
+  const effectiveData = data || FALLBACK_HF_CATALOG;
+
+  // If Hugging Face catalog schema:
+  if (isHfCatalog(effectiveData)) {
+    const catalog = effectiveData;
+
+    const getSubfolder = (path: string) => {
+      const parts = path.split('/');
+      return (parts[1] || '').trim().toLowerCase();
+    };
+
+    const mapHfItems = (
+      items: HfMediaItem[],
+      categoryName: string,
+      type: 'image' | 'video'
+    ): StageMediaItem[] => {
+      return items.map((item, idx) => {
+        const safeUrl = encodeURI(ensureHttps(item.url));
+        return {
+          id: item.path || `${categoryName}-${idx}`,
+          title: item.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() || `${categoryName} ${idx + 1}`,
+          url: safeUrl,
+          thumbnail: type === 'image' ? safeUrl : getDirectImageUrl({ id: item.path, url: item.url, type }, idx),
+          category: categoryName,
+          type,
+        };
+      });
+    };
+
+    const bandhobisFiles = mapHfItems(
+      catalog.images.filter((x) => getSubfolder(x.path) === 'bandhobis'),
+      'Bandhobis',
+      'image'
+    );
+    const worksFiles = mapHfItems(
+      catalog.images.filter((x) => getSubfolder(x.path).includes('work')),
+      'Works',
+      'image'
+    );
+    const h2026PhotoFiles = mapHfItems(
+      catalog.images.filter((x) => getSubfolder(x.path) === 'h2026'),
+      'H2026 Photos',
+      'image'
+    );
+    const h2025PhotoFiles = mapHfItems(
+      catalog.images.filter((x) => getSubfolder(x.path) === 'h2025'),
+      'H2025 Photos',
+      'image'
+    );
+    const classicFiles = mapHfItems(
+      catalog.images.filter((x) => getSubfolder(x.path).includes('classic')),
+      'Classic',
+      'image'
+    );
+    const favoriteVideoFiles = mapHfItems(
+      catalog.clips.filter((x) => getSubfolder(x.path).includes('favorite')),
+      'Favorite Videos',
+      'video'
+    );
+    const h2026VideoFiles = mapHfItems(
+      catalog.clips.filter((x) => getSubfolder(x.path) === 'h2026'),
+      'H2026 Videos',
+      'video'
+    );
+    const h2025VideoFiles = mapHfItems(
+      catalog.clips.filter((x) => getSubfolder(x.path) === 'h2025'),
+      'H2025 Videos',
+      'video'
+    );
+    const othersVideoFiles = mapHfItems(
+      catalog.clips.filter((x) => getSubfolder(x.path).includes('other')),
+      'Others Videos',
+      'video'
+    );
+    const shortsFiles = mapHfItems(
+      catalog.shorts || [],
+      'Shorts & Reels',
+      'video'
+    );
+    const h2027PhotoFiles = mapHfItems(
+      catalog.images.filter((x) => getSubfolder(x.path) === 'h2027'),
+      'H2027 Photos',
+      'image'
+    );
+    const h2027VideoFiles = mapHfItems(
+      catalog.clips.filter((x) => getSubfolder(x.path) === 'h2027'),
+      'H2027 Videos',
+      'video'
+    );
+
+    return [
+      {
+        id: 'album-bandhobis',
+        index: 0,
+        name: 'Bandhobis',
+        type: 'image',
+        itemCount: bandhobisFiles.length,
+        items: bandhobisFiles,
+        layoutType: 'weichie-curved',
+        subtitle: 'Weichie 3D Curved Marquee',
+      },
+      {
+        id: 'album-works',
+        index: 1,
+        name: 'Works',
+        type: 'image',
+        itemCount: worksFiles.length,
+        items: worksFiles,
+        layoutType: 'heroic-masonry',
+        subtitle: 'Heroic Editorial Masonry',
+      },
+      {
+        id: 'album-h2026-photos',
+        index: 2,
+        name: 'H2026 Photos',
+        type: 'image',
+        itemCount: h2026PhotoFiles.length,
+        items: h2026PhotoFiles,
+        layoutType: 'bento-grid',
+        subtitle: 'Asymmetric Bento Architecture',
+      },
+      {
+        id: 'album-h2025-photos',
+        index: 3,
+        name: 'H2025 Photos',
+        type: 'image',
+        itemCount: h2025PhotoFiles.length,
+        items: h2025PhotoFiles,
+        layoutType: 'scattered-canvas',
+        subtitle: 'Interactive Drifting Canvas',
+      },
+      {
+        id: 'album-classic',
+        index: 4,
+        name: 'Classic',
+        type: 'image',
+        itemCount: classicFiles.length,
+        items: classicFiles,
+        layoutType: 'grid-wall',
+        subtitle: '3D Perspective Matrix',
+      },
+      {
+        id: 'album-favorite-videos',
+        index: 5,
+        name: 'Favorite Videos',
+        type: 'video',
+        itemCount: favoriteVideoFiles.length,
+        items: favoriteVideoFiles,
+        layoutType: 'theater-cylinder',
+        subtitle: 'Cinematic Cylinder Theater',
+      },
+      {
+        id: 'album-h2026-videos',
+        index: 6,
+        name: 'H2026 Videos',
+        type: 'video',
+        itemCount: h2026VideoFiles.length,
+        items: h2026VideoFiles,
+        layoutType: 'spiral-helix',
+        subtitle: 'Double Helix Orbit',
+      },
+      {
+        id: 'album-h2025-videos',
+        index: 7,
+        name: 'H2025 Videos',
+        type: 'video',
+        itemCount: h2025VideoFiles.length,
+        items: h2025VideoFiles,
+        layoutType: 'perspective-tunnel',
+        subtitle: 'Holographic Corridor',
+      },
+      {
+        id: 'album-others-videos',
+        index: 8,
+        name: 'Others Videos',
+        type: 'video',
+        itemCount: othersVideoFiles.length,
+        items: othersVideoFiles,
+        layoutType: 'curved-billboard',
+        subtitle: 'Panoramic Amphitheater',
+      },
+      {
+        id: 'album-shorts',
+        index: 9,
+        name: 'Shorts & Reels',
+        type: 'video',
+        itemCount: shortsFiles.length,
+        items: shortsFiles,
+        layoutType: 'vertical-waterfall',
+        subtitle: 'Tiered Waterfall Deck',
+      },
+      {
+        id: 'album-h2027-photos',
+        index: 10,
+        name: 'H2027 Photos',
+        type: 'image',
+        itemCount: h2027PhotoFiles.length,
+        items: h2027PhotoFiles,
+        layoutType: 'coming-soon-photos',
+        subtitle: 'Future Archive // Encrypted',
+      },
+      {
+        id: 'album-h2027-videos',
+        index: 11,
+        name: 'H2027 Videos',
+        type: 'video',
+        itemCount: h2027VideoFiles.length,
+        items: h2027VideoFiles,
+        layoutType: 'coming-soon-videos',
+        subtitle: 'Future Vault // In Queue',
+      },
+    ];
+  }
+
+  // Fallback to legacy Google Drive data structure if ever supplied:
+  const source: ApiResponseData = (data as unknown as ApiResponseData) || FALLBACK_MEDIA_DATA;
+
   const mapFiles = (
     files: Array<{ id: string; name: string; url: string; thumbnail: string; type?: string }> | undefined,
     categoryName: string,
@@ -22,11 +246,9 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
     }));
   };
 
-  // 1. Bandhobis (Photos)
   const bandhobisFolder = source.leftImageFolder;
   const bandhobisFiles = mapFiles(bandhobisFolder?.files, 'Bandhobis', 'image');
 
-  // Center image folders
   const centerFolders = source.centerImageFolders || [];
   const worksFolder = centerFolders.find((f) => f.name.toLowerCase().includes('work'));
   const h2026PhotoFolder = centerFolders.find((f) => f.name === 'H2026');
@@ -34,7 +256,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
   const classicFolder = centerFolders.find((f) => f.name.toLowerCase().includes('classic'));
   const h2027PhotoFolder = centerFolders.find((f) => f.name === 'H2027');
 
-  // Video folders
   const videoFolders = source.videoFolders || [];
   const favoriteVideosFolder = videoFolders.find((f) => f.name.toLowerCase().includes('favorite'));
   const h2026VideoFolder = videoFolders.find((f) => f.name === 'H2026');
@@ -42,11 +263,9 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
   const othersVideoFolder = videoFolders.find((f) => f.name.toLowerCase().includes('other'));
   const h2027VideoFolder = videoFolders.find((f) => f.name === 'H2027');
 
-  // Shorts folder
   const shortsFolder = source.shortsFolder;
 
   return [
-    // Album 1: Bandhobis
     {
       id: 'album-bandhobis',
       index: 0,
@@ -57,7 +276,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'weichie-curved',
       subtitle: 'Weichie 3D Curved Marquee',
     },
-    // Album 2: Works
     {
       id: 'album-works',
       index: 1,
@@ -68,7 +286,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'heroic-masonry',
       subtitle: 'Heroic Editorial Masonry',
     },
-    // Album 3: H2026 Photos
     {
       id: 'album-h2026-photos',
       index: 2,
@@ -79,7 +296,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'bento-grid',
       subtitle: 'Asymmetric Bento Architecture',
     },
-    // Album 4: H2025 Photos
     {
       id: 'album-h2025-photos',
       index: 3,
@@ -90,7 +306,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'scattered-canvas',
       subtitle: 'Interactive Drifting Canvas',
     },
-    // Album 5: Classic
     {
       id: 'album-classic',
       index: 4,
@@ -101,7 +316,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'grid-wall',
       subtitle: '3D Perspective Matrix',
     },
-    // Album 6: Favorite Videos
     {
       id: 'album-favorite-videos',
       index: 5,
@@ -112,7 +326,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'theater-cylinder',
       subtitle: 'Cinematic Cylinder Theater',
     },
-    // Album 7: H2026 Videos
     {
       id: 'album-h2026-videos',
       index: 6,
@@ -123,7 +336,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'spiral-helix',
       subtitle: 'Double Helix Orbit',
     },
-    // Album 8: H2025 Videos
     {
       id: 'album-h2025-videos',
       index: 7,
@@ -134,7 +346,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'perspective-tunnel',
       subtitle: 'Holographic Corridor',
     },
-    // Album 9: Others Videos
     {
       id: 'album-others-videos',
       index: 8,
@@ -145,7 +356,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'curved-billboard',
       subtitle: 'Panoramic Amphitheater',
     },
-    // Album 10: Shorts & Reels
     {
       id: 'album-shorts',
       index: 9,
@@ -156,7 +366,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'vertical-waterfall',
       subtitle: 'Tiered Waterfall Deck',
     },
-    // Album 11: H2027 Photos (Empty Folder #1 -> COMING SOON)
     {
       id: 'album-h2027-photos',
       index: 10,
@@ -167,7 +376,6 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       layoutType: 'coming-soon-photos',
       subtitle: 'Future Archive // Encrypted',
     },
-    // Album 12: H2027 Videos (Empty Folder #2 -> COMING SOON)
     {
       id: 'album-h2027-videos',
       index: 11,

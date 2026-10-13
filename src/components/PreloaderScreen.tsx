@@ -43,14 +43,15 @@ export const PreloaderScreen: React.FC<PreloaderScreenProps> = ({
 
     const urlsToPreload: string[] = [];
 
-    // Harvest critical photo assets across all albums
+    // Harvest critical photo assets across photo albums
     albums.forEach((album) => {
+      if (album.type !== 'image') return;
       const items = album.items || [];
-      // Preload first 8 items per album for instant zero-buffer rendering
+      // Preload first 8 items per photo album for instant zero-buffer rendering
       const slice = items.slice(0, 8);
       slice.forEach((it, idx) => {
         const url = getDirectImageUrl(it, idx);
-        if (url && !urlsToPreload.includes(url)) {
+        if (url && !urlsToPreload.includes(url) && !url.toLowerCase().endsWith('.mp4')) {
           urlsToPreload.push(url);
         }
       });

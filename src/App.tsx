@@ -6,16 +6,16 @@ import { TopNavbar } from './components/TopNavbar';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
 import { PreloaderScreen } from './components/PreloaderScreen';
-import { FALLBACK_MEDIA_DATA } from './data/fallbackData';
+import { FALLBACK_HF_CATALOG } from './data/fallbackData';
 import type { StageMediaItem } from './types';
 
 function App() {
   const { data, isError } = useMediaData();
   const [, setIsPreloaded] = useState(false);
 
-  // 12 Distinct Google Drive Albums
+  // 12 Distinct Curated Albums (Powered by Hugging Face CDN)
   const albums = useMemo(() => {
-    return extractTwelveAlbums(data || FALLBACK_MEDIA_DATA);
+    return extractTwelveAlbums(data || FALLBACK_HF_CATALOG);
   }, [data]);
 
   // Active snapped album index (0 to 11)

@@ -147,6 +147,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const rawTitle = currentItem.title || '';
   const cleanTitle = rawTitle.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() || (currentItem.type === 'video' ? 'CINEMA STREAM' : 'PHOTOGRAPHIC PRINT');
 
+  const isDirectVideo = streamUrl.toLowerCase().includes('.mp4') || streamUrl.includes('huggingface.co');
+
   return (
     <div
       role="dialog"
@@ -212,13 +214,24 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             }`}
           >
             {currentItem.type === 'video' ? (
-              <iframe
-                src={`${streamUrl}?autoplay=1`}
-                className="w-full h-full border-0"
-                allow="autoplay; encrypted-media; fullscreen"
-                allowFullScreen
-                title={cleanTitle}
-              />
+              isDirectVideo ? (
+                <video
+                  key={streamUrl}
+                  src={streamUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <iframe
+                  src={`${streamUrl}?autoplay=1`}
+                  className="w-full h-full border-0"
+                  allow="autoplay; encrypted-media; fullscreen"
+                  allowFullScreen
+                  title={cleanTitle}
+                />
+              )
             ) : (
               <div
                 onClick={() => setIsZoomed(!isZoomed)}
@@ -303,11 +316,22 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 >
                   {/* Thumbnail */}
                   <div className="relative w-24 sm:w-28 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-white/10">
-                    <img
-                      src={thumbUrl}
-                      alt={itemTitle}
-                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-                    />
+                    {item.type === 'video' && item.url.includes('huggingface.co') ? (
+                      <video
+                        src={encodeURI(ensureHttps(item.url))}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                      />
+                    ) : (
+                      <img
+                        src={thumbUrl}
+                        alt={itemTitle}
+                        loading="lazy"
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                      />
+                    )}
 
                     {/* Active badge overlay */}
                     {isActive ? (

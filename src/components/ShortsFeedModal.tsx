@@ -149,14 +149,26 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       >
         {/* Shorts Stream Video Frame */}
         <div className="absolute inset-0 w-full h-full bg-black z-0">
-          <iframe
-            key={currentShort.id}
-            src={streamUrl}
-            className="w-full h-full border-0"
-            allow="autoplay; encrypted-media; fullscreen"
-            allowFullScreen
-            title={displayTitle}
-          />
+          {streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
+            <video
+              key={currentShort.id}
+              src={streamUrl}
+              autoPlay
+              loop
+              controls
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <iframe
+              key={currentShort.id}
+              src={streamUrl}
+              className="w-full h-full border-0"
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+              title={displayTitle}
+            />
+          )}
         </div>
 
         {/* Top Overlay Badge */}

@@ -37,6 +37,18 @@ export interface ImageFolder {
   files: MediaFile[];
 }
 
+export interface HfMediaItem {
+  name: string;
+  path: string;
+  url: string;
+}
+
+export interface HfMediaCatalog {
+  clips: HfMediaItem[];
+  shorts: HfMediaItem[];
+  images: HfMediaItem[];
+}
+
 export interface ApiResponseData {
   trailerImages: TrailerImage[];
   videoFolders: VideoFolder[];

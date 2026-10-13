@@ -25,9 +25,17 @@ export function extractDriveFileId(id?: string, url?: string, thumbnail?: string
 }
 
 export function getDirectImageUrl(
-  item: { id?: string; url?: string; thumbnail?: string },
+  item: { id?: string; url?: string; thumbnail?: string; type?: string },
   index = 0
 ): string {
+  const target = item.thumbnail || item.url || '';
+  if (target.includes('huggingface.co')) {
+    if (target.toLowerCase().endsWith('.mp4') || item.type === 'video') {
+      return FALLBACK_PORTRAIT_URLS[index % FALLBACK_PORTRAIT_URLS.length];
+    }
+    return encodeURI(ensureHttps(target));
+  }
+
   const fileId = extractDriveFileId(item.id, item.url, item.thumbnail);
   if (fileId) {
     // High-res raw image stream that returns Access-Control-Allow-Origin: *

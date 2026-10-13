@@ -113,13 +113,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
         {type === 'video' ? (
           <div className="w-full aspect-video bg-black flex items-center justify-center">
-            <iframe
-              src={streamUrl}
-              className="w-full h-full border-0"
-              allow="autoplay; encrypted-media; fullscreen"
-              allowFullScreen
-              title={title || 'Media Stream'}
-            />
+            {streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
+              <video
+                src={streamUrl}
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <iframe
+                src={streamUrl}
+                className="w-full h-full border-0"
+                allow="autoplay; encrypted-media; fullscreen"
+                allowFullScreen
+                title={title || 'Media Stream'}
+              />
+            )}
           </div>
         ) : (
           <div className="relative w-full h-[78vh] flex items-center justify-center p-2 sm:p-4 bg-black/50 overflow-hidden">

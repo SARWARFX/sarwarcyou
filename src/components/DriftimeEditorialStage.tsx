@@ -373,21 +373,34 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
               }}
               className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-[#0c0e14] border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_28px_70px_rgba(0,0,0,0.95),0_0_25px_rgba(0,210,255,0.25)] hover:border-[#00D2FF]/60 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] hover:-translate-y-1.5 select-none ${heightClass} ${staggeredOffset} ${diptychMargin}`}
             >
-              {/* Pure Photography Image Layer (100% UNCROPPED in native aspect ratio, ZERO text) */}
-              <img
-                src={directUrl}
-                alt="Editorial Photography"
-                loading="lazy"
-                draggable={false}
-                onLoad={updateMaxScroll}
-                onError={(e) => {
-                  e.currentTarget.src = fallbackUrl;
-                }}
-                className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
-              />
+              {/* Media Card Presentation: Native Video for clips or Image for photos */}
+              {item.type === 'video' && item.url.includes('huggingface.co') ? (
+                <video
+                  src={encodeURI(ensureHttps(item.url))}
+                  preload="metadata"
+                  muted
+                  playsInline
+                  autoPlay={isCardHovered}
+                  loop
+                  onLoadedMetadata={updateMaxScroll}
+                  className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
+                />
+              ) : (
+                <img
+                  src={directUrl}
+                  alt="Editorial Photography"
+                  loading="lazy"
+                  draggable={false}
+                  onLoad={updateMaxScroll}
+                  onError={(e) => {
+                    e.currentTarget.src = fallbackUrl;
+                  }}
+                  className="h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none pointer-events-none"
+                />
+              )}
 
-              {/* Silent looping video previews on hover/drift for video items */}
-              {(variant === 'cinematic' || variant === 'shorts' || item.type === 'video') && isCardHovered && (
+              {/* Legacy iframe fallback for non-direct video items */}
+              {item.type === 'video' && !item.url.includes('huggingface.co') && isCardHovered && (
                 <iframe
                   src={`${ensureHttps(item.url)}?autoplay=1&mute=1`}
                   className="absolute inset-0 w-full h-full border-0 pointer-events-none z-10 scale-105"
