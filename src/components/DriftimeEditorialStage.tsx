@@ -180,14 +180,14 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   }, [isComingSoon, isActive]);
 
   // ================= POINTER DRAG & SWIPE HANDLERS =================
+  const isPointerCapturedRef = useRef(false);
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
+    isPointerCapturedRef.current = false;
     velocityRef.current = 0;
     lastInteractionTimeRef.current = Date.now();
 
@@ -202,23 +202,45 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
     if (!isDraggingRef.current) return;
 
     const dx = e.clientX - dragStartRef.current.x;
-    if (Math.abs(dx) > 6) {
+    if (Math.abs(dx) > 12) {
       hasDraggedRef.current = true;
+      if (!isPointerCapturedRef.current && e.currentTarget.setPointerCapture) {
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          isPointerCapturedRef.current = true;
+        } catch {
+          // ignore capture errors
+        }
+      }
     }
 
-    const now = performance.now();
-    const dt = Math.max(now - dragStartRef.current.time, 10);
-    const instantVelocity = -dx / (dt * 0.12);
+    if (hasDraggedRef.current) {
+      const now = performance.now();
+      const dt = Math.max(now - dragStartRef.current.time, 10);
+      const instantVelocity = -dx / (dt * 0.12);
 
-    scrollOffsetRef.current = dragStartRef.current.scrollX - dx;
-    velocityRef.current = instantVelocity * 0.7;
-    lastInteractionTimeRef.current = Date.now();
+      scrollOffsetRef.current = dragStartRef.current.scrollX - dx;
+      velocityRef.current = instantVelocity * 0.7;
+      lastInteractionTimeRef.current = Date.now();
+    }
   }, []);
 
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (isDraggingRef.current) {
+      if (isPointerCapturedRef.current && e.currentTarget.releasePointerCapture) {
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          // ignore
+        }
+      }
       isDraggingRef.current = false;
+      isPointerCapturedRef.current = false;
       lastInteractionTimeRef.current = Date.now();
+      // Reset hasDragged after a microtask so any pending click handlers on this tick can read it
+      setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 50);
     }
   }, []);
 
@@ -403,7 +425,8 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
                 key={item.id || `driftime-card-${idx}`}
                 onMouseEnter={() => setHoveredCardIdx(idx)}
                 onMouseLeave={() => setHoveredCardIdx(null)}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (!hasDraggedRef.current) {
                     onActiveIndexChange?.(idx);
                     onSelectItem(item);

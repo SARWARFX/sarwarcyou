@@ -113,3 +113,23 @@ html, body {
 .animate-slide-up {
   animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes rippleScale {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.animate-ripple {
+  animation: rippleScale 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes doubleTapFade {
+  0% { transform: scale(0.8); opacity: 0; }
+  25% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.animate-double-tap {
+  animation: doubleTapFade 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

@@ -14,6 +14,11 @@ import {
   VolumeX,
   Maximize,
   Minimize,
+  RotateCcw,
+  RotateCw,
+  Repeat,
+  PictureInPicture2,
+  Gauge,
 } from 'lucide-react';
 import { getDirectImageUrl, ensureHttps } from '../utils/imageUrlResolver';
 import { downloadMedia } from '../utils/downloadMedia';
@@ -35,13 +40,15 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
+const PLAYBACK_RATES = [0.5, 1, 1.25, 1.5, 2];
+
 export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   isOpen,
   onClose,
   album,
   initialIndex,
-  onNextAlbum,
-  onPrevAlbum,
+  onNextAlbum: _onNextAlbum,
+  onPrevAlbum: _onPrevAlbum,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -51,14 +58,33 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
+  // Floating HUD Visibility state (Auto-fade after 2.5s)
+  const [isHudVisible, setIsHudVisible] = useState(true);
+  const hudTimeoutRef = useRef<number | null>(null);
+
+  // A-B Looper State
+  const [isAbLoopActive, setIsAbLoopActive] = useState(false);
+  const [loopStart, setLoopStart] = useState<number | null>(null);
+  const [loopEnd, setLoopEnd] = useState<number | null>(null);
+
+  // Ripple feedback states
+  const [centerRipple, setCenterRipple] = useState<'play' | 'pause' | null>(null);
+  const [seekRipple, setSeekRipple] = useState<{ side: 'left' | 'right'; text: string } | null>(null);
+
+  // Velocity Swipe-to-Dismiss State
+  const [dismissOffsetY, setDismissOffsetY] = useState(0);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number } | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const playlistContainerRef = useRef<HTMLDivElement>(null);
-  const touchStartRef = useRef({ y: 0, time: 0 });
 
   // Sync index when initialIndex changes
   useEffect(() => {
@@ -66,35 +92,67 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setIsZoomed(false);
     setIsPlaying(true);
     setCurrentTime(0);
+    setDismissOffsetY(0);
+    setIsAbLoopActive(false);
+    setLoopStart(null);
+    setLoopEnd(null);
   }, [initialIndex, isOpen]);
 
   const items = useMemo(() => album?.items || [], [album]);
   const currentItem: StageMediaItem | undefined = items[currentIndex] || items[0];
 
+  // Auto-hide HUD after 2.5s of inactivity
+  const resetHudTimer = useCallback(() => {
+    setIsHudVisible(true);
+    if (hudTimeoutRef.current) {
+      window.clearTimeout(hudTimeoutRef.current);
+    }
+    hudTimeoutRef.current = window.setTimeout(() => {
+      // Don't auto-hide if paused or if user is tweaking loop or speed menu
+      if (videoRef.current && !videoRef.current.paused && !showSpeedMenu) {
+        setIsHudVisible(false);
+      }
+    }, 2500);
+  }, [showSpeedMenu]);
+
+  useEffect(() => {
+    resetHudTimer();
+    return () => {
+      if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
+    };
+  }, [resetHudTimer, isPlaying]);
+
   // Keyboard navigation & Shortcuts
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
+      resetHudTimer();
       if (e.key === 'Escape') {
         if (isFullscreen) {
           document.exitFullscreen().catch(() => {});
         } else {
           onClose();
         }
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      } else if (e.key === 'ArrowRight') {
         goToIndex(currentIndex + 1);
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowLeft') {
         goToIndex(currentIndex - 1);
       } else if (e.key === ' ' && currentItem?.type === 'video') {
         e.preventDefault();
         togglePlay();
       } else if (e.key === 'm' || e.key === 'M') {
         handleMuteToggle();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'j' || e.key === 'J') {
+        seekRelative(-10);
+      } else if (e.key === 'l' || e.key === 'L') {
+        seekRelative(10);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, currentIndex, items.length, onClose, isFullscreen, currentItem?.type]);
+  }, [isOpen, currentIndex, items.length, onClose, isFullscreen, currentItem?.type, resetHudTimer]);
 
   const goToIndex = useCallback(
     (idx: number) => {
@@ -103,6 +161,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       setIsCrossfading(true);
       setIsZoomed(false);
       setCurrentIndex(next);
+      setDismissOffsetY(0);
+      setIsAbLoopActive(false);
+      setLoopStart(null);
+      setLoopEnd(null);
       window.setTimeout(() => {
         setIsCrossfading(false);
       }, 200);
@@ -110,53 +172,103 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     [items.length]
   );
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      const playlist = playlistContainerRef.current;
-      const isOverPlaylist = playlist && playlist.contains(e.target as Node);
-      if (isOverPlaylist && playlist) {
-        const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 5;
-        const atTop = playlist.scrollTop <= 5;
-        if (e.deltaY > 65 && atBottom) {
-          onClose();
-          onNextAlbum?.();
-        } else if (e.deltaY < -65 && atTop) {
-          onClose();
-          onPrevAlbum?.();
-        }
-      } else {
-        if (e.deltaY > 65) {
-          onClose();
-          onNextAlbum?.();
-        } else if (e.deltaY < -65) {
-          onClose();
-          onPrevAlbum?.();
-        }
-      }
-    },
-    [onClose, onNextAlbum, onPrevAlbum]
-  );
+  const togglePlay = useCallback(() => {
+    if (!videoRef.current) return;
+    resetHudTimer();
+    if (videoRef.current.paused) {
+      videoRef.current.play().catch(() => {});
+      setIsPlaying(true);
+      setCenterRipple('play');
+      setTimeout(() => setCenterRipple(null), 550);
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+      setCenterRipple('pause');
+      setTimeout(() => setCenterRipple(null), 550);
+    }
+  }, [resetHudTimer]);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartRef.current = { y: e.touches[0].clientY, time: performance.now() };
+  const seekRelative = useCallback((delta: number) => {
+    if (!videoRef.current) return;
+    resetHudTimer();
+    const newTime = Math.max(0, Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + delta));
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+
+    setSeekRipple({
+      side: delta > 0 ? 'right' : 'left',
+      text: delta > 0 ? '+10s' : '-10s',
+    });
+    setTimeout(() => setSeekRipple(null), 650);
+  }, [resetHudTimer]);
+
+  // A-B Looping Check on time update
+  const handleTimeUpdate = useCallback(() => {
+    if (!videoRef.current) return;
+    const cur = videoRef.current.currentTime;
+    setCurrentTime(cur);
+
+    if (isAbLoopActive && loopStart !== null && loopEnd !== null && loopEnd > loopStart) {
+      if (cur >= loopEnd || cur < loopStart) {
+        videoRef.current.currentTime = loopStart;
+        setCurrentTime(loopStart);
+      }
+    }
+  }, [isAbLoopActive, loopStart, loopEnd]);
+
+  // Double-tap and touch gesture handling on video viewport
+  const handleStageTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: performance.now(),
+    };
   }, []);
 
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      const deltaY = touchStartRef.current.y - e.changedTouches[0].clientY;
-      const elapsed = performance.now() - touchStartRef.current.time;
-      if (elapsed < 350) {
-        if (deltaY > 100) {
-          onClose();
-          onNextAlbum?.();
-        } else if (deltaY < -100) {
-          onClose();
-          onPrevAlbum?.();
-        }
+  const handleStageTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const dy = e.touches[0].clientY - touchStartRef.current.y;
+    // Allow dragging downwards to dismiss
+    if (dy > 0) {
+      setDismissOffsetY(dy);
+    }
+  }, []);
+
+  const handleStageTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    const dy = touch.clientY - touchStartRef.current.y;
+    const dt = performance.now() - touchStartRef.current.time;
+
+    // Velocity swipe down to dismiss
+    if ((dy > 110 && dt < 400) || dy > 180) {
+      onClose();
+      return;
+    }
+    setDismissOffsetY(0);
+
+    // Double-tap detection
+    const now = performance.now();
+    const tapX = touch.clientX;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeX = tapX - rect.left;
+    const isRightHalf = relativeX > rect.width / 2;
+
+    if (lastTapRef.current && now - lastTapRef.current.time < 300 && Math.abs(tapX - lastTapRef.current.x) < 50) {
+      // Double tap!
+      if (isRightHalf) {
+        seekRelative(10);
+      } else {
+        seekRelative(-10);
       }
-    },
-    [onClose, onNextAlbum, onPrevAlbum]
-  );
+      lastTapRef.current = null;
+    } else {
+      lastTapRef.current = { time: now, x: tapX };
+      resetHudTimer();
+    }
+    touchStartRef.current = null;
+  }, [onClose, seekRelative, resetHudTimer]);
 
   const handleDownload = useCallback(async () => {
     if (!currentItem || isDownloading) return;
@@ -165,7 +277,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     try {
       await downloadMedia(currentItem.url, currentItem.title || currentItem.id);
       setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 2000);
+      setTimeout(() => setDownloadSuccess(false), 2200);
     } catch (err) {
       console.error('Download failed:', err);
     } finally {
@@ -173,28 +285,17 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     }
   }, [currentItem, isDownloading]);
 
-  const togglePlay = useCallback(() => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play().catch(() => {});
-      setIsPlaying(true);
-    } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    }
-  }, []);
-
   const handleMuteToggle = useCallback(() => {
+    resetHudTimer();
     setIsMuted((prev) => {
       const next = !prev;
-      if (videoRef.current) {
-        videoRef.current.muted = next;
-      }
+      if (videoRef.current) videoRef.current.muted = next;
       return next;
     });
-  }, []);
+  }, [resetHudTimer]);
 
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    resetHudTimer();
     const val = parseFloat(e.target.value);
     setVolume(val);
     if (videoRef.current) {
@@ -202,13 +303,36 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       videoRef.current.muted = val === 0;
       setIsMuted(val === 0);
     }
-  }, []);
+  }, [resetHudTimer]);
 
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    resetHudTimer();
     const val = parseFloat(e.target.value);
     setCurrentTime(val);
     if (videoRef.current) {
       videoRef.current.currentTime = val;
+    }
+  }, [resetHudTimer]);
+
+  const handleSpeedSelect = useCallback((rate: number) => {
+    setPlaybackRate(rate);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+    }
+    setShowSpeedMenu(false);
+    resetHudTimer();
+  }, [resetHudTimer]);
+
+  const togglePiP = useCallback(async () => {
+    if (!videoRef.current) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.warn('PiP not supported or disallowed:', err);
     }
   }, []);
 
@@ -242,17 +366,23 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     streamUrl.toLowerCase().match(/\.(mp4|webm|mov|mkv)/) !== null ||
     streamUrl.includes('huggingface.co');
 
+  // Compute A-B loop percentage offsets for timeline
+  const loopStartPct = duration > 0 && loopStart !== null ? Math.max(0, Math.min(100, (loopStart / duration) * 100)) : 0;
+  const loopEndPct = duration > 0 && loopEnd !== null ? Math.max(0, Math.min(100, (loopEnd / duration) * 100)) : 100;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={cleanTitle}
-      onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onMouseMove={resetHudTimer}
+      style={{
+        transform: dismissOffsetY > 0 ? `translate3d(0, ${dismissOffsetY}px, 0) scale(${Math.max(0.85, 1 - dismissOffsetY / 1200)})` : 'none',
+        transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+      }}
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
-      {/* ===== OLED TOP CONTROL BAR ===== */}
+      {/* ===== TOP STATUS / ACTION BAR ===== */}
       <div className="w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="px-2.5 py-0.5 rounded-full bg-zinc-800/80 border border-white/10 text-zinc-300 font-semibold tracking-widest text-[9px] uppercase flex-shrink-0">
@@ -278,7 +408,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             </button>
           )}
 
-          {/* Download Button */}
+          {/* Direct 1-Click Download Button */}
           <button
             onClick={handleDownload}
             disabled={isDownloading}
@@ -287,7 +417,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
                 : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/[0.08]'
             } disabled:opacity-40`}
-            title="Download original media file"
+            title="Direct Media Download"
           >
             {downloadSuccess ? (
               <>
@@ -314,18 +444,22 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         </div>
       </div>
 
-      {/* ===== MAIN THEATER BODY ===== */}
+      {/* ===== MAIN CINEMA STAGE & QUEUE ===== */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden p-2.5 sm:p-4 lg:p-5 gap-3.5">
         {/* ===== LEFT MAIN VIEWPORT (~72% DESKTOP) ===== */}
-        <div className="w-full lg:w-[72%] flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden flex-shrink-0 h-[48vh] sm:h-[58vh] lg:h-full shadow-2xl relative">
-          {/* Cinema Stage Container */}
+        <div className="w-full lg:w-[72%] flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden flex-shrink-0 h-[48vh] sm:h-[58vh] lg:h-full shadow-2xl relative group/stage">
+          {/* Cinema Stage Container with Ambilight */}
           <div
             ref={videoContainerRef}
+            onTouchStart={handleStageTouchStart}
+            onTouchMove={handleStageTouchMove}
+            onTouchEnd={handleStageTouchEnd}
+            onClick={resetHudTimer}
             className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 ${
               isCrossfading ? 'opacity-30' : 'opacity-100'
             }`}
           >
-            {/* Subtle Ambient Video Glow Backdrop reflecting real-time luminance */}
+            {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
             {currentItem.type === 'video' && isDirectVideo && (
               <video
                 src={streamUrl}
@@ -334,13 +468,14 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 loop
                 playsInline
                 autoPlay
-                className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-25 scale-110 pointer-events-none z-0"
+                className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 scale-105 pointer-events-none z-0"
               />
             )}
 
+            {/* Video Player */}
             {currentItem.type === 'video' ? (
               isDirectVideo ? (
-                <div className="relative w-full h-full flex flex-col items-center justify-center z-10 group/player">
+                <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
                   <video
                     ref={videoRef}
                     key={streamUrl}
@@ -349,9 +484,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     playsInline
                     muted={isMuted}
                     onClick={togglePlay}
-                    onTimeUpdate={() => {
-                      if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
-                    }}
+                    onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={() => {
                       if (videoRef.current) setDuration(videoRef.current.duration);
                     }}
@@ -360,22 +493,76 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     className="w-full h-full object-contain cursor-pointer"
                   />
 
-                  {/* Center Play/Pause indicator on click */}
-                  {!isPlaying && (
-                    <button
-                      onClick={togglePlay}
-                      className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] transition-all cursor-pointer z-20"
-                    >
-                      <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-2xl">
-                        <Play className="w-6 h-6 fill-current ml-1" />
+                  {/* Center Play/Pause Animated Ripple */}
+                  {centerRipple && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                      <div className="w-16 h-16 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white animate-ripple shadow-2xl">
+                        {centerRipple === 'play' ? (
+                          <Play className="w-7 h-7 fill-current ml-1" />
+                        ) : (
+                          <Pause className="w-7 h-7" />
+                        )}
                       </div>
-                    </button>
+                    </div>
                   )}
 
-                  {/* Minimalist 16:9 Playback Control Bar */}
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 sm:p-4 z-30 opacity-90 group-hover/player:opacity-100 transition-opacity flex flex-col gap-2">
-                    {/* Progress Scrubber */}
-                    <div className="flex items-center gap-2 w-full">
+                  {/* Double-tap Seek Indicator (Left / Right) */}
+                  {seekRipple && (
+                    <div
+                      className={`absolute top-1/2 -translate-y-1/2 z-30 pointer-events-none animate-double-tap ${
+                        seekRipple.side === 'right' ? 'right-12 sm:right-20' : 'left-12 sm:left-20'
+                      }`}
+                    >
+                      <div className="px-4 py-2.5 rounded-full bg-black/75 border border-white/20 text-zinc-100 text-xs font-mono font-bold tracking-wider flex items-center gap-1.5 shadow-2xl backdrop-blur-xl">
+                        {seekRipple.side === 'right' ? (
+                          <>
+                            <span>{seekRipple.text}</span>
+                            <RotateCw className="w-4 h-4 text-emerald-400" />
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="w-4 h-4 text-emerald-400" />
+                            <span>{seekRipple.text}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ================= DETACHED FLOATING GLASS HUD DOCK ================= */}
+                  <div
+                    onMouseEnter={() => {
+                      if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
+                      setIsHudVisible(true);
+                    }}
+                    onMouseLeave={resetHudTimer}
+                    className={`absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 w-[94%] sm:w-[88%] max-w-3xl backdrop-blur-2xl bg-black/80 border border-white/10 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-2 transition-all duration-300 ${
+                      isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                    }`}
+                  >
+                    {/* Magnetic Scrubber Bar + A-B Loop Visualizer */}
+                    <div className="relative w-full group/scrub py-1">
+                      {/* Base Track */}
+                      <div className="relative w-full h-1 group-hover/scrub:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-200">
+                        {/* Buffered / Played Track */}
+                        <div
+                          className="h-full bg-zinc-200 transition-all duration-75"
+                          style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                        />
+
+                        {/* A-B Active Loop Highlight Band */}
+                        {isAbLoopActive && loopStart !== null && (
+                          <div
+                            className="absolute top-0 bottom-0 bg-emerald-500/50 border-x border-emerald-400 pointer-events-none"
+                            style={{
+                              left: `${loopStartPct}%`,
+                              width: `${Math.max(2, loopEndPct - loopStartPct)}%`,
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Interactive Input Range Overlay */}
                       <input
                         type="range"
                         min="0"
@@ -383,33 +570,70 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         step="0.1"
                         value={currentTime}
                         onChange={handleSeek}
-                        className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-zinc-200 hover:h-1.5 transition-all"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
+
+                      {/* Point A Marker Pin */}
+                      {isAbLoopActive && loopStart !== null && (
+                        <div
+                          className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-amber-400 rounded-sm shadow-md pointer-events-none z-10"
+                          style={{ left: `${loopStartPct}%` }}
+                          title={`Point A: ${formatTime(loopStart)}`}
+                        />
+                      )}
+
+                      {/* Point B Marker Pin */}
+                      {isAbLoopActive && loopEnd !== null && (
+                        <div
+                          className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-emerald-400 rounded-sm shadow-md pointer-events-none z-10"
+                          style={{ left: `${loopEndPct}%` }}
+                          title={`Point B: ${formatTime(loopEnd)}`}
+                        />
+                      )}
                     </div>
 
-                    {/* Lower Controls Row */}
-                    <div className="flex items-center justify-between text-xs font-mono text-zinc-300">
-                      <div className="flex items-center gap-3">
-                        {/* Play/Pause */}
+                    {/* HUD Controls Row */}
+                    <div className="flex items-center justify-between text-xs font-mono text-zinc-300 gap-2">
+                      {/* Left: Playback, Quick Seek, Time */}
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <button
                           onClick={togglePlay}
-                          className="hover:text-white transition-colors cursor-pointer"
+                          className="p-1 hover:text-white transition-colors cursor-pointer"
                           title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
                         >
                           {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
                         </button>
 
-                        {/* Mute + Volume Slider */}
+                        {/* ±10s Quick Skip Buttons */}
+                        <button
+                          onClick={() => seekRelative(-10)}
+                          className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
+                          title="Rewind 10s (J)"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span className="text-[9px] hidden sm:inline">-10s</span>
+                        </button>
+
+                        <button
+                          onClick={() => seekRelative(10)}
+                          className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
+                          title="Skip 10s (L)"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                          <span className="text-[9px] hidden sm:inline">+10s</span>
+                        </button>
+
+                        {/* Mute & Volume */}
                         <div className="flex items-center gap-1.5 group/vol">
                           <button
                             onClick={handleMuteToggle}
-                            className="hover:text-white transition-colors cursor-pointer"
+                            className="p-1 hover:text-white transition-colors cursor-pointer"
                             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
                           >
                             {isMuted || volume === 0 ? (
-                              <VolumeX className="w-4 h-4 text-zinc-500" />
+                              <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
                             ) : (
-                              <Volume2 className="w-4 h-4" />
+                              <Volume2 className="w-3.5 h-3.5" />
                             )}
                           </button>
                           <input
@@ -419,32 +643,117 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                             step="0.05"
                             value={isMuted ? 0 : volume}
                             onChange={handleVolumeChange}
-                            className="w-14 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-zinc-200 hidden sm:inline"
+                            className="w-12 sm:w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-zinc-200 hidden sm:inline"
                           />
                         </div>
 
                         {/* Time Counter */}
-                        <span className="text-[10px] text-zinc-400 tracking-wider">
+                        <span className="text-[10px] text-zinc-400 tracking-wider hidden sm:inline">
                           {formatTime(currentTime)} / {formatTime(duration)}
                         </span>
                       </div>
 
-                      {/* Right: Download & Fullscreen */}
-                      <div className="flex items-center gap-2.5">
+                      {/* Right: A-B Loop, Speed, PiP, Fullscreen */}
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        {/* A-B Section Repeat Mode Toggle */}
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setIsAbLoopActive(!isAbLoopActive);
+                              if (!isAbLoopActive) {
+                                // Default Point A to current, Point B to current + 5s
+                                setLoopStart(currentTime);
+                                setLoopEnd(Math.min(duration, currentTime + 5));
+                              }
+                            }}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono transition-all cursor-pointer border ${
+                              isAbLoopActive
+                                ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                : 'bg-zinc-900/80 border-white/[0.08] text-zinc-400 hover:text-white'
+                            }`}
+                            title="Toggle A-B Section Repeat Mode"
+                          >
+                            <Repeat className="w-3 h-3" />
+                            <span>A-B</span>
+                          </button>
+
+                          {/* Quick A-B set buttons when active */}
+                          {isAbLoopActive && (
+                            <div className="hidden sm:flex items-center gap-1 text-[9px]">
+                              <button
+                                onClick={() => setLoopStart(currentTime)}
+                                className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 cursor-pointer"
+                                title="Set current time as Point A"
+                              >
+                                Set A
+                              </button>
+                              <button
+                                onClick={() => setLoopEnd(currentTime)}
+                                className="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer"
+                                title="Set current time as Point B"
+                              >
+                                Set B
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setLoopStart(0);
+                                  setLoopEnd(duration);
+                                }}
+                                className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                                title="Reset A-B boundaries"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Playback Speed Menu */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900/80 border border-white/[0.08] text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                            title="Playback Speed"
+                          >
+                            <Gauge className="w-3 h-3 text-zinc-400" />
+                            <span>{playbackRate}x</span>
+                          </button>
+
+                          {showSpeedMenu && (
+                            <div className="absolute bottom-9 right-0 bg-black/95 border border-white/15 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5 z-40">
+                              {PLAYBACK_RATES.map((rate) => (
+                                <button
+                                  key={rate}
+                                  onClick={() => handleSpeedSelect(rate)}
+                                  className={`px-3 py-1 rounded-lg text-[10px] font-mono text-left transition-colors cursor-pointer ${
+                                    playbackRate === rate
+                                      ? 'bg-zinc-800 text-white font-bold'
+                                      : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
+                                  }`}
+                                >
+                                  {rate}x
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Picture-in-Picture */}
                         <button
-                          onClick={handleDownload}
-                          disabled={isDownloading}
-                          className="p-1 rounded hover:text-white text-zinc-400 transition-colors cursor-pointer"
-                          title="Download Video File"
+                          onClick={togglePiP}
+                          className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
+                          title="Picture in Picture"
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          <PictureInPicture2 className="w-3.5 h-3.5" />
                         </button>
+
+                        {/* Fullscreen */}
                         <button
                           onClick={toggleFullscreen}
-                          className="p-1 rounded hover:text-white text-zinc-400 transition-colors cursor-pointer"
-                          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                          className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                          title={isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'}
                         >
-                          {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                          {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
                         </button>
                       </div>
                     </div>
@@ -485,10 +794,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               </span>
               <span className="text-zinc-500 text-[9px] tracking-wider uppercase block mt-0.5">
                 {currentItem.type === 'video'
-                  ? 'STREAMING 1080P • OLED ENCODED'
+                  ? 'SPATIAL HUD • 1080P CINEMATIC STREAM'
                   : isZoomed
-                  ? 'ZOOMED 165% • LOSSLESS CANVAS'
-                  : 'HIGH DEFINITION PHOTOGRAPH'}
+                  ? 'ZOOMED 165% • LOSSLESS PHOTOGRAPHY'
+                  : 'HIGH DEFINITION PHOTOGRAPHY'}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -595,7 +904,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           </div>
 
           <div className="px-4 py-2 border-t border-white/[0.04] bg-black text-center text-[9px] font-mono tracking-widest text-zinc-600 uppercase flex-shrink-0">
-            SCROLL PAST QUEUE TO ELEVATE
+            SWIPE DOWN OR SCROLL TO DISMISS
           </div>
         </div>
       </div>

@@ -170,6 +170,26 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         </div>
       </header>
 
+      {/* ===== MOBILE BOTTOM GLASS COMMAND BAR ===== */}
+      <nav
+        className="sm:hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-40 backdrop-blur-2xl bg-black/85 border border-white/10 rounded-full px-3 py-1.5 shadow-[0_10px_35px_rgba(0,0,0,0.85)] flex items-center gap-1.5 pointer-events-auto"
+        aria-label="Mobile Navigation Dock"
+      >
+        {FILTER_PILLS.map((pill) => (
+          <button
+            key={`mobile-${pill.id}`}
+            onClick={() => handleFilterClick(pill.id)}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer ${
+              activeFilter === pill.id
+                ? 'bg-zinc-800 text-white border border-white/20 shadow-md'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            {pill.label}
+          </button>
+        ))}
+      </nav>
+
       {/* ===== ALBUMS DRAWER ===== */}
       {isDrawerOpen && (
         <div
