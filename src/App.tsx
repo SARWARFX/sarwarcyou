@@ -20,13 +20,22 @@ function App() {
 
   // Active snapped album index (0 to 11)
   const [activeAlbumIndex, setActiveAlbumIndex] = useState<number>(0);
+  const [prevAlbumIndex, setPrevAlbumIndex] = useState<number>(0);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+
   // Track active media item index per album
   const [activeMediaIndices, setActiveMediaIndices] = useState<{ [albumIdx: number]: number }>({});
   // Track active batch per album
   const [albumBatches, setAlbumBatches] = useState<{ [albumIdx: number]: number }>({});
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
+  const activeAlbumIndexRef = useRef(activeAlbumIndex);
+  useEffect(() => {
+    activeAlbumIndexRef.current = activeAlbumIndex;
+  }, [activeAlbumIndex]);
+
+  const isTransitioningRef = useRef(false);
+  const wheelDeltaAccumulatorRef = useRef(0);
+  const lastWheelTimeRef = useRef(0);
 
   // Standard Photo & Widescreen Video Lightbox State
   const [modalState, setModalState] = useState<{
@@ -74,85 +83,105 @@ function App() {
     }
   }, [albums]);
 
-  // Programmatic fullpage snap navigation
+  // Luxury Elevator Smooth Navigation
   const scrollToAlbum = useCallback((targetIndex: number) => {
-    if (!scrollContainerRef.current) return;
     const clamped = Math.max(0, Math.min(albums.length - 1, targetIndex));
-    const targetEl = document.getElementById(`album-section-${clamped}`);
-    if (targetEl) {
-      targetEl.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      scrollContainerRef.current.scrollTo({
-        top: clamped * window.innerHeight,
-        behavior: 'smooth',
-      });
-    }
+    if (clamped === activeAlbumIndexRef.current && !isTransitioningRef.current) return;
+    if (isTransitioningRef.current) return;
+
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
+    setPrevAlbumIndex(activeAlbumIndexRef.current);
     setActiveAlbumIndex(clamped);
+
+    // Luxury elevator duration: 950ms + 150ms inertia cooldown
+    setTimeout(() => {
+      setIsTransitioning(false);
+      setPrevAlbumIndex(clamped);
+      setTimeout(() => {
+        isTransitioningRef.current = false;
+        wheelDeltaAccumulatorRef.current = 0;
+      }, 150);
+    }, 950);
   }, [albums.length]);
 
   const handlePrevAlbum = useCallback(() => {
-    scrollToAlbum(activeAlbumIndex - 1);
-  }, [activeAlbumIndex, scrollToAlbum]);
+    scrollToAlbum(activeAlbumIndexRef.current - 1);
+  }, [scrollToAlbum]);
 
   const handleNextAlbum = useCallback(() => {
-    scrollToAlbum(activeAlbumIndex + 1);
-  }, [activeAlbumIndex, scrollToAlbum]);
+    scrollToAlbum(activeAlbumIndexRef.current + 1);
+  }, [scrollToAlbum]);
 
   const handleBackToTop = useCallback(() => {
     scrollToAlbum(0);
   }, [scrollToAlbum]);
 
-  // Synchronize active snapped album index on scroll
-  const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current) return;
-    const scrollY = scrollContainerRef.current.scrollTop;
-    const height = window.innerHeight;
-    const snapped = Math.round(scrollY / height);
-    if (snapped !== activeAlbumIndex && snapped >= 0 && snapped < albums.length) {
-      setActiveAlbumIndex(snapped);
-    }
-  }, [activeAlbumIndex, albums.length]);
-
-  // Mouse wheel strictly snaps to exact next or previous album
+  // Mouse wheel dampening & smooth elevator gliding
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
     const onWheel = (e: WheelEvent) => {
       if (modalState.isOpen || shortsFeedState.isOpen) return;
-      if (Math.abs(e.deltaY) > 28) {
-        e.preventDefault();
-        if (isScrollingRef.current) return;
-        isScrollingRef.current = true;
-        if (e.deltaY > 0) {
+
+      // Allow horizontal scrubbing inside Albums 1 & 2
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      e.preventDefault();
+
+      const now = Date.now();
+
+      // Dampen rapid inputs: if currently in elevator motion or cooldown, swallow and update timestamp
+      if (isTransitioningRef.current) {
+        lastWheelTimeRef.current = now;
+        wheelDeltaAccumulatorRef.current = 0;
+        return;
+      }
+
+      // Reset accumulator if previous burst was > 280ms ago
+      if (now - lastWheelTimeRef.current > 280) {
+        wheelDeltaAccumulatorRef.current = 0;
+      }
+      lastWheelTimeRef.current = now;
+
+      wheelDeltaAccumulatorRef.current += e.deltaY;
+
+      // Threshold ensures deliberate elevator floor command without jitter
+      const THRESHOLD = 35;
+      if (Math.abs(wheelDeltaAccumulatorRef.current) >= THRESHOLD) {
+        const direction = wheelDeltaAccumulatorRef.current > 0 ? 1 : -1;
+        wheelDeltaAccumulatorRef.current = 0;
+        if (direction > 0) {
           handleNextAlbum();
         } else {
           handlePrevAlbum();
         }
-        setTimeout(() => {
-          isScrollingRef.current = false;
-        }, 700);
       }
     };
 
-    container.addEventListener('wheel', onWheel, { passive: false });
-    return () => container.removeEventListener('wheel', onWheel);
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
   }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum]);
 
-  // Mobile Touch Swipe Snap
+  // Mobile Touch Swipe with Dampening
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
     let touchStartY = 0;
+    let touchStartX = 0;
+
     const onTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
     };
+
     const onTouchEnd = (e: TouchEvent) => {
       if (modalState.isOpen || shortsFeedState.isOpen) return;
+      if (isTransitioningRef.current) return;
+
       const touchEndY = e.changedTouches[0].clientY;
+      const touchEndX = e.changedTouches[0].clientX;
       const deltaY = touchStartY - touchEndY;
-      if (Math.abs(deltaY) > 50) {
+      const deltaX = touchStartX - touchEndX;
+
+      // Only trigger if vertical swipe is dominant
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 45) {
         if (deltaY > 0) {
           handleNextAlbum();
         } else {
@@ -161,11 +190,11 @@ function App() {
       }
     };
 
-    container.addEventListener('touchstart', onTouchStart, { passive: true });
-    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
     return () => {
-      container.removeEventListener('touchstart', onTouchStart);
-      container.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
     };
   }, [modalState.isOpen, shortsFeedState.isOpen, handleNextAlbum, handlePrevAlbum]);
 
@@ -232,16 +261,21 @@ function App() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
-      {/* ================= VERTICAL FULLPAGE SNAP CONTAINER ================= */}
+      {/* ================= VERTICAL LUXURY ELEVATOR CONTAINER ================= */}
       <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="h-screen w-screen overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth no-scrollbar select-none bg-black"
-        style={{ scrollSnapType: 'y mandatory' }}
+        className="w-full h-full will-change-transform"
+        style={{
+          transform: `translate3d(0, -${activeAlbumIndex * 100}vh, 0)`,
+          transition: isTransitioning
+            ? 'transform 950ms cubic-bezier(0.16, 1, 0.3, 1)'
+            : 'none',
+        }}
       >
         {albums.map((album, idx) => {
           const isActive = idx === activeAlbumIndex;
-          const isNear = Math.abs(idx - activeAlbumIndex) <= 1;
+          const isNear =
+            Math.abs(idx - activeAlbumIndex) <= 1 ||
+            Math.abs(idx - prevAlbumIndex) <= 1;
           const currentMediaIdx = activeMediaIndices[idx] || 0;
           const currentBatch = albumBatches[idx] || 0;
 
@@ -249,14 +283,14 @@ function App() {
             <section
               id={`album-section-${idx}`}
               key={album.id}
-              className="relative w-screen h-screen snap-start snap-always overflow-hidden flex-shrink-0 bg-black"
-              style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
+              className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-black"
             >
-              {/* Perfectly Centered 3D / Masonry Stage (Rendered for active & adjacent albums) */}
+              {/* Perfectly Centered 3D / Masonry Stage */}
               {isNear && (
                 <AlbumStage
                   album={album}
-                  isActive={isActive}
+                  isActive={isActive && !isTransitioning}
+                  isVisible={isNear}
                   activeIndex={currentMediaIdx}
                   onActiveIndexChange={(newIdx) => {
                     setActiveMediaIndices((prev) => ({ ...prev, [idx]: newIdx }));
@@ -279,12 +313,12 @@ function App() {
         })}
       </div>
 
-      {/* ================= ULTRA-MINIMAL HUD (ONLY 2 ELEMENTS ON SCREEN) ================= */}
+      {/* ================= ULTRA-MINIMAL HUD ================= */}
 
       {/* 1. DYNAMIC BRAND LOGO (Corner Cycling + Living Chromatic Sync + Synced Favicon) */}
       <BrandLogo activeAlbumIndex={activeAlbumIndex} isLightMode={isLightMode} />
 
-      {/* 2. AUTO-HIDING RIGHT-SIDE NAVIGATION DOCK (Hidden off-screen until cursor near edge) */}
+      {/* 2. AUTO-HIDING RIGHT-SIDE NAVIGATION DOCK */}
       <AlbumProgressDots
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}

@@ -1,5 +1,6 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDirectImageUrl, getUnsplashFallback } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -8,25 +9,25 @@ interface Album2MasonryStageProps {
   isActive: boolean;
   onSelectItem: (item: StageMediaItem) => void;
   onActiveIndexChange?: (index: number) => void;
+  isVisible?: boolean;
 }
 
 interface MosaicCellProps {
   item: StageMediaItem;
-  incomingItem: StageMediaItem | null;
   slotIndex: number;
   className?: string;
   onSelect: (item: StageMediaItem) => void;
+  hasDragged: () => boolean;
 }
 
 const MosaicCell: React.FC<MosaicCellProps> = ({
   item,
-  incomingItem,
   slotIndex,
   className = '',
   onSelect,
+  hasDragged,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isIncomingLoaded, setIsIncomingLoaded] = useState(false);
 
   const currentUrl = useMemo(() => {
     return getDirectImageUrl(item, slotIndex);
@@ -36,36 +37,24 @@ const MosaicCell: React.FC<MosaicCellProps> = ({
     return getUnsplashFallback(slotIndex);
   }, [slotIndex]);
 
-  const incomingUrl = useMemo(() => {
-    if (!incomingItem) return null;
-    return getDirectImageUrl(incomingItem, slotIndex + 17);
-  }, [incomingItem, slotIndex]);
-
-  const incomingFallback = useMemo(() => {
-    if (!incomingItem) return null;
-    return getUnsplashFallback(slotIndex + 17);
-  }, [incomingItem, slotIndex]);
-
-  useEffect(() => {
-    if (incomingItem) {
-      setIsIncomingLoaded(false);
-    }
-  }, [incomingItem]);
-
   return (
     <div
-      onClick={() => onSelect(incomingItem && isIncomingLoaded ? incomingItem : item)}
+      onClick={() => {
+        if (!hasDragged()) {
+          onSelect(item);
+        }
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         transform: isHovered
-          ? 'scale3d(1.028, 1.028, 1.028) translateY(-3px)'
+          ? 'scale3d(1.025, 1.025, 1.025) translateY(-3px)'
           : 'scale3d(1, 1, 1) translateY(0px)',
         zIndex: isHovered ? 30 : 1,
       }}
-      className={`relative w-full h-full overflow-hidden rounded-xl sm:rounded-2xl cursor-pointer group bg-[#11141c] border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.6)] hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] select-none will-change-transform ${className}`}
+      className={`relative w-full h-full overflow-hidden rounded-xl sm:rounded-2xl cursor-pointer group bg-[#0e111a] border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.6)] hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] select-none will-change-transform ${className}`}
     >
-      {/* 1. Base Active Image Layer (Always visible underneath so NEVER exposing empty void) */}
+      {/* Base Active Image Layer */}
       <img
         src={currentUrl}
         alt={item.title || 'Editorial Print'}
@@ -76,33 +65,10 @@ const MosaicCell: React.FC<MosaicCellProps> = ({
         className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
       />
 
-      {/* 2. Seamless Incoming Image Layer (Morph/Cross-Slide on Swap) */}
-      {incomingItem && (
-        <img
-          src={incomingUrl || currentFallback}
-          alt={incomingItem.title || 'Incoming Editorial Print'}
-          loading="lazy"
-          onLoad={() => setIsIncomingLoaded(true)}
-          onError={(e) => {
-            if (incomingFallback) e.currentTarget.src = incomingFallback;
-            setIsIncomingLoaded(true);
-          }}
-          style={{
-            opacity: isIncomingLoaded ? 1 : 0,
-            transform: isIncomingLoaded
-              ? 'translate3d(0, 0, 0) scale(1)'
-              : 'translate3d(0, 16px, 0) scale(1.06)',
-            transition:
-              'opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-          className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-108 will-change-transform"
-        />
-      )}
-
-      {/* 3. Subtle Glossy Specular Sheen Reflection on Hover */}
+      {/* Subtle Glossy Specular Sheen Reflection on Hover */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.16] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      {/* 4. Fine Museum Inner Rim Highlight */}
+      {/* Fine Museum Inner Rim Highlight */}
       <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-white/10 group-hover:border-[#00D2FF]/40 transition-colors duration-300" />
     </div>
   );
@@ -112,11 +78,12 @@ export const Album2MasonryStage: React.FC<Album2MasonryStageProps> = ({
   album,
   isActive,
   onSelectItem,
+  onActiveIndexChange,
 }) => {
   const items = useMemo(() => album.items || [], [album.items]);
   const totalItems = items.length;
 
-  // Track responsive screen size
+  // Responsive screen tier
   const [screenTier, setScreenTier] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   useEffect(() => {
@@ -132,272 +99,382 @@ export const Album2MasonryStage: React.FC<Album2MasonryStageProps> = ({
   }, []);
 
   const slotCount = screenTier === 'desktop' ? 10 : screenTier === 'tablet' ? 8 : 4;
+  const totalPanels = Math.max(1, Math.ceil(totalItems / slotCount));
 
-  // Active items currently filling each slot
-  const [activeItems, setActiveItems] = useState<StageMediaItem[]>(() => {
-    return Array.from({ length: 10 }, (_, i) => items[i % Math.max(1, totalItems)] || items[0]);
-  });
+  const [currentPanel, setCurrentPanel] = useState(0);
+  const [dragDeltaX, setDragDeltaX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Incoming items currently in transition per slot
-  const [incomingItems, setIncomingItems] = useState<{ [slot: number]: StageMediaItem | null }>({});
+  const dragStartXRef = useRef(0);
+  const isPointerDownRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const wheelCooldownRef = useRef(false);
 
-  const nextQueueIdxRef = useRef<number>(10 % Math.max(1, totalItems));
-  const batchCycleRef = useRef<number>(0);
+  // Safely clamp or loop to target panel
+  const goToPanel = useCallback(
+    (target: number) => {
+      const clamped = (target + totalPanels) % totalPanels;
+      setCurrentPanel(clamped);
+      setDragDeltaX(0);
+      if (onActiveIndexChange) {
+        onActiveIndexChange(clamped * slotCount);
+      }
+    },
+    [totalPanels, slotCount, onActiveIndexChange]
+  );
 
-  // Re-sync items if album changes
+  // Keyboard navigation: ArrowLeft and ArrowRight
   useEffect(() => {
-    if (totalItems > 0) {
-      setActiveItems(Array.from({ length: 10 }, (_, i) => items[i % totalItems]));
-      nextQueueIdxRef.current = 10 % totalItems;
-      setIncomingItems({});
-    }
-  }, [totalItems]);
+    if (!isActive) return;
 
-  // LIVING DYNAMIC BATCHED SWAP & SHUFFLE:
-  // Every 5.2s, transition 3 to 4 photos with seamless cross-morph
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToPanel(currentPanel + 1);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPanel(currentPanel - 1);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isActive, currentPanel, goToPanel]);
+
+  // Trackpad / Mouse horizontal wheel browsing
   useEffect(() => {
-    if (!isActive || totalItems <= slotCount) return;
+    if (!isActive) return;
 
-    const interval = setInterval(() => {
-      // Rotate between 3 alternating batches of 3-4 slots
-      const batches =
-        screenTier === 'desktop'
-          ? [
-              [0, 2, 5, 8],
-              [1, 3, 6, 9],
-              [4, 7, 1, 5],
-            ]
-          : screenTier === 'tablet'
-          ? [
-              [0, 2, 5],
-              [1, 4, 7],
-              [3, 6, 0],
-            ]
-          : [
-              [0, 2],
-              [1, 3],
-            ];
-
-      const currentBatch = batches[batchCycleRef.current % batches.length];
-      batchCycleRef.current++;
-
-      currentBatch.forEach((slot, idx) => {
-        const stagger = idx * 110;
-
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 25) {
+        e.preventDefault();
+        if (wheelCooldownRef.current) return;
+        wheelCooldownRef.current = true;
+        if (e.deltaX > 0) {
+          goToPanel(currentPanel + 1);
+        } else {
+          goToPanel(currentPanel - 1);
+        }
         setTimeout(() => {
-          const nextItem = items[nextQueueIdxRef.current];
-          nextQueueIdxRef.current = (nextQueueIdxRef.current + 1) % totalItems;
+          wheelCooldownRef.current = false;
+        }, 380);
+      }
+    };
 
-          // Stage 1: Mount incoming item over the active item (cross-morph begins)
-          setIncomingItems((prev) => ({ ...prev, [slot]: nextItem }));
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
+  }, [isActive, currentPanel, goToPanel]);
 
-          // Stage 2: Settle incoming item as current after 750ms
-          setTimeout(() => {
-            setActiveItems((prev) => {
-              const updated = [...prev];
-              updated[slot] = nextItem;
-              return updated;
-            });
-            setIncomingItems((prev) => ({ ...prev, [slot]: null }));
-          }, 780);
-        }, stagger);
-      });
-    }, 5200);
+  // Pointer drag & touch swipe handling
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isPointerDownRef.current = true;
+    dragStartXRef.current = e.clientX;
+    hasDraggedRef.current = false;
+    setIsDragging(true);
+    setDragDeltaX(0);
+  };
 
-    return () => clearInterval(interval);
-  }, [isActive, totalItems, slotCount, screenTier]);
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isPointerDownRef.current) return;
+    const delta = e.clientX - dragStartXRef.current;
+    if (Math.abs(delta) > 8) {
+      hasDraggedRef.current = true;
+    }
+    setDragDeltaX(delta);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isPointerDownRef.current) return;
+    isPointerDownRef.current = false;
+    setIsDragging(false);
+
+    const delta = e.clientX - dragStartXRef.current;
+    const threshold = Math.min(100, window.innerWidth * 0.12);
+
+    if (delta < -threshold) {
+      goToPanel(currentPanel + 1);
+    } else if (delta > threshold) {
+      goToPanel(currentPanel - 1);
+    } else {
+      setDragDeltaX(0);
+    }
+  };
+
+  const checkHasDragged = useCallback(() => hasDraggedRef.current, []);
+
+  // Get items for a given panel index
+  const getPanelItems = (pIdx: number): StageMediaItem[] => {
+    if (totalItems === 0) return [];
+    const start = pIdx * slotCount;
+    const result: StageMediaItem[] = [];
+    for (let i = 0; i < slotCount; i++) {
+      const itemIdx = (start + i) % totalItems;
+      result.push(items[itemIdx]);
+    }
+    return result;
+  };
 
   return (
-    <div className="absolute inset-0 w-screen h-screen overflow-hidden p-2 sm:p-2.5 md:p-3 bg-[#07090e] select-none box-border z-0">
-      {/* ================= DESKTOP 10-SLOT FULL-BLEED MOSAIC (100vw x 100vh) ================= */}
-      {screenTier === 'desktop' && (
-        <div className="w-full h-full grid grid-cols-5 grid-rows-3 gap-2 sm:gap-2.5 md:gap-3">
-          {/* Row 1 & 2: Slot 0 (Tall Portrait, col 1, rows 1-2) */}
-          <MosaicCell
-            item={activeItems[0] || items[0]}
-            incomingItem={incomingItems[0] || null}
-            slotIndex={0}
-            className="col-span-1 row-span-2"
-            onSelect={onSelectItem}
-          />
+    <div
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={{ touchAction: 'none' }}
+      className="absolute inset-0 w-screen h-screen overflow-hidden bg-black select-none z-0 cursor-grab active:cursor-grabbing"
+    >
+      {/* ================= UNIVERSAL HORIZONTAL SLIDER TRACK ================= */}
+      <div
+        className="flex w-full h-full will-change-transform"
+        style={{
+          transform: `translate3d(calc(-${currentPanel * 100}% + ${dragDeltaX}px), 0, 0)`,
+          transition: isDragging
+            ? 'none'
+            : 'transform 750ms cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        {Array.from({ length: totalPanels }).map((_, pIdx) => {
+          const panelItems = getPanelItems(pIdx);
+          const startIdx = pIdx * slotCount;
 
-          {/* Row 1: Slot 1 (Wide Landscape, cols 2-3, row 1) */}
-          <MosaicCell
-            item={activeItems[1] || items[1]}
-            incomingItem={incomingItems[1] || null}
-            slotIndex={1}
-            className="col-span-2 row-span-1"
-            onSelect={onSelectItem}
-          />
+          return (
+            <div
+              key={pIdx}
+              className="w-screen h-screen flex-shrink-0 p-2 sm:p-2.5 md:p-3 pb-16 sm:pb-18 box-border"
+            >
+              {/* DESKTOP 10-SLOT FULL-BLEED MOSAIC */}
+              {screenTier === 'desktop' && (
+                <div className="w-full h-full grid grid-cols-5 grid-rows-3 gap-2 sm:gap-2.5 md:gap-3">
+                  <MosaicCell
+                    item={panelItems[0] || items[0]}
+                    slotIndex={startIdx + 0}
+                    className="col-span-1 row-span-2"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[1] || items[1]}
+                    slotIndex={startIdx + 1}
+                    className="col-span-2 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[2] || items[2]}
+                    slotIndex={startIdx + 2}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[3] || items[3]}
+                    slotIndex={startIdx + 3}
+                    className="col-span-1 row-span-2"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[4] || items[4]}
+                    slotIndex={startIdx + 4}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[5] || items[5]}
+                    slotIndex={startIdx + 5}
+                    className="col-span-1 row-span-2"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[6] || items[6]}
+                    slotIndex={startIdx + 6}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[7] || items[7]}
+                    slotIndex={startIdx + 7}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[8] || items[8]}
+                    slotIndex={startIdx + 8}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[9] || items[9]}
+                    slotIndex={startIdx + 9}
+                    className="col-span-2 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                </div>
+              )}
 
-          {/* Row 1: Slot 2 (Square, col 4, row 1) */}
-          <MosaicCell
-            item={activeItems[2] || items[2]}
-            incomingItem={incomingItems[2] || null}
-            slotIndex={2}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
+              {/* TABLET 8-SLOT FULL-BLEED MOSAIC */}
+              {screenTier === 'tablet' && (
+                <div className="w-full h-full grid grid-cols-4 grid-rows-3 gap-2 sm:gap-2.5">
+                  <MosaicCell
+                    item={panelItems[0] || items[0]}
+                    slotIndex={startIdx + 0}
+                    className="col-span-1 row-span-2"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[1] || items[1]}
+                    slotIndex={startIdx + 1}
+                    className="col-span-2 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[2] || items[2]}
+                    slotIndex={startIdx + 2}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[3] || items[3]}
+                    slotIndex={startIdx + 3}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[4] || items[4]}
+                    slotIndex={startIdx + 4}
+                    className="col-span-1 row-span-2"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[5] || items[5]}
+                    slotIndex={startIdx + 5}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[6] || items[6]}
+                    slotIndex={startIdx + 6}
+                    className="col-span-2 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[7] || items[7]}
+                    slotIndex={startIdx + 7}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                </div>
+              )}
 
-          {/* Row 1 & 2: Slot 3 (Tall Portrait, col 5, rows 1-2) */}
-          <MosaicCell
-            item={activeItems[3] || items[3]}
-            incomingItem={incomingItems[3] || null}
-            slotIndex={3}
-            className="col-span-1 row-span-2"
-            onSelect={onSelectItem}
-          />
+              {/* MOBILE 4-SLOT FULL-BLEED MOSAIC */}
+              {screenTier === 'mobile' && (
+                <div className="w-full h-full grid grid-cols-2 grid-rows-3 gap-2">
+                  <MosaicCell
+                    item={panelItems[0] || items[0]}
+                    slotIndex={startIdx + 0}
+                    className="col-span-1 row-span-2"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[1] || items[1]}
+                    slotIndex={startIdx + 1}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[2] || items[2]}
+                    slotIndex={startIdx + 2}
+                    className="col-span-1 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                  <MosaicCell
+                    item={panelItems[3] || items[3]}
+                    slotIndex={startIdx + 3}
+                    className="col-span-2 row-span-1"
+                    onSelect={onSelectItem}
+                    hasDragged={checkHasDragged}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-          {/* Row 2: Slot 4 (Square, col 2, row 2) */}
-          <MosaicCell
-            item={activeItems[4] || items[4]}
-            incomingItem={incomingItems[4] || null}
-            slotIndex={4}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
+      {/* ================= ULTRA-MINIMAL HORIZONTAL SCRUBBER HUD ================= */}
+      {totalPanels > 1 && (
+        <aside
+          aria-label="Horizontal album gallery navigation"
+          className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-3.5 py-2 rounded-full border border-white/10 bg-black/65 backdrop-blur-xl text-white select-none pointer-events-auto shadow-[0_8px_30px_rgba(0,0,0,0.8)]"
+        >
+          {/* Previous Chevron Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              goToPanel(currentPanel - 1);
+            }}
+            className="p-1 text-white/50 hover:text-[#00D2FF] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            aria-label="Previous photo batch"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
 
-          {/* Row 2 & 3: Slot 5 (Tall Portrait, col 3, rows 2-3) */}
-          <MosaicCell
-            item={activeItems[5] || items[5]}
-            incomingItem={incomingItems[5] || null}
-            slotIndex={5}
-            className="col-span-1 row-span-2"
-            onSelect={onSelectItem}
-          />
+          {/* Panel Dots / Progress Indicators */}
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: totalPanels }).map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToPanel(idx);
+                }}
+                aria-label={`Go to photo batch ${idx + 1}`}
+                className={`transition-all duration-300 rounded-full cursor-pointer ${
+                  idx === currentPanel
+                    ? 'w-6 h-1.5 bg-[#00D2FF] shadow-[0_0_8px_#00D2FF]'
+                    : 'w-1.5 h-1.5 bg-white/25 hover:bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
 
-          {/* Row 2: Slot 6 (Square, col 4, row 2) */}
-          <MosaicCell
-            item={activeItems[6] || items[6]}
-            incomingItem={incomingItems[6] || null}
-            slotIndex={6}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
+          {/* Text Badge */}
+          <span className="text-[10px] font-mono tracking-widest text-white/70 uppercase">
+            {currentPanel + 1} / {totalPanels}{' '}
+            <span className="hidden sm:inline text-white/35 font-light">
+              ({totalItems} PHOTOS)
+            </span>
+          </span>
 
-          {/* Row 3: Slot 7 (Square, col 1, row 3) */}
-          <MosaicCell
-            item={activeItems[7] || items[7]}
-            incomingItem={incomingItems[7] || null}
-            slotIndex={7}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-
-          {/* Row 3: Slot 8 (Square, col 2, row 3) */}
-          <MosaicCell
-            item={activeItems[8] || items[8]}
-            incomingItem={incomingItems[8] || null}
-            slotIndex={8}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-
-          {/* Row 3: Slot 9 (Wide Landscape, cols 4-5, row 3) */}
-          <MosaicCell
-            item={activeItems[9] || items[9]}
-            incomingItem={incomingItems[9] || null}
-            slotIndex={9}
-            className="col-span-2 row-span-1"
-            onSelect={onSelectItem}
-          />
-        </div>
-      )}
-
-      {/* ================= TABLET 8-SLOT FULL-BLEED MOSAIC (4 Cols x 3 Rows) ================= */}
-      {screenTier === 'tablet' && (
-        <div className="w-full h-full grid grid-cols-4 grid-rows-3 gap-2 sm:gap-2.5">
-          <MosaicCell
-            item={activeItems[0] || items[0]}
-            incomingItem={incomingItems[0] || null}
-            slotIndex={0}
-            className="col-span-1 row-span-2"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[1] || items[1]}
-            incomingItem={incomingItems[1] || null}
-            slotIndex={1}
-            className="col-span-2 row-span-1"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[2] || items[2]}
-            incomingItem={incomingItems[2] || null}
-            slotIndex={2}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[3] || items[3]}
-            incomingItem={incomingItems[3] || null}
-            slotIndex={3}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[4] || items[4]}
-            incomingItem={incomingItems[4] || null}
-            slotIndex={4}
-            className="col-span-1 row-span-2"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[5] || items[5]}
-            incomingItem={incomingItems[5] || null}
-            slotIndex={5}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[6] || items[6]}
-            incomingItem={incomingItems[6] || null}
-            slotIndex={6}
-            className="col-span-2 row-span-1"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[7] || items[7]}
-            incomingItem={incomingItems[7] || null}
-            slotIndex={7}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-        </div>
-      )}
-
-      {/* ================= MOBILE 4-SLOT FULL-BLEED MOSAIC (2 Cols x 3 Rows) ================= */}
-      {screenTier === 'mobile' && (
-        <div className="w-full h-full grid grid-cols-2 grid-rows-3 gap-2">
-          <MosaicCell
-            item={activeItems[0] || items[0]}
-            incomingItem={incomingItems[0] || null}
-            slotIndex={0}
-            className="col-span-1 row-span-2"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[1] || items[1]}
-            incomingItem={incomingItems[1] || null}
-            slotIndex={1}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[2] || items[2]}
-            incomingItem={incomingItems[2] || null}
-            slotIndex={2}
-            className="col-span-1 row-span-1"
-            onSelect={onSelectItem}
-          />
-          <MosaicCell
-            item={activeItems[3] || items[3]}
-            incomingItem={incomingItems[3] || null}
-            slotIndex={3}
-            className="col-span-2 row-span-1"
-            onSelect={onSelectItem}
-          />
-        </div>
+          {/* Next Chevron Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              goToPanel(currentPanel + 1);
+            }}
+            className="p-1 text-white/50 hover:text-[#00D2FF] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            aria-label="Next photo batch"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </aside>
       )}
     </div>
   );

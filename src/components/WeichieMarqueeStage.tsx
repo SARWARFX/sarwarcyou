@@ -17,6 +17,7 @@ interface WeichieMarqueeStageProps {
   activeIndex: number;
   onActiveIndexChange: (index: number) => void;
   batchIndex: number;
+  isVisible?: boolean;
 }
 
 // Bends buffer geometry horizontally with radius R so outer edges wrap slightly toward camera (+Z)
@@ -45,24 +46,6 @@ function createCurvedBox(width: number, height: number, depth: number, radius: n
   return bendGeometryHorizontally(geo, radius, 0.72);
 }
 
-// Soft stardust particle sprite texture with radial falloff
-function createStardustTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 64;
-  const ctx = canvas.getContext('2d')!;
-  const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  grad.addColorStop(0.2, 'rgba(235, 255, 220, 0.95)');
-  grad.addColorStop(0.5, 'rgba(0, 210, 255, 0.45)');
-  grad.addColorStop(0.8, 'rgba(255, 215, 0, 0.15)');
-  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 64, 64);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.needsUpdate = true;
-  return tex;
-}
 
 // Calculate uncropped heroic dimensions preserving the native aspect ratio
 function computeHeroicDimensions(ratio: number): { w: number; h: number } {
@@ -95,6 +78,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
   activeIndex,
   onActiveIndexChange,
   batchIndex,
+  isVisible,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const onSelectItemRef = useRef(onSelectItem);
@@ -131,7 +115,8 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !isActive) return;
+    const shouldRender = isVisible ?? isActive;
+    if (!container || !shouldRender) return;
 
     const items = album.items || [];
     const totalItems = items.length;
@@ -140,7 +125,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     // --- 1. THREE.JS SCENE & PERSPECTIVE CAMERA ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.FogExp2(0x000208, 0.022);
+    scene.fog = new THREE.FogExp2(0x000000, 0.02);
 
     const isPortrait = window.innerWidth < 768;
     const camera = new THREE.PerspectiveCamera(
@@ -199,75 +184,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     mouseReactiveLight.position.set(0, 0, 4.0);
     scene.add(mouseReactiveLight);
 
-    // --- 4. MESH3D ORGANIC WAVY PARTICLE TERRAIN BACKGROUND ---
-    const GRID_X = 105;
-    const GRID_Z = 105;
-    const TOTAL_TERRAIN_POINTS = GRID_X * GRID_Z;
-
-    const terrainGeo = new THREE.BufferGeometry();
-    const terrainPositions = new Float32Array(TOTAL_TERRAIN_POINTS * 3);
-    const baseTerrainPositions = new Float32Array(TOTAL_TERRAIN_POINTS * 3);
-    const terrainColors = new Float32Array(TOTAL_TERRAIN_POINTS * 3);
-
-    let tIndex = 0;
-    for (let i = 0; i < GRID_X; i++) {
-      for (let j = 0; j < GRID_Z; j++) {
-        const u = i / (GRID_X - 1);
-        const v = j / (GRID_Z - 1);
-
-        // Broad liquid horizon extending behind the carousel
-        const tx = (u - 0.5) * 56;
-        const tz = (v - 0.5) * 44 - 10;
-        const ty = -2.2;
-
-        terrainPositions[tIndex * 3] = tx;
-        terrainPositions[tIndex * 3 + 1] = ty;
-        terrainPositions[tIndex * 3 + 2] = tz;
-
-        baseTerrainPositions[tIndex * 3] = tx;
-        baseTerrainPositions[tIndex * 3 + 1] = ty;
-        baseTerrainPositions[tIndex * 3 + 2] = tz;
-
-        // Tri-color chromatic blend: Gold (#FFD700) -> Lime (#84CC16) -> Electric Cyan (#00D2FF)
-        const colorT = (Math.sin(u * Math.PI * 2.5) + Math.cos(v * Math.PI * 2.0) + 2) / 4;
-        let cr = 0, cg = 0, cb = 0;
-        if (colorT < 0.5) {
-          const f = colorT * 2;
-          cr = 0.52 * f;
-          cg = 0.85 * (1 - f) + 0.90 * f;
-          cb = 1.0 * (1 - f) + 0.12 * f;
-        } else {
-          const f = (colorT - 0.5) * 2;
-          cr = 0.52 * (1 - f) + 1.0 * f;
-          cg = 0.90 * (1 - f) + 0.84 * f;
-          cb = 0.12 * (1 - f) + 0.18 * f;
-        }
-
-        terrainColors[tIndex * 3] = cr;
-        terrainColors[tIndex * 3 + 1] = cg;
-        terrainColors[tIndex * 3 + 2] = cb;
-
-        tIndex++;
-      }
-    }
-
-    terrainGeo.setAttribute('position', new THREE.BufferAttribute(terrainPositions, 3));
-    terrainGeo.setAttribute('color', new THREE.BufferAttribute(terrainColors, 3));
-
-    const stardustTexture = createStardustTexture();
-    const terrainMat = new THREE.PointsMaterial({
-      size: 0.17,
-      map: stardustTexture,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.82,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-
-    const terrainMesh = new THREE.Points(terrainGeo, terrainMat);
-    terrainMesh.renderOrder = 0;
-    scene.add(terrainMesh);
 
     // --- 5. RECYCLING MESH POOL (EXACTLY 9 MESHES FOR FULL VIEWPORT COVERAGE) ---
     const POOL_SIZE = 9;
@@ -593,7 +509,8 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
         e.preventDefault();
-        animStateRef.current.velocity += e.deltaX * 0.0006;
+        animStateRef.current.scrollPos += e.deltaX * 0.002;
+        animStateRef.current.velocity = (e.deltaX * 0.002) * 0.2;
         animStateRef.current.programmaticTarget = null;
       }
     };
@@ -601,12 +518,14 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        animStateRef.current.velocity -= 0.038;
-        animStateRef.current.programmaticTarget = null;
+        const base = animStateRef.current.programmaticTarget ?? animStateRef.current.scrollPos;
+        animStateRef.current.programmaticTarget = Math.round(base) - 1;
+        animStateRef.current.velocity = 0;
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        animStateRef.current.velocity += 0.038;
-        animStateRef.current.programmaticTarget = null;
+        const base = animStateRef.current.programmaticTarget ?? animStateRef.current.scrollPos;
+        animStateRef.current.programmaticTarget = Math.round(base) + 1;
+        animStateRef.current.velocity = 0;
       }
     };
 
@@ -622,6 +541,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     dom.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
     dom.addEventListener('pointerenter', onPointerEnter);
     dom.addEventListener('pointerleave', onPointerLeave);
     dom.addEventListener('wheel', onWheel, { passive: false });
@@ -632,7 +552,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
     let animationFrameId: number;
     let lastNotifiedIndex = -1;
     let frameCounter = 0;
-    const clock = new THREE.Clock();
     const baseDriftSpeed = 0.0034;
     const globalArcRadius = 8.2;
     const MANDATORY_BUFFER_GAP = 0.55;
@@ -651,30 +570,10 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       frameCounter++;
 
       const state = animStateRef.current;
-      const elapsed = clock.getElapsedTime();
 
       // Mouse reactive atmospheric ambient lighting
       mouseReactiveLight.position.x += (state.mousePos.x * 5.2 - mouseReactiveLight.position.x) * 0.08;
       mouseReactiveLight.position.y += (state.mousePos.y * 3.6 - mouseReactiveLight.position.y) * 0.08;
-
-      // Update Mesh3D organic wavy particle terrain displacement
-      const terrainPosAttr = terrainGeo.attributes.position;
-      for (let i = 0; i < TOTAL_TERRAIN_POINTS; i++) {
-        const bx = baseTerrainPositions[i * 3];
-        const bz = baseTerrainPositions[i * 3 + 2];
-
-        // Complex undulating liquid stardust waves
-        const wave1 = Math.sin(bx * 0.15 + elapsed * 0.9) * Math.cos(bz * 0.16 + elapsed * 0.75) * 1.35;
-        const wave2 = Math.sin((bx + bz) * 0.10 + elapsed * 1.1) * 0.8;
-        const wave3 = Math.cos(Math.sqrt(bx * bx + bz * bz) * 0.20 - elapsed * 1.25) * 0.5;
-
-        terrainPosAttr.setY(i, -2.2 + wave1 + wave2 + wave3);
-      }
-      terrainPosAttr.needsUpdate = true;
-
-      // Gentle mouse parallax on the terrain
-      terrainMesh.rotation.y = state.mousePos.x * 0.045;
-      terrainMesh.rotation.x = -0.16 + state.mousePos.y * 0.035;
 
       // Smooth hover pause factor
       const targetHover = state.isHoveredOverStage ? 0.0 : 1.0;
@@ -810,10 +709,6 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
       fallbackCanvasTextures.forEach((tex) => tex.dispose());
       fallbackCanvasTextures.clear();
 
-      terrainGeo.dispose();
-      terrainMat.dispose();
-      stardustTexture.dispose();
-
       chassisGeo.dispose();
       frameTrimGeo.dispose();
       photoGeo.dispose();
@@ -838,11 +733,12 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
         dom.parentNode.removeChild(dom);
       }
     };
-  }, [isActive, album]);
+  }, [isActive, isVisible, album]);
 
   return (
     <div
       ref={containerRef}
+      style={{ touchAction: 'none' }}
       className="absolute inset-0 w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-black z-0"
     />
   );

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { createProceduralFrameTexture, createComingSoonTexture } from '../utils/textureGenerator';
 import { WeichieMarqueeStage } from './WeichieMarqueeStage';
 import { Album2MasonryStage } from './Album2MasonryStage';
-import { Album3PlanetStage } from './Album3PlanetStage';
+import { Album3BentoStage } from './Album3BentoStage';
 import { getDirectImageUrl, getBackupDriveUrl, getUnsplashFallback, extractDriveFileId } from '../utils/imageUrlResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -15,6 +15,7 @@ interface AlbumStageProps {
   activeIndex: number;
   onActiveIndexChange: (index: number) => void;
   batchIndex: number;
+  isVisible?: boolean;
 }
 
 // Helper for rounded rectangle Shapes
@@ -44,6 +45,7 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
   activeIndex,
   onActiveIndexChange,
   batchIndex,
+  isVisible,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeIndexRef = useRef(activeIndex);
@@ -70,7 +72,8 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !isActive) return;
+    const shouldRender = isVisible ?? isActive;
+    if (!container || !shouldRender) return;
 
     const isComingSoon = album.itemCount === 0 || album.layoutType.startsWith('coming-soon');
     // Display 5 to 6 items per batch
@@ -488,11 +491,27 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const base = animStateRef.current.programmaticTarget ?? animStateRef.current.currentIndex;
+        animStateRef.current.programmaticTarget = Math.max(0, Math.round(base) - 1);
+        animStateRef.current.velocity = 0;
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const base = animStateRef.current.programmaticTarget ?? animStateRef.current.currentIndex;
+        animStateRef.current.programmaticTarget = Math.min(itemCount - 1, Math.round(base) + 1);
+        animStateRef.current.velocity = 0;
+      }
+    };
+
     const dom = renderer.domElement;
     dom.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
     dom.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onResize);
 
     // --- 6. ANIMATION LOOP ---
@@ -729,6 +748,7 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       dom.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', onResize);
 
       rootGroup.traverse((obj) => {
@@ -747,11 +767,12 @@ const StandardAlbumStage: React.FC<AlbumStageProps> = ({
         dom.parentNode.removeChild(dom);
       }
     };
-  }, [isActive, album, batchIndex]);
+  }, [isActive, isVisible, album, batchIndex]);
 
   return (
     <div
       ref={containerRef}
+      style={{ touchAction: 'none' }}
       className="absolute inset-0 w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing bg-black z-0"
     />
   );
@@ -764,8 +785,8 @@ export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
   if (props.album.layoutType === 'heroic-masonry' || props.album.index === 1) {
     return <Album2MasonryStage {...props} />;
   }
-  if (props.album.index === 2) {
-    return <Album3PlanetStage {...props} />;
+  if (props.album.layoutType === 'bento-grid' || props.album.index === 2) {
+    return <Album3BentoStage {...props} />;
   }
   return <StandardAlbumStage {...props} />;
 };

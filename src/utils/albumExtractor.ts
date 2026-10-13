@@ -76,8 +76,8 @@ export function extractTwelveAlbums(data: ApiResponseData | null | undefined): A
       type: 'image',
       itemCount: h2026PhotoFolder?.files?.length || 0,
       items: mapFiles(h2026PhotoFolder?.files, 'H2026 Photos', 'image'),
-      layoutType: 'ribbon-slider',
-      subtitle: 'Horizontal Ribbon Gallery',
+      layoutType: 'bento-grid',
+      subtitle: 'Asymmetric Bento Architecture',
     },
     // Album 4: H2025 Photos
     {

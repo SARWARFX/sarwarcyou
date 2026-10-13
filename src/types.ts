@@ -71,6 +71,7 @@ export interface MediaFolderEntry {
 export type AlbumLayoutType =
   | 'weichie-curved'
   | 'heroic-masonry'
+  | 'bento-grid'
   | 'shallow-arc'
   | 'depth-cascade'
   | 'ribbon-slider'
