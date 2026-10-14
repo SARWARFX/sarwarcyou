@@ -1,5 +1,5 @@
-import React from 'react';
-import { Play, Camera, Film, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Camera, Film, Sparkles, ChevronLeft, ArrowRight } from 'lucide-react';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { resolveMultiFrameThumbnails } from '../utils/thumbnailResolver';
@@ -48,10 +48,10 @@ const MobileCard: React.FC<MobileCardProps> = ({ item, album, idx, onSelectItem 
   return (
     <div
       onClick={() => onSelectItem(item, album.index)}
-      className="group flex flex-col cursor-pointer active:scale-[0.98] transition-transform select-none"
+      className="group flex flex-col cursor-pointer active:scale-[0.98] transition-transform select-none w-full"
     >
-      {/* 16:9 Aspect Video Thumbnail Container */}
-      <div className="relative w-full aspect-video rounded-md overflow-hidden bg-zinc-900 border border-white/[0.06]">
+      {/* 16:9 Aspect Video Thumbnail Container with rounded-lg */}
+      <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-zinc-900 border border-white/[0.06]">
         <img
           src={thumbnailUrl}
           alt={cleanTitle}
@@ -87,7 +87,7 @@ const MobileCard: React.FC<MobileCardProps> = ({ item, album, idx, onSelectItem 
       </div>
 
       {/* Compact Metadata: 1-line truncated title */}
-      <span className="text-[11px] text-zinc-300 leading-tight mt-1 line-clamp-1 truncate">
+      <span className="text-[11px] text-zinc-300 font-medium leading-tight mt-1 line-clamp-1 truncate">
         {cleanTitle}
       </span>
     </div>
@@ -102,6 +102,8 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
   scrollRef,
   onScroll,
 }) => {
+  const [selectedCollectionAlbum, setSelectedCollectionAlbum] = useState<AlbumData | null>(null);
+
   const hasRecent = recentItems.length > 0;
   const latestAlbum = albums.find((a) => a.id === 'album-latest-releases') || albums[0];
   const regularAlbums = albums.filter((a) => a.id !== 'album-latest-releases');
@@ -112,10 +114,10 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
       onScroll={onScroll}
       className="block md:hidden h-screen w-full overflow-y-auto overflow-x-hidden pt-16 pb-24 bg-black select-none overscroll-contain [-webkit-overflow-scrolling:touch]"
     >
-      {/* 1. RECENTLY OPENED SECTION (Conditional) */}
+      {/* 1. RECENTLY OPENED SECTION (Conditional Horizontal Carousel) */}
       {hasRecent && (
-        <section id="mobile-album-recent" className="mb-4">
-          <div className="px-2.5 pt-1 pb-1 flex items-center justify-between border-b border-white/[0.04]">
+        <section id="mobile-album-recent" className="mb-5">
+          <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
             <h2 className="text-xs font-bold font-space uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-cyan-400" />
               Recently Opened
@@ -125,78 +127,190 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
               <button
                 type="button"
                 onClick={onClearHistory}
-                className="text-[9px] font-mono text-zinc-500 hover:text-zinc-300 uppercase cursor-pointer px-1 py-0.5"
+                className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300 uppercase cursor-pointer px-1.5 py-0.5 rounded hover:bg-zinc-900"
               >
                 Clear
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2 p-2 sm:gap-3">
-            {recentItems.slice(0, 8).map((item, idx) => (
-              <MobileCard
+          <div
+            className="grid grid-rows-2 sm:grid-rows-3 grid-flow-col gap-2.5 overflow-x-auto pb-3 pt-2 px-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              gridTemplateRows: 'repeat(2, auto)',
+            }}
+          >
+            {recentItems.map((item, idx) => (
+              <div
                 key={`recent-${item.id || idx}`}
-                item={item}
-                album={latestAlbum || albums[0]}
-                idx={idx}
-                onSelectItem={(it, aIdx) => onSelectItem(it, aIdx)}
-              />
+                className="w-[160px] xs:w-[175px] snap-start shrink-0"
+              >
+                <MobileCard
+                  item={item}
+                  album={latestAlbum || albums[0]}
+                  idx={idx}
+                  onSelectItem={(it, aIdx) => onSelectItem(it, aIdx)}
+                />
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* 2. LATEST RELEASES SECTION */}
+      {/* 2. LATEST RELEASES SECTION (Horizontal 4-Row Multi-Row Carousel) */}
       {latestAlbum && latestAlbum.items.length > 0 && (
-        <section id="mobile-album-0" className="mb-4">
-          <div className="px-2.5 pt-1 pb-1 flex items-center justify-between border-b border-white/[0.04]">
+        <section id="mobile-album-0" className="mb-5">
+          <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
             <h2 className="text-xs font-bold font-space uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
               <Film className="w-3 h-3 text-amber-400" />
               Latest Releases
               <span className="text-zinc-600 font-mono text-[10px]">({latestAlbum.items.length})</span>
             </h2>
+            <button
+              type="button"
+              onClick={() => setSelectedCollectionAlbum(latestAlbum)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <span>View All</span>
+              <ArrowRight className="w-3 h-3 text-zinc-500" />
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-2 p-2 sm:gap-3">
+          <div
+            className="grid grid-rows-4 sm:grid-rows-5 grid-flow-col gap-2.5 overflow-x-auto pb-3 pt-2 px-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              gridTemplateRows: 'repeat(4, auto)',
+            }}
+          >
             {latestAlbum.items.map((item, idx) => (
-              <MobileCard
+              <div
                 key={item.id || `latest-${idx}`}
-                item={item}
-                album={latestAlbum}
-                idx={idx}
-                onSelectItem={(it, aIdx) => onSelectItem(it, aIdx)}
-              />
+                className="w-[160px] xs:w-[175px] snap-start shrink-0"
+              >
+                <MobileCard
+                  item={item}
+                  album={latestAlbum}
+                  idx={idx}
+                  onSelectItem={(it, aIdx) => onSelectItem(it, aIdx)}
+                />
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* 3. REGULAR ALBUMS (Tight 2-Column Grid, Zero Header Gap) */}
+      {/* 3. REGULAR ALBUMS (Capped 4-5 Row Horizontal Sliding Carousels) */}
       {regularAlbums.map((album) => {
         if (!album.items || album.items.length === 0) return null;
 
         return (
-          <section key={album.id} id={`mobile-album-${album.index}`} className="mb-4">
-            <div className="px-2.5 pt-2 pb-1 flex items-center justify-between border-b border-white/[0.04]">
+          <section key={album.id} id={`mobile-album-${album.index}`} className="mb-5">
+            <div className="px-3 pt-2.5 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
               <h2 className="text-xs font-bold font-space uppercase text-zinc-200 tracking-wider">
                 {album.name}
                 <span className="text-zinc-600 font-mono text-[10px] ml-1.5">
                   ({album.items.length})
                 </span>
               </h2>
+              <button
+                type="button"
+                onClick={() => setSelectedCollectionAlbum(album)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3 h-3 text-zinc-500" />
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-2 p-2 sm:gap-3">
+
+            {/* Mobile-only horizontal multi-row carousel */}
+            <div
+              className="grid grid-rows-4 sm:grid-rows-5 grid-flow-col gap-2.5 overflow-x-auto pb-3 pt-2 px-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+              style={{
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                gridTemplateRows: 'repeat(4, auto)',
+              }}
+            >
               {album.items.map((item, idx) => (
-                <MobileCard
+                <div
                   key={item.id || `${album.id}-${idx}`}
-                  item={item}
-                  album={album}
-                  idx={idx}
-                  onSelectItem={(it, aIdx) => onSelectItem(it, aIdx)}
-                />
+                  className="w-[160px] xs:w-[175px] snap-start shrink-0"
+                >
+                  <MobileCard
+                    item={item}
+                    album={album}
+                    idx={idx}
+                    onSelectItem={(it, aIdx) => onSelectItem(it, aIdx)}
+                  />
+                </div>
               ))}
             </div>
           </section>
         );
       })}
+
+      {/* ================= DEDICATED FULL COLLECTION MODAL ("VIEW ALL") ================= */}
+      {selectedCollectionAlbum && (
+        <div className="fixed inset-0 z-50 bg-black/96 backdrop-blur-2xl flex flex-col animate-fade-in md:hidden">
+          {/* Top Control Bar */}
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-zinc-950/90 backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={() => setSelectedCollectionAlbum(null)}
+              className="flex items-center gap-1.5 text-xs font-mono text-zinc-300 hover:text-white p-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
+
+            <div className="text-center truncate px-2">
+              <h2 className="text-xs font-bold font-space uppercase text-zinc-100 truncate">
+                {selectedCollectionAlbum.name}
+              </h2>
+              <span className="text-[10px] font-mono text-zinc-500">
+                {selectedCollectionAlbum.items.length} items
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedCollectionAlbum.items.length > 0) {
+                  const firstItem = selectedCollectionAlbum.items[0];
+                  setSelectedCollectionAlbum(null);
+                  onSelectItem(firstItem, selectedCollectionAlbum.index);
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-black font-mono text-[10px] font-bold uppercase hover:bg-zinc-200 transition-colors"
+            >
+              <Play className="w-3 h-3 fill-current" />
+              <span>Play</span>
+            </button>
+          </div>
+
+          {/* Full Scrollable 2-Column Vertical Grid */}
+          <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-2.5 overscroll-contain pb-20">
+            {selectedCollectionAlbum.items.map((item, idx) => (
+              <div key={item.id || `full-view-${idx}`} className="w-full">
+                <MobileCard
+                  item={item}
+                  album={selectedCollectionAlbum}
+                  idx={idx}
+                  onSelectItem={(it, aIdx) => {
+                    setSelectedCollectionAlbum(null);
+                    onSelectItem(it, aIdx);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
