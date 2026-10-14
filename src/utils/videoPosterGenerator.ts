@@ -118,31 +118,85 @@ export async function extractVideoThumbnail(
   });
 }
 
+const prewarmedMediaElements = new Map<string, HTMLVideoElement>();
+
 /**
  * Pre-warms video stream connection on hover or touch before user click.
- * Sets preconnect origin and primes decoder metadata.
+ * Sets preconnect origins, injects <link rel="preload" as="fetch">, and primes
+ * the browser decoder / range-request cache via a transient headless video element.
  */
 export function prewarmVideoStream(videoUrl: string): void {
-  if (!videoUrl || typeof document === 'undefined' || prewarmedUrls.has(videoUrl)) return;
-  prewarmedUrls.add(videoUrl);
+  if (!videoUrl || typeof document === 'undefined') return;
+  const safeUrl = videoUrl.replace(/^http:\/\//i, 'https://').split('#')[0];
+  if (prewarmedUrls.has(safeUrl)) return;
+  prewarmedUrls.add(safeUrl);
 
   try {
-    // 1. Preconnect link tag
+    // 1. Preconnect link tags for origins (dataset host + LFS CDN domains)
     try {
-      const origin = new URL(videoUrl).origin;
-      if (!document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) {
+      const parsed = new URL(safeUrl);
+      const origins = [parsed.origin];
+      if (parsed.hostname.includes('huggingface.co')) {
+        origins.push('https://cdn-lfs.huggingface.co');
+        origins.push('https://cdn-lfs-us-1.huggingface.co');
+      }
+      for (const origin of origins) {
+        if (!document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) {
+          const link = document.createElement('link');
+          link.rel = 'preconnect';
+          link.href = origin;
+          link.crossOrigin = 'anonymous';
+          document.head.appendChild(link);
+        }
+      }
+    } catch {
+      // ignore URL parsing errors
+    }
+
+    // 2. Inject <link rel="preload" as="fetch"> for HTTP 302 / header pre-resolution
+    try {
+      if (!document.querySelector(`link[rel="preload"][href="${safeUrl}"]`)) {
         const link = document.createElement('link');
-        link.rel = 'preconnect';
-        link.href = origin;
+        link.rel = 'preload';
+        link.as = 'fetch';
+        link.href = safeUrl;
         link.crossOrigin = 'anonymous';
         document.head.appendChild(link);
       }
     } catch {
-      // ignore URL parsing
+      // ignore
     }
 
-    // 2. Prime stream metadata in background
-    extractVideoThumbnail(videoUrl, 0.5).catch(() => {});
+    // 3. Transient headless <video preload="metadata">
+    // Triggers browser Range-request (bytes 0-), DNS/TLS negotiation, and MOOV atom decoding in background
+    try {
+      const prewarmVideo = document.createElement('video');
+      prewarmVideo.preload = 'metadata';
+      prewarmVideo.muted = true;
+      prewarmVideo.playsInline = true;
+      prewarmVideo.crossOrigin = 'anonymous';
+      prewarmVideo.src = safeUrl;
+
+      prewarmedMediaElements.set(safeUrl, prewarmVideo);
+
+      const cleanup = () => {
+        prewarmVideo.onloadedmetadata = null;
+        prewarmVideo.onerror = null;
+        setTimeout(() => {
+          prewarmVideo.src = '';
+          prewarmedMediaElements.delete(safeUrl);
+        }, 30000);
+      };
+
+      prewarmVideo.onloadedmetadata = cleanup;
+      prewarmVideo.onerror = cleanup;
+      prewarmVideo.load();
+    } catch {
+      // ignore
+    }
+
+    // 4. Prime stream snapshot into canvas poster cache
+    extractVideoThumbnail(safeUrl, 0.5).catch(() => {});
   } catch {
     // ignore
   }

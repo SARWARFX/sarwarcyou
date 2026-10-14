@@ -1071,7 +1071,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               {/* Video Player */}
               {isVideo ? (
                 isDirectVideo ? (
-                  <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
+                  <div
+                    className="relative w-full h-full flex flex-col items-center justify-center z-10 bg-contain bg-center bg-no-repeat"
+                    style={activePoster ? { backgroundImage: `url(${activePoster})` } : undefined}
+                  >
                     <video
                       ref={videoRef}
                       key={cleanStreamUrl}
@@ -1079,7 +1082,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       poster={activePoster}
                       autoPlay
                       playsInline
-                      preload="metadata"
+                      preload="auto"
                       controls={false}
                       muted={isMuted}
                       onClick={togglePlay}
@@ -1089,6 +1092,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       }}
                       onLoadedData={() => {
                         if (videoRef.current && videoRef.current.readyState >= 2) {
+                          setHasStarted(true);
                           setIsBuffering(false);
                           setIsStalled(false);
                           setPlaybackError(null);
@@ -1099,6 +1103,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         }
                       }}
                       onCanPlay={() => {
+                        setHasStarted(true);
                         setIsBuffering(false);
                         setIsStalled(false);
                         setPlaybackError(null);
@@ -1186,8 +1191,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         </div>
                       )}
 
-                      {/* Sleek Minimal Glowing Buffering Indicator over Poster */}
-                      {!hasStarted && isBuffering && !isStalled && !playbackError && (
+                      {/* Minimal Buffering Indicator ONLY when NO poster is present in memory */}
+                      {!hasStarted && !activePoster && isBuffering && !isStalled && !playbackError && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 backdrop-blur-[2px]">
                           <div className="relative w-12 h-12 flex items-center justify-center">
                             <div className="absolute inset-0 rounded-full border-2 border-white/10 border-t-white animate-spin" />
@@ -1216,6 +1221,13 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Mid-playback Non-blocking Buffer Spinner (does not obscure video frame) */}
+                    {hasStarted && isBuffering && !isStalled && !playbackError && (
+                      <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                        <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                      </div>
+                    )}
 
                     {/* Explicit Stall / Error Fallback Overlay */}
                     {(isStalled || playbackError) && (

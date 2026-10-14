@@ -413,7 +413,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 src={streamUrl}
                 poster={shortPoster || undefined}
                 autoPlay
-                preload="metadata"
+                preload="auto"
                 loop={isLooping}
                 muted={isMuted}
                 playsInline
