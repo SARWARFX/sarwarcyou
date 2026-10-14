@@ -1,10 +1,12 @@
 /**
  * downloadMedia.ts
- * Robust client-side download helper for Hugging Face CDN media.
- * Sanitises filenames and uses Blob streaming with fallback to anchor link.
+ * Robust client-side download helper for Hugging Face CDN media and local assets.
+ * Sanitises filenames, intercepts images for client-side branding/source watermarking,
+ * and uses Blob streaming with seamless fallback to anchor link.
  */
 
 import { safeEncodeUrl } from './mediaTypeDetector';
+import { applyImageWatermark } from './watermarkImage';
 
 /**
  * Sanitise a raw filename or URL path into a clean, filesystem-safe name.
@@ -68,8 +70,9 @@ function ensureExtension(name: string, ext: string): string {
 
 /**
  * Primary: fetch the file as a Blob and trigger a browser download via an
- * object URL. Falls back to a plain <a download> anchor if the fetch fails
- * (e.g. CORS restrictions or large file streaming issues).
+ * object URL. If the target is an image, it passes through the client-side
+ * canvas watermarking pipeline to imprint the SARWARCYOU brand lockup and source tag.
+ * Videos bypass watermarking and stream directly.
  *
  * @param url      The direct CDN URL of the media file (must be https://)
  * @param rawName  Optional custom base name; derived from URL if omitted.
@@ -77,22 +80,54 @@ function ensureExtension(name: string, ext: string): string {
 export async function downloadMedia(url: string, rawName?: string): Promise<void> {
   const safeUrl = safeEncodeUrl(url.replace(/^http:\/\//i, 'https://'));
   const { mime, ext } = inferMime(safeUrl);
+  const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/gif';
   const baseName = rawName ? sanitiseFilename(rawName) : sanitiseFilename(safeUrl);
-  const filename = ensureExtension(baseName, ext);
+  let filename = ensureExtension(baseName, ext);
 
   try {
     // Attempt Blob-based download (works same-origin or CORS-enabled CDN)
     const res = await fetch(safeUrl, { mode: 'cors', credentials: 'omit' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
+    const originalBlob = await res.blob();
+
+    let finalBlob = originalBlob;
+
+    // Apply watermarking if media is an image
+    if (isImage) {
+      try {
+        finalBlob = await applyImageWatermark(originalBlob, mime);
+        const outExt = finalBlob.type === 'image/png' ? 'png' : 'jpg';
+        filename = ensureExtension(baseName, outExt);
+      } catch (wmError) {
+        console.warn('Canvas watermarking failed, proceeding with original image:', wmError);
+        finalBlob = originalBlob;
+      }
+    }
+
     const objUrl = URL.createObjectURL(
-      new Blob([blob], { type: mime || blob.type || 'application/octet-stream' })
+      new Blob([finalBlob], { type: finalBlob.type || mime || 'application/octet-stream' })
     );
     triggerDownload(objUrl, filename);
-    // Revoke after a short delay to allow the browser to read it
+    // Revoke after a short delay to allow the browser to complete writing
     setTimeout(() => URL.revokeObjectURL(objUrl), 30_000);
-  } catch {
-    // Fallback: set download attribute and let browser handle streaming
+  } catch (fetchError) {
+    // Fallback: If blob fetch failed, try direct URL watermarking if image
+    if (isImage) {
+      try {
+        const watermarkedBlob = await applyImageWatermark(safeUrl, mime);
+        const outExt = watermarkedBlob.type === 'image/png' ? 'png' : 'jpg';
+        const watermarkedName = ensureExtension(baseName, outExt);
+        const objUrl = URL.createObjectURL(watermarkedBlob);
+        triggerDownload(objUrl, watermarkedName);
+        setTimeout(() => URL.revokeObjectURL(objUrl), 30_000);
+        return;
+      } catch (imgError) {
+        console.warn('Image direct URL watermarking fallback failed:', imgError);
+      }
+    }
+
+    // Ultimate fallback: trigger browser direct download streaming via <a> tag
+    console.warn('Direct blob fetch failed, falling back to streaming anchor link:', fetchError);
     triggerDownload(safeUrl, filename);
   }
 }
