@@ -399,8 +399,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                   <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wide truncate max-w-xs">
                     {displayTitle}
                   </h3>
-                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-1">
-                    SARWAR<span className="text-cyan-400">C</span>YOU REELS
+                  <span className="text-[10px] font-mono uppercase tracking-widest mt-1 brand-gradient-text">
+                    SARWARCYOU REELS
                   </span>
                 </div>
               )}

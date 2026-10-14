@@ -123,9 +123,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             ? `0 2px 14px rgba(0,0,0,0.12)`
             : `0 0 24px ${currentColor}55`,
         }}
-        className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl text-white leading-none uppercase select-none transition-all duration-300"
+        className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl brand-gradient-text leading-none uppercase select-none transition-all duration-300"
       >
-        SARWAR<span style={{ color: currentColor }}>C</span>YOU
+        SARWARCYOU
       </span>
     </div>
   );

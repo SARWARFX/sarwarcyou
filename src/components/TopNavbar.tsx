@@ -68,8 +68,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           title="Return to Home / Top"
           aria-label="Return to Home"
         >
-          <span className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl text-white uppercase select-none leading-none whitespace-nowrap transition-opacity group-hover:opacity-90">
-            SARWAR<span className="text-cyan-400">C</span>YOU
+          <span className="font-brand font-black text-xl sm:text-2xl md:text-3xl tracking-widest brand-gradient-text select-none cursor-pointer uppercase leading-none whitespace-nowrap transition-opacity group-hover:opacity-90">
+            SARWARCYOU
           </span>
         </button>
 

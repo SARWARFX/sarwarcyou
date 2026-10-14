@@ -164,3 +164,26 @@ html, body {
   animation: doubleTapFade 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes futuristic-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.brand-gradient-text {
+  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc, #38bdf8);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: futuristic-gradient 6s ease infinite;
+  display: inline-block;
+}
+

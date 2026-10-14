@@ -200,8 +200,8 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
               <Camera className="w-3 h-3 text-cyan-400" />
             )}
           </div>
-          <span className="text-[8px] font-mono text-zinc-500 tracking-widest font-semibold uppercase">
-            SARWAR<span className="text-cyan-400">C</span>YOU
+          <span className="text-[8px] font-mono tracking-widest font-semibold uppercase brand-gradient-text">
+            SARWARCYOU
           </span>
         </div>
         <div className="truncate">

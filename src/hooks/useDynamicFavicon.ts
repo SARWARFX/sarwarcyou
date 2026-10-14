@@ -5,7 +5,7 @@ import { useEffect } from 'react';
  * Synchronizes the browser tab favicon with the dynamic brand accent color.
  * Generates an SVG data URI featuring the futuristic Orbitron 'C' glyph.
  */
-export function useDynamicFavicon(accentColor = '#22d3ee') {
+export function useDynamicFavicon(accentColor = '#38bdf8') {
   useEffect(() => {
     let link = document.getElementById('dynamic-favicon') as HTMLLinkElement | null;
     if (!link) {

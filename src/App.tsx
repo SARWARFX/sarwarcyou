@@ -24,7 +24,7 @@ import { useDynamicFavicon } from './hooks/useDynamicFavicon';
 import type { StageMediaItem } from './types';
 
 function App() {
-  useDynamicFavicon('#22d3ee');
+  useDynamicFavicon('#38bdf8');
   const { data, isLoading, isError } = useMediaData();
   const { recentItems, addToHistory, clearHistory } = useRecentHistory();
 

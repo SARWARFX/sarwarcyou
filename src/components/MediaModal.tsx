@@ -81,8 +81,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         title="Return to Home"
         aria-label="Return to Home"
       >
-        <span className="font-brand font-black text-base sm:text-lg tracking-wider text-white whitespace-nowrap">
-          SARWAR<span className="text-cyan-400">C</span>YOU
+        <span className="font-brand font-black text-base sm:text-lg tracking-wider brand-gradient-text whitespace-nowrap">
+          SARWARCYOU
         </span>
       </a>
 
@@ -98,8 +98,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         title="Return to Home"
         aria-label="Return to Home"
       >
-        <span className="font-brand font-black tracking-widest text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md group-hover:opacity-90 transition-opacity">
-          SARWAR<span className="text-cyan-400">C</span>YOU
+        <span className="font-brand font-black tracking-widest text-2xl lg:text-3xl brand-gradient-text uppercase truncate drop-shadow-md group-hover:opacity-90 transition-opacity">
+          SARWARCYOU
         </span>
       </a>
 
