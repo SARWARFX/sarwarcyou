@@ -29,7 +29,11 @@ import {
   prewarmVideoStream,
 } from '../utils/videoPosterGenerator';
 import { useVideoThumbnail, getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
-import { resolveMultiFrameThumbnails, useHoverThumbnailScrub } from '../utils/thumbnailResolver';
+import {
+  resolveMultiFrameThumbnails,
+  resolveMultiFrameThumbnailsExt,
+  useHoverThumbnailScrub,
+} from '../utils/thumbnailResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface YouTubeTheaterModalProps {
@@ -72,7 +76,11 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const multiFrameThumbnails = useMemo(() => {
-    return isVideo ? resolveMultiFrameThumbnails(item) : [];
+    return isVideo
+      ? (item.thumbnails && item.thumbnails.length > 0
+          ? item.thumbnails
+          : resolveMultiFrameThumbnails(item))
+      : [];
   }, [isVideo, item]);
 
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
@@ -186,7 +194,11 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
   const isVideo = item.type === 'video';
   const [isHovered, setIsHovered] = useState(false);
   const multiFrameThumbnails = useMemo(() => {
-    return isVideo ? resolveMultiFrameThumbnails(item) : [];
+    return isVideo
+      ? (item.thumbnails && item.thumbnails.length > 0
+          ? item.thumbnails
+          : resolveMultiFrameThumbnails(item))
+      : [];
   }, [isVideo, item]);
 
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
@@ -448,6 +460,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [isAbLoopActive, setIsAbLoopActive] = useState(false);
   const [loopStart, setLoopStart] = useState<number | null>(null);
   const [loopEnd, setLoopEnd] = useState<number | null>(null);
+  const [posterFailed, setPosterFailed] = useState(false);
 
   // Ripple feedback states
   const [centerRipple, setCenterRipple] = useState<'play' | 'pause' | null>(null);
@@ -478,6 +491,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setIsAbLoopActive(false);
     setLoopStart(null);
     setLoopEnd(null);
+    setPosterFailed(false);
   }, [initialIndex, isOpen]);
 
   const items = useMemo(() => album?.items || [], [album]);
@@ -589,6 +603,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       setIsAbLoopActive(false);
       setLoopStart(null);
       setLoopEnd(null);
+      setPosterFailed(false);
       window.setTimeout(() => {
         setIsCrossfading(false);
       }, 200);
@@ -778,15 +793,24 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   }
 
   const activePoster = useMemo(() => {
-    if (!currentItem) return '';
+    if (!currentItem || posterFailed) return '';
     if (currentIndex === initialIndex && posterUrl) return posterUrl;
+
+    const multiThumbs = resolveMultiFrameThumbnails(currentItem);
+    const multiThumbsExt = resolveMultiFrameThumbnailsExt(currentItem);
+
     return (
+      currentItem.thumbnails?.[0] ||
+      multiThumbs[0] ||
+      multiThumbsExt[0] ||
+      getCachedThumbnailSync(currentItem.url) ||
       getCachedVideoPoster(currentItem.url) ||
       currentItem.posterUrl ||
       currentItem.thumbnail ||
-      getDirectImageUrl(currentItem, currentIndex)
+      getDirectImageUrl(currentItem, currentIndex) ||
+      ''
     );
-  }, [currentItem, currentIndex, initialIndex, posterUrl]);
+  }, [currentItem, currentIndex, initialIndex, posterUrl, posterFailed]);
 
   // Aggressive Playback Initialization: immediately invoke .play().catch(...)
   useEffect(() => {
@@ -968,6 +992,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         <img
                           src={activePoster}
                           alt={cleanTitle}
+                          onError={() => setPosterFailed(true)}
                           className="w-full h-full object-contain pointer-events-none select-none"
                         />
                       ) : (

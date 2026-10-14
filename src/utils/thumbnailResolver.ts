@@ -39,23 +39,57 @@ export function extractHfRelativePath(urlOrPath: string): string {
   return clean.replace(/^\/+/, '');
 }
 
-/**
- * Derives the anticipated 5-frame pre-rendered WebP thumbnail URLs
- * following the standard: .thumbnails/{parent_dir}/{video_stem}/thumb_{0..4}.webp
- */
-export function getAnticipatedThumbnailUrls(urlOrPath: string): string[] {
-  const relPath = extractHfRelativePath(urlOrPath);
-  if (!relPath) return [];
+export interface VideoPathInfo {
+  relPath: string;
+  parentDir: string;
+  fileName: string;
+  stem: string;
+}
 
-  // Don't generate thumbnail paths for non-video files or existing thumbnails
-  if (relPath.startsWith('.thumbnails/')) return [];
+/**
+ * Parses video path info with robust handling of decoded/encoded characters,
+ * query parameters, hashes (#t=0.5), sub-albums, and filename stems.
+ */
+export function parseVideoPathInfo(urlOrPath: string): VideoPathInfo | null {
+  const relPath = extractHfRelativePath(urlOrPath);
+  if (!relPath || relPath.startsWith('.thumbnails/')) return null;
 
   const lastSlash = relPath.lastIndexOf('/');
   const parentDir = lastSlash > 0 ? relPath.substring(0, lastSlash) : '';
   const fileName = lastSlash >= 0 ? relPath.substring(lastSlash + 1) : relPath;
   const stem = fileName.replace(/\.[^/.]+$/, '');
 
-  const baseDir = parentDir ? `.thumbnails/${parentDir}/${stem}` : `.thumbnails/${stem}`;
+  return { relPath, parentDir, fileName, stem };
+}
+
+/**
+ * Derives the anticipated 5-frame pre-rendered WebP thumbnail URLs
+ * following the stem standard: .thumbnails/{parent_dir}/{video_stem}/thumb_{0..4}.webp
+ */
+export function getAnticipatedThumbnailUrls(urlOrPath: string): string[] {
+  const info = parseVideoPathInfo(urlOrPath);
+  if (!info) return [];
+
+  const baseDir = info.parentDir
+    ? `.thumbnails/${info.parentDir}/${info.stem}`
+    : `.thumbnails/${info.stem}`;
+
+  return [0, 1, 2, 3, 4].map((idx) => {
+    return buildHfMediaUrl(`${baseDir}/thumb_${idx}.webp`);
+  });
+}
+
+/**
+ * Derives the anticipated 5-frame pre-rendered WebP thumbnail URLs
+ * following the extension-inclusive standard: .thumbnails/{parent_dir}/{filename.mp4}/thumb_{0..4}.webp
+ */
+export function getAnticipatedThumbnailUrlsWithExt(urlOrPath: string): string[] {
+  const info = parseVideoPathInfo(urlOrPath);
+  if (!info) return [];
+
+  const baseDir = info.parentDir
+    ? `.thumbnails/${info.parentDir}/${info.fileName}`
+    : `.thumbnails/${info.fileName}`;
 
   return [0, 1, 2, 3, 4].map((idx) => {
     return buildHfMediaUrl(`${baseDir}/thumb_${idx}.webp`);
@@ -82,6 +116,26 @@ export function resolveMultiFrameThumbnails(
 
   if (isVideo) {
     return getAnticipatedThumbnailUrls(raw);
+  }
+
+  return [];
+}
+
+/**
+ * Resolves fallback anticipated multi-frame thumbnails formatted with the full filename.
+ */
+export function resolveMultiFrameThumbnailsExt(
+  item: StageMediaItem | HfMediaItem | { url: string; path?: string; thumbnails?: string[]; type?: string }
+): string[] {
+  const raw = ('path' in item && typeof item.path === 'string') ? item.path : (item.url || '');
+  if (!raw) return [];
+
+  const isVideo =
+    ('type' in item && item.type === 'video') ||
+    /\.(mp4|webm|mov|mkv)(\?|#|$)/i.test(raw);
+
+  if (isVideo) {
+    return getAnticipatedThumbnailUrlsWithExt(raw);
   }
 
   return [];

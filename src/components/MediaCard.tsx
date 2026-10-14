@@ -3,7 +3,11 @@ import { Play } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
 import { useVideoThumbnail, getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
-import { resolveMultiFrameThumbnails, useHoverThumbnailScrub } from '../utils/thumbnailResolver';
+import {
+  resolveMultiFrameThumbnails,
+  resolveMultiFrameThumbnailsExt,
+  useHoverThumbnailScrub,
+} from '../utils/thumbnailResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 export interface MediaCardProps {
@@ -43,10 +47,21 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     album.name.toLowerCase().includes('short') ||
     album.name.toLowerCase().includes('reel');
 
-  // 1. Resolve Multi-Frame WebP thumbnails (.thumbnails/{album}/{video_name}/thumb_{0..4}.webp)
-  const multiFrameThumbnails = useMemo(() => {
+  const [useExtFallback, setUseExtFallback] = useState(false);
+  const [remoteImageFailed, setRemoteImageFailed] = useState(false);
+  const [staticFallbackFailed, setStaticFallbackFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // 1. Resolve Multi-Frame WebP thumbnails (stem vs extension)
+  const primaryThumbnails = useMemo(() => {
     return isVideo ? resolveMultiFrameThumbnails(item) : [];
   }, [isVideo, item]);
+
+  const extThumbnails = useMemo(() => {
+    return isVideo ? resolveMultiFrameThumbnailsExt(item) : [];
+  }, [isVideo, item]);
+
+  const activeThumbList = useExtFallback ? extThumbnails : primaryThumbnails;
 
   // 2. Client-side Canvas/IndexedDB thumbnail fallback if remote WebP isn't ready
   const { thumbnail: clientThumbnail } = useVideoThumbnail(
@@ -66,21 +81,20 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     isScrubbing,
     totalFrames,
   } = useHoverThumbnailScrub({
-    thumbnails: multiFrameThumbnails,
+    thumbnails: activeThumbList,
     defaultThumbnail: staticFallbackThumbnail,
     isHovered,
     intervalMs: 380,
-    enabled: isVideo && multiFrameThumbnails.length > 0,
+    enabled: isVideo && activeThumbList.length > 0 && !remoteImageFailed,
   });
 
-  const [remoteImageFailed, setRemoteImageFailed] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-
   // Active display thumbnail: prioritize scrubbed WebP frame; fall back to client thumbnail
-  const activeThumbnail =
-    !remoteImageFailed && scrubThumbnail
-      ? scrubThumbnail
-      : staticFallbackThumbnail;
+  let activeThumbnail: string | null = null;
+  if (!remoteImageFailed && scrubThumbnail) {
+    activeThumbnail = scrubThumbnail;
+  } else if (!staticFallbackFailed && staticFallbackThumbnail) {
+    activeThumbnail = staticFallbackThumbnail;
+  }
 
   const cleanCardTitle = (item.title || album.name)
     .replace(/\.[^/.]+$/, '')
@@ -166,7 +180,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             updateMaxScroll?.();
           }}
           onError={() => {
-            setRemoteImageFailed(true);
+            if (!useExtFallback && extThumbnails.length > 0) {
+              setUseExtFallback(true);
+            } else if (!remoteImageFailed) {
+              setRemoteImageFailed(true);
+            } else {
+              setStaticFallbackFailed(true);
+            }
           }}
           className={`h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-all duration-300 ease-out select-none pointer-events-none relative z-10 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'

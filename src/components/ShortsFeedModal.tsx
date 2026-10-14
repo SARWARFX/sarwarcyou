@@ -1,5 +1,5 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   X,
   ChevronUp,
@@ -20,6 +20,11 @@ import {
   prewarmVideoStream,
   getCachedVideoPoster,
 } from '../utils/videoPosterGenerator';
+import {
+  resolveMultiFrameThumbnails,
+  resolveMultiFrameThumbnailsExt,
+} from '../utils/thumbnailResolver';
+import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
 
 interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -226,16 +231,32 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [currentIndex, shorts]);
 
-  if (!isOpen || !shorts.length) return null;
-
   const currentShort = shorts[currentIndex] || shorts[0];
-  const secureUrl = (currentShort.url || '').replace(/^http:\/\//i, 'https://');
+  const secureUrl = (currentShort?.url || '').replace(/^http:\/\//i, 'https://');
   let streamUrl = secureUrl;
   if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
     streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
   }
 
-  const cleanTitle = currentShort.title
+  const shortPoster = useMemo(() => {
+    if (!currentShort) return '';
+    const multiThumbs = resolveMultiFrameThumbnails(currentShort);
+    const multiThumbsExt = resolveMultiFrameThumbnailsExt(currentShort);
+    return (
+      currentShort.thumbnails?.[0] ||
+      multiThumbs[0] ||
+      multiThumbsExt[0] ||
+      getCachedThumbnailSync(currentShort.url) ||
+      getCachedVideoPoster(currentShort.url) ||
+      currentShort.thumbnail ||
+      formatVideoPosterUrl(streamUrl, 0.5) ||
+      ''
+    );
+  }, [currentShort, streamUrl]);
+
+  if (!isOpen || !shorts.length) return null;
+
+  const cleanTitle = currentShort?.title
     ? currentShort.title.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim()
     : 'Short Reel';
   const displayTitle = /^smartselect|videocapture|screenshot|photo\s+[a-z0-9]/i.test(cleanTitle)
@@ -283,24 +304,47 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         >
           {/* Native Video Element */}
           <div className="absolute inset-0 w-full h-full bg-black z-0">
+            {/* Obsidian Typography Surface Backing behind video */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
+              {shortPoster ? (
+                <img
+                  src={shortPoster}
+                  alt={displayTitle}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center">
+                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
+                    <Play className="w-5 h-5 text-zinc-300 fill-current ml-0.5" />
+                  </div>
+                  <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wide truncate max-w-xs">
+                    {displayTitle}
+                  </h3>
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-1">
+                    SARWARCYOU REELS
+                  </span>
+                </div>
+              )}
+            </div>
+
             {streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
               <video
                 ref={videoRef}
                 key={currentShort.id}
                 src={streamUrl}
-                poster={getCachedVideoPoster(currentShort.url) || currentShort.thumbnail || formatVideoPosterUrl(streamUrl, 0.5)}
+                poster={shortPoster || undefined}
                 autoPlay
                 preload="auto"
                 loop={isLooping}
                 muted={isMuted}
                 playsInline
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover relative z-10"
               />
             ) : (
               <iframe
                 key={currentShort.id}
                 src={streamUrl}
-                className="w-full h-full border-0"
+                className="w-full h-full border-0 relative z-10"
                 allow="autoplay; encrypted-media; fullscreen"
                 allowFullScreen
                 title={displayTitle}

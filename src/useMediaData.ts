@@ -34,16 +34,21 @@ const MEDIA_EXTENSIONS = /\.(mp4|webm|mov|mkv|jpg|jpeg|png|webp|gif|svg|bmp|tiff
 
 /**
  * Builds a safe, encoded CDN streaming URL for any file path on the Hugging Face dataset.
+ * Safely decodes each segment first to prevent double-encoding, then encodes special characters.
  */
 export function buildHfMediaUrl(filePath: string): string {
   if (!filePath) return '';
-  // If filePath already looks like a complete http/https URL, ensure HTTPS and encode
+  // If filePath already looks like a complete http/https URL, ensure HTTPS
   if (/^https?:\/\//i.test(filePath)) {
-    return encodeURI(ensureHttps(filePath));
+    return ensureHttps(filePath);
   }
-  // Standardize leading slash
+  // Standardize leading slash and encode each path segment individually
   const cleanPath = filePath.replace(/^\/+/, '');
-  return encodeURI(`${HF_RESOLVE_BASE_URL}${cleanPath}`);
+  const encodedSegments = cleanPath
+    .split('/')
+    .map((seg) => encodeURIComponent(decodeURIComponent(seg)))
+    .join('/');
+  return `${HF_RESOLVE_BASE_URL}${encodedSegments}`;
 }
 
 /**
@@ -88,6 +93,19 @@ export function setCachedCatalog(catalog: HfMediaCatalog): void {
 }
 
 /**
+ * Helper to normalize directory keys for resilient lookup (supports decoded and raw).
+ */
+function normalizeKey(str: string): string {
+  let res = str.replace(/^\/+/, '');
+  try {
+    res = decodeURIComponent(res);
+  } catch {
+    // leave as is
+  }
+  return res.toLowerCase().trim();
+}
+
+/**
  * Parses raw items from the Hugging Face Tree API into a structured HfMediaCatalog.
  */
 export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
@@ -96,7 +114,10 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
   const images: HfMediaItem[] = [];
 
   // Index all pre-rendered WebP thumbnails from .thumbnails/
+  // Supports both stem (.thumbnails/folder/video/thumb_0.webp)
+  // and extension (.thumbnails/folder/video.mp4/thumb_0.webp) directory formats.
   const thumbnailsByFolder = new Map<string, string[]>();
+
   for (const item of tree) {
     if (item.type !== 'file' || !item.path) continue;
     if (item.path.startsWith('.thumbnails/') && item.path.endsWith('.webp')) {
@@ -104,9 +125,17 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
       if (lastSlash > 0) {
         const folder = item.path.substring(0, lastSlash);
         const url = buildHfMediaUrl(item.path);
-        const list = thumbnailsByFolder.get(folder) || [];
-        list.push(url);
-        thumbnailsByFolder.set(folder, list);
+
+        const keysToRegister = new Set<string>([
+          folder,
+          normalizeKey(folder),
+        ]);
+
+        for (const k of keysToRegister) {
+          const list = thumbnailsByFolder.get(k) || [];
+          list.push(url);
+          thumbnailsByFolder.set(k, list);
+        }
       }
     }
   }
@@ -123,8 +152,22 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
     const parentDir = lastSlash > 0 ? videoPath.substring(0, lastSlash) : '';
     const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
     const stem = fileName.replace(/\.[^/.]+$/, '');
-    const thumbFolder = parentDir ? `.thumbnails/${parentDir}/${stem}` : `.thumbnails/${stem}`;
-    return thumbnailsByFolder.get(thumbFolder);
+
+    // Try stem variant first (.thumbnails/Clips/.../video)
+    const stemFolder = parentDir ? `.thumbnails/${parentDir}/${stem}` : `.thumbnails/${stem}`;
+    const stemMatch =
+      thumbnailsByFolder.get(stemFolder) ||
+      thumbnailsByFolder.get(normalizeKey(stemFolder));
+    if (stemMatch && stemMatch.length > 0) return stemMatch;
+
+    // Try extension-inclusive variant (.thumbnails/Clips/.../video.mp4)
+    const extFolder = parentDir ? `.thumbnails/${parentDir}/${fileName}` : `.thumbnails/${fileName}`;
+    const extMatch =
+      thumbnailsByFolder.get(extFolder) ||
+      thumbnailsByFolder.get(normalizeKey(extFolder));
+    if (extMatch && extMatch.length > 0) return extMatch;
+
+    return undefined;
   };
 
   for (const item of tree) {
@@ -164,9 +207,45 @@ async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<Response
 }
 
 /**
+ * Parses the RFC 5988 Link header for rel="next" pagination URL.
+ */
+function parseNextLink(linkHeader: string | null): string | null {
+  if (!linkHeader) return null;
+  const match = linkHeader.match(/<([^>]+)>;\s*rel="next"/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Fetches all tree items from Hugging Face Tree API, automatically
+ * traversing pagination pages via the Link: <...>; rel="next" header.
+ */
+export async function fetchAllTreeItems(): Promise<HfTreeItem[]> {
+  const allItems: HfTreeItem[] = [];
+  let currentUrl: string | null = HF_TREE_API_URL;
+  let pages = 0;
+  const MAX_PAGES = 10;
+
+  while (currentUrl && pages < MAX_PAGES) {
+    pages++;
+    const res = await fetchWithTimeout(currentUrl, 8000);
+    if (!res.ok) break;
+
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      allItems.push(...data);
+    }
+
+    const linkHeader = res.headers.get('Link') || res.headers.get('link');
+    currentUrl = parseNextLink(linkHeader);
+  }
+
+  return allItems;
+}
+
+/**
  * Multi-tier catalog resolver:
  * 1. sessionStorage cache (< 60s)
- * 2. Live Hugging Face Dataset Tree API
+ * 2. Live Hugging Face Dataset Tree API (paginated, resilient)
  * 3. Raw media.json from Hugging Face resolve endpoint
  * 4. Bundled fallback data
  */
@@ -179,17 +258,14 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
     }
   }
 
-  // 2. Live Discovery via HF Tree API
+  // 2. Live Discovery via HF Tree API with pagination support
   try {
-    const treeRes = await fetchWithTimeout(HF_TREE_API_URL, 8000);
-    if (treeRes.ok) {
-      const items: HfTreeItem[] = await treeRes.json();
-      if (Array.isArray(items) && items.length > 0) {
-        const parsed = parseTreeToCatalog(items);
-        if (parsed.images.length > 0 || parsed.clips.length > 0) {
-          setCachedCatalog(parsed);
-          return parsed;
-        }
+    const items = await fetchAllTreeItems();
+    if (Array.isArray(items) && items.length > 0) {
+      const parsed = parseTreeToCatalog(items);
+      if (parsed.images.length > 0 || parsed.clips.length > 0) {
+        setCachedCatalog(parsed);
+        return parsed;
       }
     }
   } catch (err) {
