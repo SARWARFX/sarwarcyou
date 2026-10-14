@@ -1067,31 +1067,15 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               e.preventDefault();
               onClose();
             }}
-            className="brand-lockup flex items-center gap-[10px] m-0 p-0 select-none cursor-pointer group border-none outline-none flex-shrink-0"
+            className="brand-link flex items-center m-0 p-0 select-none cursor-pointer border-none outline-none flex-shrink-0 group"
             title="Return to Home"
-            aria-label="Return to Home"
+            aria-label="SARWARCYOU Home"
           >
-            <svg
-              className="brand-delta-logo w-[32px] h-[32px] sm:w-[38px] sm:h-[38px] flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              style={{ display: 'block', flexShrink: 0 }}
-            >
-              <defs>
-                <linearGradient id="yt-theater-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#ffffff" />
-                  <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
-                  <stop offset="100%" stop-color="#ffffff" />
-                </linearGradient>
-              </defs>
-              <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#yt-theater-brand-dynamic-gradient)" />
-              <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#yt-theater-brand-dynamic-gradient)" />
-              <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#yt-theater-brand-dynamic-gradient)" />
-            </svg>
-            <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center text-sm sm:text-base md:text-lg">
-              SARWARCYOU
-            </h1>
+            <img
+              src="/SARWARCYOU.svg"
+              alt="SARWARCYOU"
+              className="site-brand-logo transition-transform duration-300 group-hover:scale-105"
+            />
           </a>
 
           {/* Dedicated Media Metadata (Album Pill & Photo Counter) Beside Brand */}
@@ -1188,7 +1172,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               onDoubleClick={toggleFullscreen}
               className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 aspect-video max-h-[36vh] md:aspect-auto md:max-h-none ${
                 isCrossfading ? 'opacity-30' : 'opacity-100'
-              } ${isLightboxFullscreen ? 'lightbox-fullscreen-active' : ''}`}
+              } ${isLightboxFullscreen ? 'is-fullscreen lightbox-fullscreen-active' : ''}`}
             >
               {/* Fallback Exit Fullscreen Floating Button */}
               {isLightboxFullscreen && (

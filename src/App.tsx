@@ -20,11 +20,9 @@ import {
   anchorToAlbumSection,
 } from './utils/urlRouter';
 import { useRecentHistory } from './hooks/useRecentHistory';
-import { useDynamicFavicon } from './hooks/useDynamicFavicon';
 import type { StageMediaItem } from './types';
 
 function App() {
-  useDynamicFavicon();
   const { data, isLoading, isError } = useMediaData();
   const { recentItems, addToHistory, clearHistory } = useRecentHistory();
 

@@ -23,11 +23,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrolled =
-        window.scrollY > 80 ||
-        document.documentElement.scrollTop > 80 ||
-        document.body.scrollTop > 80;
-      setWindowScrolled(scrolled);
+      const scrollY =
+        window.scrollY ||
+        document.documentElement.scrollTop ||
+        document.body.scrollTop ||
+        0;
+      setWindowScrolled(scrollY > 60);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -40,13 +41,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     };
   }, []);
 
-  // Adaptive dock-left when scrolled past initial hero or when navigating albums
-  const isDockedLeft = Boolean(propIsScrolled || windowScrolled || activeAlbumIndex > 0);
+  // Dock to top-left when scrolled past 60px or navigating albums
+  const isScrolled = Boolean(propIsScrolled || windowScrolled || activeAlbumIndex > 0);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
-      <div className="w-full bg-black/90 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4 relative h-16 sm:h-20">
-        {/* Scroll-Adaptive Brand Lockup: Centered on hero load, smoothly shifts to top-left on scroll */}
+    <>
+      {/* Brand Header: Horizontally centered initially, glides to top-left on scroll */}
+      <header
+        className={`main-header ${isScrolled ? 'scrolled' : ''}`}
+      >
         <a
           href="/"
           onClick={(e) => {
@@ -54,51 +57,26 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onResetHome?.();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`brand-adaptive-header brand-lockup inline-flex items-center gap-[10px] m-0 p-0 flex-shrink-0 cursor-pointer group bg-transparent border-none focus:outline-none select-none z-10 ${
-            isDockedLeft ? 'header-docked-left header-scrolled' : ''
-          }`}
-          title="Return to Home / Top"
-          aria-label="Return to Home"
+          className="brand-link flex items-center m-0 p-0 cursor-pointer select-none border-none outline-none group"
+          aria-label="SARWARCYOU Home"
         >
-          <svg
-            id="brand-delta-logo"
-            className="brand-delta-logo w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] overflow-visible transition-transform duration-300 group-hover:scale-105"
-            viewBox="0 0 100 100"
-            width="42"
-            height="42"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ display: 'block', flexShrink: 0 }}
-          >
-            <defs>
-              <linearGradient id="brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#ffffff" />
-                <stop id="svg-gradient-mid" className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
-                <stop offset="100%" stop-color="#ffffff" />
-              </linearGradient>
-            </defs>
-            {/* Segment 1: Top-Left Apex Bar */}
-            <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#brand-dynamic-gradient)" />
-            {/* Segment 2: Bottom-Left Foot & Center Fold */}
-            <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#brand-dynamic-gradient)" />
-            {/* Segment 3: Right Slanted Leg */}
-            <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#brand-dynamic-gradient)" />
-          </svg>
-          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center transition-opacity group-hover:opacity-95 text-base sm:text-xl md:text-2xl">
-            SARWARCYOU
-          </h1>
-        </a>
-
-        {/* Right: Universal Search Bar & Fast Navigation */}
-        <div className="flex items-center flex-shrink-0 ml-auto z-20">
-          <UniversalSearchBar
-            albums={albums}
-            onSelectItem={onSelectItem}
-            onSelectAlbum={onSelectAlbum}
-            accentColor="var(--brand-color-a)"
+          <img
+            src="/SARWARCYOU.svg"
+            alt="SARWARCYOU"
+            className="site-brand-logo transition-transform duration-300 group-hover:scale-105"
           />
-        </div>
+        </a>
+      </header>
+
+      {/* Right: Universal Search Bar & Fast Navigation */}
+      <div className="fixed top-4 right-4 sm:right-6 z-[1001] flex items-center">
+        <UniversalSearchBar
+          albums={albums}
+          onSelectItem={onSelectItem}
+          onSelectAlbum={onSelectAlbum}
+          accentColor="var(--brand-color-a)"
+        />
       </div>
-    </header>
+    </>
   );
 };
