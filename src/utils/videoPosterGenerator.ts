@@ -20,9 +20,9 @@ export function getCachedVideoPoster(videoUrl: string): string | null {
 
 /**
  * Appends a time fragment to direct video stream URLs so browsers decode
- * and display the poster frame at t seconds (default 0.5s) without downloading the full video.
+ * and display the poster frame at t seconds (default 1.0s) without downloading the full video.
  */
-export function formatVideoPosterUrl(url: string, timeSec = 0.5): string {
+export function formatVideoPosterUrl(url: string, timeSec = 1.0): string {
   if (!url) return '';
   const cleanUrl = getMediaUrl(url).split('#')[0];
   return `${cleanUrl}#t=${timeSec}`;
@@ -34,7 +34,7 @@ export function formatVideoPosterUrl(url: string, timeSec = 0.5): string {
  */
 export async function extractVideoThumbnail(
   videoUrl: string,
-  seekTime = 0.5
+  seekTime = 1.0
 ): Promise<string | null> {
   if (!videoUrl || typeof document === 'undefined') return null;
   const proxyUrl = getMediaUrl(videoUrl);

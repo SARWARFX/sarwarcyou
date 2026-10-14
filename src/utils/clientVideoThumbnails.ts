@@ -236,13 +236,20 @@ function extractFrameFromVideo(cleanUrl: string, isShort: boolean): Promise<stri
       done(null);
     };
 
-    video.onloadeddata = () => {
+    const onReadyToSeek = () => {
       try {
-        // Seek to 0.5s or midpoint for first visual frame
-        const targetTime = Math.min(0.5, (video.duration || 1) * 0.5);
+        // Fast offscreen frame capture at timestamp 1.0s or midpoint
+        const targetTime = video.duration && video.duration < 1 ? video.duration * 0.5 : 1.0;
         video.currentTime = targetTime;
       } catch {
         captureFrame();
+      }
+    };
+
+    video.onloadedmetadata = onReadyToSeek;
+    video.onloadeddata = () => {
+      if (!video.currentTime || video.currentTime < 0.1) {
+        onReadyToSeek();
       }
     };
 
@@ -255,8 +262,8 @@ function extractFrameFromVideo(cleanUrl: string, isShort: boolean): Promise<stri
     };
 
     try {
-      // Append #t=0.5 media fragment
-      video.src = `${getMediaUrl(cleanUrl)}#t=0.5`;
+      // Append #t=1.0 media fragment with edge CDN base
+      video.src = `${getMediaUrl(cleanUrl)}#t=1.0`;
     } catch {
       done(null);
     }

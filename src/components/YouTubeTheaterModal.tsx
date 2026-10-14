@@ -80,15 +80,15 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const multiFrameThumbnails = useMemo(() => {
-    return isVideo
-      ? (item.thumbnails && item.thumbnails.length > 0
-          ? item.thumbnails
-          : resolveMultiFrameThumbnails(item))
-      : [];
+    if (!isVideo) return [];
+    const list = item.thumbnails && item.thumbnails.length > 0
+      ? item.thumbnails
+      : resolveMultiFrameThumbnails(item);
+    return list.map((t) => getMediaUrl(t)).filter(Boolean);
   }, [isVideo, item]);
 
   const extThumbnails = useMemo(() => {
-    return isVideo ? resolveMultiFrameThumbnailsExt(item) : [];
+    return isVideo ? resolveMultiFrameThumbnailsExt(item).map((t) => getMediaUrl(t)).filter(Boolean) : [];
   }, [isVideo, item]);
 
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
@@ -97,8 +97,11 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
   );
 
   const directThumb = getDirectImageUrl(item, idx);
+  const explicitPoster = item.poster || item.posterUrl || (item.thumbnail && !isVideoExtension(item.thumbnail) ? item.thumbnail : '');
+  const resolvedPoster = explicitPoster ? getMediaUrl(explicitPoster) : '';
+
   const staticFallbackThumbnail = isVideo
-    ? videoThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || item.thumbnail
+    ? videoThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || resolvedPoster || directThumb
     : directThumb;
 
   const {
@@ -214,16 +217,18 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
 }) => {
   const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
   const [isHovered, setIsHovered] = useState(false);
-  const multiFrameThumbnails = useMemo(() => {
-    return isVideo
-      ? (item.thumbnails && item.thumbnails.length > 0
-          ? item.thumbnails
-          : resolveMultiFrameThumbnails(item))
-      : [];
+  const [imgLoadFailed, setImgLoadFailed] = useState(false);
+
+  const rawThumbnails = useMemo(() => {
+    if (!isVideo) return [];
+    const list = item.thumbnails && item.thumbnails.length > 0
+      ? item.thumbnails
+      : resolveMultiFrameThumbnails(item);
+    return list.map((t) => getMediaUrl(t)).filter(Boolean);
   }, [isVideo, item]);
 
   const extThumbnails = useMemo(() => {
-    return isVideo ? resolveMultiFrameThumbnailsExt(item) : [];
+    return isVideo ? resolveMultiFrameThumbnailsExt(item).map((t) => getMediaUrl(t)).filter(Boolean) : [];
   }, [isVideo, item]);
 
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
@@ -232,18 +237,21 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
   );
 
   const directThumb = getDirectImageUrl(item, idx);
+  const explicitPoster = item.poster || item.posterUrl || (item.thumbnail && !isVideoExtension(item.thumbnail) ? item.thumbnail : '');
+  const resolvedPoster = explicitPoster ? getMediaUrl(explicitPoster) : '';
+
   const staticFallbackThumbnail = isVideo
-    ? videoThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || item.thumbnail
+    ? videoThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || resolvedPoster || directThumb
     : directThumb;
 
   const {
     activeThumbnail: scrubThumbnail,
   } = useHoverThumbnailScrub({
-    thumbnails: multiFrameThumbnails,
+    thumbnails: rawThumbnails,
     defaultThumbnail: staticFallbackThumbnail,
     isHovered,
     intervalMs: 380,
-    enabled: isVideo && multiFrameThumbnails.length > 0,
+    enabled: isVideo && rawThumbnails.length > 0,
   });
 
   const activeThumb = scrubThumbnail || staticFallbackThumbnail;
@@ -262,7 +270,7 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
         setIsHovered(true);
         if (isVideo) {
           prewarmVideoStream(item.url);
-          if (multiFrameThumbnails.length > 0) preloadImageFrames(multiFrameThumbnails);
+          if (rawThumbnails.length > 0) preloadImageFrames(rawThumbnails);
           if (extThumbnails.length > 0) preloadImageFrames(extThumbnails);
         }
       }}
@@ -278,14 +286,28 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
     >
       {/* 1. Media Thumbnail */}
       <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black flex-shrink-0">
-        {activeThumb ? (
+        {activeThumb && !imgLoadFailed ? (
           <img
             src={activeThumb}
             alt={fileName}
             loading="lazy"
+            onError={() => setImgLoadFailed(true)}
             style={{ contentVisibility: 'auto' }}
             className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
           />
+        ) : isVideo ? (
+          <div className="relative w-full h-full bg-zinc-950 flex items-center justify-center overflow-hidden">
+            <video
+              src={`${getMediaUrl(item.url)}#t=1.0`}
+              preload="metadata"
+              muted
+              playsInline
+              className="w-full h-full object-cover pointer-events-none opacity-85"
+            />
+            <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+              <Play className="w-3.5 h-3.5 text-white/80 fill-current ml-0.5" />
+            </div>
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-zinc-950">
             <Play className="w-3.5 h-3.5 text-zinc-600" />
@@ -293,8 +315,8 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
         )}
 
         {isVideo && !isActive && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Play className="w-3.5 h-3.5 text-white fill-current" />
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <Play className="w-3.5 h-3.5 text-white fill-current ml-0.5" />
           </div>
         )}
       </div>
@@ -468,7 +490,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [isBuffering, setIsBuffering] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [isLightboxFullscreen, setIsLightboxFullscreen] = useState(false);
@@ -496,7 +517,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const [isRepeat, setIsRepeat] = useState(false);
 
   // Dynamic Suggested Albums Rotation (Rotate every 15s, pause on hover)
   const [suggestedBatchIndex, setSuggestedBatchIndex] = useState(0);
@@ -524,9 +544,28 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [centerRipple, setCenterRipple] = useState<'play' | 'pause' | null>(null);
   const [seekRipple, setSeekRipple] = useState<{ side: 'left' | 'right'; text: string } | null>(null);
 
+  // Buffered Progress State for Flush Seek Bar
+  const [bufferedProgress, setBufferedProgress] = useState(0);
+
+  // Fullscreen Swipe-to-Seek State
+  const [swipeSeek, setSwipeSeek] = useState<{
+    isActive: boolean;
+    initialTime: number;
+    targetTime: number;
+    deltaSeconds: number;
+  } | null>(null);
+  const pointerDragStartRef = useRef<{
+    x: number;
+    y: number;
+    time: number;
+    initialVideoTime: number;
+    isPointerDown: boolean;
+    hasEngagedSeek: boolean;
+    isMouse: boolean;
+  } | null>(null);
+
   // Velocity Swipe-to-Dismiss State
   const [dismissOffsetY, setDismissOffsetY] = useState(0);
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const lastTapRef = useRef<{ time: number; x: number } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -538,6 +577,16 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
   const handleModalScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     setModalScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  const updateBuffered = useCallback(() => {
+    if (videoRef.current && videoRef.current.buffered.length > 0) {
+      const end = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
+      const d = videoRef.current.duration;
+      if (d > 0) {
+        setBufferedProgress((end / d) * 100);
+      }
+    }
   }, []);
 
   // Auto-sliding queue refs
@@ -554,6 +603,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setIsStalled(false);
     setPlaybackError(null);
     setCurrentTime(0);
+    setBufferedProgress(0);
+    setSwipeSeek(null);
     setDismissOffsetY(0);
     setIsAbLoopActive(false);
     setLoopStart(null);
@@ -769,43 +820,142 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     }
   }, [isAbLoopActive, loopStart, loopEnd]);
 
-  // Double-tap and touch gesture handling on video viewport
+  // Fullscreen swipe-to-seek gesture handling for mouse and touch
+  const handleStageMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    resetHudTimer();
+    pointerDragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: performance.now(),
+      initialVideoTime: videoRef.current?.currentTime || currentTime,
+      isPointerDown: true,
+      hasEngagedSeek: false,
+      isMouse: true,
+    };
+  }, [resetHudTimer, currentTime]);
+
+  const handleStageMouseMove = useCallback((e: React.MouseEvent) => {
+    resetHudTimer();
+    const start = pointerDragStartRef.current;
+    if (!start || !start.isPointerDown) return;
+
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+
+    // Fullscreen swipe-to-seek: |deltaX| > 15px and |deltaX| > |deltaY|
+    if (isFullscreen && Math.abs(dx) > 15 && Math.abs(dx) > Math.abs(dy)) {
+      start.hasEngagedSeek = true;
+      const rect = videoContainerRef.current?.getBoundingClientRect();
+      const width = rect && rect.width > 0 ? rect.width : 800;
+      const sensitivity = Math.max(30, Math.min(duration || 60, 120));
+      const deltaSeconds = Math.round((dx / width) * sensitivity);
+      const targetTime = Math.max(0, Math.min(duration || 0, start.initialVideoTime + deltaSeconds));
+      setSwipeSeek({
+        isActive: true,
+        initialTime: start.initialVideoTime,
+        targetTime,
+        deltaSeconds,
+      });
+    }
+  }, [isFullscreen, duration, resetHudTimer]);
+
+  const handleStageMouseUp = useCallback((e: React.MouseEvent) => {
+    const start = pointerDragStartRef.current;
+    pointerDragStartRef.current = null;
+    if (!start || !start.isPointerDown) return;
+
+    if (start.hasEngagedSeek && swipeSeek) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = swipeSeek.targetTime;
+        setCurrentTime(swipeSeek.targetTime);
+      }
+      setSwipeSeek(null);
+      return;
+    }
+
+    // Single click pauses/plays
+    const dx = Math.abs(e.clientX - start.x);
+    const dy = Math.abs(e.clientY - start.y);
+    const dt = performance.now() - start.time;
+    if (dx < 15 && dy < 15 && dt < 450) {
+      if (currentItem?.type === 'video') {
+        togglePlay();
+      }
+    }
+  }, [swipeSeek, currentItem, togglePlay]);
+
+  // Touch handlers
   const handleStageTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
-    touchStartRef.current = {
+    resetHudTimer();
+    pointerDragStartRef.current = {
       x: touch.clientX,
       y: touch.clientY,
       time: performance.now(),
+      initialVideoTime: videoRef.current?.currentTime || currentTime,
+      isPointerDown: true,
+      hasEngagedSeek: false,
+      isMouse: false,
     };
-  }, []);
+  }, [resetHudTimer, currentTime]);
 
   const handleStageTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const dy = e.touches[0].clientY - touchStartRef.current.y;
-    if (dy > 0) {
+    const start = pointerDragStartRef.current;
+    if (!start || !start.isPointerDown) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+
+    if (isFullscreen && Math.abs(dx) > 15 && Math.abs(dx) > Math.abs(dy)) {
+      start.hasEngagedSeek = true;
+      const rect = videoContainerRef.current?.getBoundingClientRect();
+      const width = rect && rect.width > 0 ? rect.width : 800;
+      const sensitivity = Math.max(30, Math.min(duration || 60, 120));
+      const deltaSeconds = Math.round((dx / width) * sensitivity);
+      const targetTime = Math.max(0, Math.min(duration || 0, start.initialVideoTime + deltaSeconds));
+      setSwipeSeek({
+        isActive: true,
+        initialTime: start.initialVideoTime,
+        targetTime,
+        deltaSeconds,
+      });
+    } else if (!isFullscreen && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
       setDismissOffsetY(dy);
     }
-  }, []);
+  }, [isFullscreen, duration]);
 
   const handleStageTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const touch = e.changedTouches[0];
-    const dy = touch.clientY - touchStartRef.current.y;
-    const dt = performance.now() - touchStartRef.current.time;
+    const start = pointerDragStartRef.current;
+    pointerDragStartRef.current = null;
+    if (!start || !start.isPointerDown) return;
 
-    // Velocity swipe down to dismiss
-    if ((dy > 110 && dt < 400) || dy > 180) {
+    if (start.hasEngagedSeek && swipeSeek) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = swipeSeek.targetTime;
+        setCurrentTime(swipeSeek.targetTime);
+      }
+      setSwipeSeek(null);
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const dy = touch.clientY - start.y;
+    const dt = performance.now() - start.time;
+
+    // Velocity swipe down to dismiss in non-fullscreen
+    if (!isFullscreen && ((dy > 110 && dt < 400) || dy > 180)) {
       onClose();
       return;
     }
     setDismissOffsetY(0);
 
-    // Double-tap detection
+    // Double-tap on screen edges (left: -10s, right: +10s) with subtle ripple feedback
     const now = performance.now();
     const tapX = touch.clientX;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const relativeX = tapX - rect.left;
-    const isRightHalf = relativeX > rect.width / 2;
+    const rect = videoContainerRef.current?.getBoundingClientRect();
+    const relativeX = rect ? tapX - rect.left : 0;
+    const isRightHalf = rect ? relativeX > rect.width / 2 : false;
 
     if (lastTapRef.current && now - lastTapRef.current.time < 300 && Math.abs(tapX - lastTapRef.current.x) < 50) {
       if (isRightHalf) {
@@ -818,8 +968,22 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       lastTapRef.current = { time: now, x: tapX };
       resetHudTimer();
     }
-    touchStartRef.current = null;
-  }, [onClose, seekRelative, resetHudTimer]);
+  }, [isFullscreen, swipeSeek, onClose, seekRelative, resetHudTimer]);
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (pointerDragStartRef.current?.hasEngagedSeek && swipeSeek) {
+        if (videoRef.current) {
+          videoRef.current.currentTime = swipeSeek.targetTime;
+          setCurrentTime(swipeSeek.targetTime);
+        }
+        setSwipeSeek(null);
+      }
+      pointerDragStartRef.current = null;
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [swipeSeek]);
 
   const [, setDownloadingItemId] = useState<string | null>(null);
 
@@ -879,17 +1043,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       if (videoRef.current) videoRef.current.muted = next;
       return next;
     });
-  }, [resetHudTimer]);
-
-  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    resetHudTimer();
-    const val = parseFloat(e.target.value);
-    setVolume(val);
-    if (videoRef.current) {
-      videoRef.current.volume = val;
-      videoRef.current.muted = val === 0;
-      setIsMuted(val === 0);
-    }
   }, [resetHudTimer]);
 
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1153,7 +1306,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               onTouchStart={handleStageTouchStart}
               onTouchMove={handleStageTouchMove}
               onTouchEnd={handleStageTouchEnd}
-              onClick={resetHudTimer}
+              onMouseDown={handleStageMouseDown}
+              onMouseMove={handleStageMouseMove}
+              onMouseUp={handleStageMouseUp}
               onDoubleClick={toggleFullscreen}
               className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 aspect-video max-h-[36vh] md:aspect-auto md:max-h-none ${
                 isCrossfading ? 'opacity-30' : 'opacity-100'
@@ -1220,8 +1375,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       crossOrigin="anonymous"
                       controls={false}
                       muted={isMuted}
-                      onClick={togglePlay}
-                      onTimeUpdate={handleTimeUpdate}
+                      onProgress={updateBuffered}
+                      onTimeUpdate={() => {
+                        handleTimeUpdate();
+                        updateBuffered();
+                      }}
                       onLoadedMetadata={() => {
                         if (videoRef.current) setDuration(videoRef.current.duration);
                       }}
@@ -1283,16 +1441,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       onPlay={() => setIsPlaying(true)}
                       onPause={() => setIsPlaying(false)}
                       onEnded={() => {
-                        if (isRepeat) {
-                          if (videoRef.current) {
-                            videoRef.current.currentTime = 0;
-                            videoRef.current.play().catch(() => {});
-                          }
-                        } else {
-                          // Auto-advance to next item in album queue
-                          if (items.length > 0) {
-                            goToIndex((currentIndex + 1) % items.length);
-                          }
+                        // Auto-advance to next item in album queue
+                        if (items.length > 0) {
+                          goToIndex((currentIndex + 1) % items.length);
                         }
                       }}
                       className="w-full h-full object-contain cursor-pointer relative z-10"
@@ -1464,28 +1615,201 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       </div>
                     )}
 
-                    {/* ================= DETACHED FLOATING GLASS HUD DOCK ================= */}
+                    {/* Centered Fullscreen Swipe-to-Seek Time HUD */}
+                    {swipeSeek && swipeSeek.isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 animate-fade-in">
+                        <div className="flex flex-col items-center gap-1.5 px-6 py-4 rounded-2xl bg-black/85 backdrop-blur-xl border border-white/20 shadow-2xl select-none">
+                          <div className="flex items-center gap-2 text-cyan-400">
+                            <span className="text-xl sm:text-2xl font-black font-brand tracking-wider">
+                              {swipeSeek.deltaSeconds >= 0
+                                ? `+${formatTime(swipeSeek.deltaSeconds)}`
+                                : `-${formatTime(Math.abs(swipeSeek.deltaSeconds))}`}
+                            </span>
+                            <span className="text-zinc-500 text-lg">/</span>
+                            <span className="text-xl sm:text-2xl font-black font-brand text-white tracking-wider">
+                              {formatTime(swipeSeek.targetTime)}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">
+                            Swipe to Seek
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ================= STREAMLINED FLOATING CONTROL BAR ================= */}
+                    {/* Floats at the bottom-left corner with individual frosted-black buttons */}
                     <div
                       onMouseEnter={() => {
                         if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
                         setIsHudVisible(true);
                       }}
                       onMouseLeave={resetHudTimer}
-                      className={`absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 w-[94%] sm:w-[88%] max-w-3xl backdrop-blur-2xl bg-black/80 border border-white/10 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-2 transition-all duration-300 ${
-                        isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                      onClick={(e) => e.stopPropagation()}
+                      className={`absolute bottom-5 sm:bottom-6 left-3 sm:left-4 z-30 flex items-center gap-1.5 sm:gap-2 flex-wrap transition-all duration-300 ${
+                        isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
                       }`}
                     >
-                      {/* Magnetic Scrubber Bar + A-B Loop Visualizer */}
-                      <div className="relative w-full group/scrub py-1">
-                        <div className="relative w-full h-1 group-hover/scrub:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-200">
+                      {/* 1. Play/Pause toggle */}
+                      <button
+                        onClick={togglePlay}
+                        className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95"
+                        title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+                      >
+                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                      </button>
+
+                      {/* 2. Timestamp display (Current / Duration) positioned immediately beside Play/Pause */}
+                      <div className="flex items-center px-2.5 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-xs font-mono text-zinc-300 shadow-lg select-none">
+                        <span className="text-zinc-100 font-semibold">{formatTime(currentTime)}</span>
+                        <span className="mx-1 text-zinc-500">/</span>
+                        <span className="text-zinc-400">{formatTime(duration)}</span>
+                      </div>
+
+                      {/* 3. Mute/Unmute toggle (No volume slider) */}
+                      <button
+                        onClick={handleMuteToggle}
+                        className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95"
+                        title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+                      >
+                        {isMuted ? (
+                          <VolumeX className="w-4 h-4 text-zinc-400" />
+                        ) : (
+                          <Volume2 className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {/* 4. A-B Loop toggle (Set A, Set B, Clear Loop) */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setIsAbLoopActive(!isAbLoopActive);
+                            if (!isAbLoopActive) {
+                              setLoopStart(currentTime);
+                              setLoopEnd(Math.min(duration, currentTime + 5));
+                            }
+                          }}
+                          className={`flex items-center gap-1 px-2.5 py-2 rounded-xl backdrop-blur-md border text-xs font-mono transition-all duration-200 cursor-pointer shadow-lg active:scale-95 ${
+                            isAbLoopActive
+                              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                              : 'bg-black/60 hover:bg-black/80 border-white/10 text-zinc-300 hover:text-white'
+                          }`}
+                          title="Toggle A-B Section Repeat Mode"
+                        >
+                          <Repeat className="w-3.5 h-3.5" />
+                          <span className="text-[11px] font-bold">A-B</span>
+                        </button>
+
+                        {isAbLoopActive && (
+                          <div className="flex items-center gap-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 p-1 shadow-lg">
+                            <button
+                              onClick={() => setLoopStart(currentTime)}
+                              className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-mono cursor-pointer transition-colors"
+                              title="Set current time as Point A"
+                            >
+                              Set A
+                            </button>
+                            <button
+                              onClick={() => setLoopEnd(currentTime)}
+                              className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono cursor-pointer transition-colors"
+                              title="Set current time as Point B"
+                            >
+                              Set B
+                            </button>
+                            <button
+                              onClick={() => {
+                                setLoopStart(0);
+                                setLoopEnd(duration);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-mono cursor-pointer transition-colors"
+                              title="Reset A-B boundaries"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 5. Playback Speed selector (0.5x, 1x, 1.25x, 1.5x, 2x) */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                          className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-xs font-mono text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95"
+                          title="Playback Speed"
+                        >
+                          <Gauge className="w-3.5 h-3.5 text-zinc-400" />
+                          <span>{playbackRate}x</span>
+                        </button>
+
+                        {showSpeedMenu && (
+                          <div className="absolute bottom-11 left-0 bg-black/95 backdrop-blur-xl border border-white/15 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5 z-40 min-w-[75px]">
+                            {PLAYBACK_RATES.map((rate) => (
+                              <button
+                                key={rate}
+                                onClick={() => handleSpeedSelect(rate)}
+                                className={`px-3 py-1.5 rounded-lg text-[11px] font-mono text-left transition-colors cursor-pointer ${
+                                  playbackRate === rate
+                                    ? 'bg-zinc-800 text-white font-bold'
+                                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
+                                }`}
+                              >
+                                {rate}x
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 6. Picture-in-Picture (Mini-player) */}
+                      <button
+                        onClick={togglePiP}
+                        className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95 hidden sm:inline-flex"
+                        title="Picture in Picture"
+                      >
+                        <PictureInPicture2 className="w-4 h-4" />
+                      </button>
+
+                      {/* 7. Fullscreen toggle */}
+                      <button
+                        onClick={toggleFullscreen}
+                        className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95"
+                        title={isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'}
+                      >
+                        {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {/* ================= FLUSH BOTTOM SEEK BAR ================= */}
+                    {/* Anchored to the absolute bottom edge of the video with 20px hit-box */}
+                    <div
+                      onMouseEnter={() => {
+                        if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
+                        setIsHudVisible(true);
+                      }}
+                      onMouseLeave={resetHudTimer}
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute bottom-0 left-0 right-0 z-30 group/seekbar select-none cursor-pointer"
+                    >
+                      {/* Ergonomics: Invisible 20px touch hit-box */}
+                      <div className="relative w-full h-5 flex items-end">
+                        {/* Visual track: default 2px, expands to 6px on hover/active */}
+                        <div className="relative w-full h-[2px] group-hover/seekbar:h-[6px] bg-white/20 transition-all duration-150 overflow-hidden">
+                          {/* Buffered Progress */}
+                          {bufferedProgress > 0 && (
+                            <div
+                              className="absolute top-0 bottom-0 left-0 bg-white/30 transition-all duration-150 pointer-events-none"
+                              style={{ width: `${Math.min(100, bufferedProgress)}%` }}
+                            />
+                          )}
+                          {/* Active Played Progress */}
                           <div
-                            className="h-full bg-zinc-200 transition-all duration-75"
+                            className="h-full bg-cyan-400 group-hover/seekbar:bg-cyan-300 transition-all duration-75 relative pointer-events-none"
                             style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                           />
-
+                          {/* A-B Loop Visualizer on seekbar */}
                           {isAbLoopActive && loopStart !== null && (
                             <div
-                              className="absolute top-0 bottom-0 bg-emerald-500/50 border-x border-emerald-400 pointer-events-none"
+                              className="absolute top-0 bottom-0 bg-emerald-500/60 border-x border-emerald-300 pointer-events-none"
                               style={{
                                 left: `${loopStartPct}%`,
                                 width: `${Math.max(2, loopEndPct - loopStartPct)}%`,
@@ -1494,6 +1818,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           )}
                         </div>
 
+                        {/* Scrub Range Input covering the 20px hit-box */}
                         <input
                           type="range"
                           min="0"
@@ -1502,198 +1827,24 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           value={currentTime}
                           onChange={handleSeek}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          title="Seek video"
                         />
 
+                        {/* A-B Loop Marker Pins */}
                         {isAbLoopActive && loopStart !== null && (
                           <div
-                            className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-amber-400 rounded-sm shadow-md pointer-events-none z-10"
+                            className="absolute bottom-0 -translate-x-1/2 w-2 h-3 bg-amber-400 rounded-t-sm shadow-md pointer-events-none z-10"
                             style={{ left: `${loopStartPct}%` }}
                             title={`Point A: ${formatTime(loopStart)}`}
                           />
                         )}
-
                         {isAbLoopActive && loopEnd !== null && (
                           <div
-                            className="absolute -top-1.5 -translate-x-1/2 w-2 h-4 bg-emerald-400 rounded-sm shadow-md pointer-events-none z-10"
+                            className="absolute bottom-0 -translate-x-1/2 w-2 h-3 bg-emerald-400 rounded-t-sm shadow-md pointer-events-none z-10"
                             style={{ left: `${loopEndPct}%` }}
                             title={`Point B: ${formatTime(loopEnd)}`}
                           />
                         )}
-                      </div>
-
-                      {/* HUD Controls Row */}
-                      <div className="flex items-center justify-between text-xs font-mono text-zinc-300 gap-2">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <button
-                            onClick={togglePlay}
-                            className="p-1 hover:text-white transition-colors cursor-pointer"
-                            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-                          >
-                            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-                          </button>
-
-                          <button
-                            onClick={() => seekRelative(-10)}
-                            className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
-                            title="Rewind 10s (J)"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span className="text-[9px] hidden sm:inline">-10s</span>
-                          </button>
-
-                          <button
-                            onClick={() => seekRelative(10)}
-                            className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-0.5"
-                            title="Skip 10s (L)"
-                          >
-                            <RotateCw className="w-3.5 h-3.5" />
-                            <span className="text-[9px] hidden sm:inline">+10s</span>
-                          </button>
-
-                          <div className="flex items-center gap-1.5 group/vol">
-                            <button
-                              onClick={handleMuteToggle}
-                              className="p-1 hover:text-white transition-colors cursor-pointer"
-                              title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
-                            >
-                              {isMuted || volume === 0 ? (
-                                <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
-                              ) : (
-                                <Volume2 className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.05"
-                              value={isMuted ? 0 : volume}
-                              onChange={handleVolumeChange}
-                              className="w-12 sm:w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-zinc-200 hidden sm:inline"
-                            />
-                          </div>
-
-                          <span className="text-[10px] text-zinc-400 tracking-wider hidden sm:inline">
-                            {formatTime(currentTime)} / {formatTime(duration)}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="flex items-center gap-1">
-                            {/* Repeat Toggle Button: Repeat 1 vs Auto-advance */}
-                            {isVideo && (
-                              <button
-                                onClick={() => setIsRepeat((prev) => !prev)}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono transition-all cursor-pointer border ${
-                                  isRepeat
-                                    ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                                    : 'bg-zinc-900/80 border-white/[0.08] text-zinc-400 hover:text-white'
-                                }`}
-                                title={
-                                  isRepeat
-                                    ? 'Repeat: One (Current video loops on finish)'
-                                    : 'Auto-advance: On (Plays next video in queue on finish)'
-                                }
-                              >
-                                <Repeat className="w-3 h-3" />
-                                <span>{isRepeat ? '1' : 'AUTO'}</span>
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => {
-                                setIsAbLoopActive(!isAbLoopActive);
-                                if (!isAbLoopActive) {
-                                  setLoopStart(currentTime);
-                                  setLoopEnd(Math.min(duration, currentTime + 5));
-                                }
-                              }}
-                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono transition-all cursor-pointer border ${
-                                isAbLoopActive
-                                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                                  : 'bg-zinc-900/80 border-white/[0.08] text-zinc-400 hover:text-white'
-                              }`}
-                              title="Toggle A-B Section Repeat Mode"
-                            >
-                              <Repeat className="w-3 h-3" />
-                              <span>A-B</span>
-                            </button>
-
-                            {isAbLoopActive && (
-                              <div className="hidden sm:flex items-center gap-1 text-[9px]">
-                                <button
-                                  onClick={() => setLoopStart(currentTime)}
-                                  className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 cursor-pointer"
-                                  title="Set current time as Point A"
-                                >
-                                  Set A
-                                </button>
-                                <button
-                                  onClick={() => setLoopEnd(currentTime)}
-                                  className="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer"
-                                  title="Set current time as Point B"
-                                >
-                                  Set B
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setLoopStart(0);
-                                    setLoopEnd(duration);
-                                  }}
-                                  className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                                  title="Reset A-B boundaries"
-                                >
-                                  Clear
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="relative">
-                            <button
-                              onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900/80 border border-white/[0.08] text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                              title="Playback Speed"
-                            >
-                              <Gauge className="w-3 h-3 text-zinc-400" />
-                              <span>{playbackRate}x</span>
-                            </button>
-
-                            {showSpeedMenu && (
-                              <div className="absolute bottom-9 right-0 bg-black/95 border border-white/15 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5 z-40">
-                                {PLAYBACK_RATES.map((rate) => (
-                                  <button
-                                    key={rate}
-                                    onClick={() => handleSpeedSelect(rate)}
-                                    className={`px-3 py-1 rounded-lg text-[10px] font-mono text-left transition-colors cursor-pointer ${
-                                      playbackRate === rate
-                                        ? 'bg-zinc-800 text-white font-bold'
-                                        : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
-                                    }`}
-                                  >
-                                    {rate}x
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={togglePiP}
-                            className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
-                            title="Picture in Picture"
-                          >
-                            <PictureInPicture2 className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={toggleFullscreen}
-                            className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                            title={isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'}
-                          >
-                            {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
                       </div>
                     </div>
                   </div>
