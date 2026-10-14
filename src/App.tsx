@@ -18,10 +18,12 @@ import {
   getStoredLastActiveAlbum,
   anchorToAlbumSection,
 } from './utils/urlRouter';
+import { useRecentHistory } from './hooks/useRecentHistory';
 import type { StageMediaItem } from './types';
 
 function App() {
   const { data, isLoading, isError } = useMediaData();
+  const { recentItems, addToHistory, clearHistory } = useRecentHistory();
 
   // 12 Distinct Curated Albums (Powered by Hugging Face CDN)
   const albums = useMemo(() => {
@@ -100,6 +102,7 @@ function App() {
               shorts: curAlbum.items,
               initialIndex: mediaMatch.index,
             });
+            addToHistory(mediaMatch.item);
           } else {
             setTheaterState({
               isOpen: true,
@@ -107,6 +110,7 @@ function App() {
               initialIndex: mediaMatch.index,
               posterUrl: undefined,
             });
+            addToHistory(mediaMatch.item);
           }
           hasRestoredMediaRef.current = true;
         } else if (!isLoading && !!data) {
@@ -114,7 +118,7 @@ function App() {
         }
       }
     }
-  }, [albums, isLoading, data]);
+  }, [albums, isLoading, data, addToHistory]);
 
   // Browser navigation: Back / Forward popstate synchronization
   useEffect(() => {
@@ -144,6 +148,7 @@ function App() {
               shorts: targetAlbum.items,
               initialIndex: mediaMatch.index,
             });
+            addToHistory(mediaMatch.item);
             setTheaterState((prev) => ({ ...prev, isOpen: false }));
           } else {
             setTheaterState({
@@ -152,6 +157,7 @@ function App() {
               initialIndex: mediaMatch.index,
               posterUrl: undefined,
             });
+            addToHistory(mediaMatch.item);
             setShortsState((prev) => ({ ...prev, isOpen: false }));
           }
           return;
@@ -195,25 +201,53 @@ function App() {
     initialIndex: 0,
   });
 
-  // Handle clicking any media item in the Driftime scene
+  // Handle clicking any media item across Driftime scenes or Dynamic Carousels
   const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number, posterUrl?: string) => {
+    // Record to recently opened history
+    addToHistory(item);
+
     const curAlbum = albums[albumIdx];
-    const itemIdx = curAlbum ? curAlbum.items.findIndex((s) => s.id === item.id) : 0;
-    const isShorts =
+    const isItemShorts = Boolean(
+      item.category?.toLowerCase().includes('short') ||
+      item.category?.toLowerCase().includes('reel') ||
+      item.url?.toLowerCase().includes('/shorts/') ||
+      item.id?.toLowerCase().includes('shorts/')
+    );
+    const isAlbumShorts = Boolean(
       curAlbum?.name.toLowerCase().includes('short') ||
       curAlbum?.name.toLowerCase().includes('reel') ||
-      curAlbum?.layoutType === 'vertical-waterfall';
+      curAlbum?.layoutType === 'vertical-waterfall'
+    );
 
-    if (isShorts && curAlbum) {
+    if (isItemShorts || isAlbumShorts) {
+      const shortsAlbum = albums.find((a) => a.id === 'album-shorts');
+      const shortsList = isAlbumShorts && curAlbum ? curAlbum.items : (shortsAlbum?.items || [item]);
+      const itemIdx = shortsList.findIndex((s) => s.id === item.id || s.url === item.url);
+
       setShortsState({
         isOpen: true,
-        shorts: curAlbum.items,
+        shorts: shortsList,
         initialIndex: Math.max(0, itemIdx),
       });
     } else {
+      const targetAlbum =
+        curAlbum && curAlbum.items.some((it) => it.id === item.id)
+          ? curAlbum
+          : albums.find((a) => a.items.some((it) => it.id === item.id)) || curAlbum || {
+              id: 'album-view',
+              index: 0,
+              name: item.category || 'Gallery',
+              type: item.type,
+              itemCount: 1,
+              items: [item],
+              layoutType: 'ribbon-slider' as const,
+            };
+
+      const itemIdx = targetAlbum ? targetAlbum.items.findIndex((s) => s.id === item.id) : 0;
+
       setTheaterState({
         isOpen: true,
-        album: curAlbum || null,
+        album: targetAlbum || null,
         initialIndex: Math.max(0, itemIdx),
         posterUrl,
       });
@@ -222,7 +256,7 @@ function App() {
     if (curAlbum) {
       syncUrlState({ album: curAlbum, mediaItem: item, replace: false });
     }
-  }, [albums]);
+  }, [albums, addToHistory]);
 
   // Luxury Elevator Smooth Navigation
   const scrollToAlbum = useCallback((targetIndex: number) => {
@@ -289,17 +323,21 @@ function App() {
   const handleTheaterIndexChange = useCallback((newIdx: number) => {
     if (theaterState.album && theaterState.album.items[newIdx]) {
       const item = theaterState.album.items[newIdx];
+      addToHistory(item);
       syncUrlState({ album: theaterState.album, mediaItem: item, replace: true });
     }
-  }, [theaterState.album]);
+  }, [theaterState.album, addToHistory]);
 
   const handleShortsIndexChange = useCallback((newIdx: number) => {
     const curAlbum = albums[activeAlbumIndexRef.current];
-    if (curAlbum && shortsState.shorts[newIdx]) {
+    if (shortsState.shorts[newIdx]) {
       const item = shortsState.shorts[newIdx];
-      syncUrlState({ album: curAlbum, mediaItem: item, replace: true });
+      addToHistory(item);
+      if (curAlbum) {
+        syncUrlState({ album: curAlbum, mediaItem: item, replace: true });
+      }
     }
-  }, [albums, shortsState.shorts]);
+  }, [albums, shortsState.shorts, addToHistory]);
 
   const handleSwitchAlbum = useCallback((targetAlbum: (typeof albums)[0], itemIdx = 0) => {
     setTheaterState({
@@ -498,6 +536,8 @@ function App() {
                   }}
                   batchIndex={currentBatch}
                   onSelectItem={(item, posterUrl) => handleSelectItem(item, idx, posterUrl)}
+                  recentItems={recentItems}
+                  onClearHistory={clearHistory}
                 />
               )}
             </section>

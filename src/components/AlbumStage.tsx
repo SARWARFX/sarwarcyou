@@ -1,5 +1,6 @@
 import React from 'react';
 import { DriftimeEditorialStage, type DriftimeVariant } from './DriftimeEditorialStage';
+import { TopFeedStage } from './TopFeedStage';
 import type { AlbumData, StageMediaItem } from '../types';
 
 export interface AlbumStageProps {
@@ -11,10 +12,25 @@ export interface AlbumStageProps {
   batchIndex: number;
   isVisible?: boolean;
   isLoading?: boolean;
+  recentItems?: StageMediaItem[];
+  onClearHistory?: () => void;
 }
 
 export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
-  const { album } = props;
+  const { album, isActive, onSelectItem, recentItems, onClearHistory } = props;
+
+  // Dedicated Top-of-Feed Stage for Latest Releases & Recently Opened Carousels
+  if (album.id === 'album-latest-releases') {
+    return (
+      <TopFeedStage
+        album={album}
+        isActive={isActive}
+        onSelectItem={onSelectItem}
+        recentItems={recentItems}
+        onClearHistory={onClearHistory}
+      />
+    );
+  }
 
   // Dynamic Driftime Editorial Layout Rhythms for interleaved albums:
   let variant: DriftimeVariant = 'filmstrip';

@@ -21,6 +21,7 @@ export interface HfTreeItem {
   path: string;
   oid?: string;
   size?: number;
+  lastCommit?: { date?: string; id?: string; title?: string };
 }
 
 interface CachedCatalogEnvelope {
@@ -182,16 +183,29 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
 
     const name = path.split('/').pop() || path;
     const url = buildHfMediaUrl(path);
+    const lastCommit = item.lastCommit;
+    let itemDate: number | undefined;
+    if (lastCommit?.date) {
+      const parsed = new Date(lastCommit.date).getTime();
+      if (!isNaN(parsed) && parsed > 0) itemDate = parsed;
+    }
+    if (!itemDate) {
+      const match = path.match(/(202[4-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
+      if (match) {
+        const parsed = new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10)).getTime();
+        if (!isNaN(parsed)) itemDate = parsed;
+      }
+    }
 
     if (isVideoExtension(path)) {
       const thumbnails = getThumbnailsForVideo(path);
       if (path.startsWith('Shorts/')) {
-        shorts.push({ name, path, url, thumbnails });
+        shorts.push({ name, path, url, thumbnails, lastCommit, date: itemDate });
       } else {
-        clips.push({ name, path, url, thumbnails });
+        clips.push({ name, path, url, thumbnails, lastCommit, date: itemDate });
       }
     } else if (isPhotoExtension(path)) {
-      images.push({ name, path, url });
+      images.push({ name, path, url, lastCommit, date: itemDate });
     }
   }
 

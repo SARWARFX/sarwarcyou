@@ -17,8 +17,174 @@ function isHfCatalog(data: unknown): data is HfMediaCatalog {
 }
 
 /**
+ * Repository-wide "Latest Releases" extractor (Top N files across all valid folders).
+ * Slices newest items sorted descending by upload/commit timestamp:
+ * 1. file.date / file.lastCommit?.date
+ * 2. Filename numeric timestamp patterns (YYYYMMDD...)
+ * 3. Reverse alphabetical collation
+ */
+export function extractLatestReleases(
+  data: HfMediaCatalog | ApiResponseData | null | undefined,
+  limit = 30
+): StageMediaItem[] {
+  const effectiveData = data || FALLBACK_HF_CATALOG;
+  const allRawItems: Array<{
+    item:
+      | HfMediaItem
+      | {
+          id: string;
+          name: string;
+          url: string;
+          thumbnail?: string;
+          type?: string;
+          date?: number;
+          lastCommit?: { date?: string; id?: string; title?: string };
+        };
+    defaultType: 'image' | 'video';
+    category: string;
+  }> = [];
+
+  if (isHfCatalog(effectiveData)) {
+    for (const img of effectiveData.images || []) {
+      if (!isHiddenOrSystemPath(img.path || img.name || img.url)) {
+        allRawItems.push({ item: img, defaultType: 'image', category: 'Photography' });
+      }
+    }
+    for (const clip of effectiveData.clips || []) {
+      if (!isHiddenOrSystemPath(clip.path || clip.name || clip.url)) {
+        allRawItems.push({ item: clip, defaultType: 'video', category: 'Cinema' });
+      }
+    }
+    for (const short of effectiveData.shorts || []) {
+      if (!isHiddenOrSystemPath(short.path || short.name || short.url)) {
+        allRawItems.push({ item: short, defaultType: 'video', category: 'Shorts & Reels' });
+      }
+    }
+  } else {
+    const source = (effectiveData as unknown as ApiResponseData) || FALLBACK_MEDIA_DATA;
+    if (source.leftImageFolder?.files) {
+      for (const f of source.leftImageFolder.files) {
+        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+          allRawItems.push({
+            item: f,
+            defaultType: 'image',
+            category: source.leftImageFolder.name || 'Bandhobis',
+          });
+        }
+      }
+    }
+    for (const folder of source.centerImageFolders || []) {
+      for (const f of folder.files || []) {
+        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+          allRawItems.push({ item: f, defaultType: 'image', category: folder.name });
+        }
+      }
+    }
+    for (const folder of source.videoFolders || []) {
+      for (const f of folder.files || []) {
+        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+          allRawItems.push({ item: f, defaultType: 'video', category: folder.name });
+        }
+      }
+    }
+    if (source.shortsFolder?.files) {
+      for (const f of source.shortsFolder.files) {
+        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+          allRawItems.push({ item: f, defaultType: 'video', category: 'Shorts & Reels' });
+        }
+      }
+    }
+  }
+
+  // Deduplicate items by raw URL or path
+  const seenPaths = new Set<string>();
+  const uniqueItems = allRawItems.filter((entry) => {
+    const rawPath =
+      ('path' in entry.item && entry.item.path) ||
+      ('id' in entry.item && entry.item.id) ||
+      entry.item.url;
+    if (!rawPath || seenPaths.has(rawPath)) return false;
+    seenPaths.add(rawPath);
+    return true;
+  });
+
+  const getItemTimestamp = (entry: (typeof allRawItems)[0]): number => {
+    const it = entry.item;
+    if (it.date && it.date > 0) return it.date;
+    if (it.lastCommit?.date) {
+      const parsed = new Date(it.lastCommit.date).getTime();
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    const rawPath = ('path' in it && it.path) || it.name || it.url || '';
+    const match = rawPath.match(/(202[4-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
+    if (match) {
+      const parsed = new Date(
+        parseInt(match[1], 10),
+        parseInt(match[2], 10) - 1,
+        parseInt(match[3], 10)
+      ).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+    const yearMatch = rawPath.match(/(202[0-9])/);
+    if (yearMatch) {
+      return new Date(parseInt(yearMatch[1], 10), 0, 1).getTime();
+    }
+    return 0;
+  };
+
+  uniqueItems.sort((a, b) => {
+    const timeA = getItemTimestamp(a);
+    const timeB = getItemTimestamp(b);
+    if (timeB !== timeA) {
+      return timeB - timeA;
+    }
+    const nameA = a.item.name || (('path' in a.item && a.item.path) || '') || '';
+    const nameB = b.item.name || (('path' in b.item && b.item.path) || '') || '';
+    return nameB.localeCompare(nameA);
+  });
+
+  const sliced = uniqueItems.slice(0, limit);
+
+  return sliced.map((entry, idx) => {
+    const it = entry.item;
+    const rawPath =
+      ('path' in it && it.path) || ('id' in it && it.id) || it.url || `latest-${idx}`;
+    const itemType = determineMediaType(rawPath, entry.defaultType);
+    const safeUrl = safeEncodeUrl(it.url || rawPath);
+    const title = (it.name || `Release ${idx + 1}`)
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[-_]+/g, ' ')
+      .trim();
+
+    return {
+      id: rawPath,
+      title: title || `Release ${idx + 1}`,
+      url: safeUrl,
+      thumbnail:
+        itemType === 'image'
+          ? safeUrl
+          : getDirectImageUrl(
+              {
+                id: rawPath,
+                url: it.url,
+                thumbnail: 'thumbnail' in it ? it.thumbnail : undefined,
+                type: itemType,
+              },
+              idx
+            ),
+      category: entry.category,
+      type: itemType,
+      thumbnails: 'thumbnails' in it ? it.thumbnails : undefined,
+      date: getItemTimestamp(entry),
+      lastCommit: it.lastCommit,
+    };
+  });
+}
+
+/**
  * Interleaving Algorithm:
  * Alternates populated albums on the feed: Image Album ➔ Video Album ➔ Image Album ➔ Video Album...
+ * Pins "Latest Releases" (album-latest-releases) at index 0.
  * Any empty / pending folders (count === 0) are placed cleanly at the very bottom.
  */
 export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
@@ -27,8 +193,11 @@ export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
     (a) => !isHiddenOrSystemFolder(a.name) && !isHiddenOrSystemFolder(a.id)
   );
 
-  const populated = validAlbums.filter((a) => a.items && a.items.length > 0);
-  const empty = validAlbums.filter((a) => !a.items || a.items.length === 0);
+  const latestAlbum = validAlbums.find((a) => a.id === 'album-latest-releases');
+  const otherAlbums = validAlbums.filter((a) => a.id !== 'album-latest-releases');
+
+  const populated = otherAlbums.filter((a) => a.items && a.items.length > 0);
+  const empty = otherAlbums.filter((a) => !a.items || a.items.length === 0);
 
   const images = populated.filter((a) => a.type === 'image');
   const videos = populated.filter((a) => a.type === 'video');
@@ -41,8 +210,12 @@ export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
     if (i < videos.length) interleaved.push(videos[i]);
   }
 
-  // Combine interleaved populated albums with empty/pending folders at the bottom
-  const finalAlbums = [...interleaved, ...empty];
+  // Combine pinned latest releases + interleaved populated albums + empty/pending folders at the bottom
+  const finalAlbums = [
+    ...(latestAlbum ? [latestAlbum] : []),
+    ...interleaved,
+    ...empty,
+  ];
 
   // Re-index all albums cleanly with their final 0-based index
   return finalAlbums.map((album, idx) => ({
@@ -156,10 +329,23 @@ export function extractTwelveAlbums(
       'video'
     );
 
+    const latestReleasesItems = extractLatestReleases(catalog, 30);
+    const latestReleasesAlbum: AlbumData = {
+      id: 'album-latest-releases',
+      index: 0,
+      name: 'Latest Releases',
+      type: 'video',
+      itemCount: latestReleasesItems.length,
+      items: latestReleasesItems,
+      layoutType: 'ribbon-slider',
+      subtitle: 'Top 30 Newest Releases',
+    };
+
     const baseAlbums: AlbumData[] = [
+      latestReleasesAlbum,
       {
         id: 'album-bandhobis',
-        index: 0,
+        index: 1,
         name: 'Bandhobis',
         type: 'image',
         itemCount: bandhobisFiles.length,
@@ -413,12 +599,25 @@ export function extractTwelveAlbums(
   const othersVideoFolder = videoFolders.find((f) => f.name.toLowerCase().includes('other'));
   const h2027VideoFolder = videoFolders.find((f) => f.name === 'H2027');
 
+  const latestReleasesItems = extractLatestReleases(source, 30);
+  const latestReleasesAlbum: AlbumData = {
+    id: 'album-latest-releases',
+    index: 0,
+    name: 'Latest Releases',
+    type: 'video',
+    itemCount: latestReleasesItems.length,
+    items: latestReleasesItems,
+    layoutType: 'ribbon-slider',
+    subtitle: 'Top 30 Newest Releases',
+  };
+
   const shortsFolder = source.shortsFolder;
 
   return interleaveAlbums([
+    latestReleasesAlbum,
     {
       id: 'album-bandhobis',
-      index: 0,
+      index: 1,
       name: 'Bandhobis',
       type: 'image',
       itemCount: bandhobisFiles.length,
