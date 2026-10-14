@@ -556,6 +556,7 @@ function App() {
         activeAlbumIndex={activeAlbumIndex}
         onSelectAlbum={scrollToAlbum}
         onResetHome={handleResetHome}
+        onSelectItem={handleSelectItem}
       />
 
       {/* ================= RIGHT-SIDE NAVIGATION DOCK ================= */}
