@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Search, X, Play, Camera, Film } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
-import { isVideoExtension } from '../utils/mediaTypeDetector';
+import { isVideoExtension, isExcludedAlbum, isThumbnailFile } from '../utils/mediaTypeDetector';
 import { resolveMultiFrameThumbnails } from '../utils/thumbnailResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -49,7 +49,11 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
 
     for (let aIdx = 0; aIdx < albums.length; aIdx++) {
       const album = albums[aIdx];
+      if (isExcludedAlbum(album.name) || isExcludedAlbum(album.id)) continue;
       for (const item of album.items) {
+        const itemPath = item.url || item.id || item.title || '';
+        if (isExcludedAlbum(itemPath)) continue;
+        if (item.type === 'image' && isThumbnailFile(itemPath)) continue;
         // De-duplicate items that might appear in multiple virtual albums
         const uniqueKey = item.id || item.url;
         if (seenIds.has(uniqueKey)) continue;

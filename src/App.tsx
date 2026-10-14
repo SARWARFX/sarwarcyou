@@ -20,6 +20,7 @@ import {
   anchorToAlbumSection,
 } from './utils/urlRouter';
 import { useRecentHistory } from './hooks/useRecentHistory';
+import { isExcludedAlbum } from './utils/mediaTypeDetector';
 import type { StageMediaItem } from './types';
 
 function App() {
@@ -29,9 +30,13 @@ function App() {
   // Curated Albums (Powered by Hugging Face CDN) - Strictly filtered to exclude phantom/empty albums
   const albums = useMemo(() => {
     const rawAlbums = extractTwelveAlbums(data || FALLBACK_HF_CATALOG);
-    // Strip any phantom, empty, or unpopulated albums
+    // Strip any phantom, empty, or unpopulated albums, and exclude thumbnail/artifact folders
     const activeAlbums = rawAlbums.filter(
-      (album) => Array.isArray(album.items) && album.items.length > 0
+      (album) =>
+        Array.isArray(album.items) &&
+        album.items.length > 0 &&
+        !isExcludedAlbum(album.name) &&
+        !isExcludedAlbum(album.id)
     );
     return activeAlbums.map((album, idx) => ({ ...album, index: idx }));
   }, [data]);

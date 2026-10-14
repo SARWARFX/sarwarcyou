@@ -41,6 +41,7 @@ export interface HfMediaItem {
   name: string;
   path: string;
   url: string;
+  poster?: string;
   thumbnails?: string[];
   lastCommit?: { date?: string; id?: string; title?: string };
   date?: number;
@@ -73,6 +74,7 @@ export interface StageMediaItem {
   thumbnail: string;
   category: string;
   type: 'video' | 'image';
+  poster?: string;
   posterUrl?: string;
   thumbnails?: string[];
   date?: number;

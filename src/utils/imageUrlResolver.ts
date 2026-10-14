@@ -24,7 +24,7 @@ export function extractDriveFileId(id?: string, url?: string, thumbnail?: string
 import { isVideoExtension, safeEncodeUrl } from './mediaTypeDetector';
 
 export function getDirectImageUrl(
-  item: { id?: string; url?: string; thumbnail?: string; type?: string; posterUrl?: string },
+  item: { id?: string; url?: string; thumbnail?: string; type?: string; posterUrl?: string; poster?: string },
   _index = 0
 ): string {
   if (!item) return '';
@@ -32,7 +32,7 @@ export function getDirectImageUrl(
 
   if (target.includes('huggingface.co')) {
     if (isVideoExtension(target) || isVideoExtension(item.id) || item.type === 'video') {
-      return item.posterUrl || item.thumbnail || '';
+      return item.poster || item.posterUrl || item.thumbnail || '';
     }
     return safeEncodeUrl(target);
   }

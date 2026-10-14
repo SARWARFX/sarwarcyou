@@ -59,10 +59,10 @@ export const VerticalFolderMenu: React.FC<VerticalFolderMenuProps> = ({
           {!isCollapsed && (
             <div className="px-2.5 pt-1 pb-1.5 flex items-center justify-between border-b border-white/10 mb-0.5">
               <span className="text-[9px] font-mono tracking-[0.25em] text-[#00D2FF] font-bold uppercase">
-                12 3D ALBUMS
+                {albums.length} 3D ALBUMS
               </span>
               <span className="text-[9px] font-mono text-white/40">
-                {(activeAlbumIndex + 1).toString().padStart(2, '0')}/12
+                {(activeAlbumIndex + 1).toString().padStart(2, '0')}/{albums.length.toString().padStart(2, '0')}
               </span>
             </div>
           )}

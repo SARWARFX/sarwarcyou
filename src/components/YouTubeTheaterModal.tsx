@@ -25,7 +25,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
-import { isVideoExtension, isHiddenOrSystemFolder, encodeStreamUrl } from '../utils/mediaTypeDetector';
+import { isVideoExtension, isHiddenOrSystemFolder, isExcludedAlbum, encodeStreamUrl } from '../utils/mediaTypeDetector';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import {
   getCachedVideoPoster,
@@ -609,6 +609,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         a.id !== album?.id &&
         !isHiddenOrSystemFolder(a.name) &&
         !isHiddenOrSystemFolder(a.id) &&
+        !isExcludedAlbum(a.name) &&
+        !isExcludedAlbum(a.id) &&
         (isVideo ? a.type === 'video' : a.type === 'image') &&
         a.items.length > 0
     );

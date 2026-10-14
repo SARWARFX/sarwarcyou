@@ -6,6 +6,8 @@ import {
   safeEncodeUrl,
   isHiddenOrSystemPath,
   isHiddenOrSystemFolder,
+  isExcludedAlbum,
+  isThumbnailFile,
 } from './mediaTypeDetector';
 
 function isHfCatalog(data: unknown): data is HfMediaCatalog {
@@ -112,17 +114,20 @@ export function extractLatestReleases(
 
   if (isHfCatalog(effectiveData)) {
     for (const img of effectiveData.images || []) {
-      if (!isHiddenOrSystemPath(img.path || img.name || img.url)) {
+      const p = img.path || img.name || img.url;
+      if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p) && !isThumbnailFile(p)) {
         allRawItems.push({ item: img, defaultType: 'image', category: 'Photography' });
       }
     }
     for (const clip of effectiveData.clips || []) {
-      if (!isHiddenOrSystemPath(clip.path || clip.name || clip.url)) {
+      const p = clip.path || clip.name || clip.url;
+      if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p)) {
         allRawItems.push({ item: clip, defaultType: 'video', category: 'Cinema' });
       }
     }
     for (const short of effectiveData.shorts || []) {
-      if (!isHiddenOrSystemPath(short.path || short.name || short.url)) {
+      const p = short.path || short.name || short.url;
+      if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p)) {
         allRawItems.push({ item: short, defaultType: 'video', category: 'Shorts & Reels' });
       }
     }
@@ -130,7 +135,8 @@ export function extractLatestReleases(
     const source = (effectiveData as unknown as ApiResponseData) || FALLBACK_MEDIA_DATA;
     if (source.leftImageFolder?.files) {
       for (const f of source.leftImageFolder.files) {
-        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+        const p = f.url || f.name || f.id;
+        if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p) && !isThumbnailFile(p)) {
           allRawItems.push({
             item: f,
             defaultType: 'image',
@@ -140,22 +146,27 @@ export function extractLatestReleases(
       }
     }
     for (const folder of source.centerImageFolders || []) {
+      if (isHiddenOrSystemFolder(folder.name) || isExcludedAlbum(folder.name)) continue;
       for (const f of folder.files || []) {
-        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+        const p = f.url || f.name || f.id;
+        if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p) && !isThumbnailFile(p)) {
           allRawItems.push({ item: f, defaultType: 'image', category: folder.name });
         }
       }
     }
     for (const folder of source.videoFolders || []) {
+      if (isHiddenOrSystemFolder(folder.name) || isExcludedAlbum(folder.name)) continue;
       for (const f of folder.files || []) {
-        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+        const p = f.url || f.name || f.id;
+        if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p)) {
           allRawItems.push({ item: f, defaultType: 'video', category: folder.name });
         }
       }
     }
     if (source.shortsFolder?.files) {
       for (const f of source.shortsFolder.files) {
-        if (!isHiddenOrSystemPath(f.url || f.name || f.id)) {
+        const p = f.url || f.name || f.id;
+        if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p)) {
           allRawItems.push({ item: f, defaultType: 'video', category: 'Shorts & Reels' });
         }
       }
@@ -198,6 +209,8 @@ export function extractLatestReleases(
       .replace(/[-_]+/g, ' ')
       .trim();
 
+    const poster = 'poster' in it ? (it as HfMediaItem).poster : undefined;
+
     return {
       id: rawPath,
       title: title || `Release ${idx + 1}`,
@@ -209,11 +222,13 @@ export function extractLatestReleases(
               {
                 id: rawPath,
                 url: it.url,
+                poster,
                 thumbnail: 'thumbnail' in it ? it.thumbnail : undefined,
                 type: itemType,
               },
               idx
             ),
+      poster,
       category: entry.category,
       type: itemType,
       thumbnails: 'thumbnails' in it ? it.thumbnails : undefined,
@@ -230,18 +245,30 @@ export function extractLatestReleases(
  * Any empty / pending folders (count === 0) are placed cleanly at the very bottom.
  */
 export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
-  // Strict filter: exclude .thumbnails, .git, .cache, and any dot-directories from album listings
+  // Strict filter: exclude .thumbnails, .git, .cache, and any dot-directories or thumbnail/artifact albums
   const validAlbums = albums.filter(
-    (a) => !isHiddenOrSystemFolder(a.name) && !isHiddenOrSystemFolder(a.id)
+    (a) =>
+      !isHiddenOrSystemFolder(a.name) &&
+      !isHiddenOrSystemFolder(a.id) &&
+      !isExcludedAlbum(a.name) &&
+      !isExcludedAlbum(a.id)
   );
 
   const latestAlbum = validAlbums.find((a) => a.id === 'album-latest-releases');
   const otherAlbums = validAlbums.filter((a) => a.id !== 'album-latest-releases');
 
   // Enforce strict empty album suppression: strip any phantom, empty, or unpopulated albums
-  const activeAlbums = otherAlbums.filter(
-    (album) => Array.isArray(album.items) && album.items.length > 0
-  );
+  const activeAlbums = otherAlbums
+    .map((album) => {
+      const cleanedItems = (album.items || []).filter((item) => {
+        const p = item.url || item.id || item.title || '';
+        if (isHiddenOrSystemPath(p) || isExcludedAlbum(p)) return false;
+        if (item.type === 'image' && isThumbnailFile(p)) return false;
+        return true;
+      });
+      return { ...album, items: cleanedItems, itemCount: cleanedItems.length };
+    })
+    .filter((album) => Array.isArray(album.items) && album.items.length > 0);
 
   const images = activeAlbums.filter((a) => a.type === 'image');
   const videos = activeAlbums.filter((a) => a.type === 'video');
@@ -265,7 +292,13 @@ export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
   // Re-index all albums cleanly with their final 0-based index and verified item count,
   // strictly sorting each album's items from newest to oldest
   return finalAlbums.map((album, idx) => {
-    const sortedItems = sortMediaItemsDescending(album.items);
+    const cleanedItems = (album.items || []).filter((item) => {
+      const p = item.url || item.id || item.title || '';
+      if (isHiddenOrSystemPath(p) || isExcludedAlbum(p)) return false;
+      if (item.type === 'image' && isThumbnailFile(p)) return false;
+      return true;
+    });
+    const sortedItems = sortMediaItemsDescending(cleanedItems);
     return {
       ...album,
       index: idx,
@@ -299,14 +332,18 @@ export function extractTwelveAlbums(
       categoryName: string,
       defaultType: 'image' | 'video'
     ): StageMediaItem[] => {
-      const validItems = items.filter(
-        (item) => !isHiddenOrSystemPath(item.path || item.name || item.url)
-      );
+      const validItems = items.filter((item) => {
+        const p = item.path || item.name || item.url;
+        if (isHiddenOrSystemPath(p) || isExcludedAlbum(p)) return false;
+        if (defaultType === 'image' && isThumbnailFile(p)) return false;
+        return true;
+      });
 
       const mapped = validItems.map((item, idx) => {
         const itemType = determineMediaType(item.path || item.name || item.url, defaultType);
         const safeUrl = safeEncodeUrl(item.url || item.path);
         const itemDate = getItemTimestamp(item);
+        const poster = item.poster;
         return {
           id: item.path || `${categoryName}-${idx}`,
           title:
@@ -316,7 +353,8 @@ export function extractTwelveAlbums(
           thumbnail:
             itemType === 'image'
               ? safeUrl
-              : getDirectImageUrl({ id: item.path, url: item.url, type: itemType }, idx),
+              : getDirectImageUrl({ id: item.path, url: item.url, poster, type: itemType }, idx),
+          poster,
           category: categoryName,
           type: itemType,
           thumbnails: item.thumbnails,
@@ -515,9 +553,10 @@ export function extractTwelveAlbums(
 
     const extraImageFolders = new Map<string, HfMediaItem[]>();
     for (const img of catalog.images) {
-      if (isHiddenOrSystemPath(img.path || img.name || img.url)) continue;
+      const p = img.path || img.name || img.url;
+      if (isHiddenOrSystemPath(p) || isExcludedAlbum(p) || isThumbnailFile(p)) continue;
       const sub = getSubfolder(img.path);
-      if (sub && !isStandardImageFolder(sub) && !isHiddenOrSystemFolder(sub)) {
+      if (sub && !isStandardImageFolder(sub) && !isHiddenOrSystemFolder(sub) && !isExcludedAlbum(sub)) {
         const list = extraImageFolders.get(sub) || [];
         list.push(img);
         extraImageFolders.set(sub, list);
@@ -526,9 +565,10 @@ export function extractTwelveAlbums(
 
     const extraClipFolders = new Map<string, HfMediaItem[]>();
     for (const clip of catalog.clips) {
-      if (isHiddenOrSystemPath(clip.path || clip.name || clip.url)) continue;
+      const p = clip.path || clip.name || clip.url;
+      if (isHiddenOrSystemPath(p) || isExcludedAlbum(p)) continue;
       const sub = getSubfolder(clip.path);
-      if (sub && !isStandardClipFolder(sub) && !isHiddenOrSystemFolder(sub)) {
+      if (sub && !isStandardClipFolder(sub) && !isHiddenOrSystemFolder(sub) && !isExcludedAlbum(sub)) {
         const list = extraClipFolders.get(sub) || [];
         list.push(clip);
         extraClipFolders.set(sub, list);
@@ -538,8 +578,11 @@ export function extractTwelveAlbums(
     let nextIndex = baseAlbums.length;
 
     extraImageFolders.forEach((files, folderKey) => {
-      if (isHiddenOrSystemFolder(folderKey)) return;
-      const validFiles = files.filter((f) => !isHiddenOrSystemPath(f.path || f.name || f.url));
+      if (isHiddenOrSystemFolder(folderKey) || isExcludedAlbum(folderKey)) return;
+      const validFiles = files.filter((f) => {
+        const p = f.path || f.name || f.url;
+        return !isHiddenOrSystemPath(p) && !isExcludedAlbum(p) && !isThumbnailFile(p);
+      });
       if (validFiles.length === 0) return;
       const title = folderKey
         .split(/[-_]+/)
@@ -560,8 +603,11 @@ export function extractTwelveAlbums(
     });
 
     extraClipFolders.forEach((files, folderKey) => {
-      if (isHiddenOrSystemFolder(folderKey)) return;
-      const validFiles = files.filter((f) => !isHiddenOrSystemPath(f.path || f.name || f.url));
+      if (isHiddenOrSystemFolder(folderKey) || isExcludedAlbum(folderKey)) return;
+      const validFiles = files.filter((f) => {
+        const p = f.path || f.name || f.url;
+        return !isHiddenOrSystemPath(p) && !isExcludedAlbum(p);
+      });
       if (validFiles.length === 0) return;
       const title = folderKey
         .split(/[-_]+/)

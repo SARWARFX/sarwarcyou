@@ -35,6 +35,8 @@ import {
   safeEncodeHfPath,
   safeEncodeUrl,
   isHiddenOrSystemPath,
+  isExcludedAlbum,
+  isThumbnailFile,
 } from './utils/mediaTypeDetector';
 
 export const VIDEO_EXTENSIONS = /\.(mp4|mov|mkv|webm|avi)(\?|#|$)/i;
@@ -117,32 +119,49 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
   const shorts: HfMediaItem[] = [];
   const images: HfMediaItem[] = [];
 
-  // Index all pre-rendered thumbnails from thumbnails/ or .thumbnails/
-  // Supports thumbnails/{video_name}/thumb_{1..5}.jpg and legacy formats.
+  // Index all pre-rendered thumbnails and posters
   const thumbnailsByFolder = new Map<string, string[]>();
+  const directPosterByVideoKey = new Map<string, string>();
 
   for (const item of tree) {
     if (item.type !== 'file' || !item.path) continue;
     const lowerPath = item.path.toLowerCase();
-    const isThumbFolder = item.path.startsWith('thumbnails/') || item.path.startsWith('.thumbnails/');
-    const isImageFile = lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg') || lowerPath.endsWith('.webp') || lowerPath.endsWith('.png');
+    const isImageFile =
+      lowerPath.endsWith('.jpg') ||
+      lowerPath.endsWith('.jpeg') ||
+      lowerPath.endsWith('.webp') ||
+      lowerPath.endsWith('.png') ||
+      lowerPath.endsWith('.avif');
 
-    if (isThumbFolder && isImageFile) {
+    if (isImageFile && (isThumbnailFile(item.path) || item.path.startsWith('thumbnails/') || item.path.startsWith('.thumbnails/'))) {
+      const url = buildHfMediaUrl(item.path);
+
+      // 1. Directory-level mapping (thumbnails/{videoName}/thumb_{1..5}.jpg)
       const lastSlash = item.path.lastIndexOf('/');
       if (lastSlash > 0) {
         const folder = item.path.substring(0, lastSlash);
-        const url = buildHfMediaUrl(item.path);
-
-        const keysToRegister = new Set<string>([
-          folder,
-          normalizeKey(folder),
-        ]);
-
+        const keysToRegister = new Set<string>([folder, normalizeKey(folder)]);
         for (const k of keysToRegister) {
           const list = thumbnailsByFolder.get(k) || [];
           list.push(url);
           thumbnailsByFolder.set(k, list);
         }
+      }
+
+      // 2. Direct video poster mapping (e.g. Clips/Favorite/video_thumb.jpg or temp_thumbnails/.../video_thumb.jpg)
+      const cleanStem = item.path
+        .replace(/^temp_thumbnails\//i, '')
+        .replace(/^thumbnails\//i, '')
+        .replace(/^\.thumbnails\//i, '')
+        .replace(/[-_]thumb(?:nail)?\.[^/.]+$/i, '')
+        .replace(/[-_]preview\.[^/.]+$/i, '');
+      const stemKey = normalizeKey(cleanStem);
+      if (stemKey && !directPosterByVideoKey.has(stemKey)) {
+        directPosterByVideoKey.set(stemKey, url);
+      }
+      const filenameOnly = normalizeKey(cleanStem.split('/').pop() || cleanStem);
+      if (filenameOnly && !directPosterByVideoKey.has(filenameOnly)) {
+        directPosterByVideoKey.set(filenameOnly, url);
       }
     }
   }
@@ -193,12 +212,24 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
     return undefined;
   };
 
+  // Helper to match direct poster for a video path
+  const getDirectPosterForVideo = (videoPath: string): string | undefined => {
+    const lastSlash = videoPath.lastIndexOf('/');
+    const parentDir = lastSlash > 0 ? videoPath.substring(0, lastSlash) : '';
+    const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
+    const stem = fileName.replace(/\.[^/.]+$/, '');
+
+    const fullKey = normalizeKey(parentDir ? `${parentDir}/${stem}` : stem);
+    const stemKey = normalizeKey(stem);
+    return directPosterByVideoKey.get(fullKey) || directPosterByVideoKey.get(stemKey);
+  };
+
   for (const item of tree) {
     if (item.type !== 'file' || !item.path) continue;
     const path = item.path;
 
-    // Strict exclusion: completely ignore any file inside thumbnails/ or .thumbnails or dot-directories
-    if (isHiddenOrSystemPath(path) || path.startsWith('thumbnails/') || path.includes('/thumbnails/')) continue;
+    // Strict exclusion: completely ignore any file inside excluded album patterns or thumbnail directories
+    if (isHiddenOrSystemPath(path) || isExcludedAlbum(path) || isThumbnailFile(path)) continue;
 
     const name = path.split('/').pop() || path;
     const url = buildHfMediaUrl(path);
@@ -218,13 +249,22 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
 
     if (isVideoExtension(path)) {
       const thumbnails = getThumbnailsForVideo(path);
+      const directPoster = getDirectPosterForVideo(path);
+      const allThumbnails = thumbnails && thumbnails.length > 0
+        ? thumbnails
+        : directPoster ? [directPoster] : undefined;
+      const poster = directPoster || allThumbnails?.[0];
+
       if (path.startsWith('Shorts/')) {
-        shorts.push({ name, path, url, thumbnails, lastCommit, date: itemDate });
+        shorts.push({ name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate });
       } else {
-        clips.push({ name, path, url, thumbnails, lastCommit, date: itemDate });
+        clips.push({ name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate });
       }
     } else if (isPhotoExtension(path)) {
-      images.push({ name, path, url, lastCommit, date: itemDate });
+      // NEVER include thumbnail files in images
+      if (!isThumbnailFile(path) && !isExcludedAlbum(path)) {
+        images.push({ name, path, url, lastCommit, date: itemDate });
+      }
     }
   }
 
@@ -333,7 +373,7 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
               url: buildHfMediaUrl(x.path || x.name),
             })),
           images: (rawData.images || [])
-            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url) && !isThumbnailFile(x.path || x.name || x.url))
             .map((x: HfMediaItem) => ({
               ...x,
               url: buildHfMediaUrl(x.path || x.name),

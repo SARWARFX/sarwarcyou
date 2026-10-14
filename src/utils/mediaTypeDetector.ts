@@ -176,8 +176,81 @@ export function encodeStreamUrl(rawUrl: string): string {
 export const safeEncodeUrl = encodeStreamUrl;
 
 /**
+ * Patterns matching internal asset directories, thumbnail folders, and pipeline artifacts.
+ */
+export const EXCLUDED_ALBUM_PATTERNS: RegExp[] = [
+  /thumb/i,
+  /thumbnails?/i,
+  /temp_thumbnails?/i,
+  /\.cache/i,
+  /\.github/i,
+  /optimized_batch_output/i,
+];
+
+/**
+ * Checks whether an album name, folder slug, or directory path matches any excluded album patterns.
+ */
+export function isExcludedAlbum(folderPathOrName?: string | null): boolean {
+  if (!folderPathOrName) return false;
+  let clean = folderPathOrName.trim();
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {
+    // leave as is
+  }
+  clean = clean.replace(/\\/g, '/');
+  return EXCLUDED_ALBUM_PATTERNS.some((regex) => regex.test(clean));
+}
+
+/**
+ * Patterns matching pre-rendered thumbnail image files.
+ */
+export const THUMBNAIL_FILE_PATTERNS: RegExp[] = [
+  /[-_]thumb(?:nail)?\.(?:jpg|jpeg|png|webp|avif)$/i,
+  /thumb(?:nail)?s?[-_]\d+\.(?:jpg|jpeg|png|webp|avif)$/i,
+  /[-_]preview(?:[-_]\d+)?\.(?:jpg|jpeg|png|webp|avif)$/i,
+  /^thumb(?:nail)?s?[-_]/i,
+];
+
+/**
+ * Checks whether an image path or URL is an internal thumbnail or preview asset
+ * rather than a standalone gallery photograph.
+ */
+export function isThumbnailFile(urlOrPath?: string | null): boolean {
+  if (!urlOrPath) return false;
+  let clean = urlOrPath.split('?')[0].split('#')[0];
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {
+    // leave as is
+  }
+  clean = clean.replace(/\\/g, '/');
+
+  // Any file inside an excluded thumbnail or artifact folder
+  if (EXCLUDED_ALBUM_PATTERNS.some((regex) => regex.test(clean))) {
+    return true;
+  }
+
+  const fileName = clean.split('/').pop() || clean;
+  if (THUMBNAIL_FILE_PATTERNS.some((regex) => regex.test(fileName))) {
+    return true;
+  }
+
+  const lowerName = fileName.toLowerCase();
+  return (
+    lowerName.includes('_thumb.') ||
+    lowerName.includes('-thumb.') ||
+    lowerName.includes('.thumb.') ||
+    lowerName.includes('_thumbnail.') ||
+    lowerName.includes('-thumbnail.') ||
+    lowerName.includes('preview_') ||
+    lowerName.includes('_preview.')
+  );
+}
+
+/**
  * Checks whether a path or URL belongs to a hidden or system directory (e.g., .thumbnails, .git, .cache, .github)
- * or has any path segment starting with a dot.
+ * or has any path segment starting with a dot or matching excluded album patterns.
  */
 export function isHiddenOrSystemPath(pathOrUrl?: string | null): boolean {
   if (!pathOrUrl) return false;
@@ -206,6 +279,11 @@ export function isHiddenOrSystemPath(pathOrUrl?: string | null): boolean {
   // Normalize leading and trailing slashes
   clean = clean.replace(/^\/+|\/+$/g, '').trim();
 
+  // Exclude thumbnail and artifact directories
+  if (isExcludedAlbum(clean)) {
+    return true;
+  }
+
   // Explicit check for .thumbnails
   const lower = clean.toLowerCase();
   if (
@@ -217,16 +295,16 @@ export function isHiddenOrSystemPath(pathOrUrl?: string | null): boolean {
     return true;
   }
 
-  // Check all path segments: any segment starting with a dot or equal to .thumbnails is hidden/system
+  // Check all path segments: any segment starting with a dot or matching excluded album is hidden/system
   const segments = clean.split('/');
   return segments.some((segment) => {
     const s = segment.trim();
-    return s.startsWith('.') || s.toLowerCase() === '.thumbnails';
+    return s.startsWith('.') || isExcludedAlbum(s);
   });
 }
 
 /**
- * Checks whether a folder name or album ID represents a hidden/system directory.
+ * Checks whether a folder name or album ID represents a hidden/system directory or excluded album.
  */
 export function isHiddenOrSystemFolder(folderOrName?: string | null): boolean {
   if (!folderOrName) return false;
@@ -237,8 +315,12 @@ export function isHiddenOrSystemFolder(folderOrName?: string | null): boolean {
     // leave as is
   }
   clean = clean.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').trim();
-  const lower = clean.toLowerCase();
 
+  if (isExcludedAlbum(clean)) {
+    return true;
+  }
+
+  const lower = clean.toLowerCase();
   if (
     lower.startsWith('.') ||
     lower.startsWith('album-.') ||
