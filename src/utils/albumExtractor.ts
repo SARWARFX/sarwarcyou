@@ -17,6 +17,72 @@ function isHfCatalog(data: unknown): data is HfMediaCatalog {
 }
 
 /**
+ * Extracts a numeric timestamp from filename or path string (e.g. 20260930, 2025-08-14, 2024).
+ */
+export function extractTimestampFromPath(str: string): number {
+  if (!str) return 0;
+  const match = str.match(/(202[4-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
+  if (match) {
+    const parsed = new Date(
+      parseInt(match[1], 10),
+      parseInt(match[2], 10) - 1,
+      parseInt(match[3], 10)
+    ).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+  const yearMatch = str.match(/(202[0-9])/);
+  if (yearMatch) {
+    return new Date(parseInt(yearMatch[1], 10), 0, 1).getTime();
+  }
+  return 0;
+}
+
+/**
+ * Returns the effective timestamp for any media item, prioritizing:
+ * 1. item.date / item.lastCommit.date
+ * 2. Filename/path numeric timestamp patterns (YYYYMMDD)
+ */
+export function getItemTimestamp(item: {
+  date?: number;
+  lastCommit?: { date?: string; id?: string; title?: string };
+  path?: string;
+  name?: string;
+  title?: string;
+  url?: string;
+  id?: string;
+}): number {
+  if (item.date && item.date > 0) return item.date;
+  if (item.lastCommit?.date) {
+    const parsed = new Date(item.lastCommit.date).getTime();
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  const rawStr = item.path || item.name || item.title || item.url || item.id || '';
+  return extractTimestampFromPath(rawStr);
+}
+
+/**
+ * Sorts any list of StageMediaItem strictly in descending order (latest first):
+ * Primary: Newest commit / upload timestamp first
+ * Secondary Fallback: Natural descending order by title / filename (b.localeCompare(a))
+ */
+export function sortMediaItemsDescending(items: StageMediaItem[]): StageMediaItem[] {
+  return [...items].sort((a, b) => {
+    const timeA = getItemTimestamp(a);
+    const timeB = getItemTimestamp(b);
+
+    // Primary: Newest commit / upload timestamp first
+    if (timeB !== timeA) {
+      return timeB - timeA;
+    }
+
+    // Secondary Fallback: Natural descending order by filename / title
+    const nameA = a.title || a.id || '';
+    const nameB = b.title || b.id || '';
+    return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
+/**
  * Repository-wide "Latest Releases" extractor (Top N files across all valid folders).
  * Slices newest items sorted descending by upload/commit timestamp:
  * 1. file.date / file.lastCommit?.date
@@ -108,39 +174,15 @@ export function extractLatestReleases(
     return true;
   });
 
-  const getItemTimestamp = (entry: (typeof allRawItems)[0]): number => {
-    const it = entry.item;
-    if (it.date && it.date > 0) return it.date;
-    if (it.lastCommit?.date) {
-      const parsed = new Date(it.lastCommit.date).getTime();
-      if (!isNaN(parsed) && parsed > 0) return parsed;
-    }
-    const rawPath = ('path' in it && it.path) || it.name || it.url || '';
-    const match = rawPath.match(/(202[4-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
-    if (match) {
-      const parsed = new Date(
-        parseInt(match[1], 10),
-        parseInt(match[2], 10) - 1,
-        parseInt(match[3], 10)
-      ).getTime();
-      if (!isNaN(parsed)) return parsed;
-    }
-    const yearMatch = rawPath.match(/(202[0-9])/);
-    if (yearMatch) {
-      return new Date(parseInt(yearMatch[1], 10), 0, 1).getTime();
-    }
-    return 0;
-  };
-
   uniqueItems.sort((a, b) => {
-    const timeA = getItemTimestamp(a);
-    const timeB = getItemTimestamp(b);
+    const timeA = getItemTimestamp(a.item);
+    const timeB = getItemTimestamp(b.item);
     if (timeB !== timeA) {
       return timeB - timeA;
     }
     const nameA = a.item.name || (('path' in a.item && a.item.path) || '') || '';
     const nameB = b.item.name || (('path' in b.item && b.item.path) || '') || '';
-    return nameB.localeCompare(nameA);
+    return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
   });
 
   const sliced = uniqueItems.slice(0, limit);
@@ -175,7 +217,7 @@ export function extractLatestReleases(
       category: entry.category,
       type: itemType,
       thumbnails: 'thumbnails' in it ? it.thumbnails : undefined,
-      date: getItemTimestamp(entry),
+      date: getItemTimestamp(it),
       lastCommit: it.lastCommit,
     };
   });
@@ -220,12 +262,17 @@ export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
     ...interleaved,
   ];
 
-  // Re-index all albums cleanly with their final 0-based index and verified item count
-  return finalAlbums.map((album, idx) => ({
-    ...album,
-    index: idx,
-    itemCount: album.items.length,
-  }));
+  // Re-index all albums cleanly with their final 0-based index and verified item count,
+  // strictly sorting each album's items from newest to oldest
+  return finalAlbums.map((album, idx) => {
+    const sortedItems = sortMediaItemsDescending(album.items);
+    return {
+      ...album,
+      index: idx,
+      itemCount: sortedItems.length,
+      items: sortedItems,
+    };
+  });
 }
 
 export function extractTwelveAlbums(
@@ -252,21 +299,33 @@ export function extractTwelveAlbums(
       categoryName: string,
       defaultType: 'image' | 'video'
     ): StageMediaItem[] => {
-      return items
-        .filter((item) => !isHiddenOrSystemPath(item.path || item.name || item.url))
-        .map((item, idx) => {
-          const itemType = determineMediaType(item.path || item.name || item.url, defaultType);
-          const safeUrl = safeEncodeUrl(item.url || item.path);
-          return {
-            id: item.path || `${categoryName}-${idx}`,
-            title: item.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() || `${categoryName} ${idx + 1}`,
-            url: safeUrl,
-            thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: item.path, url: item.url, type: itemType }, idx),
-            category: categoryName,
-            type: itemType,
-            thumbnails: item.thumbnails,
-          };
-        });
+      const validItems = items.filter(
+        (item) => !isHiddenOrSystemPath(item.path || item.name || item.url)
+      );
+
+      const mapped = validItems.map((item, idx) => {
+        const itemType = determineMediaType(item.path || item.name || item.url, defaultType);
+        const safeUrl = safeEncodeUrl(item.url || item.path);
+        const itemDate = getItemTimestamp(item);
+        return {
+          id: item.path || `${categoryName}-${idx}`,
+          title:
+            item.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() ||
+            `${categoryName} ${idx + 1}`,
+          url: safeUrl,
+          thumbnail:
+            itemType === 'image'
+              ? safeUrl
+              : getDirectImageUrl({ id: item.path, url: item.url, type: itemType }, idx),
+          category: categoryName,
+          type: itemType,
+          thumbnails: item.thumbnails,
+          date: itemDate,
+          lastCommit: item.lastCommit,
+        };
+      });
+
+      return sortMediaItemsDescending(mapped);
     };
 
     const bandhobisFiles = mapHfItems(
@@ -534,20 +593,28 @@ export function extractTwelveAlbums(
     defaultType: 'image' | 'video'
   ): StageMediaItem[] => {
     if (!files) return [];
-    return files
-      .filter((f) => !isHiddenOrSystemPath(f.url || f.name || f.id))
-      .map((f, idx) => {
-        const itemType = determineMediaType(f.url || f.name || f.id, f.type || defaultType);
-        const safeUrl = safeEncodeUrl(f.url);
-        return {
-          id: f.id,
-          title: f.name,
-          url: safeUrl,
-          thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: f.id, url: f.url, thumbnail: f.thumbnail, type: itemType }, idx),
-          category: categoryName,
-          type: itemType,
-        };
-      });
+    const validFiles = files.filter((f) => !isHiddenOrSystemPath(f.url || f.name || f.id));
+    const mapped = validFiles.map((f, idx) => {
+      const itemType = determineMediaType(f.url || f.name || f.id, f.type || defaultType);
+      const safeUrl = safeEncodeUrl(f.url);
+      const itemDate = getItemTimestamp(f);
+      return {
+        id: f.id,
+        title: f.name,
+        url: safeUrl,
+        thumbnail:
+          itemType === 'image'
+            ? safeUrl
+            : getDirectImageUrl(
+                { id: f.id, url: f.url, thumbnail: f.thumbnail, type: itemType },
+                idx
+              ),
+        category: categoryName,
+        type: itemType,
+        date: itemDate,
+      };
+    });
+    return sortMediaItemsDescending(mapped);
   };
 
   const bandhobisFolder = source.leftImageFolder;
