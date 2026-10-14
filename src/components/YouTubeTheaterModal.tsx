@@ -988,24 +988,12 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             e.preventDefault();
             onClose();
           }}
-          className="flex md:hidden items-center gap-2 select-none cursor-pointer group z-20"
+          className="flex md:hidden items-center select-none cursor-pointer group z-20"
           title="Return to Home"
           aria-label="Return to Home"
         >
-          <div className="flex items-center justify-center w-6 h-6 flex-shrink-0">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="#00D2FF"
-              style={{ filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.75))' }}
-              className="h-6 w-6 group-hover:scale-105 transition-transform duration-200"
-            >
-              <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
-            </svg>
-          </div>
           <span className="font-brand font-black text-base sm:text-lg tracking-wider text-white whitespace-nowrap">
-            SARWARCYOU
+            SARWAR<span className="text-cyan-400">C</span>YOU
           </span>
         </a>
 
@@ -1023,24 +1011,21 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           </span>
         </div>
 
-        {/* Desktop: Centered Website Logo & Brand Name (Hidden on Mobile) */}
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 items-center gap-2.5 md:gap-3 select-none pointer-events-none z-10">
-          <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="#00D2FF"
-              style={{ filter: 'drop-shadow(0 0 12px rgba(0, 210, 255, 0.75))' }}
-              className="h-10 w-10"
-            >
-              <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
-            </svg>
-          </div>
-          <span className="font-brand font-black tracking-widest text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md">
-            SARWARCYOU
+        {/* Desktop: Centered Website Wordmark (Hidden on Mobile) */}
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            onClose();
+          }}
+          className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 items-center select-none cursor-pointer group z-10"
+          title="Return to Home"
+          aria-label="Return to Home"
+        >
+          <span className="font-brand font-black tracking-widest text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md group-hover:opacity-90 transition-opacity">
+            SARWAR<span className="text-cyan-400">C</span>YOU
           </span>
-        </div>
+        </a>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-10">
           {!isVideo && (

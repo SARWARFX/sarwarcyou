@@ -136,9 +136,9 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({
       }`}
     >
       {/* Clean, dark, minimal container with zero clutter */}
-      <div className="relative z-10 flex flex-col items-center gap-6 max-w-3xl px-6 text-center">
-        {/* Main Display Title */}
-        <h1 className="font-brand font-black tracking-widest text-3xl xs:text-4xl sm:text-5xl md:text-6xl text-white uppercase leading-tight drop-shadow-[0_0_35px_rgba(255,255,255,0.2)]">
+      <div className="relative z-10 flex flex-col items-center gap-5 sm:gap-6 w-full max-w-full px-4 text-center">
+        {/* Main Display Title - Single Line Guaranteed */}
+        <h1 className="w-full max-w-full font-brand font-black tracking-widest text-base xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white uppercase leading-none drop-shadow-[0_0_35px_rgba(255,255,255,0.2)] whitespace-nowrap overflow-hidden text-center truncate">
           This site does not show ads
         </h1>
 

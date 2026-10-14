@@ -72,21 +72,14 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         lastFaviconUpdate = time;
         ctx.clearRect(0, 0, 64, 64);
 
-        // Draw modern electric play glyph
+        // Draw modern electric 'C' glyph
         ctx.fillStyle = hex;
         ctx.shadowColor = hex;
         ctx.shadowBlur = 12;
-
-        ctx.beginPath();
-        // Centered equilateral triangle with rounded vertices
-        const cx = 33;
-        const cy = 32;
-        const r = 24;
-        ctx.moveTo(cx + r * 0.8, cy);
-        ctx.lineTo(cx - r * 0.6, cy - r * 0.75);
-        ctx.lineTo(cx - r * 0.6, cy + r * 0.75);
-        ctx.closePath();
-        ctx.fill();
+        ctx.font = '900 48px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('C', 32, 34);
 
         link.href = canvas.toDataURL('image/png');
       }
@@ -121,38 +114,18 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   return (
     <div
-      className={`fixed ${cornerClasses} z-40 select-none pointer-events-auto flex items-center gap-3.5 group cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105`}
+      className={`fixed ${cornerClasses} z-40 select-none pointer-events-auto flex items-center group cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105`}
     >
-      {/* Dynamic Glowing Play Glyph */}
-      <div className="flex items-center justify-center w-7 h-7 md:w-10 md:h-10">
-        <svg
-          width="40"
-          height="40"
-          viewBox="0 0 24 24"
-          fill={currentColor}
-          style={{
-            filter: `drop-shadow(0 0 16px ${currentColor})`,
-            transition: 'filter 0.3s ease',
-          }}
-          className="h-7 w-7 md:h-10 md:w-10 group-hover:scale-105 transition-transform duration-300"
-        >
-          <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
-        </svg>
-      </div>
-
       {/* Prominent Scaled Brand Name with Living Chromatic Flow */}
       <span
         style={{
-          backgroundImage: isLightMode
-            ? `linear-gradient(135deg, #050811 0%, #1a2536 45%, ${currentColor} 100%)`
-            : `linear-gradient(135deg, #FFFFFF 0%, ${currentColor} 55%, #FFFFFF 100%)`,
           textShadow: isLightMode
             ? `0 2px 14px rgba(0,0,0,0.12)`
             : `0 0 24px ${currentColor}55`,
         }}
-        className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl bg-clip-text text-transparent leading-none uppercase select-none transition-all duration-300"
+        className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl text-white leading-none uppercase select-none transition-all duration-300"
       >
-        SARWARCYOU
+        SARWAR<span style={{ color: currentColor }}>C</span>YOU
       </span>
     </div>
   );

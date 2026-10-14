@@ -1,4 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-  <!-- Solid electric-blue play button with no outlines or borders -->
-  <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" fill="#00D2FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <text x="50" y="74" text-anchor="middle" font-size="82" font-family="Orbitron, system-ui, -apple-system, sans-serif" font-weight="900" fill="#22d3ee">C</text>
 </svg>
