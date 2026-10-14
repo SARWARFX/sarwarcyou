@@ -10,6 +10,8 @@ import { SplashPreloader } from './components/SplashPreloader';
 import { MobileGalleryFeed } from './components/MobileGalleryFeed';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
+import { SiteFooter } from './components/SiteFooter';
+import { CreatorToastNotification } from './components/CreatorToastNotification';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
 import {
   parseUrlState,
@@ -272,7 +274,8 @@ function App() {
       return;
     }
 
-    const clamped = Math.max(0, Math.min(albums.length - 1, targetIndex));
+    const maxFloor = albums.length;
+    const clamped = Math.max(0, Math.min(maxFloor, targetIndex));
     if (clamped === activeAlbumIndexRef.current && !isTransitioningRef.current) return;
     if (isTransitioningRef.current) return;
 
@@ -284,6 +287,8 @@ function App() {
     const curAlbum = albums[clamped];
     if (curAlbum) {
       syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
+    } else {
+      syncUrlState({ album: null, mediaItem: null, replace: true });
     }
 
     // Luxury elevator duration: 950ms + 150ms inertia cooldown
@@ -474,7 +479,7 @@ function App() {
         handleBackToTop();
       } else if (e.key === 'End') {
         e.preventDefault();
-        scrollToAlbum(albums.length - 1);
+        scrollToAlbum(albums.length);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -571,6 +576,14 @@ function App() {
             </section>
           );
         })}
+
+        {/* ================= DESKTOP MINIMALIST FOOTER SECTION FLOOR ================= */}
+        <section
+          id={`album-section-${albums.length}`}
+          className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-black flex flex-col justify-center items-center px-4 sm:px-8"
+        >
+          <SiteFooter onBackToTop={handleBackToTop} />
+        </section>
       </div>
 
       {/* ================= CLEAN OLED TOP NAVBAR ================= */}
@@ -629,6 +642,12 @@ function App() {
         shorts={shortsState.shorts}
         initialIndex={shortsState.initialIndex}
         onIndexChange={handleShortsIndexChange}
+      />
+
+      {/* ================= NON-INTRUSIVE CREATOR TOAST NOTIFICATION ================= */}
+      <CreatorToastNotification
+        isModalOpen={isModalOpen}
+        hasBackToTop={activeAlbumIndex > 0 || mobileScrolled}
       />
     </main>
   );

@@ -41,6 +41,21 @@ body {
   letter-spacing: 0.025em;
 }
 
+/* Minimalist Footer Mailto Links with Subtle Cyan Accent Glow */
+.footer-mailto-link {
+  color: #d4d4d8;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+  text-underline-offset: 4px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.footer-mailto-link:hover {
+  color: #38bdf8 !important;
+  text-decoration-color: #38bdf8 !important;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.6) !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;

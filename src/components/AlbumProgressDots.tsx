@@ -53,6 +53,25 @@ export const AlbumProgressDots: React.FC<AlbumProgressDotsProps> = ({
           </button>
         );
       })}
+
+      {/* Discrete Contact & Publisher Footer Dot */}
+      <div className="w-2 h-[1px] bg-white/10 my-0.5" />
+      <button
+        onClick={() => onSelectAlbum(albums.length)}
+        className="group relative flex items-center justify-center p-1 cursor-pointer focus:outline-none"
+        aria-label="Publisher & Contact Information"
+      >
+        <div className="absolute right-7 px-3 py-1.5 rounded-lg bg-black/95 backdrop-blur-2xl border border-white/15 text-[10px] font-mono tracking-wider text-zinc-200 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 shadow-2xl z-50 flex items-center gap-1.5">
+          <span className="font-semibold text-zinc-100">CONTACT &amp; PUBLISHER</span>
+        </div>
+        <div
+          className={`rounded-full transition-all duration-300 ${
+            activeAlbumIndex === albums.length
+              ? 'h-4 w-1.5 bg-[#00D2FF] shadow-[0_0_10px_rgba(0,210,255,0.7)]'
+              : 'h-1.5 w-1.5 bg-zinc-700 group-hover:bg-[#00D2FF]/70'
+          }`}
+        />
+      </button>
     </nav>
   );
 };

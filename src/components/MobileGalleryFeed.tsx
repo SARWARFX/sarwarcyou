@@ -3,6 +3,7 @@ import { Play, Camera, Film, Sparkles, ChevronLeft, ArrowRight } from 'lucide-re
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { resolveMultiFrameThumbnails } from '../utils/thumbnailResolver';
+import { SiteFooter } from './SiteFooter';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface MobileGalleryFeedProps {
@@ -254,6 +255,9 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
           </section>
         );
       })}
+
+      {/* ================= CLEAN MINIMALIST SITE FOOTER ================= */}
+      <SiteFooter onBackToTop={() => scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' })} />
 
       {/* ================= DEDICATED FULL COLLECTION MODAL ("VIEW ALL") ================= */}
       {selectedCollectionAlbum && (

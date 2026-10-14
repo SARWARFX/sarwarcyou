@@ -8,6 +8,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Rajdhani', 'sans-serif'],
+        rajdhani: ['Rajdhani', 'sans-serif'],
         brand: ['Orbitron', 'sans-serif'],
         futuristic: ['Orbitron', 'sans-serif'],
       },
