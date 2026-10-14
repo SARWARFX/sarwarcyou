@@ -36,6 +36,7 @@ import {
   resolveMultiFrameThumbnails,
   resolveMultiFrameThumbnailsExt,
   useHoverThumbnailScrub,
+  preloadImageFrames,
 } from '../utils/thumbnailResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -86,6 +87,10 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
       : [];
   }, [isVideo, item]);
 
+  const extThumbnails = useMemo(() => {
+    return isVideo ? resolveMultiFrameThumbnailsExt(item) : [];
+  }, [isVideo, item]);
+
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
     isVideo ? item.url : undefined,
     album.layoutType === 'vertical-waterfall'
@@ -118,7 +123,13 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
 
   return (
     <div
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        if (isVideo) {
+          if (multiFrameThumbnails.length > 0) preloadImageFrames(multiFrameThumbnails);
+          if (extThumbnails.length > 0) preloadImageFrames(extThumbnails);
+        }
+      }}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
         e.stopPropagation();
@@ -143,10 +154,10 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
       {/* Visual Thumbnail Image */}
       {activeThumb ? (
         <img
-          key={activeThumb}
           src={activeThumb}
           alt={itemTitle}
           loading="lazy"
+          style={{ contentVisibility: 'auto' }}
           className="w-full h-full object-cover pointer-events-none relative z-10 group-hover:scale-105 transition-transform duration-300"
         />
       ) : null}
@@ -204,6 +215,10 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
       : [];
   }, [isVideo, item]);
 
+  const extThumbnails = useMemo(() => {
+    return isVideo ? resolveMultiFrameThumbnailsExt(item) : [];
+  }, [isVideo, item]);
+
   const { thumbnail: videoThumbnail } = useVideoThumbnail(
     isVideo ? item.url : undefined,
     false
@@ -236,7 +251,11 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
       onClick={onSelect}
       onMouseEnter={() => {
         setIsHovered(true);
-        if (isVideo) prewarmVideoStream(item.url);
+        if (isVideo) {
+          prewarmVideoStream(item.url);
+          if (multiFrameThumbnails.length > 0) preloadImageFrames(multiFrameThumbnails);
+          if (extThumbnails.length > 0) preloadImageFrames(extThumbnails);
+        }
       }}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => {
@@ -252,10 +271,10 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
       <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.05] flex-shrink-0">
         {activeThumb ? (
           <img
-            key={activeThumb}
             src={activeThumb}
             alt={itemTitle}
             loading="lazy"
+            style={{ contentVisibility: 'auto' }}
             className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
           />
         ) : (

@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+/* oxlint-disable react-hooks/exhaustive-deps */
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Play, Camera } from 'lucide-react';
-import { getDirectImageUrl } from '../utils/imageUrlResolver';
+import { getDirectImageUrl, ensureHttps } from '../utils/imageUrlResolver';
 import { prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
 import { useVideoThumbnail, getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
 import { isVideoExtension, encodeStreamUrl } from '../utils/mediaTypeDetector';
@@ -42,6 +43,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   updateMaxScroll,
   hasDragged,
 }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+
   // Strict file extension-based video detection: any .mp4/.mov/.mkv/.webm/.avi is strictly a VIDEO
   const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
   const isShort =
@@ -53,6 +56,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   const [remoteImageFailed, setRemoteImageFailed] = useState(false);
   const [staticFallbackFailed, setStaticFallbackFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Throttled mouse scrub state
+  const [manualFrameIndex, setManualFrameIndex] = useState<number | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const currentFrameIndexRef = useRef<number | null>(null);
+  const preloadedSet = useRef<Set<string>>(new Set());
 
   // 1. Resolve Multi-Frame WebP thumbnails (stem vs extension)
   const primaryThumbnails = useMemo(() => {
@@ -75,24 +84,31 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
   const directImgUrl = getDirectImageUrl(item, idx);
   const staticFallbackThumbnail = isVideo
-    ? clientThumbnail || getCachedThumbnailSync(streamUrl) || getCachedThumbnailSync(item.url) || getCachedVideoPoster(streamUrl) || getCachedVideoPoster(item.url) || item.thumbnail
+    ? clientThumbnail ||
+      getCachedThumbnailSync(streamUrl) ||
+      getCachedThumbnailSync(item.url) ||
+      getCachedVideoPoster(streamUrl) ||
+      getCachedVideoPoster(item.url) ||
+      item.thumbnail
     : directImgUrl;
 
-  // 3. YouTube-style Hover Scrubbing hook
+  // 3. High-performance Hover Scrubbing hook with 404 resilience and zero-blanking
   const {
     activeThumbnail: scrubThumbnail,
     activeFrameIndex,
     isScrubbing,
     totalFrames,
+    handleFrameError,
   } = useHoverThumbnailScrub({
     thumbnails: activeThumbList,
     defaultThumbnail: staticFallbackThumbnail,
     isHovered,
+    manualIndex: manualFrameIndex,
     intervalMs: 380,
     enabled: isVideo && activeThumbList.length > 0 && !remoteImageFailed,
   });
 
-  // Active display thumbnail: prioritize scrubbed WebP frame; fall back to client thumbnail
+  // Active target thumbnail: prioritize scrubbed WebP frame; fall back to client/static thumbnail
   let activeThumbnail: string | null = null;
   if (!remoteImageFailed && scrubThumbnail) {
     activeThumbnail = scrubThumbnail;
@@ -100,33 +116,130 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     activeThumbnail = staticFallbackThumbnail;
   }
 
+  // 4. Double-Buffered Zero-Blanking Frame Swapping State
+  const [layerA, setLayerA] = useState<string | null>(activeThumbnail);
+  const [layerB, setLayerB] = useState<string | null>(null);
+  const [activeLayer, setActiveLayer] = useState<'A' | 'B'>('A');
+  const lastValidSrcRef = useRef<string | null>(activeThumbnail);
+
+  useEffect(() => {
+    if (!activeThumbnail) return;
+
+    const currentLayerSrc = activeLayer === 'A' ? layerA : layerB;
+    if (activeThumbnail === currentLayerSrc) return;
+
+    if (activeLayer === 'A') {
+      setLayerB(activeThumbnail);
+    } else {
+      setLayerA(activeThumbnail);
+    }
+  }, [activeThumbnail, activeLayer, layerA, layerB]);
+
+  const handleLayerLoad = (layer: 'A' | 'B', url: string | null) => {
+    setImageLoaded(true);
+    updateMaxScroll?.();
+    if (url) {
+      lastValidSrcRef.current = url;
+    }
+    setActiveLayer(layer);
+  };
+
+  const handleLayerError = (_layer: 'A' | 'B', failedUrl: string | null) => {
+    if (!failedUrl) return;
+    handleFrameError?.(failedUrl);
+
+    if (isVideo && !useExtFallback && extThumbnails.length > 0) {
+      setUseExtFallback(true);
+    } else if (isVideo && !remoteImageFailed && !lastValidSrcRef.current) {
+      setRemoteImageFailed(true);
+    } else if (!lastValidSrcRef.current) {
+      setStaticFallbackFailed(true);
+    }
+    // Note: activeLayer is NOT swapped on error, keeping the last valid frame strictly rendered
+  };
+
+  // 5. Eager Frame Pre-caching on Card Enter
+  const handleMouseEnter = useCallback(() => {
+    onHover(idx);
+    if (isVideo) {
+      prewarmVideoStream(streamUrl || item.url);
+      const allFrames = [...activeThumbList, ...extThumbnails];
+      allFrames.forEach((url) => {
+        if (!url || preloadedSet.current.has(url)) return;
+        const safe = ensureHttps(url);
+        const img = new Image();
+        img.src = safe;
+        img.onload = () => {
+          preloadedSet.current.add(url);
+          preloadedSet.current.add(safe);
+        };
+      });
+    }
+  }, [idx, isVideo, onHover, streamUrl, item.url, activeThumbList, extThumbnails]);
+
+  // 6. Throttled Mouse Scrub Calculation (requestAnimationFrame)
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isVideo || totalFrames <= 1) return;
+      const card = cardRef.current;
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      if (rect.width <= 0) return;
+
+      const relativeX = Math.max(0, Math.min(e.clientX - rect.left, rect.width - 1));
+      const pct = relativeX / rect.width;
+      const targetIdx = Math.min(totalFrames - 1, Math.floor(pct * totalFrames));
+
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          if (targetIdx !== currentFrameIndexRef.current) {
+            currentFrameIndexRef.current = targetIdx;
+            setManualFrameIndex(targetIdx);
+          }
+        });
+      }
+    },
+    [isVideo, totalFrames]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    currentFrameIndexRef.current = null;
+    setManualFrameIndex(null);
+    onHover(null);
+  }, [onHover]);
+
   const cleanCardTitle = (item.title || album.name)
     .replace(/\.[^/.]+$/, '')
     .replace(/[-_]+/g, ' ')
     .trim();
 
   const badgeLabel = isVideo ? (isShort ? 'SHORT' : 'VIDEO') : 'PHOTO';
+  const aspectClass = isVideo ? (isShort ? 'aspect-[9/16]' : 'aspect-video') : '';
 
   return (
     <div
-      onMouseEnter={() => {
-        onHover(idx);
-        if (isVideo) prewarmVideoStream(streamUrl || item.url);
-      }}
+      ref={cardRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       onTouchStart={() => {
         if (isVideo) prewarmVideoStream(streamUrl || item.url);
       }}
-      onMouseLeave={() => onHover(null)}
       onClick={(e) => {
         e.stopPropagation();
         if (!hasDragged || !hasDragged()) {
           onActiveIndexChange?.(idx);
-          onSelectItem(item, activeThumbnail || undefined);
+          onSelectItem(item, activeThumbnail || lastValidSrcRef.current || undefined);
         }
       }}
       role="article"
       aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
-      className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${staggeredOffset} ${diptychMargin}`}
+      className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${aspectClass} ${staggeredOffset} ${diptychMargin}`}
     >
       {/* Intentional Obsidian Typography Surface (Zero Black Screen Fallback) */}
       <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
@@ -176,38 +289,46 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       )}
 
       {/* Intuitive Skeleton Shimmer while Image is Loading */}
-      {!imageLoaded && !staticFallbackFailed && activeThumbnail && (
+      {!imageLoaded && !staticFallbackFailed && (layerA || layerB) && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden bg-zinc-950/40 z-[5]">
           <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
         </div>
       )}
 
-      {/* Visual Thumbnail Presentation */}
-      {activeThumbnail ? (
-        <img
-          key={activeThumbnail}
-          src={activeThumbnail}
-          alt={cleanCardTitle}
-          loading="lazy"
-          draggable={false}
-          onLoad={() => {
-            setImageLoaded(true);
-            updateMaxScroll?.();
-          }}
-          onError={() => {
-            if (isVideo && !useExtFallback && extThumbnails.length > 0) {
-              setUseExtFallback(true);
-            } else if (isVideo && !remoteImageFailed) {
-              setRemoteImageFailed(true);
-            } else {
-              setStaticFallbackFailed(true);
-            }
-          }}
-          className={`h-full w-auto max-w-[85vw] object-contain block group-hover:scale-104 transition-all duration-300 ease-out select-none pointer-events-none relative z-10 ${
-            imageLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-      ) : null}
+      {/* Visual Thumbnail Presentation - Double-Buffered Zero-Blanking Architecture */}
+      <div className="relative h-full w-full flex items-center justify-center overflow-hidden pointer-events-none select-none">
+        {layerA ? (
+          <img
+            src={layerA}
+            alt={cleanCardTitle}
+            draggable={false}
+            style={{ contentVisibility: 'auto' }}
+            onLoad={() => handleLayerLoad('A', layerA)}
+            onError={() => handleLayerError('A', layerA)}
+            className={`w-full h-full object-cover block group-hover:scale-104 transition-opacity duration-200 ease-out select-none pointer-events-none ${
+              activeLayer === 'A' && imageLoaded
+                ? 'opacity-100 relative z-10'
+                : 'opacity-0 absolute inset-0 m-auto z-0'
+            }`}
+          />
+        ) : null}
+
+        {layerB ? (
+          <img
+            src={layerB}
+            alt={cleanCardTitle}
+            draggable={false}
+            style={{ contentVisibility: 'auto' }}
+            onLoad={() => handleLayerLoad('B', layerB)}
+            onError={() => handleLayerError('B', layerB)}
+            className={`w-full h-full object-cover block group-hover:scale-104 transition-opacity duration-200 ease-out select-none pointer-events-none ${
+              activeLayer === 'B' && imageLoaded
+                ? 'opacity-100 relative z-10'
+                : 'opacity-0 absolute inset-0 m-auto z-0'
+            }`}
+          />
+        ) : null}
+      </div>
 
       {/* Specular gloss highlight on hover */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />

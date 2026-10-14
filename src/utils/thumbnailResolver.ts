@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
 import { buildHfMediaUrl } from '../useMediaData';
-import { ensureHttps } from './imageUrlResolver';
 import type { StageMediaItem, HfMediaItem } from '../types';
 
 /**
@@ -74,14 +72,14 @@ export function getAnticipatedThumbnailUrls(urlOrPath: string): string[] {
     ? `.thumbnails/${info.parentDir}/${info.stem}`
     : `.thumbnails/${info.stem}`;
 
-  return [0, 1, 2, 3, 4].map((idx) => {
+  return [0, 1, 2, 3, 4, 5].map((idx) => {
     return buildHfMediaUrl(`${baseDir}/thumb_${idx}.webp`);
   });
 }
 
 /**
- * Derives the anticipated 5-frame pre-rendered WebP thumbnail URLs
- * following the extension-inclusive standard: .thumbnails/{parent_dir}/{filename.mp4}/thumb_{0..4}.webp
+ * Derives the anticipated 6-frame pre-rendered WebP thumbnail URLs
+ * following the extension-inclusive standard: .thumbnails/{parent_dir}/{filename.mp4}/thumb_{0..5}.webp
  */
 export function getAnticipatedThumbnailUrlsWithExt(urlOrPath: string): string[] {
   const info = parseVideoPathInfo(urlOrPath);
@@ -91,12 +89,20 @@ export function getAnticipatedThumbnailUrlsWithExt(urlOrPath: string): string[] 
     ? `.thumbnails/${info.parentDir}/${info.fileName}`
     : `.thumbnails/${info.fileName}`;
 
-  return [0, 1, 2, 3, 4].map((idx) => {
+  return [0, 1, 2, 3, 4, 5].map((idx) => {
     return buildHfMediaUrl(`${baseDir}/thumb_${idx}.webp`);
   });
 }
 
 import { isVideoExtension } from './mediaTypeDetector';
+import {
+  preloadImageFrames,
+  useThumbnailScrubber,
+  type UseThumbnailScrubberOptions,
+  type UseThumbnailScrubberResult,
+} from '../hooks/useThumbnailScrubber';
+
+export { preloadImageFrames, useThumbnailScrubber, type UseThumbnailScrubberOptions, type UseThumbnailScrubberResult };
 
 /**
  * Resolves verified or anticipated multi-frame thumbnail URLs for a given media item.
@@ -146,22 +152,15 @@ export function resolveMultiFrameThumbnailsExt(
 /**
  * In-memory image preload cache to eliminate frame flickers during hover scrubbing.
  */
-const preloadedImages = new Set<string>();
-
 export function preloadThumbnailImages(urls: string[]): void {
-  if (typeof window === 'undefined') return;
-  for (const url of urls) {
-    if (!url || preloadedImages.has(url)) continue;
-    preloadedImages.add(url);
-    const img = new Image();
-    img.src = ensureHttps(url);
-  }
+  preloadImageFrames(urls);
 }
 
 export interface UseHoverThumbnailScrubOptions {
   thumbnails?: string[];
   defaultThumbnail?: string | null;
   isHovered: boolean;
+  manualIndex?: number | null;
   intervalMs?: number;
   enabled?: boolean;
 }
@@ -171,58 +170,35 @@ export interface UseHoverThumbnailScrubResult {
   activeFrameIndex: number;
   isScrubbing: boolean;
   totalFrames: number;
+  handleFrameError?: (failedUrl?: string | null) => void;
 }
 
 /**
  * React hook that manages YouTube-style hover frame scrubbing.
- * When hovered on desktop, rotates smoothly through thumb_0 -> thumb_1 -> ... -> thumb_4.webp.
- * When unhovered, returns cleanly to thumb_0.webp (or default).
+ * Delegates to useThumbnailScrubber with double-buffered zero-blanking and 404 resilience.
  */
 export function useHoverThumbnailScrub({
   thumbnails = [],
   defaultThumbnail = null,
   isHovered,
-  intervalMs = 400,
+  manualIndex = null,
+  intervalMs = 380,
   enabled = true,
 }: UseHoverThumbnailScrubOptions): UseHoverThumbnailScrubResult {
-  const validThumbnails = thumbnails.filter(Boolean);
-  const totalFrames = validThumbnails.length;
-  const initialFrame = validThumbnails[0] || defaultThumbnail || null;
-
-  const [activeFrameIndex, setActiveFrameIndex] = useState(0);
-
-  // Preload other frames when hovered
-  useEffect(() => {
-    if (isHovered && totalFrames > 1 && enabled) {
-      preloadThumbnailImages(validThumbnails);
-    }
-  }, [isHovered, totalFrames, validThumbnails, enabled]);
-
-  // Scrub rotation loop
-  useEffect(() => {
-    if (!isHovered || totalFrames <= 1 || !enabled) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setActiveFrameIndex((prev) => (prev + 1) % totalFrames);
-    }, intervalMs);
-
-    return () => {
-      clearInterval(timer);
-      setActiveFrameIndex(0);
-    };
-  }, [isHovered, totalFrames, intervalMs, enabled]);
-
-  const isScrubbing = isHovered && totalFrames > 1 && enabled;
-  const activeThumbnail = isScrubbing
-    ? validThumbnails[activeFrameIndex] || initialFrame
-    : initialFrame;
+  const result = useThumbnailScrubber({
+    thumbnails,
+    defaultThumbnail,
+    isHovered,
+    manualIndex,
+    intervalMs,
+    enabled,
+  });
 
   return {
-    activeThumbnail,
-    activeFrameIndex: isScrubbing ? activeFrameIndex : 0,
-    isScrubbing,
-    totalFrames,
+    activeThumbnail: result.activeThumbnail,
+    activeFrameIndex: result.activeFrameIndex,
+    isScrubbing: result.isScrubbing,
+    totalFrames: result.totalFrames,
+    handleFrameError: result.handleFrameError,
   };
 }
