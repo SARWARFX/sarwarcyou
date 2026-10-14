@@ -23,6 +23,7 @@ import {
   Camera,
   AlertCircle,
   ExternalLink,
+  ListVideo,
 } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension, isHiddenOrSystemFolder, encodeStreamUrl } from '../utils/mediaTypeDetector';
@@ -480,6 +481,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   // Dynamic Suggested Albums Rotation (Rotate every 15s, pause on hover)
   const [suggestedBatchIndex, setSuggestedBatchIndex] = useState(0);
   const [isSuggestedHovered, setIsSuggestedHovered] = useState(false);
+
+  // Mobile Segmented Tab State ('queue' | 'suggested')
+  const [mobileTab, setMobileTab] = useState<'queue' | 'suggested'>('queue');
 
   // Floating HUD Visibility state (Auto-fade after 2.5s)
   const [isHudVisible, setIsHudVisible] = useState(true);
@@ -1038,11 +1042,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       </div>
 
       {/* ===== VERTICALLY SCROLLABLE MODAL BODY ===== */}
-      <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col p-2.5 sm:p-4 lg:p-5 gap-4">
+      <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col p-0 md:p-4 lg:p-5 gap-0 md:gap-4">
         {/* ===== MAIN CINEMA STAGE & QUEUE ROW ===== */}
-        <div className="w-full flex flex-col lg:flex-row gap-3.5 h-[56vh] sm:h-[65vh] lg:h-[72vh] min-h-[460px] flex-shrink-0">
+        <div className="w-full flex flex-col md:flex-row gap-3.5 md:h-[65vh] lg:h-[72vh] md:min-h-[460px] flex-shrink-0">
           {/* ===== LEFT MAIN VIEWPORT (~72% DESKTOP) ===== */}
-          <div className="w-full lg:w-[72%] h-full flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden flex-shrink-0 shadow-2xl relative group/stage">
+          <div className="w-full md:w-[70%] lg:w-[72%] md:h-full flex flex-col bg-[#09090b] rounded-none md:rounded-2xl border-0 md:border border-white/[0.06] overflow-hidden flex-shrink-0 shadow-2xl relative group/stage sticky top-0 z-20 md:static">
             {/* Cinema Stage Container with Ambilight */}
             <div
               ref={videoContainerRef}
@@ -1050,7 +1054,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               onTouchMove={handleStageTouchMove}
               onTouchEnd={handleStageTouchEnd}
               onClick={resetHudTimer}
-              className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 ${
+              className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 aspect-video max-h-[36vh] md:aspect-auto md:max-h-none ${
                 isCrossfading ? 'opacity-30' : 'opacity-100'
               }`}
             >
@@ -1643,10 +1647,45 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 </button>
               </div>
             </div>
+            {/* Mobile Segmented Tab Switcher (Suggested vs Queue) */}
+            <div className="flex md:hidden items-center p-2 px-3 bg-[#09090b] border-t border-white/[0.06] gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileTab('suggested')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileTab === 'suggested'
+                    ? 'bg-zinc-800 text-zinc-100 border border-white/10 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60'
+                }`}
+              >
+                <Film className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Suggested</span>
+                {suggestedAlbums.length > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 text-cyan-400 font-mono">
+                    {suggestedAlbums.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('queue')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileTab === 'queue'
+                    ? 'bg-zinc-800 text-zinc-100 border border-white/10 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60'
+                }`}
+              >
+                <ListVideo className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Queue</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 text-zinc-400 font-mono">
+                  {items.length}
+                </span>
+              </button>
+            </div>
           </div>
 
-          {/* ===== RIGHT PLAYLIST QUEUE (~28% DESKTOP) ===== */}
-          <div className="w-full lg:w-[28%] h-full flex flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden shadow-xl flex-shrink-0">
+          {/* ===== RIGHT PLAYLIST QUEUE (~28% DESKTOP ONLY) ===== */}
+          <div className="hidden md:flex md:w-[30%] lg:w-[28%] h-full flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden shadow-xl flex-shrink-0">
             {/* Queue Header */}
             <div className="px-4 py-3 border-b border-white/[0.06] bg-[#09090b] flex items-center justify-between text-[10px] font-mono flex-shrink-0">
               <span className="font-semibold text-zinc-300 tracking-wider uppercase">
@@ -1691,9 +1730,81 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           </div>
         </div>
 
-        {/* ===== CONTEXT-AWARE RECOMMENDED ALBUMS (BELOW THE PLAYER) ===== */}
+        {/* ===== MOBILE ACTIVE TAB VIEW (QUEUE OR SUGGESTED) ===== */}
+        {mobileTab === 'queue' ? (
+          <div className="flex md:hidden flex-col w-full px-3 pt-3 pb-24 space-y-2">
+            <div className="px-1 py-1 flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+              <span>Up Next in this Album</span>
+              <span className="flex items-center gap-1 text-emerald-400">
+                <Check className="w-3 h-3" /> Ready
+              </span>
+            </div>
+            {items.map((item, idx) => (
+              <QueueCardItem
+                key={item.id || `queue-mob-${idx}`}
+                item={item}
+                idx={idx}
+                isActive={idx === currentIndex}
+                onSelect={() => goToIndex(idx)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex md:hidden flex-col w-full px-3 pt-3 pb-24 gap-5">
+            {suggestedAlbums.length === 0 ? (
+              <div className="py-12 text-center text-xs font-mono text-zinc-500 uppercase">
+                No other suggested albums available
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    {currentItem.type === 'video' ? (
+                      <Film className="w-4 h-4 text-cyan-400" />
+                    ) : (
+                      <Camera className="w-4 h-4 text-emerald-400" />
+                    )}
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
+                      {currentItem.type === 'video' ? 'Suggested Video Albums' : 'Suggested Photo Albums'}
+                    </span>
+                  </div>
+                  {totalSuggestedBatches > 1 && (
+                    <div className="flex items-center gap-1.5">
+                      {Array.from({ length: totalSuggestedBatches }).map((_, bIdx) => (
+                        <button
+                          key={bIdx}
+                          type="button"
+                          onClick={() => setSuggestedBatchIndex(bIdx)}
+                          className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                            bIdx === suggestedBatchIndex % totalSuggestedBatches
+                              ? 'w-5 bg-zinc-200'
+                              : 'w-1.5 bg-zinc-700'
+                          }`}
+                          title={`Batch ${bIdx + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {activeSuggestedBatch.map((sugAlbum) => (
+                  <SuggestedAlbumReel
+                    key={sugAlbum.id}
+                    album={sugAlbum}
+                    onSelectItem={(targetAlbum, itemIdx) => {
+                      if (onSwitchAlbum) {
+                        onSwitchAlbum(targetAlbum, itemIdx);
+                      }
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ===== CONTEXT-AWARE RECOMMENDED ALBUMS (DESKTOP ONLY - BELOW THE PLAYER) ===== */}
         {suggestedAlbums.length > 0 && (
-          <div className="w-full mt-4 px-1 sm:px-2 pb-12 flex flex-col gap-6">
+          <div className="hidden md:flex w-full mt-4 px-1 sm:px-2 pb-12 flex-col gap-6">
             <div className="flex items-center justify-between pb-1">
               <div className="flex items-center gap-2.5">
                 {currentItem.type === 'video' ? (
