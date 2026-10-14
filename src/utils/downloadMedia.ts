@@ -11,7 +11,9 @@
  */
 
 import { safeEncodeUrl, isVideoExtension } from './mediaTypeDetector';
-import { applyImageWatermark } from './watermarkImage';
+import { applyWatermarkAndDownload, applyImageWatermark } from './watermarkImage';
+
+export { applyWatermarkAndDownload };
 
 /**
  * Sanitise a raw filename or URL path into a clean, filesystem-safe name.
@@ -195,7 +197,16 @@ export async function downloadMedia(url: string, rawName?: string): Promise<void
 
   const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/gif';
   const baseName = rawName ? sanitiseFilename(rawName) : sanitiseFilename(safeUrl);
-  let filename = ensureExtension(baseName, ext);
+  const filename = ensureExtension(baseName, ext || 'jpg');
+
+  if (isImage) {
+    try {
+      await applyWatermarkAndDownload(safeUrl, filename);
+      return;
+    } catch (wmError) {
+      console.warn('Canvas watermarking failed, falling back to direct download:', wmError);
+    }
+  }
 
   try {
     // Attempt Blob-based download (works same-origin or CORS-enabled CDN)
@@ -203,25 +214,10 @@ export async function downloadMedia(url: string, rawName?: string): Promise<void
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const originalBlob = await res.blob();
 
-    let finalBlob = originalBlob;
-
-    // Apply watermarking if media is an image
-    if (isImage) {
-      try {
-        finalBlob = await applyImageWatermark(originalBlob, mime);
-        const outExt = finalBlob.type === 'image/png' ? 'png' : 'jpg';
-        filename = ensureExtension(baseName, outExt);
-      } catch (wmError) {
-        console.warn('Canvas watermarking failed, proceeding with original image:', wmError);
-        finalBlob = originalBlob;
-      }
-    }
-
     const objUrl = URL.createObjectURL(
-      new Blob([finalBlob], { type: finalBlob.type || mime || 'application/octet-stream' })
+      new Blob([originalBlob], { type: mime || originalBlob.type || 'application/octet-stream' })
     );
     triggerDownload(objUrl, filename);
-    // Revoke after a short delay to allow the browser to complete writing
     setTimeout(() => URL.revokeObjectURL(objUrl), 30_000);
   } catch (fetchError) {
     // Fallback: If blob fetch failed, try direct URL watermarking if image

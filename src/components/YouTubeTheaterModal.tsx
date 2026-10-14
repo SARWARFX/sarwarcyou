@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension, isHiddenOrSystemFolder, encodeStreamUrl } from '../utils/mediaTypeDetector';
-import { downloadMedia, downloadBrandedVideo } from '../utils/downloadMedia';
+import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import {
   getCachedVideoPoster,
   prewarmVideoStream,
@@ -838,6 +838,22 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
   const [downloadingItemId, setDownloadingItemId] = useState<string | null>(null);
 
+  // Dock global site header to top-left when theater viewer is active
+  useEffect(() => {
+    const header = document.getElementById('global-site-header');
+    if (header) {
+      if (isOpen) {
+        header.classList.add('docked-left');
+      } else {
+        header.classList.remove('docked-left');
+      }
+    }
+    return () => {
+      const h = document.getElementById('global-site-header');
+      if (h) h.classList.remove('docked-left');
+    };
+  }, [isOpen]);
+
   const handleDownload = useCallback(async (customItem?: StageMediaItem) => {
     const target = customItem || currentItem;
     if (!target || isDownloading) return;
@@ -849,12 +865,19 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       if (isVid) {
         await downloadBrandedVideo(target.url, target.title || target.id);
       } else {
-        await downloadMedia(target.url, target.title || target.id);
+        await applyWatermarkAndDownload(target.url, target.title || target.id);
       }
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2200);
     } catch (err) {
-      console.error('Download failed:', err);
+      console.warn('Watermark download error, falling back to downloadMedia:', err);
+      try {
+        await downloadMedia(target.url, target.title || target.id);
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 2200);
+      } catch (fallbackErr) {
+        console.error('Download failed:', fallbackErr);
+      }
     } finally {
       setIsDownloading(false);
       setDownloadingItemId(null);
@@ -1057,40 +1080,20 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       }}
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
-      {/* ===== TOP STATUS / ACTION BAR ===== */}
-      <div className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
-        {/* Left: EXACTLY ONE Single Brand Lockup + Dedicated Metadata Section */}
-        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0 z-20">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              onClose();
-            }}
-            className="brand-link flex items-center m-0 p-0 select-none cursor-pointer border-none outline-none flex-shrink-0 group"
-            title="Return to Home"
-            aria-label="SARWARCYOU Home"
-          >
-            <img
-              src="/SARWARCYOU.svg"
-              alt="SARWARCYOU"
-              className="site-brand-logo transition-transform duration-300 group-hover:scale-105"
-            />
-          </a>
-
-          {/* Dedicated Media Metadata (Album Pill & Photo Counter) Beside Brand */}
-          <div className="flex items-center gap-2 min-w-0 pl-2 sm:pl-3 border-l border-white/10 truncate">
-            <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0 truncate hidden xs:inline">
-              {album?.name || 'ALBUM'}
-            </span>
-            <span className="text-zinc-600 hidden xs:inline">•</span>
-            <span className="text-zinc-300 font-bold tracking-wide text-xs flex-shrink-0">
-              {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
-            </span>
-            <span className="text-zinc-400 font-medium truncate hidden md:inline text-xs max-w-[200px] lg:max-w-xs">
-              {cleanTitle}
-            </span>
-          </div>
+      {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
+      <div className="viewer-top-bar w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
+        {/* Left: Dedicated Media Metadata (Album Pill & Photo Counter) */}
+        <div className="flex items-center gap-2 min-w-0 truncate z-20">
+          <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0 truncate hidden xs:inline">
+            {album?.name || 'ALBUM'}
+          </span>
+          <span className="text-zinc-600 hidden xs:inline">•</span>
+          <span className="text-zinc-300 font-bold tracking-wide text-xs flex-shrink-0">
+            {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
+          </span>
+          <span className="text-zinc-400 font-medium truncate hidden md:inline text-xs max-w-[200px] lg:max-w-xs">
+            {cleanTitle}
+          </span>
         </div>
 
         {/* Right: Actions (Zoom, Download, Prominent View Full Screen - NO Close Button) */}

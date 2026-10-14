@@ -41,42 +41,36 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     };
   }, []);
 
-  // Dock to top-left when scrolled past 60px or navigating albums
+  // Coordinate SSOT global header docking
   const isScrolled = Boolean(propIsScrolled || windowScrolled || activeAlbumIndex > 0);
 
-  return (
-    <>
-      {/* Brand Header: Horizontally centered initially, glides to top-left on scroll */}
-      <header
-        className={`main-header ${isScrolled ? 'scrolled' : ''}`}
-      >
-        <a
-          href="/"
-          onClick={(e) => {
-            e.preventDefault();
-            onResetHome?.();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className="brand-link flex items-center m-0 p-0 cursor-pointer select-none border-none outline-none group"
-          aria-label="SARWARCYOU Home"
-        >
-          <img
-            src="/SARWARCYOU.svg"
-            alt="SARWARCYOU"
-            className="site-brand-logo transition-transform duration-300 group-hover:scale-105"
-          />
-        </a>
-      </header>
+  useEffect(() => {
+    const header = document.getElementById('global-site-header');
+    if (header) {
+      if (isScrolled) {
+        header.classList.add('scrolled', 'docked-left');
+      } else {
+        header.classList.remove('scrolled', 'docked-left');
+      }
+    }
+  }, [isScrolled]);
 
-      {/* Right: Universal Search Bar & Fast Navigation */}
-      <div className="fixed top-4 right-4 sm:right-6 z-[1001] flex items-center">
-        <UniversalSearchBar
-          albums={albums}
-          onSelectItem={onSelectItem}
-          onSelectAlbum={onSelectAlbum}
-          accentColor="var(--brand-color-a)"
-        />
-      </div>
-    </>
+  useEffect(() => {
+    const onReset = () => {
+      onResetHome?.();
+    };
+    window.addEventListener('sarwarcyou:reset-home', onReset);
+    return () => window.removeEventListener('sarwarcyou:reset-home', onReset);
+  }, [onResetHome]);
+
+  return (
+    <div className="fixed top-4 right-4 sm:right-6 z-[1001] flex items-center pointer-events-auto">
+      <UniversalSearchBar
+        albums={albums}
+        onSelectItem={onSelectItem}
+        onSelectAlbum={onSelectAlbum}
+        accentColor="var(--brand-color-a)"
+      />
+    </div>
   );
 };

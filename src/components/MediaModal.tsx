@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ExternalLink, ZoomIn, ZoomOut, Download, Loader2, Maximize, Minimize, Check } from 'lucide-react';
-import { downloadMedia, downloadBrandedVideo } from '../utils/downloadMedia';
+import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -114,6 +114,22 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     };
   }, [isOpen, onClose, isFullscreen, toggleFullscreen]);
 
+  // Dock global site header to top-left when media viewer is active
+  useEffect(() => {
+    const header = document.getElementById('global-site-header');
+    if (header) {
+      if (isOpen) {
+        header.classList.add('docked-left');
+      } else {
+        header.classList.remove('docked-left');
+      }
+    }
+    return () => {
+      const h = document.getElementById('global-site-header');
+      if (h) h.classList.remove('docked-left');
+    };
+  }, [isOpen]);
+
   const handleDownload = useCallback(async () => {
     if (!url || isDownloading) return;
     setIsDownloading(true);
@@ -121,10 +137,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       if (type === 'video') {
         await downloadBrandedVideo(url, title);
       } else {
-        await downloadMedia(url, title);
+        await applyWatermarkAndDownload(url, title);
       }
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2000);
+    } catch (err) {
+      console.warn('Watermarking download error, fallback to downloadMedia:', err);
+      await downloadMedia(url, title);
     } finally {
       setIsDownloading(false);
     }
@@ -157,39 +176,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl p-3 sm:p-6 md:p-10 select-none overflow-hidden animate-fade-in"
       onClick={onClose}
     >
-      {/* ===== TOP STATUS / ACTION BAR (EXACTLY ONE BRAND LOCKUP + CONTROLS) ===== */}
+      {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
       <div
-        className="fixed top-0 left-0 right-0 w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-[110] border-b border-white/[0.06]"
+        className="viewer-top-bar fixed top-0 left-0 right-0 w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-[110] border-b border-white/[0.06]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Left: EXACTLY ONE Single Brand Lockup + Dedicated Metadata Section */}
-        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              onClose();
-            }}
-            className="brand-link flex items-center m-0 p-0 select-none cursor-pointer border-none outline-none flex-shrink-0 group"
-            title="Return to Home"
-            aria-label="SARWARCYOU Home"
-          >
-            <img
-              src="/SARWARCYOU.svg"
-              alt="SARWARCYOU"
-              className="site-brand-logo transition-transform duration-300 group-hover:scale-105"
-            />
-          </a>
-
-          {/* Dedicated Media Metadata (Pill & Clean Title) Beside Brand */}
-          <div className="flex items-center gap-2 min-w-0 pl-2 sm:pl-3 border-l border-white/10 truncate">
-            <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0">
-              {type === 'video' ? 'Video' : 'Photo'}
-            </span>
-            <span className="text-zinc-400 font-medium truncate hidden sm:inline text-xs max-w-[180px] md:max-w-md">
-              {displayTitle}
-            </span>
-          </div>
+        {/* Left: Dedicated Media Metadata (Pill & Clean Title) */}
+        <div className="flex items-center gap-2 min-w-0 truncate">
+          <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0">
+            {type === 'video' ? 'Video' : 'Photo'}
+          </span>
+          <span className="text-zinc-400 font-medium truncate hidden sm:inline text-xs max-w-[200px] md:max-w-md">
+            {displayTitle}
+          </span>
         </div>
 
         {/* Right: Actions (Zoom, Download, External Link, Prominent View Full Screen - NO Close Button) */}

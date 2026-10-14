@@ -1,152 +1,138 @@
 /**
  * watermarkImage.ts
- * Client-side canvas watermarking pipeline for SARWARCYOU Media Vault (sarwar.cyou).
+ * Single-Source-of-Truth (SSOT) client-side canvas watermarking pipeline
+ * for SARWARCYOU Media Vault (sarwar.cyou).
  *
- * Requirements:
- * 1. Process source image on offscreen HTML5 <canvas> preserving full original
- *    resolution (naturalWidth x naturalHeight) and aspect ratio.
- * 2. Top-Left Brand Watermark:
- *    - Dynamic padding relative to image scale (padX = width * 0.035, padY = height * 0.035)
- *    - Exact 3-piece interlocking delta emblem scaled proportionally (emblemSize = max(28, width * 0.045))
- *    - Filled with active/synchronized white-to-spectral gradient
- *    - Adjacent "SARWARCYOU" wordmark in Orbitron 900 bold, vertically centered, drop shadow
- * 3. Bottom-Right Source Watermark:
- *    - Text: "Source: https://www.sarwar.cyou/"
- *    - Font: Rajdhani 600, clamped font size (12px to 28px), drop shadow
- * 4. Export composite canvas to JPEG (quality 0.95) or PNG preserving lossless fidelity.
+ * Dynamically stamps BRAND_CONFIG.logoSrc (/SARWARCYOU.svg) onto downloaded images.
  */
 
-export interface WatermarkOptions {
-  /** Optional custom website URL in watermark text (default: 'Source: https://www.sarwar.cyou/') */
-  sourceText?: string;
-  /** Optional custom brand text (default: 'SARWARCYOU') */
-  brandText?: string;
-}
+import { BRAND_CONFIG } from '../config/brand';
 
 /**
- * Draw the exact 3-piece interlocking delta logo on the canvas context.
- * Coordinates are mapped to a 100x100 viewBox and scaled/translated to (x, y) with size `size`.
+ * Universal client-side image watermarking and download trigger.
+ * Accepts an HTMLImageElement, direct image URL string, or Blob.
  */
-function drawInterlockingDelta(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number
-): void {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(size / 100, size / 100);
+export async function applyWatermarkAndDownload(
+  source: HTMLImageElement | string | Blob,
+  originalFilename?: string
+): Promise<void> {
+  const brand =
+    typeof window !== 'undefined' && window.BRAND_CONFIG
+      ? window.BRAND_CONFIG
+      : BRAND_CONFIG;
 
-  // Spectral Linear Gradient from top-left (0,0) to bottom-right (100,100)
-  const grad = ctx.createLinearGradient(0, 0, 100, 100);
-  grad.addColorStop(0, '#ffffff');
+  let imageElement: HTMLImageElement;
+  let objectUrlToRevoke: string | null = null;
 
-  // Sync with active CSS root dynamic hue / color if available
-  let dynamicColor = 'hsl(205, 100%, 65%)';
-  if (typeof window !== 'undefined') {
-    try {
-      const rootStyle = getComputedStyle(document.documentElement);
-      const brandColor = rootStyle.getPropertyValue('--brand-dynamic-color').trim();
-      if (brandColor) {
-        dynamicColor = brandColor;
+  if (source instanceof HTMLImageElement) {
+    imageElement = source;
+  } else {
+    imageElement = new Image();
+    imageElement.crossOrigin = 'anonymous';
+    const srcUrl = typeof source === 'string' ? source : URL.createObjectURL(source);
+    if (typeof source !== 'string') {
+      objectUrlToRevoke = srcUrl;
+    }
+    imageElement.src = srcUrl;
+    await new Promise<void>((resolve, reject) => {
+      if (imageElement.complete && imageElement.naturalWidth) {
+        resolve();
       } else {
-        const hue = rootStyle.getPropertyValue('--current-hue').trim();
-        if (hue) dynamicColor = `hsl(${hue}, 100%, 65%)`;
+        imageElement.onload = () => resolve();
+        imageElement.onerror = () => reject(new Error('Failed to load image for watermarking'));
       }
-    } catch {
-      /* fallback to default */
+    });
+  }
+
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = imageElement.naturalWidth || imageElement.width;
+    canvas.height = imageElement.naturalHeight || imageElement.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Unable to acquire 2D canvas context');
+
+    // 1. Draw base photo
+    ctx.drawImage(imageElement, 0, 0);
+
+    // 2. Load SSOT Logo Image dynamically
+    const logoImg = new Image();
+    logoImg.crossOrigin = 'anonymous';
+    logoImg.src = brand.logoSrc;
+    await new Promise((resolve) => {
+      logoImg.onload = resolve;
+      logoImg.onerror = resolve; // fallback gracefully if blocked
+    });
+
+    // 3. Draw Brand Logo at Top-Left
+    if (logoImg.width) {
+      const logoScale = (canvas.width * 0.16) / logoImg.width; // proportional width
+      const logoW = logoImg.width * logoScale;
+      const logoH = logoImg.height * logoScale;
+      const padX = canvas.width * 0.035;
+      const padY = canvas.height * 0.035;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 10;
+      ctx.drawImage(logoImg, padX, padY, logoW, logoH);
+      ctx.shadowBlur = 0;
+    }
+
+    // 4. Draw Plain White Source Text at Bottom-Right
+    const fontSize = Math.max(14, Math.round(canvas.width * 0.016));
+    ctx.font = `600 ${fontSize}px Rajdhani, sans-serif`;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(
+      `Source: ${brand.sourceUrl}`,
+      canvas.width - canvas.width * 0.035,
+      canvas.height - canvas.height * 0.035
+    );
+
+    // 5. Trigger download
+    await new Promise<void>((resolve) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve();
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = originalFilename || 'sarwarcyou-media.jpg';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 30_000);
+          resolve();
+        },
+        'image/jpeg',
+        0.95
+      );
+    });
+  } finally {
+    if (objectUrlToRevoke) {
+      URL.revokeObjectURL(objectUrlToRevoke);
     }
   }
-  grad.addColorStop(0.5, dynamicColor);
-  grad.addColorStop(1, '#ffffff');
-
-  ctx.fillStyle = grad;
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-  ctx.shadowBlur = Math.max(4, Math.round(size * 0.12));
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = Math.max(1, Math.round(size * 0.03));
-
-  // Segment 1: Top-Left Apex Bar (d="M 50,6 L 62,28 L 47,56 L 31,56 Z")
-  ctx.beginPath();
-  ctx.moveTo(50, 6);
-  ctx.lineTo(62, 28);
-  ctx.lineTo(47, 56);
-  ctx.lineTo(31, 56);
-  ctx.closePath();
-  ctx.fill();
-
-  // Segment 2: Bottom-Left Foot & Center Fold (d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z")
-  ctx.beginPath();
-  ctx.moveTo(24, 67);
-  ctx.lineTo(41, 67);
-  ctx.lineTo(54, 92);
-  ctx.lineTo(11, 92);
-  ctx.closePath();
-  ctx.moveTo(44, 67);
-  ctx.lineTo(58, 41);
-  ctx.lineTo(69, 61);
-  ctx.lineTo(55, 61);
-  ctx.closePath();
-  ctx.fill();
-
-  // Segment 3: Right Slanted Leg (d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z")
-  ctx.beginPath();
-  ctx.moveTo(64, 19);
-  ctx.lineTo(50, 46);
-  ctx.lineTo(63, 69);
-  ctx.lineTo(89, 92);
-  ctx.lineTo(100, 92);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.restore();
 }
 
 /**
- * Prepares fonts so canvas renders with exact typography without fallback delays.
- */
-async function ensureFontsReady(): Promise<void> {
-  if (typeof document !== 'undefined' && 'fonts' in document) {
-    try {
-      await document.fonts.ready;
-      await Promise.allSettled([
-        document.fonts.load('900 32px Orbitron'),
-        document.fonts.load('600 18px Rajdhani'),
-      ]);
-    } catch {
-      /* continue */
-    }
-  }
-}
-
-/**
- * Loads an image from a URL or Blob into an HTMLImageElement safely.
- */
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = (err) => reject(new Error(`Failed to load image for watermarking: ${err}`));
-    img.src = src;
-  });
-}
-
-/**
- * Watermarks an image Blob or source URL and returns the composite Blob.
- * Preserves 100% of original image dimensions and aspect ratio.
- *
- * @param source     A Blob or direct image URL
- * @param mimeType   MIME type of the source (e.g. 'image/jpeg', 'image/png')
- * @param options    Custom watermark text options
+ * Compatibility helper returning a Blob with watermarked composite.
  */
 export async function applyImageWatermark(
-  source: Blob | string,
-  mimeType = 'image/jpeg',
-  options?: WatermarkOptions
+  source: string | Blob,
+  _mimeType?: string
 ): Promise<Blob> {
-  let objectUrlToRevoke: string | null = null;
+  const brand =
+    typeof window !== 'undefined' && window.BRAND_CONFIG
+      ? window.BRAND_CONFIG
+      : BRAND_CONFIG;
+
   let imageSrc: string;
+  let objectUrlToRevoke: string | null = null;
 
   if (typeof source === 'string') {
     imageSrc = source;
@@ -156,89 +142,67 @@ export async function applyImageWatermark(
   }
 
   try {
-    // Wait for fonts and load image in parallel
-    const [, img] = await Promise.all([
-      ensureFontsReady(),
-      loadImage(imageSrc),
-    ]);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imageSrc;
+    await new Promise<void>((resolve, reject) => {
+      if (img.complete && img.naturalWidth) {
+        resolve();
+      } else {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load image'));
+      }
+    });
 
-    const width = img.naturalWidth || img.width;
-    const height = img.naturalHeight || img.height;
-
-    if (!width || !height) {
-      throw new Error(`Invalid image dimensions: ${width}x${height}`);
-    }
-
-    // 1. Create Offscreen Canvas matching exact source dimensions
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Unable to create 2D canvas context');
+    if (!ctx) throw new Error('Unable to create canvas context');
+
+    ctx.drawImage(img, 0, 0);
+
+    const logoImg = new Image();
+    logoImg.crossOrigin = 'anonymous';
+    logoImg.src = brand.logoSrc;
+    await new Promise((resolve) => {
+      logoImg.onload = resolve;
+      logoImg.onerror = resolve;
+    });
+
+    if (logoImg.width) {
+      const logoScale = (canvas.width * 0.16) / logoImg.width;
+      const logoW = logoImg.width * logoScale;
+      const logoH = logoImg.height * logoScale;
+      const padX = canvas.width * 0.035;
+      const padY = canvas.height * 0.035;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 10;
+      ctx.drawImage(logoImg, padX, padY, logoW, logoH);
+      ctx.shadowBlur = 0;
     }
 
-    // Draw base source image at full native resolution
-    ctx.drawImage(img, 0, 0, width, height);
-
-    // Dynamic padding relative to image scale
-    const padX = Math.round(width * 0.035);
-    const padY = Math.round(height * 0.035);
-
-    // 2. TOP-LEFT BRAND WATERMARK (Emblem + "SARWARCYOU")
-    const emblemSize = Math.max(28, Math.round(width * 0.045));
-    drawInterlockingDelta(ctx, padX, padY, emblemSize);
-
-    // Brand Wordmark
-    const brandText = options?.brandText || 'SARWARCYOU';
-    const brandFontSize = Math.round(emblemSize * 0.65);
-    const brandTextX = padX + emblemSize + Math.round(emblemSize * 0.25);
-    const brandTextY = padY + emblemSize / 2;
-
-    ctx.save();
-    ctx.font = `900 ${brandFontSize}px Orbitron, sans-serif`;
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'left';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    ctx.shadowBlur = Math.max(4, Math.round(brandFontSize * 0.25));
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = Math.max(1, Math.round(brandFontSize * 0.06));
-    ctx.fillText(brandText, brandTextX, brandTextY);
-    ctx.restore();
-
-    // 3. BOTTOM-RIGHT SOURCE WATERMARK ("Source: https://www.sarwar.cyou/")
-    const sourceText = options?.sourceText || 'Source: https://www.sarwar.cyou/';
-    const sourceFontSize = Math.round(Math.min(28, Math.max(12, width * 0.018)));
-
-    ctx.save();
-    ctx.font = `600 ${sourceFontSize}px Rajdhani, sans-serif`;
+    const fontSize = Math.max(14, Math.round(canvas.width * 0.016));
+    ctx.font = `600 ${fontSize}px Rajdhani, sans-serif`;
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
     ctx.shadowBlur = 6;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-    ctx.fillText(sourceText, width - padX, height - padY);
-    ctx.restore();
-
-    // 4. Export composite canvas to Blob
-    const isPng = mimeType === 'image/png';
-    const exportMime = isPng ? 'image/png' : 'image/jpeg';
-    const exportQuality = isPng ? undefined : 0.95;
+    ctx.fillText(
+      `Source: ${brand.sourceUrl}`,
+      canvas.width - canvas.width * 0.035,
+      canvas.height - canvas.height * 0.035
+    );
 
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Canvas export produced a null Blob'));
-          }
+          if (blob) resolve(blob);
+          else reject(new Error('Canvas export produced null'));
         },
-        exportMime,
-        exportQuality
+        'image/jpeg',
+        0.95
       );
     });
   } finally {

@@ -87,6 +87,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#0a0a0c] text-white font-sans antialiased overflow-hidden select-none selection:bg-[#00D2FF] selection:text-black">
+    <script>
+      window.BRAND_CONFIG = {
+        name: 'SARWARCYOU',
+        logoSrc: '/SARWARCYOU.svg',
+        sourceUrl: 'https://www.sarwar.cyou/'
+      };
+
+      document.addEventListener('click', function(e) {
+        var link = e.target && e.target.closest && e.target.closest('#global-site-header .brand-link');
+        if (link) {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('sarwarcyou:reset-home'));
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+
+      window.addEventListener('scroll', function() {
+        var header = document.getElementById('global-site-header');
+        if (header && !header.classList.contains('docked-left')) {
+          if (window.scrollY > 60) {
+            header.classList.add('scrolled');
+          } else {
+            header.classList.remove('scrolled');
+          }
+        }
+      }, { passive: true });
+    </script>
+
+    <header id="global-site-header" class="site-header">
+      <a href="/" class="brand-link" aria-label="SARWARCYOU Home">
+        <img id="site-primary-logo" src="/SARWARCYOU.svg" alt="SARWARCYOU" class="site-brand-logo" />
+      </a>
+    </header>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
