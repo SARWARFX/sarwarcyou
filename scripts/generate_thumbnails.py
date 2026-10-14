@@ -1,227 +1,97 @@
-#!/usr/bin/env python3
-"""
-generate_thumbnails.py
-Automated multi-frame video thumbnail generator for SARWARFX/stream-vault.
-Scans the dataset for videos, extracts up to 5 WebP frames via ffmpeg,
-and uploads them to .thumbnails/{album}/{video_name}/ in Hugging Face.
-"""
-
 import os
 import sys
+import json
 import subprocess
-import tempfile
-import urllib.parse
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
-from huggingface_hub import HfApi, HfFileSystem
+from huggingface_hub import HfApi, hf_hub_download
 
-DATASET_REPO = "SARWARFX/stream-vault"
-VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm"}
-TIMESTAMPS = [5, 35, 65, 95, 125]  # in seconds
+REPO_ID = "SARWARFX/stream-vault"
+REPO_TYPE = "dataset"
+HF_TOKEN = os.environ.get("HF_TOKEN")
 
+if not HF_TOKEN:
+    print("Error: HF_TOKEN environment variable is missing.")
+    sys.exit(1)
 
-def get_video_duration(video_url: str, token: str | None = None) -> float | None:
-    """Probe video duration in seconds via ffprobe using HTTP range requests."""
+api = HfApi(token=HF_TOKEN)
+
+def get_video_duration(file_path):
     cmd = [
-        "ffprobe",
-        "-v", "error",
+        "ffprobe", "-v", "error",
         "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1",
+        file_path
     ]
-    if token:
-        cmd.extend(["-headers", f"Authorization: Bearer {token}\r\n"])
-    cmd.append(video_url)
-
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=25)
-        if res.returncode == 0 and res.stdout.strip():
-            return float(res.stdout.strip())
+        return float(result.stdout.strip())
     except Exception:
-        pass
-    return None
+        return 0.0
 
+def generate_5_thumbnails(video_path, output_prefix):
+    duration = get_video_duration(video_path)
+    if duration <= 0:
+        print(f"Skipping {video_path}: unable to determine duration.")
+        return []
 
-def extract_frames_for_video(
-    video_path: str,
-    output_dir: Path,
-    token: str | None = None
-) -> int:
-    """
-    Extract up to 5 .webp frames from a Hugging Face video using ffmpeg.
-    Saves to output_dir/thumb_{0..4}.webp.
-    """
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    encoded_path = urllib.parse.quote(video_path)
-    video_url = f"https://huggingface.co/datasets/{DATASET_REPO}/resolve/main/{encoded_path}"
+    # 5 intervals across the video: 20%, 40%, 60%, 80%, 95%
+    percentages = [0.20, 0.40, 0.60, 0.80, 0.95]
+    generated_files = []
 
-    duration = get_video_duration(video_url, token)
-
-    # Determine probe timestamps
-    if duration and duration > 0:
-        if duration <= 6.0:
-            # Very short clip: sample densely across available duration
-            timestamps = [round(duration * (i + 1) / 6.0, 2) for i in range(5)]
-        elif duration < 130.0:
-            # Proportional distribution across the duration
-            timestamps = [round(min(t, duration - 0.5), 2) for t in TIMESTAMPS]
-            # Ensure strictly increasing
-            timestamps = sorted(list(set(timestamps)))
-            while len(timestamps) < 5 and duration > 1.0:
-                step = duration / 6.0
-                timestamps = [round(step * (i + 1), 2) for i in range(5)]
-        else:
-            timestamps = TIMESTAMPS
-    else:
-        timestamps = TIMESTAMPS
-
-    extracted_count = 0
-
-    for idx, ts in enumerate(timestamps):
-        out_file = output_dir / f"thumb_{idx}.webp"
-        if out_file.exists() and out_file.stat().st_size > 0:
-            extracted_count += 1
-            continue
-
-        cmd = ["ffmpeg", "-y"]
-        if token:
-            cmd.extend(["-headers", f"Authorization: Bearer {token}\r\n"])
-        cmd.extend([
-            "-ss", str(ts),
-            "-i", video_url,
+    for idx, pct in enumerate(percentages, start=1):
+        timestamp = max(0.5, duration * pct)
+        out_name = f"{output_prefix}_thumb_{idx}.jpg"
+        
+        cmd = [
+            "ffmpeg", "-y",
+            "-ss", f"{timestamp:.2f}",
+            "-i", video_path,
             "-frames:v", "1",
-            "-vf", "scale=640:-1",
-            "-c:v", "libwebp",
-            "-quality", "75",
-            str(out_file)
-        ])
-
-        try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=35)
-            if res.returncode == 0 and out_file.exists() and out_file.stat().st_size > 0:
-                extracted_count += 1
-            else:
-                # If seeking past end failed, try an earlier safe fallback timestamp
-                if idx == 0:
-                    fallback_cmd = ["ffmpeg", "-y"]
-                    if token:
-                        fallback_cmd.extend(["-headers", f"Authorization: Bearer {token}\r\n"])
-                    fallback_cmd.extend([
-                        "-ss", "0.5",
-                        "-i", video_url,
-                        "-frames:v", "1",
-                        "-vf", "scale=640:-1",
-                        "-c:v", "libwebp",
-                        "-quality", "75",
-                        str(out_file)
-                    ])
-                    fallback_res = subprocess.run(fallback_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=35)
-                    if fallback_res.returncode == 0 and out_file.exists() and out_file.stat().st_size > 0:
-                        extracted_count += 1
-        except Exception as e:
-            print(f"  [!] Frame extraction error for {video_path} at {ts}s: {e}")
-
-    return extracted_count
-
+            "-q:v", "3",
+            "-vf", "scale='min(720,iw)':-2",
+            out_name
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if res.returncode == 0 and os.path.exists(out_name):
+            generated_files.append(out_name)
+    return generated_files
 
 def main():
-    token = os.environ.get("HF_TOKEN")
-    if not token:
-        print("[!] HF_TOKEN environment variable not set. Checking read-only mode...")
+    print("Fetching repository tree...")
+    files = api.list_repo_files(repo_id=REPO_ID, repo_type=REPO_TYPE)
+    video_exts = ('.mp4', '.mov', '.webm', '.mkv')
+    videos = [f for f in files if f.lower().endswith(video_exts) and not f.startswith("thumbnails/")]
 
-    api = HfApi(token=token)
-    fs = HfFileSystem(token=token)
+    print(f"Found {len(videos)} videos in stream-vault.")
 
-    print(f"[*] Scanning Hugging Face repository: datasets/{DATASET_REPO}...")
-    try:
-        # Use HfFileSystem to list all items recursively
-        raw_items = fs.glob(f"datasets/{DATASET_REPO}/**")
-    except Exception as e:
-        print(f"[!] HfFileSystem glob failed ({e}), falling back to HfApi tree list...")
-        tree = api.list_repo_tree(repo_id=DATASET_REPO, repo_type="dataset", recursive=True)
-        raw_items = [f"datasets/{DATASET_REPO}/{item.path}" for item in tree]
+    os.makedirs("temp_videos", exist_ok=True)
+    os.makedirs("generated_thumbs", exist_ok=True)
 
-    prefix = f"datasets/{DATASET_REPO}/"
-    all_files = []
-    existing_thumbs = set()
+    for i, video_rel_path in enumerate(videos, 1):
+        base_name = os.path.splitext(os.path.basename(video_rel_path))[0]
+        print(f"[{i}/{len(videos)}] Processing: {video_rel_path}")
 
-    for item in raw_items:
-        clean_path = item[len(prefix):] if item.startswith(prefix) else item
-        clean_path = clean_path.lstrip("/")
+        # Download video
+        local_video = hf_hub_download(repo_id=REPO_ID, repo_type=REPO_TYPE, filename=video_rel_path, token=HF_TOKEN, local_dir="temp_videos")
         
-        if ".thumbnails/" in clean_path:
-            existing_thumbs.add(clean_path)
-        else:
-            ext = os.path.splitext(clean_path)[1].lower()
-            if ext in VIDEO_EXTENSIONS:
-                all_files.append(clean_path)
+        out_prefix = os.path.join("generated_thumbs", base_name)
+        thumbs = generate_5_thumbnails(local_video, out_prefix)
 
-    print(f"[*] Found {len(all_files)} total video files in repository.")
-    print(f"[*] Found {len(existing_thumbs)} existing thumbnail assets.")
-
-    # Identify videos needing thumbnails
-    pending_videos = []
-    for vpath in all_files:
-        parent_dir = os.path.dirname(vpath)
-        base_name = os.path.basename(vpath)
-        stem = os.path.splitext(base_name)[0]
-        
-        thumb_dir = f".thumbnails/{parent_dir}/{stem}" if parent_dir else f".thumbnails/{stem}"
-        # A video is considered complete if thumb_0.webp exists
-        first_thumb = f"{thumb_dir}/thumb_0.webp"
-        
-        if first_thumb not in existing_thumbs:
-            pending_videos.append((vpath, thumb_dir))
-
-    print(f"[*] Pending videos requiring thumbnail extraction: {len(pending_videos)}")
-
-    if not pending_videos:
-        print("[+] All video thumbnails are up-to-date! No action required.")
-        return
-
-    with tempfile.TemporaryDirectory(prefix="hf_thumbs_") as temp_dir:
-        temp_path = Path(temp_dir)
-        generated_count = 0
-
-        print(f"[*] Extracting multi-frame WebP thumbnails using worker pool (temp: {temp_path})...")
-
-        def process_entry(entry):
-            video_path, rel_thumb_dir = entry
-            # Destination path inside temp folder
-            target_subfolder = rel_thumb_dir[len(".thumbnails/"):].lstrip("/")
-            local_target_dir = temp_path / target_subfolder
-            num_frames = extract_frames_for_video(video_path, local_target_dir, token)
-            return video_path, num_frames
-
-        # Limit concurrent ffmpeg jobs to avoid network or CPU thrashing
-        max_workers = min(6, os.cpu_count() or 4)
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_video = {executor.submit(process_entry, entry): entry for entry in pending_videos}
-            for idx, future in enumerate(as_completed(future_to_video), start=1):
-                video_path, frames = future.result()
-                if frames > 0:
-                    generated_count += 1
-                print(f"  [{idx}/{len(pending_videos)}] {video_path} -> {frames} frames extracted")
-
-        print(f"[+] Total videos processed with thumbnails: {generated_count}/{len(pending_videos)}")
-
-        if generated_count > 0:
-            if not token:
-                print("[!] HF_TOKEN not set, skipping upload step.")
-                sys.exit(1)
-
-            print(f"[*] Uploading generated thumbnails to datasets/{DATASET_REPO}/.thumbnails/...")
-            api.upload_folder(
-                folder_path=str(temp_path),
-                path_in_repo=".thumbnails",
-                repo_id=DATASET_REPO,
-                repo_type="dataset",
-                commit_message=f"feat(thumbnails): auto-generate multi-frame webp thumbnails [{generated_count} videos]",
+        # Upload each generated frame to Hugging Face under thumbnails/<video_name>/
+        for thumb_path in thumbs:
+            remote_thumb_path = f"thumbnails/{base_name}/{os.path.basename(thumb_path)}"
+            api.upload_file(
+                path_or_fileobj=thumb_path,
+                path_in_repo=remote_thumb_path,
+                repo_id=REPO_ID,
+                repo_type=REPO_TYPE,
+                commit_message=f"Add 5-frame thumb: {os.path.basename(thumb_path)}"
             )
-            print("[+] Successfully uploaded all thumbnails to Hugging Face CDN!")
-        else:
-            print("[!] No new frames generated to upload.")
+            os.remove(thumb_path)
 
+        if os.path.exists(local_video):
+            os.remove(local_video)
+
+    print("All 5-frame thumbnails generated and pushed successfully.")
 
 if __name__ == "__main__":
     main()

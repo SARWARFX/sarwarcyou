@@ -117,14 +117,17 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
   const shorts: HfMediaItem[] = [];
   const images: HfMediaItem[] = [];
 
-  // Index all pre-rendered WebP thumbnails from .thumbnails/
-  // Supports both stem (.thumbnails/folder/video/thumb_0.webp)
-  // and extension (.thumbnails/folder/video.mp4/thumb_0.webp) directory formats.
+  // Index all pre-rendered thumbnails from thumbnails/ or .thumbnails/
+  // Supports thumbnails/{video_name}/thumb_{1..5}.jpg and legacy formats.
   const thumbnailsByFolder = new Map<string, string[]>();
 
   for (const item of tree) {
     if (item.type !== 'file' || !item.path) continue;
-    if (item.path.startsWith('.thumbnails/') && item.path.endsWith('.webp')) {
+    const lowerPath = item.path.toLowerCase();
+    const isThumbFolder = item.path.startsWith('thumbnails/') || item.path.startsWith('.thumbnails/');
+    const isImageFile = lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg') || lowerPath.endsWith('.webp') || lowerPath.endsWith('.png');
+
+    if (isThumbFolder && isImageFile) {
       const lastSlash = item.path.lastIndexOf('/');
       if (lastSlash > 0) {
         const folder = item.path.substring(0, lastSlash);
@@ -144,7 +147,7 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
     }
   }
 
-  // Sort thumbnails within each folder to ensure thumb_0, thumb_1, thumb_2... order
+  // Sort thumbnails within each folder to ensure thumb_1, thumb_2, thumb_3... order
   for (const [folder, list] of thumbnailsByFolder.entries()) {
     list.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     thumbnailsByFolder.set(folder, list);
@@ -157,14 +160,30 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
     const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
     const stem = fileName.replace(/\.[^/.]+$/, '');
 
-    // Try stem variant first (.thumbnails/Clips/.../video)
+    // 1. Primary standard: thumbnails/{videoName} (thumbnails/<videoName>/<videoName>_thumb_<1..5>.jpg)
+    const primaryFolder = `thumbnails/${stem}`;
+    const primaryMatch =
+      thumbnailsByFolder.get(primaryFolder) ||
+      thumbnailsByFolder.get(normalizeKey(primaryFolder));
+    if (primaryMatch && primaryMatch.length > 0) return primaryMatch;
+
+    // 2. Nested subfolder standard: thumbnails/{parentDir}/{stem}
+    if (parentDir) {
+      const nestedFolder = `thumbnails/${parentDir}/${stem}`;
+      const nestedMatch =
+        thumbnailsByFolder.get(nestedFolder) ||
+        thumbnailsByFolder.get(normalizeKey(nestedFolder));
+      if (nestedMatch && nestedMatch.length > 0) return nestedMatch;
+    }
+
+    // 3. Fallbacks (.thumbnails/Clips/.../video)
     const stemFolder = parentDir ? `.thumbnails/${parentDir}/${stem}` : `.thumbnails/${stem}`;
     const stemMatch =
       thumbnailsByFolder.get(stemFolder) ||
       thumbnailsByFolder.get(normalizeKey(stemFolder));
     if (stemMatch && stemMatch.length > 0) return stemMatch;
 
-    // Try extension-inclusive variant (.thumbnails/Clips/.../video.mp4)
+    // 4. Extension-inclusive variant (.thumbnails/Clips/.../video.mp4)
     const extFolder = parentDir ? `.thumbnails/${parentDir}/${fileName}` : `.thumbnails/${fileName}`;
     const extMatch =
       thumbnailsByFolder.get(extFolder) ||
@@ -178,8 +197,8 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
     if (item.type !== 'file' || !item.path) continue;
     const path = item.path;
 
-    // Strict exclusion: completely ignore any file or path inside .thumbnails or dot-directories
-    if (isHiddenOrSystemPath(path)) continue;
+    // Strict exclusion: completely ignore any file inside thumbnails/ or .thumbnails or dot-directories
+    if (isHiddenOrSystemPath(path) || path.startsWith('thumbnails/') || path.includes('/thumbnails/')) continue;
 
     const name = path.split('/').pop() || path;
     const url = buildHfMediaUrl(path);

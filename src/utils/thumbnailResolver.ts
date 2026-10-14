@@ -50,7 +50,7 @@ export interface VideoPathInfo {
  */
 export function parseVideoPathInfo(urlOrPath: string): VideoPathInfo | null {
   const relPath = extractHfRelativePath(urlOrPath);
-  if (!relPath || relPath.startsWith('.thumbnails/')) return null;
+  if (!relPath || relPath.startsWith('.thumbnails/') || relPath.startsWith('thumbnails/')) return null;
 
   const lastSlash = relPath.lastIndexOf('/');
   const parentDir = lastSlash > 0 ? relPath.substring(0, lastSlash) : '';
@@ -61,36 +61,29 @@ export function parseVideoPathInfo(urlOrPath: string): VideoPathInfo | null {
 }
 
 /**
- * Derives the anticipated 5-frame pre-rendered WebP thumbnail URLs
- * following the stem standard: .thumbnails/{parent_dir}/{video_stem}/thumb_{0..4}.webp
+ * Derives the anticipated 5-frame pre-rendered thumbnail URLs:
+ * thumbnails/{videoName}/{videoName}_thumb_1.jpg through thumb_5.jpg
  */
 export function getAnticipatedThumbnailUrls(urlOrPath: string): string[] {
   const info = parseVideoPathInfo(urlOrPath);
   if (!info) return [];
 
-  const baseDir = info.parentDir
-    ? `.thumbnails/${info.parentDir}/${info.stem}`
-    : `.thumbnails/${info.stem}`;
-
-  return [0, 1, 2, 3, 4, 5].map((idx) => {
-    return buildHfMediaUrl(`${baseDir}/thumb_${idx}.webp`);
+  // Primary 5-frame extraction: thumbnails/{videoName}/{videoName}_thumb_1.jpg to thumb_5.jpg
+  return [1, 2, 3, 4, 5].map((idx) => {
+    return buildHfMediaUrl(`thumbnails/${info.stem}/${info.stem}_thumb_${idx}.jpg`);
   });
 }
 
 /**
- * Derives the anticipated 6-frame pre-rendered WebP thumbnail URLs
- * following the extension-inclusive standard: .thumbnails/{parent_dir}/{filename.mp4}/thumb_{0..5}.webp
+ * Derives fallback 5-frame thumbnail URLs without the inner filename prefix:
+ * thumbnails/{videoName}/thumb_1.jpg through thumb_5.jpg
  */
 export function getAnticipatedThumbnailUrlsWithExt(urlOrPath: string): string[] {
   const info = parseVideoPathInfo(urlOrPath);
   if (!info) return [];
 
-  const baseDir = info.parentDir
-    ? `.thumbnails/${info.parentDir}/${info.fileName}`
-    : `.thumbnails/${info.fileName}`;
-
-  return [0, 1, 2, 3, 4, 5].map((idx) => {
-    return buildHfMediaUrl(`${baseDir}/thumb_${idx}.webp`);
+  return [1, 2, 3, 4, 5].map((idx) => {
+    return buildHfMediaUrl(`thumbnails/${info.stem}/thumb_${idx}.jpg`);
   });
 }
 

@@ -230,6 +230,22 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       onTouchStart={() => {
         if (isVideo) prewarmVideoStream(streamUrl || item.url);
       }}
+      onTouchMove={(e) => {
+        if (!isVideo || totalFrames <= 1) return;
+        const card = cardRef.current;
+        if (!card) return;
+        const rect = card.getBoundingClientRect();
+        if (rect.width <= 0) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const relativeX = Math.max(0, Math.min(touch.clientX - rect.left, rect.width - 1));
+        const pct = relativeX / rect.width;
+        const targetIdx = Math.min(totalFrames - 1, Math.floor(pct * totalFrames));
+        setManualFrameIndex(targetIdx);
+      }}
+      onTouchEnd={() => {
+        setManualFrameIndex(null);
+      }}
       onClick={(e) => {
         e.stopPropagation();
         if (!hasDragged || !hasDragged()) {
