@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface BrandTriangleLogoProps {
+interface BrandDeltaLogoProps {
   id?: string;
   gradientId?: string;
   width?: number | string;
@@ -8,8 +8,8 @@ interface BrandTriangleLogoProps {
   className?: string;
 }
 
-export const BrandTriangleLogo: React.FC<BrandTriangleLogoProps> = ({
-  id = 'brand-triangle-logo',
+export const BrandDeltaLogo: React.FC<BrandDeltaLogoProps> = ({
+  id = 'brand-delta-logo',
   gradientId = 'brand-dynamic-gradient',
   width = 48,
   height = 48,
@@ -18,27 +18,32 @@ export const BrandTriangleLogo: React.FC<BrandTriangleLogoProps> = ({
   return (
     <svg
       id={id}
-      viewBox="0 0 100 100"
+      viewBox="0 0 120 120"
       width={width}
       height={height}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`brand-triangle-logo overflow-visible flex-shrink-0 ${className}`}
+      className={`brand-delta-logo overflow-visible flex-shrink-0 ${className}`}
     >
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#ffffff" />
-          <stop id="svg-gradient-mid" className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+          <stop id="svg-gradient-mid" className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
           <stop offset="100%" stop-color="#ffffff" />
         </linearGradient>
       </defs>
-      {/* Component A: Left Quadrilateral Body */}
-      <polygon points="50,10 63,36 33,90 20,90" fill={`url(#${gradientId})`} />
-      {/* Component B: Bottom-Right Wedge */}
-      <polygon points="68,46 90,90 46,90" fill={`url(#${gradientId})`} />
+      {/* Piece 1: Left Angled Leg */}
+      <path d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z" fill={`url(#${gradientId})`} />
+      {/* Piece 2: Right Slant Beam */}
+      <path d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z" fill={`url(#${gradientId})`} />
+      {/* Piece 3: Bottom Left Fold & Base */}
+      <path d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z" fill={`url(#${gradientId})`} />
     </svg>
   );
 };
+
+// Compatibility export
+export const BrandTriangleLogo = BrandDeltaLogo;
 
 interface BrandWordmarkProps {
   className?: string;
@@ -67,7 +72,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 }) => {
   return (
     <div className={`flex items-center justify-center gap-2.5 sm:gap-3.5 select-none ${className}`}>
-      <BrandTriangleLogo width={logoSize} height={logoSize} />
+      <BrandDeltaLogo width={logoSize} height={logoSize} />
       <BrandWordmark className={wordmarkClassName} />
     </div>
   );

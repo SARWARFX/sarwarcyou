@@ -69,7 +69,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92 backdrop-blur-2xl p-3 sm:p-6 md:p-10 animate-fade-in"
       onClick={onClose}
     >
-      {/* Mobile: Top-Left Homepage Link with Split Triangle Logo */}
+      {/* Mobile: Top-Left Homepage Link with Tri-Fold Delta Logo */}
       <a
         href="/"
         onClick={(e) => {
@@ -82,20 +82,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         aria-label="Return to Home"
       >
         <svg
-          className="brand-triangle-logo w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-          viewBox="0 0 100 100"
+          className="brand-delta-logo w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+          viewBox="0 0 120 120"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
             <linearGradient id="modal-mobile-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stop-color="#ffffff" />
-              <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+              <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
               <stop offset="100%" stop-color="#ffffff" />
             </linearGradient>
           </defs>
-          <polygon points="50,10 63,36 33,90 20,90" fill="url(#modal-mobile-brand-dynamic-gradient)" />
-          <polygon points="68,46 90,90 46,90" fill="url(#modal-mobile-brand-dynamic-gradient)" />
+          <path d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z" fill="url(#modal-mobile-brand-dynamic-gradient)" />
+          <path d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z" fill="url(#modal-mobile-brand-dynamic-gradient)" />
+          <path d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z" fill="url(#modal-mobile-brand-dynamic-gradient)" />
         </svg>
         <h1 className="brand-title font-brand font-black text-base sm:text-lg tracking-wider whitespace-nowrap m-0 p-0 flex items-center">
           SARWARCYOU
@@ -115,20 +116,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         aria-label="Return to Home"
       >
         <svg
-          className="brand-triangle-logo w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-          viewBox="0 0 100 100"
+          className="brand-delta-logo w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+          viewBox="0 0 120 120"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
             <linearGradient id="modal-desktop-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stop-color="#ffffff" />
-              <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+              <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
               <stop offset="100%" stop-color="#ffffff" />
             </linearGradient>
           </defs>
-          <polygon points="50,10 63,36 33,90 20,90" fill="url(#modal-desktop-brand-dynamic-gradient)" />
-          <polygon points="68,46 90,90 46,90" fill="url(#modal-desktop-brand-dynamic-gradient)" />
+          <path d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z" fill="url(#modal-desktop-brand-dynamic-gradient)" />
+          <path d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z" fill="url(#modal-desktop-brand-dynamic-gradient)" />
+          <path d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z" fill="url(#modal-desktop-brand-dynamic-gradient)" />
         </svg>
         <h1 className="brand-title font-brand font-black tracking-widest text-xl sm:text-2xl md:text-3xl uppercase whitespace-nowrap m-0 p-0 flex items-center group-hover:opacity-90 transition-opacity">
           SARWARCYOU

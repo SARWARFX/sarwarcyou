@@ -165,11 +165,11 @@ html, body {
 }
 
 :root {
-  --current-hue: 200;
-  --dynamic-accent-hue: 200deg;
-  --brand-dynamic-color: hsl(200, 100%, 65%);
-  --brand-dynamic-glow: hsla(200, 100%, 65%, 0.35);
-  --brand-color-a: hsl(200, 100%, 65%);
+  --current-hue: 205;
+  --dynamic-accent-hue: 205deg;
+  --brand-dynamic-color: hsl(205, 100%, 65%);
+  --brand-dynamic-glow: hsla(205, 100%, 65%, 0.35);
+  --brand-color-a: hsl(205, 100%, 65%);
 }
 
 /* ==========================================================================
@@ -181,12 +181,12 @@ html, body {
 .brand-unified-wordmark {
   font-family: var(--font-brand, 'Orbitron', sans-serif);
   font-weight: 900;
-  background: linear-gradient(135deg, #ffffff 0%, hsl(var(--current-hue, 200), 100%, 65%) 50%, #ffffff 100%);
+  background: linear-gradient(135deg, #ffffff 0%, hsl(var(--current-hue, 205), 100%, 65%) 50%, #ffffff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 14px hsla(var(--current-hue, 200), 100%, 65%, 0.35));
+  filter: drop-shadow(0 0 14px hsla(var(--current-hue, 205), 100%, 65%, 0.35));
   display: inline-flex;
   align-items: center;
   margin: 0;
@@ -199,7 +199,9 @@ html, body {
   transition: filter 0.2s ease;
 }
 
-/* SVG Triangle Logo Container with matching ambient glow */
+/* Tri-Fold Interlocking Delta / Triangle Logo Container with matching ambient glow */
+#brand-delta-logo,
+.brand-delta-logo,
 #brand-triangle-logo,
 .brand-triangle-logo {
   display: inline-block;
@@ -207,14 +209,14 @@ html, body {
   border: none !important;
   outline: none !important;
   background: transparent !important;
-  filter: drop-shadow(0 0 10px hsla(var(--current-hue, 200), 100%, 65%, 0.35));
+  filter: drop-shadow(0 0 10px hsla(var(--current-hue, 205), 100%, 65%, 0.35));
   transition: filter 0.2s ease;
 }
 
 /* Dynamic SVG Mid Stop sync via CSS */
 #svg-gradient-mid,
 .svg-gradient-mid {
-  stop-color: hsl(var(--current-hue, 200), 100%, 65%);
+  stop-color: hsl(var(--current-hue, 205), 100%, 65%);
 }
 
 /* Fallback/compatibility aliases */

@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 
 /**
- * useDynamicFavicon & Unified Spectral Gradient Engine
+ * useDynamicFavicon & Tri-Fold Interlocking Delta Spectral Engine
  *
  * Drives the unified, synchronized spectral gradient:
  * - 3-stop linear gradient: [ #ffffff (0%) -> HSL(θ, 100%, 65%) (50%) -> #ffffff (100%) ]
- * - Base Hue θ initializes at Electric Blue (θ ≈ 200°) and smoothly cycles 360° over 18 seconds.
+ * - Base Hue θ initializes at Electric Blue (θ ≈ 205°) and smoothly cycles 360° over 18 seconds.
  * - Single requestAnimationFrame loop updating root CSS variables:
  *     --current-hue: θ;
  *     --dynamic-accent-hue: θdeg;
@@ -13,7 +13,7 @@ import { useEffect } from 'react';
  *     --brand-dynamic-glow: hsla(θ, 100%, 65%, 0.35);
  * - Simultaneously updates all #svg-gradient-mid / .svg-gradient-mid SVG stop colors.
  * - Synchronizes browser dynamic favicon in real time via an offscreen 64x64 canvas
- *   filled with the exact createLinearGradient(0, 0, 64, 64) and two-piece triangle geometry (~15 FPS throttle).
+ *   filled with the exact createLinearGradient(0, 0, 64, 64) and tri-fold interlocking delta paths (~15 FPS throttle).
  * - Fully pauses rendering during document.hidden to eliminate battery/CPU drain.
  */
 export function useDynamicFavicon(_legacyEmblemSrc?: string) {
@@ -39,8 +39,8 @@ export function useDynamicFavicon(_legacyEmblemSrc?: string) {
       document.head.appendChild(faviconLink);
     }
 
-    const DURATION = 18000; // 18 seconds per full revolution (relaxed cycle)
-    const INITIAL_HUE = 200; // Initialize at Electric Blue (200°)
+    const DURATION = 18000; // 18 seconds per full revolution (smooth ambient cycle)
+    const INITIAL_HUE = 205; // Initialize at Electric Blue (205°)
     const root = document.documentElement;
     let animId: number;
     let lastFaviconRender = 0;
@@ -57,24 +57,42 @@ export function useDynamicFavicon(_legacyEmblemSrc?: string) {
       grad.addColorStop(1, '#ffffff');
 
       ctx.save();
-      // Scale 0..100 vector coordinates to 64x64 canvas
-      ctx.scale(0.64, 0.64);
+      // Scale 0..120 vector coordinates to 64x64 canvas
+      ctx.scale(64 / 120, 64 / 120);
       ctx.fillStyle = grad;
 
-      // Component A: Left Quadrilateral Body (points: 50,10 63,36 33,90 20,90)
+      // Piece 1: Left Angled Leg (d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z")
       ctx.beginPath();
-      ctx.moveTo(50, 10);
-      ctx.lineTo(63, 36);
-      ctx.lineTo(33, 90);
-      ctx.lineTo(20, 90);
+      ctx.moveTo(60, 15);
+      ctx.lineTo(43, 45);
+      ctx.lineTo(29, 69);
+      ctx.lineTo(45, 69);
+      ctx.lineTo(55, 52);
+      ctx.lineTo(67, 31);
       ctx.closePath();
       ctx.fill();
 
-      // Component B: Bottom-Right Wedge (points: 68,46 90,90 46,90)
+      // Piece 2: Right Slant Beam (d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z")
       ctx.beginPath();
-      ctx.moveTo(68, 46);
-      ctx.lineTo(90, 90);
-      ctx.lineTo(46, 90);
+      ctx.moveTo(67, 31);
+      ctx.lineTo(52, 56);
+      ctx.lineTo(68, 56);
+      ctx.lineTo(93, 105);
+      ctx.lineTo(109, 105);
+      ctx.lineTo(75, 37);
+      ctx.closePath();
+      ctx.fill();
+
+      // Piece 3: Bottom Left Fold & Base (d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z")
+      ctx.beginPath();
+      ctx.moveTo(45, 69);
+      ctx.lineTo(29, 69);
+      ctx.lineTo(11, 105);
+      ctx.lineTo(38, 105);
+      ctx.lineTo(53, 75);
+      ctx.lineTo(68, 75);
+      ctx.lineTo(68, 56);
+      ctx.lineTo(52, 56);
       ctx.closePath();
       ctx.fill();
 
@@ -87,7 +105,7 @@ export function useDynamicFavicon(_legacyEmblemSrc?: string) {
       if (!startTimestamp) startTimestamp = timestamp;
       const elapsed = timestamp - startTimestamp;
 
-      // Continuous Hue θ rotation initializing at 200°
+      // Continuous Hue θ rotation initializing at 205°
       const theta = (INITIAL_HUE + ((elapsed % DURATION) / DURATION) * 360) % 360;
       const thetaFormatted = theta.toFixed(1);
 
@@ -99,7 +117,6 @@ export function useDynamicFavicon(_legacyEmblemSrc?: string) {
       root.style.setProperty('--dynamic-accent-hue', `${thetaFormatted}deg`);
       root.style.setProperty('--brand-dynamic-color', midColor);
       root.style.setProperty('--brand-dynamic-glow', glowColor);
-      // Backward-compatibility alias
       root.style.setProperty('--brand-color-a', midColor);
 
       // Simultaneously update SVG gradient stop-colors directly
@@ -115,7 +132,7 @@ export function useDynamicFavicon(_legacyEmblemSrc?: string) {
         renderFavicon(midColor);
       }
 
-      // Continue animation loop only if tab remains visible, or schedule next frame
+      // Continue animation loop only if tab remains visible
       if (!document.hidden) {
         animId = requestAnimationFrame(step);
       }

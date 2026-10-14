@@ -33,9 +33,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           aria-label="Return to Home"
         >
           <svg
-            id="brand-triangle-logo"
-            className="brand-triangle-logo w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-            viewBox="0 0 100 100"
+            id="brand-delta-logo"
+            className="brand-delta-logo w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+            viewBox="0 0 120 120"
             width="48"
             height="48"
             fill="none"
@@ -44,14 +44,16 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <defs>
               <linearGradient id="brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#ffffff" />
-                <stop id="svg-gradient-mid" className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+                <stop id="svg-gradient-mid" className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
                 <stop offset="100%" stop-color="#ffffff" />
               </linearGradient>
             </defs>
-            {/* Component A: Left Quadrilateral Body */}
-            <polygon points="50,10 63,36 33,90 20,90" fill="url(#brand-dynamic-gradient)" />
-            {/* Component B: Bottom-Right Wedge */}
-            <polygon points="68,46 90,90 46,90" fill="url(#brand-dynamic-gradient)" />
+            {/* Piece 1: Left Angled Leg */}
+            <path d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z" fill="url(#brand-dynamic-gradient)" />
+            {/* Piece 2: Right Slant Beam */}
+            <path d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z" fill="url(#brand-dynamic-gradient)" />
+            {/* Piece 3: Bottom Left Fold & Base */}
+            <path d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z" fill="url(#brand-dynamic-gradient)" />
           </svg>
           <h1 className="brand-title font-brand font-black text-xl sm:text-2xl md:text-3xl tracking-wider select-none leading-none whitespace-nowrap m-0 p-0 flex items-center transition-opacity group-hover:opacity-95">
             SARWARCYOU
