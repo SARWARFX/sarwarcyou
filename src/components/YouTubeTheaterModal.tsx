@@ -980,21 +980,40 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
-      <div className="w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
+        <div className="flex items-center gap-2.5 min-w-0 max-w-[30%] sm:max-w-[38%] md:max-w-[45%] z-10">
           <span className="px-2.5 py-0.5 rounded-full bg-zinc-800/80 border border-white/10 text-zinc-300 font-semibold tracking-widest text-[9px] uppercase flex-shrink-0">
             {album?.name || 'ALBUM'}
           </span>
           <span className="text-zinc-600 hidden sm:inline">•</span>
-          <span className="text-zinc-300 font-medium tracking-wider hidden sm:inline text-[10px]">
+          <span className="text-zinc-300 font-medium tracking-wider hidden sm:inline text-[10px] flex-shrink-0">
             {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
           </span>
-          <span className="text-zinc-200 font-medium truncate max-w-[180px] sm:max-w-xs md:max-w-md hidden md:inline text-[11px]">
+          <span className="text-zinc-200 font-medium truncate hidden lg:inline text-[11px]">
             {cleanTitle}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Centered Website Logo & Brand Name */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center gap-2 select-none pointer-events-none z-10 max-w-[150px] xs:max-w-[190px] sm:max-w-none">
+          <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="#00D2FF"
+              style={{ filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.7))' }}
+              className="w-4 h-4 sm:w-5 sm:h-5"
+            >
+              <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
+            </svg>
+          </div>
+          <span className="font-space font-bold tracking-wider text-xs sm:text-sm md:text-base text-white uppercase truncate drop-shadow-md">
+            SARWARCYOU
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0 z-10">
           {!isVideo && (
             <button
               onClick={() => setIsZoomed(!isZoomed)}
