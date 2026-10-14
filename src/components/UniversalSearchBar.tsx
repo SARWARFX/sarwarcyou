@@ -189,7 +189,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
   return (
     <div ref={containerRef} className="relative flex items-center">
       {/* ================= DESKTOP SEARCH BAR ================= */}
-      <div className="hidden sm:flex items-center relative">
+      <div className="hidden md:flex items-center relative">
         <div
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950/80 border transition-all duration-300 backdrop-blur-xl ${
             isOpen || query
@@ -225,7 +225,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
       </div>
 
       {/* ================= MOBILE SEARCH TRIGGER ICON ================= */}
-      <div className="flex sm:hidden items-center">
+      <div className="flex md:hidden items-center">
         <button
           type="button"
           onClick={() => {

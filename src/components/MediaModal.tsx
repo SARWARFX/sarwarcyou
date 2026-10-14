@@ -69,21 +69,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92 backdrop-blur-2xl p-3 sm:p-6 md:p-10 animate-fade-in"
       onClick={onClose}
     >
-      {/* Centered Website Logo & Brand Name */}
-      <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 select-none pointer-events-none z-[110] max-w-[150px] xs:max-w-[190px] sm:max-w-none">
-        <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0">
+      {/* Centered Website Logo & Brand Name (Enlarged across Desktop & Mobile) */}
+      <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-2.5 md:gap-3 select-none pointer-events-none z-[110] max-w-[170px] xs:max-w-[210px] sm:max-w-none">
+        <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex-shrink-0">
           <svg
-            width="20"
-            height="20"
+            width="32"
+            height="32"
             viewBox="0 0 24 24"
             fill="#00D2FF"
-            style={{ filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.7))' }}
-            className="w-4 h-4 sm:w-5 sm:h-5"
+            style={{ filter: 'drop-shadow(0 0 12px rgba(0, 210, 255, 0.75))' }}
+            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8"
           >
             <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
           </svg>
         </div>
-        <span className="font-space font-bold tracking-wider text-xs sm:text-sm md:text-base text-white uppercase truncate drop-shadow-md">
+        <span className="font-space font-black tracking-wider text-base sm:text-lg md:text-2xl text-white uppercase truncate drop-shadow-md">
           SARWARCYOU
         </span>
       </div>

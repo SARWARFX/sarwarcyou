@@ -382,11 +382,11 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-space font-bold text-sm sm:text-base tracking-wider text-zinc-100 uppercase">
+              <h3 className="font-space font-extrabold text-base sm:text-lg tracking-tight text-white uppercase">
                 {title}
               </h3>
               {countBadge !== undefined && (
-                <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-white/10 text-zinc-400 font-mono text-[9px] font-semibold">
+                <span className="px-1.5 py-0.5 rounded bg-zinc-800/90 border border-white/10 text-zinc-300 font-mono text-[10px] font-semibold">
                   {countBadge}
                 </span>
               )}

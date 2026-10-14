@@ -55,8 +55,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
-      <div className="w-full bg-black/90 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
-        {/* Left: Brand Monogram & Wordmark (Prominent, Bold & Interactive Home Link) */}
+      <div className="w-full bg-black/90 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4 relative">
+        {/* Brand Monogram & Wordmark: Centered on mobile (<768px), Left-aligned on desktop (>=768px) */}
         <button
           type="button"
           onClick={(e) => {
@@ -64,18 +64,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onResetHome?.();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="flex items-center gap-2 sm:gap-3.5 flex-shrink-0 cursor-pointer group bg-transparent border-none p-0 text-left focus:outline-none"
+          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 md:static md:translate-x-0 md:top-auto md:translate-y-0 flex items-center gap-2 sm:gap-2.5 md:gap-3.5 flex-shrink-0 cursor-pointer group bg-transparent border-none p-0 text-left focus:outline-none z-10"
           title="Return to Home / Top"
           aria-label="Return to Home"
         >
-          <div className="flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 transition-transform duration-300 group-hover:scale-105">
+          <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-10 md:h-10 transition-transform duration-300 group-hover:scale-105 flex-shrink-0">
             <svg
-              width="28"
-              height="28"
+              width="32"
+              height="32"
               viewBox="0 0 24 24"
               fill={currentColor}
               style={{ filter: `drop-shadow(0 0 16px ${currentColor}aa)`, transition: 'filter 0.3s ease' }}
-              className="w-6 h-6 sm:w-9 sm:h-9"
+              className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9"
             >
               <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
             </svg>
@@ -84,14 +84,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             style={{
               backgroundImage: `linear-gradient(135deg, #FFFFFF 0%, ${currentColor} 60%, #FFFFFF 100%)`,
             }}
-            className="font-space font-extrabold tracking-tight text-xl sm:text-3xl md:text-4xl bg-clip-text text-transparent uppercase select-none leading-none whitespace-nowrap transition-opacity group-hover:opacity-90"
+            className="font-space font-black tracking-wider text-base sm:text-lg md:text-3xl lg:text-4xl bg-clip-text text-transparent uppercase select-none leading-none whitespace-nowrap transition-opacity group-hover:opacity-90"
           >
             SARWARCYOU
           </span>
         </button>
 
+        {/* Empty placeholder on mobile to balance flex layout */}
+        <div className="w-8 md:hidden" aria-hidden="true" />
+
         {/* Right: Universal Search Bar & Fast Navigation */}
-        <div className="flex items-center flex-shrink-0">
+        <div className="flex items-center flex-shrink-0 ml-auto z-20">
           <UniversalSearchBar
             albums={albums}
             onSelectItem={onSelectItem}

@@ -118,16 +118,16 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
       {hasRecent && (
         <section id="mobile-album-recent" className="mb-5">
           <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
-            <h2 className="text-xs font-bold font-space uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-cyan-400" />
+            <h2 className="text-base xs:text-lg font-extrabold font-space uppercase text-white tracking-tight flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />
               Recently Opened
-              <span className="text-zinc-600 font-mono text-[10px]">({recentItems.length})</span>
+              <span className="text-sm font-medium text-zinc-400 font-mono ml-1.5">({recentItems.length})</span>
             </h2>
             {onClearHistory && (
               <button
                 type="button"
                 onClick={onClearHistory}
-                className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300 uppercase cursor-pointer px-1.5 py-0.5 rounded hover:bg-zinc-900"
+                className="text-[10px] font-mono text-zinc-400 hover:text-white uppercase cursor-pointer px-2 py-0.5 rounded bg-zinc-900 border border-white/5"
               >
                 Clear
               </button>
@@ -163,10 +163,10 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
       {latestAlbum && latestAlbum.items.length > 0 && (
         <section id="mobile-album-0" className="mb-5">
           <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
-            <h2 className="text-xs font-bold font-space uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
-              <Film className="w-3 h-3 text-amber-400" />
+            <h2 className="text-lg xs:text-xl font-extrabold font-space uppercase text-white tracking-tight flex items-center gap-1.5">
+              <Film className="w-4 h-4 text-amber-400 flex-shrink-0" />
               Latest Releases
-              <span className="text-zinc-600 font-mono text-[10px]">({latestAlbum.items.length})</span>
+              <span className="text-sm font-medium text-zinc-400 font-mono ml-1.5">({latestAlbum.items.length})</span>
             </h2>
             <button
               type="button"
@@ -209,10 +209,10 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
 
         return (
           <section key={album.id} id={`mobile-album-${album.index}`} className="mb-5">
-            <div className="px-3 pt-2.5 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
-              <h2 className="text-xs font-bold font-space uppercase text-zinc-200 tracking-wider">
+            <div className="px-3 pt-2 pb-1 flex items-center justify-between border-b border-white/[0.04]">
+              <h2 className="text-lg xs:text-xl font-extrabold font-space uppercase text-white tracking-tight flex items-center">
                 {album.name}
-                <span className="text-zinc-600 font-mono text-[10px] ml-1.5">
+                <span className="text-sm font-medium text-zinc-400 font-mono ml-1.5">
                   ({album.items.length})
                 </span>
               </h2>
@@ -269,10 +269,10 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
             </button>
 
             <div className="text-center truncate px-2">
-              <h2 className="text-xs font-bold font-space uppercase text-zinc-100 truncate">
+              <h2 className="text-base xs:text-lg font-extrabold font-space uppercase text-white tracking-tight truncate">
                 {selectedCollectionAlbum.name}
               </h2>
-              <span className="text-[10px] font-mono text-zinc-500">
+              <span className="text-xs font-mono text-zinc-400">
                 {selectedCollectionAlbum.items.length} items
               </span>
             </div>
