@@ -454,6 +454,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [isRepeat, setIsRepeat] = useState(false);
+
+  // Dynamic Suggested Albums Rotation (Rotate every 15s, pause on hover)
+  const [suggestedBatchIndex, setSuggestedBatchIndex] = useState(0);
+  const [isSuggestedHovered, setIsSuggestedHovered] = useState(false);
 
   // Floating HUD Visibility state (Auto-fade after 2.5s)
   const [isHudVisible, setIsHudVisible] = useState(true);
@@ -528,6 +533,26 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         a.items.length > 0
     );
   }, [allAlbums, album?.id, currentItem]);
+
+  const SUGGESTED_BATCH_SIZE = 2;
+  const totalSuggestedBatches = Math.max(1, Math.ceil(suggestedAlbums.length / SUGGESTED_BATCH_SIZE));
+
+  useEffect(() => {
+    setSuggestedBatchIndex(0);
+  }, [album?.id, currentItem?.type]);
+
+  useEffect(() => {
+    if (!isOpen || totalSuggestedBatches <= 1 || isSuggestedHovered) return;
+    const interval = setInterval(() => {
+      setSuggestedBatchIndex((prev) => (prev + 1) % totalSuggestedBatches);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isOpen, totalSuggestedBatches, isSuggestedHovered]);
+
+  const activeSuggestedBatch = useMemo(() => {
+    const start = (suggestedBatchIndex % totalSuggestedBatches) * SUGGESTED_BATCH_SIZE;
+    return suggestedAlbums.slice(start, start + SUGGESTED_BATCH_SIZE);
+  }, [suggestedAlbums, suggestedBatchIndex, totalSuggestedBatches]);
 
   // Auto-hide HUD after 2.5s of inactivity
   const resetHudTimer = useCallback(() => {
@@ -929,8 +954,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             {album?.name || 'ALBUM'}
           </span>
           <span className="text-zinc-600 hidden sm:inline">•</span>
-          <span className="text-zinc-400 font-medium tracking-wider hidden sm:inline text-[10px]">
-            {String(currentIndex + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
+          <span className="text-zinc-300 font-medium tracking-wider hidden sm:inline text-[10px]">
+            {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
           </span>
           <span className="text-zinc-200 font-medium truncate max-w-[180px] sm:max-w-xs md:max-w-md hidden md:inline text-[11px]">
             {cleanTitle}
@@ -1089,6 +1114,19 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       }}
                       onPlay={() => setIsPlaying(true)}
                       onPause={() => setIsPlaying(false)}
+                      onEnded={() => {
+                        if (isRepeat) {
+                          if (videoRef.current) {
+                            videoRef.current.currentTime = 0;
+                            videoRef.current.play().catch(() => {});
+                          }
+                        } else {
+                          // Auto-advance to next item in album queue
+                          if (items.length > 0) {
+                            goToIndex((currentIndex + 1) % items.length);
+                          }
+                        }
+                      }}
                       className="w-full h-full object-contain cursor-pointer relative z-10"
                     />
 
@@ -1359,10 +1397,33 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           <span className="text-[10px] text-zinc-400 tracking-wider hidden sm:inline">
                             {formatTime(currentTime)} / {formatTime(duration)}
                           </span>
+                          <span className="text-[9px] font-mono text-zinc-500 tracking-wider uppercase hidden md:inline ml-1">
+                            ({isVideo ? 'Video' : 'Item'} {currentIndex + 1} of {items.length})
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-2 sm:gap-3">
                           <div className="flex items-center gap-1">
+                            {/* Repeat Toggle Button: Repeat 1 vs Auto-advance */}
+                            {isVideo && (
+                              <button
+                                onClick={() => setIsRepeat((prev) => !prev)}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono transition-all cursor-pointer border ${
+                                  isRepeat
+                                    ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                    : 'bg-zinc-900/80 border-white/[0.08] text-zinc-400 hover:text-white'
+                                }`}
+                                title={
+                                  isRepeat
+                                    ? 'Repeat: One (Current video loops on finish)'
+                                    : 'Auto-advance: On (Plays next video in queue on finish)'
+                                }
+                              >
+                                <Repeat className="w-3 h-3" />
+                                <span>{isRepeat ? '1' : 'AUTO'}</span>
+                              </button>
+                            )}
+
                             <button
                               onClick={() => {
                                 setIsAbLoopActive(!isAbLoopActive);
@@ -1519,10 +1580,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 </span>
                 <span className="text-zinc-500 text-[9px] tracking-wider uppercase block mt-0.5">
                   {isVideo
-                    ? 'SPATIAL HUD • 1080P CINEMATIC STREAM'
+                    ? `VIDEO ${currentIndex + 1} OF ${items.length} • SPATIAL HUD • 1080P CINEMATIC STREAM`
                     : isZoomed
-                    ? 'ZOOMED 165% • LOSSLESS PHOTOGRAPHY'
-                    : 'HIGH DEFINITION PHOTOGRAPHY'}
+                    ? `PHOTO ${currentIndex + 1} OF ${items.length} • ZOOMED 165% • LOSSLESS PHOTOGRAPHY`
+                    : `PHOTO ${currentIndex + 1} OF ${items.length} • HIGH DEFINITION PHOTOGRAPHY`}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -1614,9 +1675,13 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               </span>
             </div>
 
-            {/* Horizontal Auto-Sliding Preview Reels (Pure Borderless) */}
-            <div className="flex flex-col gap-6">
-              {suggestedAlbums.map((sugAlbum) => (
+            {/* Horizontal Auto-Sliding Preview Reels (Dynamic 15s Batch Rotation with Hover Pause) */}
+            <div
+              onMouseEnter={() => setIsSuggestedHovered(true)}
+              onMouseLeave={() => setIsSuggestedHovered(false)}
+              className="flex flex-col gap-6"
+            >
+              {activeSuggestedBatch.map((sugAlbum) => (
                 <SuggestedAlbumReel
                   key={sugAlbum.id}
                   album={sugAlbum}
@@ -1627,6 +1692,24 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   }}
                 />
               ))}
+
+              {/* Batch rotation dots / indicator if more than 1 batch */}
+              {totalSuggestedBatches > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  {Array.from({ length: totalSuggestedBatches }).map((_, bIdx) => (
+                    <button
+                      key={bIdx}
+                      onClick={() => setSuggestedBatchIndex(bIdx)}
+                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        bIdx === suggestedBatchIndex % totalSuggestedBatches
+                          ? 'w-6 bg-zinc-200'
+                          : 'w-2 bg-zinc-700 hover:bg-zinc-500'
+                      }`}
+                      title={`Batch ${bIdx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

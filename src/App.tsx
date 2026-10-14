@@ -157,6 +157,14 @@ function App() {
     scrollToAlbum(0);
   }, [scrollToAlbum]);
 
+  const handleResetHome = useCallback(() => {
+    setTheaterState((prev) => ({ ...prev, isOpen: false }));
+    setShortsState((prev) => ({ ...prev, isOpen: false }));
+    scrollToAlbum(0);
+    window.history.replaceState(null, '', '#');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [scrollToAlbum]);
+
   const isModalOpen = theaterState.isOpen || shortsState.isOpen;
 
   // Mouse wheel dampening & smooth elevator gliding
@@ -353,6 +361,7 @@ function App() {
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}
         onSelectAlbum={scrollToAlbum}
+        onResetHome={handleResetHome}
       />
 
       {/* ================= RIGHT-SIDE NAVIGATION DOCK ================= */}

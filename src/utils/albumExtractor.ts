@@ -60,9 +60,14 @@ export function extractTwelveAlbums(
   if (isHfCatalog(effectiveData)) {
     const catalog = effectiveData;
 
-    const getSubfolder = (path: string) => {
-      const parts = path.split('/');
-      return (parts[1] || '').trim().toLowerCase();
+    const getSubfolder = (path: string): string => {
+      if (!path) return '';
+      if (isHiddenOrSystemPath(path)) return '';
+      const parts = path.split('/').map((p) => p.trim());
+      // If path has no subfolder under root (e.g. Images/file.jpg or just file.jpg), there is no subfolder
+      if (parts.length <= 2) return '';
+      if (isHiddenOrSystemFolder(parts[0]) || isHiddenOrSystemFolder(parts[1])) return '';
+      return parts[1].toLowerCase();
     };
 
     const mapHfItems = (
@@ -128,12 +133,15 @@ export function extractTwelveAlbums(
       'video'
     );
     const othersVideoFiles = mapHfItems(
-      catalog.clips.filter((x) => getSubfolder(x.path).includes('other')),
+      catalog.clips.filter((x) => {
+        const sub = getSubfolder(x.path);
+        return sub.includes('other') || sub === 'bandhobis';
+      }),
       'Others Videos',
       'video'
     );
     const shortsFiles = mapHfItems(
-      catalog.shorts || [],
+      (catalog.shorts || []).filter((x) => !isHiddenOrSystemPath(x.path || x.name || x.url)),
       'Shorts & Reels',
       'video'
     );
@@ -285,6 +293,7 @@ export function extractTwelveAlbums(
       sub === 'h2026' ||
       sub === 'h2025' ||
       sub.includes('other') ||
+      sub === 'bandhobis' ||
       sub === 'h2027';
 
     const extraImageFolders = new Map<string, HfMediaItem[]>();

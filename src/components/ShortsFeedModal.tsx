@@ -34,6 +34,13 @@ interface ShortsFeedModalProps {
   initialIndex: number;
 }
 
+function formatShortsTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return '00:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   isOpen,
   onClose,
@@ -49,6 +56,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [playRipple, setPlayRipple] = useState<'play' | 'pause' | null>(null);
 
+  // Dynamic aspect ratio for landscape clips
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  // Clickable & draggable progress bar state
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const isDraggingProgressRef = useRef(false);
+
   // Velocity Swipe-to-Dismiss State
   const [dismissOffsetY, setDismissOffsetY] = useState(0);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -63,6 +79,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setCurrentIndex(initialIndex);
     setDismissOffsetY(0);
     setIsPlaying(true);
+    setIsLandscape(false);
+    setCurrentTime(0);
+    setDuration(0);
   }
 
   const handleNext = useCallback(() => {
@@ -70,6 +89,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       setCurrentIndex((prev) => prev + 1);
       setIsPlaying(true);
       setDismissOffsetY(0);
+      setIsLandscape(false);
+      setCurrentTime(0);
     }
   }, [currentIndex, shorts.length]);
 
@@ -78,6 +99,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       setCurrentIndex((prev) => prev - 1);
       setIsPlaying(true);
       setDismissOffsetY(0);
+      setIsLandscape(false);
+      setCurrentTime(0);
     }
   }, [currentIndex]);
 
@@ -231,6 +254,49 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [currentIndex, shorts]);
 
+  // Click & Drag-seeking on progress bar
+  const seekToPosition = useCallback((clientX: number) => {
+    if (!progressBarRef.current || !videoRef.current || !duration) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const newTime = pos * duration;
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }, [duration]);
+
+  const handleProgressPointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    isDraggingProgressRef.current = true;
+    if (e.currentTarget.setPointerCapture) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+    seekToPosition(e.clientX);
+  }, [seekToPosition]);
+
+  const handleProgressPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDraggingProgressRef.current) return;
+    e.stopPropagation();
+    seekToPosition(e.clientX);
+  }, [seekToPosition]);
+
+  const handleProgressPointerUp = useCallback((e: React.PointerEvent) => {
+    if (isDraggingProgressRef.current) {
+      e.stopPropagation();
+      if (e.currentTarget.releasePointerCapture) {
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          // ignore
+        }
+      }
+      isDraggingProgressRef.current = false;
+    }
+  }, []);
+
   const currentShort = shorts[currentIndex] || shorts[0];
   const secureUrl = safeEncodeUrl((currentShort?.url || '').replace(/^http:\/\//i, 'https://'));
   let streamUrl = secureUrl;
@@ -293,10 +359,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </button>
       </div>
 
-      {/* Main 9:16 Vertical Reel Player Container */}
-      <div className="relative flex items-center justify-center max-h-[92vh]">
+      {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
+      <div className="relative flex items-center justify-center max-h-[92vh] max-w-[95vw]">
         <div
-          className="relative aspect-[9/16] h-[88vh] max-h-[820px] max-w-[460px] rounded-3xl overflow-hidden bg-black border border-white/[0.08] shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between"
+          className={`relative rounded-3xl overflow-hidden bg-black border border-white/[0.08] shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
+            isLandscape
+              ? 'aspect-video w-[90vw] max-w-[854px] h-auto max-h-[75vh]'
+              : 'aspect-[9/16] h-[88vh] max-h-[820px] max-w-[460px]'
+          }`}
           onClick={(e) => {
             e.stopPropagation();
             togglePlay();
@@ -310,7 +380,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 <img
                   src={shortPoster}
                   alt={displayTitle}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full ${isLandscape ? 'object-contain' : 'object-cover'}`}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center">
@@ -338,7 +408,23 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 loop={isLooping}
                 muted={isMuted}
                 playsInline
-                className="w-full h-full object-cover relative z-10"
+                onLoadedMetadata={(e) => {
+                  const v = e.currentTarget;
+                  if (v.videoWidth && v.videoHeight) {
+                    setIsLandscape(v.videoWidth > v.videoHeight);
+                  }
+                  if (v.duration) {
+                    setDuration(v.duration);
+                  }
+                }}
+                onTimeUpdate={() => {
+                  if (videoRef.current && !isDraggingProgressRef.current) {
+                    setCurrentTime(videoRef.current.currentTime);
+                  }
+                }}
+                className={`w-full h-full relative z-10 transition-all duration-300 ${
+                  isLandscape ? 'object-contain' : 'object-cover'
+                }`}
               />
             ) : (
               <iframe
@@ -379,7 +465,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[10px] font-mono font-bold tracking-widest text-zinc-300 uppercase">
-                REELS STREAM
+                {isLandscape ? 'LANDSCAPE REEL' : 'REELS STREAM'}
               </span>
             </div>
             <span className="text-[10px] font-mono font-semibold text-zinc-400">
@@ -388,20 +474,43 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           </div>
 
           {/* Bottom Gradient Overlay & Title */}
-          <div className="relative z-10 px-4 sm:px-5 pb-5 pt-16 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+          <div className="relative z-10 px-4 sm:px-5 pb-4 pt-16 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
             <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-wide truncate drop-shadow-md">
               {displayTitle}
             </h2>
-            <div className="text-[9px] font-mono text-zinc-400 tracking-widest uppercase flex items-center gap-1.5 mt-1">
+            <div className="text-[9px] font-mono text-zinc-400 tracking-widest uppercase flex items-center justify-between gap-1.5 mt-1">
               <span>SWIPE UP/DOWN TO CYCLE • DOUBLE-TAP TO PAUSE</span>
+              {duration > 0 && (
+                <span className="text-zinc-300 font-semibold tracking-wider">
+                  {formatShortsTime(currentTime)} / {formatShortsTime(duration)}
+                </span>
+              )}
             </div>
 
-            {/* Micro Progress Bar */}
-            <div className="w-full h-[2px] rounded-full bg-white/20 overflow-hidden mt-3">
-              <div
-                className="h-full bg-emerald-400 transition-all duration-300"
-                style={{ width: `${((currentIndex + 1) / shorts.length) * 100}%` }}
-              />
+            {/* Clickable & Draggable Scrubber Bar with Expanded py-2 Hitzone */}
+            <div
+              ref={progressBarRef}
+              onPointerDown={handleProgressPointerDown}
+              onPointerMove={handleProgressPointerMove}
+              onPointerUp={handleProgressPointerUp}
+              onPointerCancel={handleProgressPointerUp}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full py-2 cursor-pointer group/progress select-none pointer-events-auto touch-none"
+              title="Seek Reel Position"
+              role="slider"
+              aria-label="Reel Progress"
+              aria-valuemin={0}
+              aria-valuemax={duration || 100}
+              aria-valuenow={currentTime}
+            >
+              <div className="relative w-full h-[3px] group-hover/progress:h-[5px] rounded-full bg-white/20 overflow-hidden transition-all duration-150">
+                <div
+                  className="h-full bg-emerald-400 transition-all duration-75 relative rounded-full"
+                  style={{
+                    width: `${duration > 0 ? (currentTime / duration) * 100 : ((currentIndex + 1) / shorts.length) * 100}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

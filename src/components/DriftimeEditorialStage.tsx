@@ -32,6 +32,8 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [hoveredCardIdx, setHoveredCardIdx] = useState<number | null>(null);
+  const hoveredCardIdxRef = useRef<number | null>(null);
+  hoveredCardIdxRef.current = hoveredCardIdx;
 
   const isComingSoon =
     album.itemCount === 0 || album.layoutType.startsWith('coming-soon');
@@ -111,11 +113,15 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         } else {
           velocityRef.current = 0;
 
-          // 2. Continuous auto-slide (Right to Left): keeps moving continuously even when cursor hovers
-          // Pauses briefly on horizontal wheel/trackpad scroll, automatically resuming 800ms after scrolling stops
+          // 2. Smart continuous auto-slide (Right to Left):
+          // Pauses strictly when mouse enters an individual card (hoveredCardIdx !== null).
+          // Resumes immediately when cursor leaves the card.
+          // Moving cursor over canvas, headers, section spacing, or between cards keeps sliding smoothly.
+          // Pauses briefly on horizontal wheel/trackpad scroll, automatically resuming 800ms after scrolling stops.
           const isWheelActive = Date.now() - lastWheelTimeRef.current < 800;
+          const isCardHovered = hoveredCardIdxRef.current !== null;
 
-          if (!isWheelActive && !isComingSoon && isActive && items.length > 0) {
+          if (!isWheelActive && !isCardHovered && !isComingSoon && isActive && items.length > 0) {
             scrollOffsetRef.current += AUTO_SLIDE_SPEED * secondsElapsed;
           }
         }
