@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp, Mail, ShieldCheck, Sparkles, HelpCircle } from 'lucide-react';
+import { Mail, ShieldCheck, Sparkles, HelpCircle } from 'lucide-react';
 
 interface SiteFooterProps {
   onBackToTop?: () => void;
@@ -9,7 +9,6 @@ interface SiteFooterProps {
 const CURRENT_YEAR = new Date().getFullYear();
 
 export const SiteFooter: React.FC<SiteFooterProps> = ({
-  onBackToTop,
   className = '',
 }) => {
 
@@ -31,18 +30,6 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
             / MEDIA VAULT
           </span>
         </div>
-
-        {onBackToTop && (
-          <button
-            type="button"
-            onClick={onBackToTop}
-            className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition-colors duration-200 cursor-pointer group"
-            title="Return to top"
-          >
-            <span>Back to top</span>
-            <ArrowUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
-          </button>
-        )}
       </div>
 
       {/* 3-Column Minimalist Content Grid */}

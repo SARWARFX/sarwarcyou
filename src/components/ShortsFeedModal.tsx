@@ -1,15 +1,11 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  X,
-  ChevronUp,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
   VolumeX,
   Volume2,
-  Repeat,
   Share2,
   Check,
   Play,
@@ -47,7 +43,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(false);
-  const [isLooping, setIsLooping] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -416,20 +411,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
       }}
     >
-      {/* Top Floating Close Button */}
-      <div
-        className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2 z-[130]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="p-2.5 rounded-full bg-black/70 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer shadow-xl backdrop-blur-md"
-          title="Close Feed (Esc)"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
       {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
       <div className="relative flex items-center justify-center max-h-[92vh] max-w-[98vw] px-2 sm:px-4 md:px-6 gap-3 sm:gap-4 md:gap-6 overflow-hidden">
         {/* Previous Short (Desktop Flank) */}
@@ -516,18 +497,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 playsInline
                 {...{ 'webkit-playsinline': 'true' }}
                 crossOrigin="anonymous"
-                loop={isLooping}
+                loop
                 muted={isMuted}
-                onEnded={() => {
-                  if (!isLooping) {
-                    if (currentIndex < shorts.length - 1) {
-                      handleNext();
-                    } else {
-                      setCurrentIndex(0);
-                      setIsPlaying(true);
-                    }
-                  }
-                }}
                 onLoadedMetadata={(e) => {
                   const v = e.currentTarget;
                   if (v.videoWidth && v.videoHeight) {
@@ -638,21 +609,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
 
-          {/* Loop Toggle Button */}
-          <button
-            onClick={() => {
-              setIsLooping((l) => !l);
-            }}
-            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
-              isLooping
-                ? 'bg-zinc-800/80 text-white border border-white/20'
-                : 'bg-black/50 text-zinc-500 hover:text-white border border-white/10'
-            }`}
-            title={isLooping ? 'Looping Active' : 'Looping Off'}
-          >
-            <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-
           {/* Direct Download Button */}
           <button
             onClick={handleDownload}
@@ -684,29 +640,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             title="Share Reel Link"
           >
             {copiedLink ? <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" /> : <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />}
-          </button>
-
-          <div className="w-full h-[1px] bg-white/10 my-0.5 sm:my-1" />
-
-          {/* Up & Down / Left & Right Step Chevrons */}
-          <button
-            onClick={handlePrev}
-            disabled={currentIndex === 0}
-            className="p-2.5 sm:p-3 rounded-2xl bg-black/50 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl border border-white/10"
-            title="Previous Reel (Up / Left)"
-          >
-            <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 md:hidden" />
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 hidden md:block" />
-          </button>
-
-          <button
-            onClick={handleNext}
-            disabled={currentIndex >= shorts.length - 1}
-            className="p-2.5 sm:p-3 rounded-2xl bg-black/50 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl border border-white/10"
-            title="Next Reel (Down / Right)"
-          >
-            <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 md:hidden" />
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 hidden md:block" />
           </button>
         </aside>
       </div>

@@ -529,6 +529,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [isHudVisible, setIsHudVisible] = useState(true);
   const hudTimeoutRef = useRef<number | null>(null);
 
+  // Suggested Albums CTA Visibility (Auto-hide by default, reveal on cursor movement, auto-fade after 2s inactivity)
+  const [isCtaVisible, setIsCtaVisible] = useState(false);
+  const ctaTimeoutRef = useRef<number | null>(null);
+
   // A-B Looper State
   const [isAbLoopActive, setIsAbLoopActive] = useState(false);
   const [loopStart, setLoopStart] = useState<number | null>(null);
@@ -677,16 +681,33 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       window.clearTimeout(hudTimeoutRef.current);
     }
     hudTimeoutRef.current = window.setTimeout(() => {
-      if (videoRef.current && !videoRef.current.paused && !showSpeedMenu) {
+      if (!showSpeedMenu) {
         setIsHudVisible(false);
       }
     }, 2500);
   }, [showSpeedMenu]);
 
+  // Auto-hide Suggested Albums CTA after 2s of cursor inactivity
+  const resetCtaTimer = useCallback(() => {
+    setIsCtaVisible(true);
+    if (ctaTimeoutRef.current) {
+      window.clearTimeout(ctaTimeoutRef.current);
+    }
+    ctaTimeoutRef.current = window.setTimeout(() => {
+      setIsCtaVisible(false);
+    }, 2000);
+  }, []);
+
+  const handleModalMouseMove = useCallback(() => {
+    resetHudTimer();
+    resetCtaTimer();
+  }, [resetHudTimer, resetCtaTimer]);
+
   useEffect(() => {
     resetHudTimer();
     return () => {
       if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
+      if (ctaTimeoutRef.current) window.clearTimeout(ctaTimeoutRef.current);
     };
   }, [resetHudTimer, isPlaying]);
 
@@ -837,6 +858,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
   const handleStageMouseMove = useCallback((e: React.MouseEvent) => {
     resetHudTimer();
+    resetCtaTimer();
     const start = pointerDragStartRef.current;
     if (!start || !start.isPointerDown) return;
 
@@ -858,7 +880,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         deltaSeconds,
       });
     }
-  }, [isFullscreen, duration, resetHudTimer]);
+  }, [isFullscreen, duration, resetHudTimer, resetCtaTimer]);
 
   const handleStageMouseUp = useCallback((e: React.MouseEvent) => {
     const start = pointerDragStartRef.current;
@@ -889,6 +911,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const handleStageTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     resetHudTimer();
+    resetCtaTimer();
     pointerDragStartRef.current = {
       x: touch.clientX,
       y: touch.clientY,
@@ -898,7 +921,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       hasEngagedSeek: false,
       isMouse: false,
     };
-  }, [resetHudTimer, currentTime]);
+  }, [resetHudTimer, resetCtaTimer, currentTime]);
 
   const handleStageTouchMove = useCallback((e: React.TouchEvent) => {
     const start = pointerDragStartRef.current;
@@ -1218,7 +1241,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={cleanTitle}
-      onMouseMove={resetHudTimer}
+      onMouseMove={handleModalMouseMove}
       style={{
         transform: dismissOffsetY > 0 ? `translate3d(0, ${dismissOffsetY}px, 0) scale(${Math.max(0.85, 1 - dismissOffsetY / 1200)})` : 'none',
         transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
@@ -1637,8 +1660,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       </div>
                     )}
 
-                    {/* ================= STREAMLINED FLOATING CONTROL BAR ================= */}
-                    {/* Floats at the bottom-left corner with individual frosted-black buttons */}
+                    {/* ================= FLOATING CONTROLS: BOTTOM-LEFT CLUSTER ================= */}
                     <div
                       onMouseEnter={() => {
                         if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
@@ -1646,7 +1668,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       }}
                       onMouseLeave={resetHudTimer}
                       onClick={(e) => e.stopPropagation()}
-                      className={`absolute bottom-5 sm:bottom-6 left-3 sm:left-4 z-30 flex items-center gap-1.5 sm:gap-2 flex-wrap transition-all duration-300 ${
+                      className={`absolute bottom-5 sm:bottom-6 left-3 sm:left-4 z-30 flex items-center gap-1.5 sm:gap-2 transition-all duration-300 ${
                         isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
                       }`}
                     >
@@ -1678,8 +1700,21 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           <Volume2 className="w-4 h-4" />
                         )}
                       </button>
+                    </div>
 
-                      {/* 4. A-B Loop toggle (Set A, Set B, Clear Loop) */}
+                    {/* ================= FLOATING CONTROLS: BOTTOM-RIGHT CLUSTER ================= */}
+                    <div
+                      onMouseEnter={() => {
+                        if (hudTimeoutRef.current) window.clearTimeout(hudTimeoutRef.current);
+                        setIsHudVisible(true);
+                      }}
+                      onMouseLeave={resetHudTimer}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`absolute bottom-5 sm:bottom-6 right-3 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 transition-all duration-300 ${
+                        isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
+                      }`}
+                    >
+                      {/* 1. A-B Loop toggle (Set A, Set B, Clear Loop) */}
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -1730,7 +1765,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         )}
                       </div>
 
-                      {/* 5. Playback Speed selector (0.5x, 1x, 1.25x, 1.5x, 2x) */}
+                      {/* 2. Playback Speed selector (0.5x, 1x, 1.25x, 1.5x, 2x) */}
                       <div className="relative">
                         <button
                           onClick={() => setShowSpeedMenu(!showSpeedMenu)}
@@ -1742,7 +1777,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         </button>
 
                         {showSpeedMenu && (
-                          <div className="absolute bottom-11 left-0 bg-black/95 backdrop-blur-xl border border-white/15 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5 z-40 min-w-[75px]">
+                          <div className="absolute bottom-11 right-0 bg-black/95 backdrop-blur-xl border border-white/15 rounded-xl p-1 shadow-2xl flex flex-col gap-0.5 z-40 min-w-[75px]">
                             {PLAYBACK_RATES.map((rate) => (
                               <button
                                 key={rate}
@@ -1760,7 +1795,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         )}
                       </div>
 
-                      {/* 6. Picture-in-Picture (Mini-player) */}
+                      {/* 3. Picture-in-Picture (Mini-player) */}
                       <button
                         onClick={togglePiP}
                         className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95 hidden sm:inline-flex"
@@ -1769,7 +1804,27 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         <PictureInPicture2 className="w-4 h-4" />
                       </button>
 
-                      {/* 7. Fullscreen toggle */}
+                      {/* 4. Download button (Positioned directly between Mini-player and Fullscreen) */}
+                      <button
+                        onClick={() => handleDownload()}
+                        disabled={isDownloading}
+                        className={`p-2 sm:p-2.5 rounded-xl backdrop-blur-md border transition-all duration-200 cursor-pointer shadow-lg active:scale-95 disabled:opacity-40 ${
+                          downloadSuccess
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/30'
+                            : 'bg-black/60 hover:bg-black/80 border-white/10 text-zinc-300 hover:text-white'
+                        }`}
+                        title="Download media"
+                      >
+                        {downloadSuccess ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : isDownloading ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {/* 5. Fullscreen toggle */}
                       <button
                         onClick={toggleFullscreen}
                         className="p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95"
@@ -1788,7 +1843,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       }}
                       onMouseLeave={resetHudTimer}
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute bottom-0 left-0 right-0 z-30 group/seekbar select-none cursor-pointer"
+                      className={`absolute bottom-0 left-0 right-0 z-30 group/seekbar select-none cursor-pointer transition-all duration-300 ${
+                        isHudVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'
+                      }`}
                     >
                       {/* Ergonomics: Invisible 20px touch hit-box */}
                       <div className="relative w-full h-5 flex items-end">
@@ -1948,14 +2005,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
           {/* ===== RIGHT PLAYLIST QUEUE (~28% DESKTOP ONLY) ===== */}
           <div className="hidden md:flex md:w-[30%] lg:w-[28%] h-full flex-col bg-[#09090b] rounded-2xl overflow-hidden shadow-xl flex-shrink-0">
-            {/* Queue Header */}
-            <div className="px-4 py-3.5 bg-[#09090b] flex items-center gap-2 flex-shrink-0">
-              <ListVideo className="w-4 h-4 text-zinc-400" />
-              <span className="text-sm sm:text-base font-black font-brand tracking-wider text-zinc-200 uppercase">
-                QUEUE
-              </span>
-            </div>
-
             {/* Scrollable Playlist Cards (With Slow Auto-Slide) */}
             <div
               ref={playlistContainerRef}
@@ -2116,12 +2165,17 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         )}
       </div>
 
-      {/* Pinned Suggested Albums CTA (Fades out on scroll) */}
+      {/* Pinned Suggested Albums CTA (Fades in during active mouse move, fades out after 2s inactivity, hidden on scroll) */}
       {suggestedAlbums.length > 0 && !isFullscreen && !isLightboxFullscreen && (
         <div
+          onMouseEnter={() => {
+            if (ctaTimeoutRef.current) window.clearTimeout(ctaTimeoutRef.current);
+            setIsCtaVisible(true);
+          }}
+          onMouseLeave={resetCtaTimer}
           style={{
-            opacity: modalScrollTop > 40 ? 0 : 1,
-            pointerEvents: modalScrollTop > 40 ? 'none' : 'auto',
+            opacity: isCtaVisible && modalScrollTop <= 40 ? 1 : 0,
+            pointerEvents: isCtaVisible && modalScrollTop <= 40 ? 'auto' : 'none',
           }}
           className="fixed bottom-[18px] left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-out select-none"
         >
