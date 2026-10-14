@@ -28,6 +28,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   onSelectItem,
   onActiveIndexChange,
   variant = 'filmstrip',
+  isLoading = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -38,24 +39,10 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   const isComingSoon =
     album.itemCount === 0 || album.layoutType.startsWith('coming-soon');
 
-  // Prepare display items: ensure at least 8-12 items for continuous flow
+  // Strictly map over the actual album items without artificial duplication or dummy placeholders
   const items = useMemo(() => {
     if (isComingSoon) return [];
-    const raw = album.items || [];
-    if (raw.length === 0) return [];
-    if (raw.length >= 10) return raw;
-    // Repeat items to fill editorial stream
-    const duplicated: StageMediaItem[] = [];
-    let i = 0;
-    while (duplicated.length < 12) {
-      const base = raw[i % raw.length];
-      duplicated.push({
-        ...base,
-        id: `${base.id}-stream-${duplicated.length}`,
-      });
-      i++;
-    }
-    return duplicated;
+    return album.items || [];
   }, [album.items, isComingSoon]);
 
   // Scrubbing & Physics state
@@ -73,7 +60,8 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
     if (!containerRef.current || !trackRef.current) return;
     const containerWidth = containerRef.current.clientWidth;
     const trackWidth = trackRef.current.scrollWidth;
-    maxScrollRef.current = Math.max(0, trackWidth - containerWidth + 120);
+    // Only allow scrolling when track exceeds container width
+    maxScrollRef.current = trackWidth > containerWidth ? trackWidth - containerWidth + 60 : 0;
   }, []);
 
   useEffect(() => {
@@ -113,22 +101,29 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         } else {
           velocityRef.current = 0;
 
-          // 2. Smart continuous auto-slide (Right to Left):
-          // Pauses strictly when mouse enters an individual card (hoveredCardIdx !== null).
-          // Resumes immediately when cursor leaves the card.
-          // Moving cursor over canvas, headers, section spacing, or between cards keeps sliding smoothly.
-          // Pauses briefly on horizontal wheel/trackpad scroll, automatically resuming 800ms after scrolling stops.
+          // 2. Continuous auto-slide (Right to Left):
+          // Only auto-slide when there are multiple items that overflow the viewport
           const isWheelActive = Date.now() - lastWheelTimeRef.current < 800;
           const isCardHovered = hoveredCardIdxRef.current !== null;
 
-          if (!isWheelActive && !isCardHovered && !isComingSoon && isActive && items.length > 0) {
+          if (
+            !isWheelActive &&
+            !isCardHovered &&
+            !isComingSoon &&
+            isActive &&
+            items.length > 1 &&
+            maxScrollRef.current > 10
+          ) {
             scrollOffsetRef.current += AUTO_SLIDE_SPEED * secondsElapsed;
           }
         }
 
         // 3. Elastic edge bounds and seamless loop
         const maxScroll = maxScrollRef.current;
-        if (maxScroll > 10) {
+        if (maxScroll <= 10) {
+          // If items fit on screen (e.g. single item in H2027), lock left-aligned
+          scrollOffsetRef.current = 0;
+        } else {
           if (scrollOffsetRef.current >= maxScroll + 30) {
             // Smoothly wrap around to beginning of reel
             scrollOffsetRef.current = 0;
@@ -180,62 +175,67 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
           e.currentTarget.setPointerCapture(e.pointerId);
           isPointerCapturedRef.current = true;
         } catch {
-          // ignore capture errors
+          // pointer capture unsupported or already captured
         }
       }
     }
 
-    if (hasDraggedRef.current) {
-      const now = performance.now();
-      const dt = Math.max(now - dragStartRef.current.time, 10);
-      const instantVelocity = -dx / (dt * 0.12);
-
+    // Only allow dragging if there's scrollable content
+    if (maxScrollRef.current > 10) {
       scrollOffsetRef.current = dragStartRef.current.scrollX - dx;
-      velocityRef.current = instantVelocity * 0.7;
     }
   }, []);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (isDraggingRef.current) {
-      if (isPointerCapturedRef.current && e.currentTarget.releasePointerCapture) {
-        try {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch {
-          // ignore
-        }
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+
+    if (isPointerCapturedRef.current && e.currentTarget.releasePointerCapture) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
       }
-      isDraggingRef.current = false;
       isPointerCapturedRef.current = false;
-      setTimeout(() => {
-        hasDraggedRef.current = false;
-      }, 50);
+    }
+
+    if (maxScrollRef.current > 10) {
+      const elapsed = (performance.now() - dragStartRef.current.time) / 1000;
+      const dx = e.clientX - dragStartRef.current.x;
+      if (elapsed > 0 && elapsed < 0.35 && Math.abs(dx) > 15) {
+        velocityRef.current = (-dx / elapsed) * 0.016;
+      }
     }
   }, []);
 
-  // Trackpad / Horizontal Wheel
+  // Horizontal wheel scroll
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (Math.abs(delta) > 4) {
-      scrollOffsetRef.current += delta * 0.75;
-      velocityRef.current = delta * 0.2;
+    // Only handle horizontal wheel gestures or Shift+wheel
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey) {
+      e.stopPropagation();
       lastWheelTimeRef.current = Date.now();
-      updateMaxScroll();
+      const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+      if (maxScrollRef.current > 10) {
+        scrollOffsetRef.current += delta;
+        velocityRef.current = delta * 0.2;
+      }
     }
-  }, [updateMaxScroll]);
+  }, []);
 
-  // Keyboard navigation for left/right scrubbing
+  // Keyboard left/right scrub
   useEffect(() => {
     if (!isActive) return;
     const onKey = (e: KeyboardEvent) => {
-      const step = window.innerWidth < 768 ? 320 : 500;
       if (e.key === 'ArrowRight') {
-        const target = Math.min(scrollOffsetRef.current + step, maxScrollRef.current);
-        scrollOffsetRef.current = target;
-        lastWheelTimeRef.current = Date.now();
+        if (maxScrollRef.current > 10) {
+          scrollOffsetRef.current += 180;
+          lastWheelTimeRef.current = Date.now();
+        }
       } else if (e.key === 'ArrowLeft') {
-        const target = Math.max(scrollOffsetRef.current - step, 0);
-        scrollOffsetRef.current = target;
-        lastWheelTimeRef.current = Date.now();
+        if (maxScrollRef.current > 10) {
+          scrollOffsetRef.current -= 180;
+          lastWheelTimeRef.current = Date.now();
+        }
       }
     };
     window.addEventListener('keydown', onKey);
@@ -296,9 +296,9 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         ref={trackRef}
         className="flex items-center gap-4 sm:gap-6 px-8 sm:px-16 md:px-24 will-change-transform z-20"
       >
-        {items.length === 0 ? (
-          /* Non-blocking skeleton pulse placeholders while catalog resolves */
-          Array.from({ length: 6 }).map((_, idx) => {
+        {isLoading && items.length === 0 ? (
+          /* Non-blocking skeleton pulse placeholders strictly while catalog resolves */
+          Array.from({ length: 4 }).map((_, idx) => {
             const staggeredOffset =
               variant === 'staggered'
                 ? idx % 2 === 0

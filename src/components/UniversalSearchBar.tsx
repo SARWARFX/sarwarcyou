@@ -42,12 +42,6 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Detect OS for shortcut hint (⌘K for Mac, Ctrl+K for others)
-  const isMac = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return /mac|iphone|ipad|ipod/i.test(navigator.userAgent);
-  }, []);
-
   // Flatten all media items from albums into an indexed catalog
   const catalog = useMemo<SearchEntry[]>(() => {
     const entries: SearchEntry[] = [];
@@ -99,7 +93,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
     return entries;
   }, [albums]);
 
-  // Global Keyboard Shortcut: Cmd+K / Ctrl+K & Escape
+  // Global Keyboard Shortcut: Cmd+K / Ctrl+K & Escape (Silent power-user shortcut, no visual badge)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -199,8 +193,8 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
         <div
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950/80 border transition-all duration-300 backdrop-blur-xl ${
             isOpen || query
-              ? 'w-72 md:w-80 border-white/25 shadow-[0_0_20px_rgba(255,255,255,0.06)]'
-              : 'w-56 md:w-64 border-white/10 hover:border-white/20'
+              ? 'w-64 md:w-72 border-white/25 shadow-[0_0_20px_rgba(255,255,255,0.06)]'
+              : 'w-48 md:w-56 border-white/10 hover:border-white/20'
           }`}
         >
           <Search className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
@@ -213,11 +207,11 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
               if (!isOpen) setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
-            placeholder="Search media, albums, reels..."
+            placeholder="Search files"
             className="w-full bg-transparent text-xs text-zinc-100 placeholder:text-zinc-500 font-mono tracking-wide focus:outline-none"
           />
 
-          {query ? (
+          {query && (
             <button
               type="button"
               onClick={handleClear}
@@ -226,11 +220,6 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
             >
               <X className="w-3 h-3" />
             </button>
-          ) : (
-            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-zinc-900 border border-white/10 text-[9px] font-mono text-zinc-400 select-none flex-shrink-0">
-              <span>{isMac ? '⌘' : 'Ctrl'}</span>
-              <span>K</span>
-            </div>
           )}
         </div>
       </div>
@@ -263,7 +252,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search media, albums..."
+                placeholder="Search files"
                 className="w-full bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 font-mono focus:outline-none"
               />
               {query && (
@@ -311,12 +300,12 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
           <div className="flex-1 overflow-y-auto py-2 space-y-2">
             {!query.trim() ? (
               <div className="flex flex-col items-center justify-center h-48 text-zinc-500 text-xs font-mono">
-                Type to search across all albums and reels...
+                Type to search files...
               </div>
             ) : filteredResults.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-zinc-500 text-xs font-mono text-center">
-                <p>No media found for "{query}"</p>
-                <p className="text-[10px] text-zinc-600 mt-1">Try searching by title, album, or file type</p>
+                <p>No files found for "{query}"</p>
+                <p className="text-[10px] text-zinc-600 mt-1">Try another keyword</p>
               </div>
             ) : (
               filteredResults.map((entry) => (
@@ -399,9 +388,9 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5 max-h-[50vh] no-scrollbar">
             {filteredResults.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-xs font-mono text-zinc-400">No media found matching "{query}"</p>
+                <p className="text-xs font-mono text-zinc-400">No files found for "{query}"</p>
                 <p className="text-[10px] font-mono text-zinc-600 mt-1">
-                  Try checking for typos or searching by another category
+                  Try another keyword or search category
                 </p>
               </div>
             ) : (
@@ -487,7 +476,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
           {/* Footer note */}
           <div className="p-2 border-t border-white/5 bg-black/60 flex items-center justify-between text-[9px] font-mono text-zinc-600 px-3">
             <span>Press Esc to close</span>
-            <span style={{ color: accentColor }}>Instant Repository Search</span>
+            <span style={{ color: accentColor }}>Repository Search</span>
           </div>
         </div>
       )}

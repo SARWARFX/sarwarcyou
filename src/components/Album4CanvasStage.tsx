@@ -45,22 +45,9 @@ export const Album4CanvasStage: React.FC<Album4CanvasStageProps> = ({
   const canvasLayerRef = useRef<HTMLDivElement>(null);
   const cardElementsRef = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Expanded items guarantee a rich, scattered director's table
+  // Strictly map over the actual album items without artificial duplication
   const items = useMemo(() => {
-    const raw = album.items || [];
-    if (raw.length === 0) return [];
-    if (raw.length >= 16) return raw;
-    const duplicated: StageMediaItem[] = [];
-    let i = 0;
-    while (duplicated.length < 18) {
-      const base = raw[i % raw.length];
-      duplicated.push({
-        ...base,
-        id: `${base.id}-scatter-${duplicated.length}`,
-      });
-      i++;
-    }
-    return duplicated;
+    return album.items || [];
   }, [album.items]);
 
   // Physics state stored in refs for 60/120 FPS performance without React re-renders
