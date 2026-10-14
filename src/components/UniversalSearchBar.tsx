@@ -191,10 +191,10 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
       {/* ================= DESKTOP SEARCH BAR ================= */}
       <div className="hidden md:flex items-center relative">
         <div
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950/80 border transition-all duration-300 backdrop-blur-xl ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950/80 transition-all duration-300 backdrop-blur-xl ${
             isOpen || query
-              ? 'w-64 md:w-72 border-white/25 shadow-[0_0_20px_rgba(255,255,255,0.06)]'
-              : 'w-48 md:w-56 border-white/10 hover:border-white/20'
+              ? 'w-64 md:w-72 shadow-[0_0_20px_rgba(255,255,255,0.06)]'
+              : 'w-48 md:w-56'
           }`}
         >
           <Search className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
@@ -233,7 +233,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
             setIsOpen(true);
             setTimeout(() => mobileInputRef.current?.focus(), 150);
           }}
-          className="p-2 rounded-xl bg-zinc-900/90 border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+          className="p-2 rounded-xl bg-zinc-900/90 text-zinc-300 hover:text-white transition-colors cursor-pointer"
           title="Search"
           aria-label="Open search"
         >
@@ -244,8 +244,8 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
       {/* ================= MOBILE FULLSCREEN SEARCH OVERLAY ================= */}
       {isMobileSearchOpen && (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col p-4 animate-fade-in sm:hidden">
-          <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-            <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15">
+          <div className="flex items-center gap-3 pb-3">
+            <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-zinc-900">
               <Search className="w-4 h-4 text-zinc-400 flex-shrink-0" />
               <input
                 ref={mobileInputRef}
@@ -361,9 +361,9 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
 
       {/* ================= DESKTOP RESULTS DROPDOWN ================= */}
       {isOpen && query.trim() && (
-        <div className="hidden sm:flex flex-col absolute top-full right-0 mt-2.5 w-[420px] md:w-[480px] max-h-[70vh] bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl z-50 overflow-hidden animate-fade-in">
+        <div className="hidden sm:flex flex-col absolute top-full right-0 mt-2.5 w-[420px] md:w-[480px] max-h-[70vh] bg-zinc-950/95 rounded-2xl shadow-2xl backdrop-blur-2xl z-50 overflow-hidden animate-fade-in">
           {/* Header & Filter Tabs */}
-          <div className="p-3 border-b border-white/10 bg-zinc-900/50 flex items-center justify-between">
+          <div className="p-3 bg-zinc-900/50 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               {(['all', 'videos', 'shorts', 'photos'] as FilterType[]).map((tab) => (
                 <button
@@ -372,7 +372,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                   className={`px-2.5 py-1 rounded-full text-[9px] font-mono tracking-wider uppercase transition-colors cursor-pointer ${
                     activeFilter === tab
                       ? 'bg-white text-black font-bold'
-                      : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-white/5'
+                      : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   {tab} ({filterCounts[tab]})
@@ -407,10 +407,10 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                     onClick={() => handleSelectResult(entry)}
                     onMouseEnter={() => setHoveredIdx(idx)}
                     onMouseLeave={() => setHoveredIdx(null)}
-                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-900/90 border border-transparent hover:border-white/10 transition-all duration-150 cursor-pointer group"
+                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-900/90 transition-all duration-150 cursor-pointer group"
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0 border border-white/5">
+                    <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
                       <img
                         src={activeThumb}
                         alt={entry.cleanTitle}
@@ -437,7 +437,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                             setIsOpen(false);
                             onSelectAlbum?.(entry.albumIndex);
                           }}
-                          className="px-1.5 py-0.5 rounded text-[8px] font-mono tracking-widest uppercase bg-zinc-900 hover:bg-zinc-800 border border-white/10 hover:border-white/20 text-zinc-400 hover:text-zinc-200 cursor-pointer transition-colors"
+                          className="px-1.5 py-0.5 rounded text-[8px] font-mono tracking-widest uppercase bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer transition-colors"
                           title={`Navigate to ${entry.album.name}`}
                         >
                           {entry.album.name}
@@ -445,10 +445,10 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                         <span
                           className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold tracking-widest uppercase flex items-center gap-1 ${
                             entry.isShort
-                              ? 'bg-rose-950/60 text-rose-300 border border-rose-500/30'
+                              ? 'bg-rose-950/60 text-rose-300'
                               : entry.isVideo
-                              ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-500/30'
-                              : 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/30'
+                              ? 'bg-indigo-950/60 text-indigo-300'
+                              : 'bg-cyan-950/60 text-cyan-300'
                           }`}
                         >
                           {entry.isShort ? (
@@ -474,7 +474,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
           </div>
 
           {/* Footer note */}
-          <div className="p-2 border-t border-white/5 bg-black/60 flex items-center justify-between text-[9px] font-mono text-zinc-600 px-3">
+          <div className="p-2 bg-black/60 flex items-center justify-between text-[9px] font-mono text-zinc-600 px-3">
             <span>Press Esc to close</span>
             <span style={{ color: accentColor }}>Repository Search</span>
           </div>

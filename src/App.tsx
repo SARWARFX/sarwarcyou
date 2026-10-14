@@ -495,7 +495,7 @@ function App() {
   if (!data && isError) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center text-white p-6 font-mono">
-        <div className="max-w-md p-8 rounded-2xl bg-zinc-950 border border-white/10 text-center space-y-4">
+        <div className="max-w-md p-8 rounded-2xl bg-zinc-950 text-center space-y-4">
           <div className="text-red-400 text-2xl font-bold">[ NETWORK ERROR ]</div>
           <p className="text-xs text-white/60">
             Unable to stream cloud media. Please check your internet connection.
@@ -609,7 +609,7 @@ function App() {
       {(activeAlbumIndex > 0 || mobileScrolled) && (
         <button
           onClick={handleBackToTop}
-          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/80 hover:bg-zinc-900 border border-white/10 hover:border-white/25 backdrop-blur-xl text-zinc-300 hover:text-white shadow-2xl transition-all duration-300 ease-out cursor-pointer group"
+          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/80 hover:bg-zinc-900 backdrop-blur-xl text-zinc-300 hover:text-white shadow-2xl transition-all duration-300 ease-out cursor-pointer group"
           title="Back to Top"
           aria-label="Back to Top"
         >

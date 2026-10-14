@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 @theme {
+  --font-sans: 'Rajdhani', sans-serif;
+  --font-brand: 'Orbitron', sans-serif;
+  --font-futuristic: 'Orbitron', sans-serif;
+  --font-orbitron: 'Orbitron', sans-serif;
+  --font-rajdhani: 'Rajdhani', sans-serif;
   --font-inter: 'Inter', sans-serif;
   --font-space: 'Space Grotesk', sans-serif;
-  --font-orbitron: 'Orbitron', 'Space Grotesk', sans-serif;
 
   --color-brand-cyan: #00D2FF;
   --color-brand-pink: #FF2A85;
   --color-brand-purple: #9D00FF;
 }
 
-/* Strip all visible borders, default focus, focus-visible, and outlines globally */
+/* Permanently eliminate all visible borders, wireframes & outlines globally */
 *, *::before, *::after {
   border-color: transparent !important;
   outline: none !important;
@@ -23,9 +27,18 @@
   box-shadow: none !important;
 }
 
+.font-brand {
+  font-family: var(--font-brand);
+}
+
 .font-futuristic {
   font-family: var(--font-orbitron);
   letter-spacing: 0.08em;
+}
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 0.025em;
 }
 
 html, body {
@@ -36,12 +49,10 @@ html, body {
   overflow: hidden !important;
   background-color: #000000;
   color: #FFFFFF;
-  font-family: var(--font-orbitron), var(--font-space), -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
   -webkit-user-select: none;
-  letter-spacing: 0.03em;
 }
 
 #root {

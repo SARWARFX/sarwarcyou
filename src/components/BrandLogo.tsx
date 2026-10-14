@@ -124,17 +124,17 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       className={`fixed ${cornerClasses} z-40 select-none pointer-events-auto flex items-center gap-3.5 group cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105`}
     >
       {/* Dynamic Glowing Play Glyph */}
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center w-7 h-7 md:w-10 md:h-10">
         <svg
-          width="24"
-          height="24"
+          width="40"
+          height="40"
           viewBox="0 0 24 24"
           fill={currentColor}
           style={{
             filter: `drop-shadow(0 0 16px ${currentColor})`,
             transition: 'filter 0.3s ease',
           }}
-          className="group-hover:scale-110 transition-transform duration-300"
+          className="h-7 w-7 md:h-10 md:w-10 group-hover:scale-105 transition-transform duration-300"
         >
           <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
         </svg>
@@ -150,9 +150,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             ? `0 2px 14px rgba(0,0,0,0.12)`
             : `0 0 24px ${currentColor}55`,
         }}
-        className="font-space font-black tracking-[0.24em] text-xl sm:text-2xl md:text-3xl bg-clip-text text-transparent leading-none uppercase select-none transition-all duration-300"
+        className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl bg-clip-text text-transparent leading-none uppercase select-none transition-all duration-300"
       >
-        SARWAR C YOU
+        SARWARCYOU
       </span>
     </div>
   );

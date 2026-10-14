@@ -51,7 +51,7 @@ const MobileCard: React.FC<MobileCardProps> = ({ item, album, idx, onSelectItem 
       className="group flex flex-col cursor-pointer active:scale-[0.98] transition-transform select-none w-full"
     >
       {/* 16:9 Aspect Video Thumbnail Container with rounded-lg */}
-      <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-zinc-900 border border-white/[0.06]">
+      <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-zinc-900">
         <img
           src={thumbnailUrl}
           alt={cleanTitle}
@@ -66,7 +66,7 @@ const MobileCard: React.FC<MobileCardProps> = ({ item, album, idx, onSelectItem 
         />
 
         {/* Type/Duration Overlay Badge (bottom-1.5 right-1.5) */}
-        <div className="absolute bottom-1.5 right-1.5 text-[10px] xs:text-[11px] px-1.5 py-0.5 rounded-md bg-black/85 font-mono font-semibold text-zinc-200 flex items-center gap-1 border border-white/15 pointer-events-none backdrop-blur-sm">
+        <div className="absolute bottom-1.5 right-1.5 text-[10px] xs:text-[11px] px-1.5 py-0.5 rounded-md bg-black/85 font-mono font-semibold text-zinc-200 flex items-center gap-1 pointer-events-none backdrop-blur-sm">
           {isShort ? (
             <>
               <Film className="w-3 h-3 text-rose-400" />
@@ -117,8 +117,8 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
       {/* 1. RECENTLY OPENED SECTION (Conditional Horizontal Carousel) */}
       {hasRecent && (
         <section id="mobile-album-recent" className="mb-5">
-          <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
-            <h2 className="text-base xs:text-lg font-extrabold font-space uppercase text-white tracking-tight flex items-center gap-1.5">
+          <div className="px-3 pt-2 pb-1.5 flex items-center justify-between">
+            <h2 className="text-base xs:text-lg font-black font-brand uppercase text-white tracking-wide flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />
               Recently Opened
               <span className="text-sm font-medium text-zinc-400 font-mono ml-1.5">({recentItems.length})</span>
@@ -127,7 +127,7 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
               <button
                 type="button"
                 onClick={onClearHistory}
-                className="text-[10px] font-mono text-zinc-400 hover:text-white uppercase cursor-pointer px-2 py-0.5 rounded bg-zinc-900 border border-white/5"
+                className="text-[10px] font-mono text-zinc-400 hover:text-white uppercase cursor-pointer px-2 py-0.5 rounded bg-zinc-900"
               >
                 Clear
               </button>
@@ -162,8 +162,8 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
       {/* 2. LATEST RELEASES SECTION (Horizontal 4-Row Multi-Row Carousel) */}
       {latestAlbum && latestAlbum.items.length > 0 && (
         <section id="mobile-album-0" className="mb-5">
-          <div className="px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-white/[0.04]">
-            <h2 className="text-lg xs:text-xl font-extrabold font-space uppercase text-white tracking-tight flex items-center gap-1.5">
+          <div className="px-3 pt-2 pb-1.5 flex items-center justify-between">
+            <h2 className="text-lg xs:text-xl font-black font-brand uppercase text-white tracking-wide flex items-center gap-1.5">
               <Film className="w-4 h-4 text-amber-400 flex-shrink-0" />
               Latest Releases
               <span className="text-sm font-medium text-zinc-400 font-mono ml-1.5">({latestAlbum.items.length})</span>
@@ -171,7 +171,7 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
             <button
               type="button"
               onClick={() => setSelectedCollectionAlbum(latestAlbum)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
             >
               <span>View All</span>
               <ArrowRight className="w-3 h-3 text-zinc-500" />
@@ -209,8 +209,8 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
 
         return (
           <section key={album.id} id={`mobile-album-${album.index}`} className="mb-5">
-            <div className="px-3 pt-2 pb-1 flex items-center justify-between border-b border-white/[0.04]">
-              <h2 className="text-lg xs:text-xl font-extrabold font-space uppercase text-white tracking-tight flex items-center">
+            <div className="px-3 pt-2 pb-1 flex items-center justify-between">
+              <h2 className="text-lg xs:text-xl font-black font-brand uppercase text-white tracking-wide flex items-center">
                 {album.name}
                 <span className="text-sm font-medium text-zinc-400 font-mono ml-1.5">
                   ({album.items.length})
@@ -219,7 +219,7 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedCollectionAlbum(album)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
               >
                 <span>View All</span>
                 <ArrowRight className="w-3 h-3 text-zinc-500" />
@@ -258,7 +258,7 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
       {selectedCollectionAlbum && (
         <div className="fixed inset-0 z-50 bg-black/96 backdrop-blur-2xl flex flex-col animate-fade-in md:hidden">
           {/* Top Control Bar */}
-          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-zinc-950/90 backdrop-blur-xl">
+          <div className="px-4 py-3 flex items-center justify-between bg-zinc-950/90 backdrop-blur-xl">
             <button
               type="button"
               onClick={() => setSelectedCollectionAlbum(null)}
@@ -269,7 +269,7 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
             </button>
 
             <div className="text-center truncate px-2">
-              <h2 className="text-base xs:text-lg font-extrabold font-space uppercase text-white tracking-tight truncate">
+              <h2 className="text-base xs:text-lg font-black font-brand uppercase text-white tracking-wide truncate">
                 {selectedCollectionAlbum.name}
               </h2>
               <span className="text-xs font-mono text-zinc-400">

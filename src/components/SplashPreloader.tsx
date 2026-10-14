@@ -136,20 +136,20 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({
       }`}
     >
       {/* Clean, dark, minimal container with zero clutter */}
-      <div className="relative z-10 flex flex-col items-center gap-4 max-w-md px-6 text-center">
-        {/* Strictly one single line of text */}
-        <h1 className="font-space font-medium tracking-[0.25em] text-xs sm:text-sm text-zinc-200 uppercase">
+      <div className="relative z-10 flex flex-col items-center gap-6 max-w-3xl px-6 text-center">
+        {/* Main Display Title */}
+        <h1 className="font-brand font-black tracking-widest text-3xl xs:text-4xl sm:text-5xl md:text-6xl text-white uppercase leading-tight drop-shadow-[0_0_35px_rgba(255,255,255,0.2)]">
           This site does not show ads
         </h1>
 
         {/* Directly beneath this text, render only the sleek, smooth horizontal loading progress bar */}
-        <div className="w-56 sm:w-64 md:w-72 h-[2px] bg-zinc-900 rounded-full overflow-hidden relative border border-white/[0.06]">
+        <div className="w-56 sm:w-72 md:w-80 h-[3px] bg-zinc-900 rounded-full overflow-hidden relative">
           <div
             className="h-full rounded-full transition-all duration-300 ease-out"
             style={{
               width: `${progress}%`,
               background: `linear-gradient(90deg, #00D2FF 0%, ${glowColor} 50%, #9D00FF 100%)`,
-              boxShadow: `0 0 10px ${glowColor}88`,
+              boxShadow: `0 0 14px ${glowColor}aa`,
             }}
           />
         </div>

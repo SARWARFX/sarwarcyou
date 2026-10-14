@@ -68,14 +68,14 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           title="Return to Home / Top"
           aria-label="Return to Home"
         >
-          <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-12 md:h-12 lg:w-14 lg:h-14 transition-transform duration-300 group-hover:scale-105 flex-shrink-0">
+          <div className="flex items-center justify-center w-7 h-7 md:w-10 md:h-10 transition-transform duration-300 group-hover:scale-105 flex-shrink-0">
             <svg
-              width="44"
-              height="44"
+              width="40"
+              height="40"
               viewBox="0 0 24 24"
               fill={currentColor}
               style={{ filter: `drop-shadow(0 0 20px ${currentColor}aa)`, transition: 'filter 0.3s ease' }}
-              className="w-6 h-6 sm:w-7 sm:h-7 md:w-11 md:h-11 lg:w-13 lg:h-13"
+              className="h-7 w-7 md:h-10 md:w-10"
             >
               <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
             </svg>
@@ -84,7 +84,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             style={{
               backgroundImage: `linear-gradient(135deg, #FFFFFF 0%, ${currentColor} 60%, #FFFFFF 100%)`,
             }}
-            className="font-futuristic font-black tracking-wider text-base sm:text-lg md:text-5xl lg:text-6xl xl:text-7xl bg-clip-text text-transparent uppercase select-none leading-none whitespace-nowrap transition-opacity group-hover:opacity-90"
+            className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl bg-clip-text text-transparent uppercase select-none leading-none whitespace-nowrap transition-opacity group-hover:opacity-90"
           >
             SARWARCYOU
           </span>

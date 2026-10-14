@@ -71,19 +71,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     >
       {/* Centered Website Logo & Brand Name (Enlarged across Desktop & Mobile) */}
       <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-2.5 md:gap-3 select-none pointer-events-none z-[110] max-w-[170px] xs:max-w-[210px] sm:max-w-none">
-        <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex-shrink-0">
+        <div className="flex items-center justify-center w-7 h-7 md:w-10 md:h-10 flex-shrink-0">
           <svg
-            width="32"
-            height="32"
+            width="40"
+            height="40"
             viewBox="0 0 24 24"
             fill="#00D2FF"
             style={{ filter: 'drop-shadow(0 0 12px rgba(0, 210, 255, 0.75))' }}
-            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8"
+            className="h-7 w-7 md:h-10 md:w-10"
           >
             <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
           </svg>
         </div>
-        <span className="font-futuristic font-black tracking-wider text-base sm:text-lg md:text-2xl text-white uppercase truncate drop-shadow-md">
+        <span className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md">
           SARWARCYOU
         </span>
       </div>
@@ -133,10 +133,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
       {/* Main player box */}
       <div
-        className="relative w-full max-w-5xl max-h-[85vh] rounded-2xl overflow-hidden bg-black/95 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col items-center justify-center"
+        className="relative w-full max-w-5xl max-h-[85vh] rounded-2xl overflow-hidden bg-black/95 shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-full px-5 py-3 border-b border-white/10 bg-white/[0.02] flex items-center justify-between text-xs font-mono text-white/60">
+        <div className="w-full px-5 py-3 bg-white/[0.02] flex items-center justify-between text-xs font-mono text-white/60">
           <span className="truncate max-w-[80%] font-bold text-white uppercase tracking-wider">{displayTitle}</span>
           <span className="text-[#00D2FF] font-semibold">{type === 'video' ? 'STREAMING 1080P' : (isZoomed ? 'ZOOMED 160%' : 'HIGH DEFINITION')}</span>
         </div>

@@ -186,7 +186,7 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="group relative flex-shrink-0 w-[230px] sm:w-[270px] md:w-[310px] aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer select-none bg-zinc-950 border border-white/[0.08] hover:border-white/25 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+      className="group relative flex-shrink-0 w-[230px] sm:w-[270px] md:w-[310px] aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer select-none bg-zinc-950 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
     >
       {/* Fallback Obsidian Card Typography branding */}
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 to-black flex flex-col justify-between p-3.5 z-0">
@@ -373,7 +373,7 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
       {/* Rail Header */}
       <div className="flex items-center justify-between px-1 sm:px-2">
         <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-300">
+          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-zinc-900 flex items-center justify-center text-zinc-300">
             {icon === 'recent' ? (
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
             ) : (
@@ -382,11 +382,11 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-space font-extrabold text-base sm:text-lg tracking-tight text-white uppercase">
+              <h3 className="font-brand font-black text-base sm:text-lg tracking-wider text-white uppercase">
                 {title}
               </h3>
               {countBadge !== undefined && (
-                <span className="px-1.5 py-0.5 rounded bg-zinc-800/90 border border-white/10 text-zinc-300 font-mono text-[10px] font-semibold">
+                <span className="px-1.5 py-0.5 rounded bg-zinc-800/90 text-zinc-300 font-mono text-[10px] font-semibold">
                   {countBadge}
                 </span>
               )}
@@ -404,7 +404,7 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
             <button
               type="button"
               onClick={onClearHistory}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/80 hover:bg-red-950/60 border border-white/10 hover:border-red-500/30 text-zinc-400 hover:text-red-300 text-[10px] font-mono tracking-wider transition-colors duration-200 cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/80 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 text-[10px] font-mono tracking-wider transition-colors duration-200 cursor-pointer"
               title="Clear recently opened history"
             >
               <Trash2 className="w-3 h-3" />
@@ -417,7 +417,7 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
             <button
               type="button"
               onClick={() => scrollByDelta(-360)}
-              className="p-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
               title="Scroll left"
               aria-label="Scroll left"
             >
@@ -426,7 +426,7 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
             <button
               type="button"
               onClick={() => scrollByDelta(360)}
-              className="p-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
               title="Scroll right"
               aria-label="Scroll right"
             >

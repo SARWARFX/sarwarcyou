@@ -139,7 +139,7 @@ const SuggestedReelCard: React.FC<SuggestedReelCardProps> = ({
           onSelectItem(album, idx);
         }
       }}
-      className={`relative flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.06] hover:border-white/25 shadow-lg hover:shadow-2xl transition-all duration-300 ${
+      className={`relative flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black hover:shadow-2xl transition-all duration-300 ${
         isVideo ? 'w-48 sm:w-56 aspect-video' : 'w-36 sm:w-44 aspect-[3/4]'
       }`}
     >
@@ -265,12 +265,12 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
       }}
       className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all duration-200 group ${
         isActive
-          ? 'bg-zinc-800/80 border border-white/[0.12] shadow-md'
-          : 'hover:bg-zinc-900/80 border border-transparent'
+          ? 'bg-zinc-800/90 shadow-md'
+          : 'hover:bg-zinc-900/80'
       }`}
     >
       {/* Thumbnail Container (Obsidian Surface Backing) */}
-      <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.05] flex-shrink-0">
+      <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black flex-shrink-0">
         {activeThumb ? (
           <img
             src={activeThumb}
@@ -287,7 +287,7 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
 
         {isActive ? (
           <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
-            <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-black font-mono font-bold text-[10px] tracking-widest uppercase">
+            <span className="px-2 py-0.5 rounded bg-zinc-100 text-black font-mono font-bold text-xs tracking-widest uppercase">
               PLAYING
             </span>
           </div>
@@ -301,13 +301,13 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
       {/* Meta */}
       <div className="flex-1 min-w-0">
         <span
-          className={`text-xs sm:text-[13px] font-semibold truncate block leading-tight ${
+          className={`text-sm sm:text-base font-bold truncate block leading-tight line-clamp-1 ${
             isActive ? 'text-zinc-100' : 'text-zinc-300 group-hover:text-white'
           } transition-colors duration-200`}
         >
           {itemTitle}
         </span>
-        <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 tracking-wider uppercase block mt-0.5">
+        <span className="text-xs sm:text-sm font-semibold font-mono text-zinc-400 tracking-wider uppercase block mt-0.5">
           {String(idx + 1).padStart(2, '0')} • {isVideo ? 'VIDEO' : 'PHOTO'}
         </span>
       </div>
@@ -409,7 +409,7 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
     <div className="w-full flex flex-col gap-2.5 select-none">
       {/* Folder Header: Prominent clean title with count in parentheses, pure borderless */}
       <div className="flex items-center justify-between px-1">
-        <h4 className="text-sm sm:text-base font-black font-futuristic text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+        <h4 className="text-sm sm:text-base font-black font-brand text-zinc-200 uppercase tracking-wider flex items-center gap-2">
           <span>{album.name}</span>
           <span className="text-zinc-400 font-mono text-xs font-normal">
             ({album.itemCount || items.length})
@@ -980,35 +980,35 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
-      <div className="w-full px-3.5 sm:px-6 py-2.5 sm:py-3 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
+      <div className="w-full px-3.5 sm:px-6 py-2.5 sm:py-3 bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
         <div className="flex items-center gap-2 min-w-0 max-w-[24%] sm:max-w-[28%] md:max-w-[35%] z-10">
-          <span className="px-2 py-0.5 rounded-full bg-zinc-800/80 border border-white/10 text-zinc-300 font-semibold tracking-widest text-[9px] uppercase flex-shrink-0 truncate">
+          <span className="px-2.5 py-1 rounded-xl bg-zinc-900/60 text-zinc-200 font-bold tracking-wide text-sm sm:text-base uppercase flex-shrink-0 truncate">
             {album?.name || 'ALBUM'}
           </span>
           <span className="text-zinc-600 hidden sm:inline">•</span>
-          <span className="text-zinc-300 font-medium tracking-wider hidden sm:inline text-[10px] flex-shrink-0">
+          <span className="text-zinc-200 font-bold tracking-wide hidden sm:inline text-sm sm:text-base flex-shrink-0">
             {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
           </span>
-          <span className="text-zinc-200 font-medium truncate hidden xl:inline text-[11px]">
+          <span className="text-zinc-200 font-medium truncate hidden xl:inline text-xs sm:text-sm">
             {cleanTitle}
           </span>
         </div>
 
         {/* Centered Website Logo & Brand Name (Enlarged across Desktop & Mobile) */}
         <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center gap-2 sm:gap-2.5 md:gap-3 select-none pointer-events-none z-10 max-w-[170px] xs:max-w-[210px] sm:max-w-none">
-          <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex-shrink-0">
+          <div className="flex items-center justify-center w-7 h-7 md:w-10 md:h-10 flex-shrink-0">
             <svg
-              width="32"
-              height="32"
+              width="40"
+              height="40"
               viewBox="0 0 24 24"
               fill="#00D2FF"
               style={{ filter: 'drop-shadow(0 0 12px rgba(0, 210, 255, 0.75))' }}
-              className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8"
+              className="h-7 w-7 md:h-10 md:w-10"
             >
               <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
             </svg>
           </div>
-          <span className="font-futuristic font-black tracking-wider text-base sm:text-lg md:text-2xl text-white uppercase truncate drop-shadow-md">
+          <span className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md">
             SARWARCYOU
           </span>
         </div>
@@ -1017,10 +1017,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           {!isVideo && (
             <button
               onClick={() => setIsZoomed(!isZoomed)}
-              className="p-2 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer border border-white/[0.06]"
+              className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer"
               title={isZoomed ? 'Zoom out (100%)' : 'Zoom in (160%)'}
             >
-              {isZoomed ? <ZoomOut className="w-3.5 h-3.5" /> : <ZoomIn className="w-3.5 h-3.5" />}
+              {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
             </button>
           )}
 
@@ -1028,22 +1028,22 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           <button
             onClick={handleDownload}
             disabled={isDownloading}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all duration-200 cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 cursor-pointer ${
               downloadSuccess
-                ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
-                : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/[0.08]'
+                ? 'bg-emerald-950/80 text-emerald-300'
+                : 'bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-200 hover:text-white'
             } disabled:opacity-40`}
             title="Direct Media Download"
           >
             {downloadSuccess ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] hidden sm:inline">SAVED</span>
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">SAVED</span>
               </>
             ) : (
               <>
-                <Download className={`w-3.5 h-3.5 ${isDownloading ? 'animate-bounce' : ''}`} />
-                <span className="text-[10px] hidden sm:inline">
+                <Download className={`w-4 h-4 ${isDownloading ? 'animate-bounce' : ''}`} />
+                <span className="hidden sm:inline">
                   {isDownloading ? 'DOWNLOADING...' : 'DOWNLOAD'}
                 </span>
               </>
@@ -1052,10 +1052,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer border border-white/[0.06]"
+            className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer"
             title="Close (Esc)"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -1065,7 +1065,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         {/* ===== MAIN CINEMA STAGE & QUEUE ROW ===== */}
         <div className="w-full flex flex-col md:flex-row gap-3.5 md:h-[65vh] lg:h-[72vh] md:min-h-[460px] flex-shrink-0">
           {/* ===== LEFT MAIN VIEWPORT (~72% DESKTOP) ===== */}
-          <div className="w-full md:w-[70%] lg:w-[72%] md:h-full flex flex-col bg-[#09090b] rounded-none md:rounded-2xl border-0 md:border border-white/[0.06] overflow-hidden flex-shrink-0 shadow-2xl relative group/stage sticky top-0 z-20 md:static">
+          <div className="w-full md:w-[70%] lg:w-[72%] md:h-full flex flex-col bg-[#09090b] rounded-none md:rounded-2xl overflow-hidden flex-shrink-0 shadow-2xl relative group/stage sticky top-0 z-20 md:static">
             {/* Cinema Stage Container with Ambilight */}
             <div
               ref={videoContainerRef}
@@ -1636,12 +1636,12 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             </div>
 
             {/* Under-player Editorial Status Bar */}
-            <div className="px-4 py-2.5 border-t border-white/[0.06] bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0">
+            <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0">
               <div className="truncate max-w-[70%]">
-                <span className="font-semibold text-zinc-100 text-xs sm:text-[13px] tracking-wide block truncate">
+                <span className="font-semibold text-white text-sm sm:text-base tracking-wide block truncate">
                   {cleanTitle}
                 </span>
-                <span className="text-zinc-400 text-[10px] sm:text-[11px] tracking-wider uppercase block mt-0.5">
+                <span className="text-zinc-400 text-xs sm:text-sm font-semibold tracking-wider uppercase block mt-0.5">
                   {isVideo
                     ? `VIDEO ${currentIndex + 1} OF ${items.length} • SPATIAL HUD • 1080P CINEMATIC STREAM`
                     : isZoomed
@@ -1652,28 +1652,28 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => goToIndex(currentIndex - 1)}
-                  className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer border border-white/[0.05]"
+                  className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
                   title="Previous (←)"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => goToIndex(currentIndex + 1)}
-                  className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer border border-white/[0.05]"
+                  className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
                   title="Next (→)"
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
             {/* Mobile Segmented Tab Switcher (Suggested vs Queue) */}
-            <div className="flex md:hidden items-center p-2 px-3 bg-[#09090b] border-t border-white/[0.06] gap-2 flex-shrink-0">
+            <div className="flex md:hidden items-center p-2 px-3 bg-[#09090b] gap-2 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setMobileTab('suggested')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   mobileTab === 'suggested'
-                    ? 'bg-zinc-800 text-zinc-100 border border-white/10 shadow-sm'
+                    ? 'bg-zinc-800 text-zinc-100 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60'
                 }`}
               >
@@ -1688,9 +1688,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               <button
                 type="button"
                 onClick={() => setMobileTab('queue')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   mobileTab === 'queue'
-                    ? 'bg-zinc-800 text-zinc-100 border border-white/10 shadow-sm'
+                    ? 'bg-zinc-800 text-zinc-100 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60'
                 }`}
               >
@@ -1704,14 +1704,14 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           </div>
 
           {/* ===== RIGHT PLAYLIST QUEUE (~28% DESKTOP ONLY) ===== */}
-          <div className="hidden md:flex md:w-[30%] lg:w-[28%] h-full flex-col bg-[#09090b] rounded-2xl border border-white/[0.06] overflow-hidden shadow-xl flex-shrink-0">
+          <div className="hidden md:flex md:w-[30%] lg:w-[28%] h-full flex-col bg-[#09090b] rounded-2xl overflow-hidden shadow-xl flex-shrink-0">
             {/* Queue Header */}
-            <div className="px-4 py-3 border-b border-white/[0.06] bg-[#09090b] flex items-center justify-between text-[10px] font-mono flex-shrink-0">
-              <span className="font-semibold text-zinc-300 tracking-wider uppercase">
+            <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between flex-shrink-0">
+              <span className="text-sm sm:text-base font-black font-brand tracking-wider text-zinc-200 uppercase">
                 QUEUE ({items.length})
               </span>
-              <span className="text-zinc-500 flex items-center gap-1">
-                <Check className="w-3 h-3 text-emerald-400" /> READY
+              <span className="text-zinc-400 flex items-center gap-1 text-xs font-semibold">
+                <Check className="w-3.5 h-3.5 text-emerald-400" /> READY
               </span>
             </div>
 
@@ -1743,7 +1743,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               ))}
             </div>
 
-            <div className="px-4 py-2 border-t border-white/[0.04] bg-black text-center text-[9px] font-mono tracking-widest text-zinc-600 uppercase flex-shrink-0">
+            <div className="px-4 py-2.5 bg-black text-center text-xs sm:text-sm font-bold font-brand tracking-wider text-zinc-200 uppercase flex-shrink-0">
               CLICK OR SCROLL QUEUE
             </div>
           </div>
@@ -1783,7 +1783,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     ) : (
                       <Camera className="w-4 h-4 text-emerald-400" />
                     )}
-                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
+                    <span className="text-sm sm:text-base font-black font-brand tracking-wider text-zinc-200 uppercase">
                       {currentItem.type === 'video' ? 'Suggested Video Albums' : 'Suggested Photo Albums'}
                     </span>
                   </div>
@@ -1835,7 +1835,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   <span className="text-[9px] font-mono tracking-[0.25em] text-zinc-500 uppercase block">
                     {currentItem.type === 'video' ? 'CURATED CINEMA VAULT' : 'CURATED PHOTOGRAPHY VAULT'}
                   </span>
-                  <h3 className="text-sm sm:text-base font-bold font-space text-zinc-100 uppercase tracking-tight">
+                  <h3 className="text-sm sm:text-base font-black font-brand text-zinc-200 uppercase tracking-wider">
                     {currentItem.type === 'video' ? 'Suggested Video Albums' : 'Suggested Photo Albums'}
                   </h3>
                 </div>

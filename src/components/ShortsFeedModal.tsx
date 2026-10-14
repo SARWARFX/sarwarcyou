@@ -361,7 +361,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       >
         <button
           onClick={onClose}
-          className="p-2.5 rounded-full bg-black/70 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-white/10 transition-colors cursor-pointer shadow-xl backdrop-blur-md"
+          className="p-2.5 rounded-full bg-black/70 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer shadow-xl backdrop-blur-md"
           title="Close Feed (Esc)"
         >
           <X className="w-5 h-5" />
@@ -371,7 +371,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
       <div className="relative flex items-center justify-center max-h-[92vh] max-w-[95vw]">
         <div
-          className={`relative rounded-3xl overflow-hidden bg-black border border-white/[0.08] shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
+          className={`relative rounded-3xl overflow-hidden bg-black shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
             isLandscape
               ? 'aspect-video w-[90vw] max-w-[854px] h-auto max-h-[75vh]'
               : 'aspect-[9/16] h-[88vh] max-h-[820px] max-w-[460px]'
@@ -538,10 +538,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 return next;
               });
             }}
-            className={`p-3 rounded-2xl backdrop-blur-xl border transition-all cursor-pointer shadow-xl ${
+            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
               isMuted
-                ? 'bg-black/60 border-white/10 text-zinc-400 hover:text-white'
-                : 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
+                ? 'bg-black/60 text-zinc-400 hover:text-white'
+                : 'bg-emerald-950/80 text-emerald-300'
             }`}
             title={isMuted ? 'Unmute' : 'Mute'}
           >
@@ -553,10 +553,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             onClick={() => {
               setIsLooping((l) => !l);
             }}
-            className={`p-3 rounded-2xl backdrop-blur-xl border transition-all cursor-pointer shadow-xl ${
+            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
               isLooping
-                ? 'bg-zinc-800/80 border-white/20 text-white'
-                : 'bg-black/60 border-white/10 text-zinc-500 hover:text-white'
+                ? 'bg-zinc-800/80 text-white'
+                : 'bg-black/60 text-zinc-500 hover:text-white'
             }`}
             title={isLooping ? 'Looping Active' : 'Looping Off'}
           >
@@ -567,10 +567,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           <button
             onClick={handleDownload}
             disabled={isDownloading}
-            className={`p-3 rounded-2xl backdrop-blur-xl border transition-all cursor-pointer shadow-xl disabled:opacity-40 ${
+            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl disabled:opacity-40 ${
               downloadSuccess
-                ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
-                : 'bg-black/60 border-white/10 text-zinc-400 hover:text-white'
+                ? 'bg-emerald-950/80 text-emerald-300'
+                : 'bg-black/60 text-zinc-400 hover:text-white'
             }`}
             title="Download Reel"
           >
@@ -584,10 +584,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           {/* Share Link Button */}
           <button
             onClick={handleShare}
-            className={`p-3 rounded-2xl backdrop-blur-xl border transition-all cursor-pointer shadow-xl ${
+            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
               copiedLink
-                ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
-                : 'bg-black/60 border-white/10 text-zinc-400 hover:text-white'
+                ? 'bg-emerald-950/80 text-emerald-300'
+                : 'bg-black/60 text-zinc-400 hover:text-white'
             }`}
             title="Share Reel Link"
           >
@@ -600,7 +600,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           <button
             onClick={handlePrev}
             disabled={currentIndex === 0}
-            className="p-3 rounded-2xl bg-black/60 border border-white/10 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl"
+            className="p-3 rounded-2xl bg-black/60 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl"
             title="Previous Reel (Up)"
           >
             <ChevronUp className="w-5 h-5" />
@@ -609,7 +609,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           <button
             onClick={handleNext}
             disabled={currentIndex >= shorts.length - 1}
-            className="p-3 rounded-2xl bg-black/60 border border-white/10 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl"
+            className="p-3 rounded-2xl bg-black/60 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl"
             title="Next Reel (Down)"
           >
             <ChevronDown className="w-5 h-5" />
