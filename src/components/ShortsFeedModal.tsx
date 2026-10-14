@@ -12,9 +12,10 @@ import {
   Check,
   Play,
   Pause,
+  Loader2,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
-import { downloadMedia } from '../utils/downloadMedia';
+import { downloadBrandedVideo } from '../utils/downloadMedia';
 import {
   formatVideoPosterUrl,
   prewarmVideoStream,
@@ -241,7 +242,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setIsDownloading(true);
     setDownloadSuccess(false);
     try {
-      await downloadMedia(item.url, item.title || item.id);
+      await downloadBrandedVideo(item.url, item.title || item.id);
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2000);
     } catch (err) {
@@ -572,12 +573,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 ? 'bg-emerald-950/80 text-emerald-300'
                 : 'bg-black/60 text-zinc-400 hover:text-white'
             }`}
-            title="Download Reel"
+            title={isDownloading ? 'Downloading Reel (Branded)...' : 'Download Reel'}
           >
             {downloadSuccess ? (
               <Check className="w-5 h-5 text-emerald-400" />
+            ) : isDownloading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
             ) : (
-              <Download className={`w-5 h-5 ${isDownloading ? 'animate-bounce' : ''}`} />
+              <Download className="w-5 h-5" />
             )}
           </button>
 

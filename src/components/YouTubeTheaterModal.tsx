@@ -22,12 +22,12 @@ import {
   Film,
   Camera,
   AlertCircle,
-  ExternalLink,
   ListVideo,
+  Loader2,
 } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension, isHiddenOrSystemFolder, encodeStreamUrl } from '../utils/mediaTypeDetector';
-import { downloadMedia } from '../utils/downloadMedia';
+import { downloadMedia, downloadBrandedVideo } from '../utils/downloadMedia';
 import {
   getCachedVideoPoster,
   prewarmVideoStream,
@@ -204,9 +204,18 @@ interface QueueCardItemProps {
   idx: number;
   isActive: boolean;
   onSelect: () => void;
+  onDownloadItem?: (item: StageMediaItem) => void;
+  isDownloadingItem?: boolean;
 }
 
-const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSelect }) => {
+const QueueCardItem: React.FC<QueueCardItemProps> = ({
+  item,
+  idx,
+  isActive,
+  onSelect,
+  onDownloadItem,
+  isDownloadingItem,
+}) => {
   const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
   const [isHovered, setIsHovered] = useState(false);
   const multiFrameThumbnails = useMemo(() => {
@@ -311,6 +320,24 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
           {String(idx + 1).padStart(2, '0')} • {isVideo ? 'VIDEO' : 'PHOTO'}
         </span>
       </div>
+
+      {onDownloadItem && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDownloadItem(item);
+          }}
+          disabled={isDownloadingItem}
+          className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 cursor-pointer disabled:opacity-50"
+          title={isDownloadingItem ? 'Downloading...' : `Download ${itemTitle}`}
+        >
+          {isDownloadingItem ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+          ) : (
+            <Download className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
     </div>
   );
 };
@@ -788,18 +815,28 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     touchStartRef.current = null;
   }, [onClose, seekRelative, resetHudTimer]);
 
-  const handleDownload = useCallback(async () => {
-    if (!currentItem || isDownloading) return;
+  const [downloadingItemId, setDownloadingItemId] = useState<string | null>(null);
+
+  const handleDownload = useCallback(async (customItem?: StageMediaItem) => {
+    const target = customItem || currentItem;
+    if (!target || isDownloading) return;
     setIsDownloading(true);
     setDownloadSuccess(false);
+    setDownloadingItemId(target.id || target.url);
     try {
-      await downloadMedia(currentItem.url, currentItem.title || currentItem.id);
+      const isVid = isVideoExtension(target.url || target.id || target.title) || target.type === 'video';
+      if (isVid) {
+        await downloadBrandedVideo(target.url, target.title || target.id);
+      } else {
+        await downloadMedia(target.url, target.title || target.id);
+      }
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2200);
     } catch (err) {
       console.error('Download failed:', err);
     } finally {
       setIsDownloading(false);
+      setDownloadingItemId(null);
     }
   }, [currentItem, isDownloading]);
 
@@ -1078,7 +1115,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
           {/* Direct 1-Click Download Button */}
           <button
-            onClick={handleDownload}
+            onClick={() => handleDownload()}
             disabled={isDownloading}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 cursor-pointer ${
               downloadSuccess
@@ -1094,7 +1131,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               </>
             ) : (
               <>
-                <Download className={`w-4 h-4 ${isDownloading ? 'animate-bounce' : ''}`} />
+                {isDownloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
                 <span className="hidden sm:inline">
                   {isDownloading ? 'DOWNLOADING...' : 'DOWNLOAD'}
                 </span>
@@ -1342,17 +1383,21 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                             RETRY STREAM
                           </button>
 
-                          <a
-                            href={cleanStreamUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={cleanTitle}
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-semibold text-xs font-mono flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload();
+                            }}
+                            disabled={isDownloading}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-semibold text-xs font-mono flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            OPEN / DOWNLOAD VIDEO
-                          </a>
+                            {isDownloading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            {isDownloading ? 'DOWNLOADING...' : 'OPEN / DOWNLOAD VIDEO'}
+                          </button>
                         </div>
                       </div>
                     )}
@@ -1618,6 +1663,19 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           </div>
 
                           <button
+                            onClick={() => handleDownload()}
+                            disabled={isDownloading}
+                            className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title={isDownloading ? 'Downloading video...' : 'Download video (Branded)'}
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+
+                          <button
                             onClick={togglePiP}
                             className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
                             title="Picture in Picture"
@@ -1762,9 +1820,24 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               <span className="text-sm sm:text-base font-black font-brand tracking-wider text-zinc-200 uppercase">
                 QUEUE ({items.length})
               </span>
-              <span className="text-zinc-400 flex items-center gap-1 text-xs font-semibold">
-                <Check className="w-3.5 h-3.5 text-emerald-400" /> READY
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDownload()}
+                  disabled={isDownloading}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-[11px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+                  title="Download active video"
+                >
+                  {isDownloading ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
+                  ) : (
+                    <Download className="w-3 h-3 text-zinc-400" />
+                  )}
+                  <span>{isDownloading ? 'SAVING...' : 'DOWNLOAD'}</span>
+                </button>
+                <span className="text-zinc-400 flex items-center gap-1 text-xs font-semibold">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" /> READY
+                </span>
+              </div>
             </div>
 
             {/* Scrollable Playlist Cards (With Slow Auto-Slide) */}
@@ -1791,6 +1864,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   idx={idx}
                   isActive={idx === currentIndex}
                   onSelect={() => goToIndex(idx)}
+                  onDownloadItem={handleDownload}
+                  isDownloadingItem={downloadingItemId === (item.id || item.url)}
                 />
               ))}
             </div>
@@ -1817,6 +1892,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 idx={idx}
                 isActive={idx === currentIndex}
                 onSelect={() => goToIndex(idx)}
+                onDownloadItem={handleDownload}
+                isDownloadingItem={downloadingItemId === (item.id || item.url)}
               />
             ))}
           </div>

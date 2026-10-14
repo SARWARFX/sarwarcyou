@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, ExternalLink, ZoomIn, ZoomOut, Download } from 'lucide-react';
-import { downloadMedia } from '../utils/downloadMedia';
+import { X, ExternalLink, ZoomIn, ZoomOut, Download, Loader2 } from 'lucide-react';
+import { downloadMedia, downloadBrandedVideo } from '../utils/downloadMedia';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -18,6 +18,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   title,
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [prevMediaKey, setPrevMediaKey] = useState({ url, isOpen });
   if (prevMediaKey.url !== url || prevMediaKey.isOpen !== isOpen) {
     setPrevMediaKey({ url, isOpen });
@@ -156,14 +157,29 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           </button>
         )}
         <button
-          onClick={(e) => {
+          onClick={async (e) => {
             e.stopPropagation();
-            if (url) downloadMedia(url, title);
+            if (!url || isDownloading) return;
+            setIsDownloading(true);
+            try {
+              if (type === 'video') {
+                await downloadBrandedVideo(url, title);
+              } else {
+                await downloadMedia(url, title);
+              }
+            } finally {
+              setIsDownloading(false);
+            }
           }}
-          className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white cursor-pointer"
-          title="Download original file"
+          disabled={isDownloading}
+          className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white cursor-pointer disabled:opacity-50"
+          title={isDownloading ? 'Downloading file...' : 'Download file'}
         >
-          <Download className="w-5 h-5" />
+          {isDownloading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
+          ) : (
+            <Download className="w-5 h-5" />
+          )}
         </button>
         <a
           href={secureUrl}
