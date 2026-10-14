@@ -69,7 +69,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92 backdrop-blur-2xl p-3 sm:p-6 md:p-10 animate-fade-in"
       onClick={onClose}
     >
-      {/* Mobile: Top-Left Homepage Link with Metallic Logo */}
+      {/* Mobile: Top-Left Homepage Link with Split Triangle Logo */}
       <a
         href="/"
         onClick={(e) => {
@@ -77,18 +77,22 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           e.stopPropagation();
           onClose();
         }}
-        className="flex md:hidden absolute top-4 sm:top-6 left-4 sm:left-6 items-center gap-2 sm:gap-2.5 select-none cursor-pointer group z-[110]"
+        className="flex md:hidden absolute top-4 sm:top-6 left-4 sm:left-6 items-center gap-2 sm:gap-2.5 select-none cursor-pointer group z-[110] border-none outline-none"
         title="Return to Home"
         aria-label="Return to Home"
       >
-        <img
-          src="/brand-logo.png"
-          alt="SARWARCYOU"
-          className="brand-harmonic-graphic h-7 sm:h-8 w-auto object-contain flex-shrink-0"
-        />
-        <span className="font-brand font-black text-base sm:text-lg tracking-wider brand-harmonic-text uppercase whitespace-nowrap">
-          SARWARCYOU
-        </span>
+        <svg
+          className="brand-triangle-logo w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <polygon className="logo-part-a" points="50,10 63,36 33,90 20,90" fill="currentColor" />
+          <polygon className="logo-part-b" points="68,46 90,90 46,90" fill="currentColor" />
+        </svg>
+        <h1 className="brand-title font-brand font-black text-base sm:text-lg tracking-wider whitespace-nowrap m-0 p-0 flex items-center">
+          <span className="brand-part-a">SARWAR</span><span className="brand-part-b">CYOU</span>
+        </h1>
       </a>
 
       {/* Desktop: Centered Website Logo & Wordmark (Hidden on Mobile) */}
@@ -99,18 +103,22 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           e.stopPropagation();
           onClose();
         }}
-        className="hidden md:flex absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 items-center gap-2.5 sm:gap-3 select-none cursor-pointer group z-[110]"
+        className="hidden md:flex absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 items-center gap-2.5 sm:gap-3.5 select-none cursor-pointer group z-[110] border-none outline-none"
         title="Return to Home"
         aria-label="Return to Home"
       >
-        <img
-          src="/brand-logo.png"
-          alt="SARWARCYOU"
-          className="brand-harmonic-graphic h-8 sm:h-9 md:h-10 w-auto object-contain flex-shrink-0"
-        />
-        <span className="font-brand font-black tracking-widest text-xl sm:text-2xl md:text-3xl brand-harmonic-text uppercase truncate drop-shadow-md group-hover:opacity-90 transition-opacity">
-          SARWARCYOU
-        </span>
+        <svg
+          className="brand-triangle-logo w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <polygon className="logo-part-a" points="50,10 63,36 33,90 20,90" fill="currentColor" />
+          <polygon className="logo-part-b" points="68,46 90,90 46,90" fill="currentColor" />
+        </svg>
+        <h1 className="brand-title font-brand font-black tracking-widest text-xl sm:text-2xl md:text-3xl uppercase whitespace-nowrap m-0 p-0 flex items-center group-hover:opacity-90 transition-opacity">
+          <span className="brand-part-a">SARWAR</span><span className="brand-part-b">CYOU</span>
+        </h1>
       </a>
 
       {/* Top action bar */}

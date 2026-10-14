@@ -164,55 +164,86 @@ html, body {
   animation: doubleTapFade 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes harmonic-hue-cycle {
-  0% {
-    filter: hue-rotate(0deg);
-  }
-  50% {
-    filter: hue-rotate(140deg);
-  }
-  100% {
-    filter: hue-rotate(360deg);
-  }
+:root {
+  --brand-color-a: hsl(0, 90%, 60%);
+  --brand-color-b: hsl(180, 90%, 60%);
+  --glow-a: hsla(0, 90%, 60%, 0.35);
+  --glow-b: hsla(180, 90%, 60%, 0.35);
 }
 
-@keyframes harmonic-text-gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* ==========================================================================
+   DYNAMIC TWO-PIECE TRIANGLE LOGO & SPLIT BRAND WORDMARK
+   ========================================================================== */
+
+/* Component A: Left Quadrilateral Body & SARWAR */
+#logo-part-a,
+.logo-part-a {
+  fill: var(--brand-color-a, #00D2FF) !important;
+  color: var(--brand-color-a, #00D2FF) !important;
+  filter: drop-shadow(0 0 8px var(--glow-a, rgba(0, 210, 255, 0.35)));
+  transition: filter 0.15s ease;
 }
 
-/* Applied to the main logo image and favicon */
+#title-sarwar,
+.brand-part-a {
+  color: var(--brand-color-a, #00D2FF) !important;
+  filter: drop-shadow(0 0 10px var(--glow-a, rgba(0, 210, 255, 0.35)));
+  text-shadow: 0 0 14px var(--glow-a, rgba(0, 210, 255, 0.35));
+  transition: text-shadow 0.15s ease, filter 0.15s ease;
+}
+
+/* Component B: Bottom-Right Triangle & CYOU */
+#logo-part-b,
+.logo-part-b {
+  fill: var(--brand-color-b, #FF2A85) !important;
+  color: var(--brand-color-b, #FF2A85) !important;
+  filter: drop-shadow(0 0 8px var(--glow-b, rgba(255, 42, 133, 0.35)));
+  transition: filter 0.15s ease;
+}
+
+#title-cyou,
+.brand-part-b {
+  color: var(--brand-color-b, #FF2A85) !important;
+  filter: drop-shadow(0 0 10px var(--glow-b, rgba(255, 42, 133, 0.35)));
+  text-shadow: 0 0 14px var(--glow-b, rgba(255, 42, 133, 0.35));
+  transition: text-shadow 0.15s ease, filter 0.15s ease;
+}
+
+/* Split Brand Title Wordmark in Orbitron */
+.brand-title {
+  font-family: var(--font-brand, 'Orbitron', sans-serif);
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  line-height: 1;
+}
+
+/* SVG Triangle Logo Container */
+#brand-triangle-logo,
+.brand-triangle-logo {
+  display: inline-block;
+  vertical-align: middle;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+}
+
+/* Fallback/compatibility aliases */
 .brand-harmonic-graphic {
-  animation: harmonic-hue-cycle 8s ease-in-out infinite;
   display: inline-block;
   vertical-align: middle;
 }
 
-/* Applied to SARWARCYOU brand text to match hue cycle */
 .brand-harmonic-text,
 .brand-gradient-text {
-  background: linear-gradient(
-    135deg,
-    #a855f7 0%,   /* Violet */
-    #6366f1 25%,  /* Indigo */
-    #06b6d4 50%,  /* Cyan */
-    #ec4899 75%,  /* Rose */
-    #a855f7 100%
-  );
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: harmonic-text-gradient 8s ease-in-out infinite;
+  color: var(--brand-color-a, #00D2FF);
   display: inline-block;
 }
+
 
 
