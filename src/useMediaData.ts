@@ -1,7 +1,6 @@
 import useSWR from 'swr';
 import type { HfMediaCatalog, HfMediaItem } from './types';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
-import { ensureHttps } from './utils/imageUrlResolver';
 
 export const HF_DATASET_ID = 'SARWARFX/stream-vault';
 export const HF_TREE_API_URL =
@@ -29,25 +28,28 @@ interface CachedCatalogEnvelope {
   catalog: HfMediaCatalog;
 }
 
-const VIDEO_EXTENSIONS = /\.(mp4|webm|mov|mkv)$/i;
-const MEDIA_EXTENSIONS = /\.(mp4|webm|mov|mkv|jpg|jpeg|png|webp|gif|svg|bmp|tiff|heic|avif)$/i;
+import {
+  isVideoExtension,
+  isPhotoExtension,
+  safeEncodeHfPath,
+  safeEncodeUrl,
+} from './utils/mediaTypeDetector';
+
+export const VIDEO_EXTENSIONS = /\.(mp4|mov|mkv|webm|avi)(\?|#|$)/i;
+export const PHOTO_EXTENSIONS = /\.(jpg|jpeg|png|webp|gif|avif|bmp|tiff|heic|svg)(\?|#|$)/i;
 
 /**
  * Builds a safe, encoded CDN streaming URL for any file path on the Hugging Face dataset.
- * Safely decodes each segment first to prevent double-encoding, then encodes special characters.
+ * Safely encodes path segments (brackets, parentheses, spaces, hashes) without double-encoding.
  */
 export function buildHfMediaUrl(filePath: string): string {
   if (!filePath) return '';
-  // If filePath already looks like a complete http/https URL, ensure HTTPS
+  // If filePath already looks like a complete http/https URL, ensure safe encoding
   if (/^https?:\/\//i.test(filePath)) {
-    return ensureHttps(filePath);
+    return safeEncodeUrl(filePath);
   }
   // Standardize leading slash and encode each path segment individually
-  const cleanPath = filePath.replace(/^\/+/, '');
-  const encodedSegments = cleanPath
-    .split('/')
-    .map((seg) => encodeURIComponent(decodeURIComponent(seg)))
-    .join('/');
+  const encodedSegments = safeEncodeHfPath(filePath);
   return `${HF_RESOLVE_BASE_URL}${encodedSegments}`;
 }
 
@@ -176,13 +178,14 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
     const name = path.split('/').pop() || path;
     const url = buildHfMediaUrl(path);
 
-    if (path.startsWith('Clips/') && VIDEO_EXTENSIONS.test(path)) {
+    if (isVideoExtension(path)) {
       const thumbnails = getThumbnailsForVideo(path);
-      clips.push({ name, path, url, thumbnails });
-    } else if (path.startsWith('Shorts/') && VIDEO_EXTENSIONS.test(path)) {
-      const thumbnails = getThumbnailsForVideo(path);
-      shorts.push({ name, path, url, thumbnails });
-    } else if (path.startsWith('Images/') && MEDIA_EXTENSIONS.test(path)) {
+      if (path.startsWith('Shorts/')) {
+        shorts.push({ name, path, url, thumbnails });
+      } else {
+        clips.push({ name, path, url, thumbnails });
+      }
+    } else if (isPhotoExtension(path)) {
       images.push({ name, path, url });
     }
   }

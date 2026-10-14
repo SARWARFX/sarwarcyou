@@ -22,7 +22,8 @@ import {
   Film,
   Camera,
 } from 'lucide-react';
-import { getDirectImageUrl, ensureHttps } from '../utils/imageUrlResolver';
+import { getDirectImageUrl } from '../utils/imageUrlResolver';
+import { isVideoExtension, safeEncodeUrl } from '../utils/mediaTypeDetector';
 import { downloadMedia } from '../utils/downloadMedia';
 import {
   getCachedVideoPoster,
@@ -191,7 +192,7 @@ interface QueueCardItemProps {
 }
 
 const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSelect }) => {
-  const isVideo = item.type === 'video';
+  const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
   const [isHovered, setIsHovered] = useState(false);
   const multiFrameThumbnails = useMemo(() => {
     return isVideo
@@ -414,7 +415,7 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
               item={item}
               idx={idx}
               album={album}
-              isVideo={isVideo}
+              isVideo={isVideoExtension(item.url || item.id || item.title) || item.type === 'video' || isVideo}
               onSelectItem={onSelectItem}
               hasDragged={() => hasDraggedRef.current}
             />
@@ -461,6 +462,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [loopStart, setLoopStart] = useState<number | null>(null);
   const [loopEnd, setLoopEnd] = useState<number | null>(null);
   const [posterFailed, setPosterFailed] = useState(false);
+  const [modalImageLoaded, setModalImageLoaded] = useState(false);
+  const [modalImageFailed, setModalImageFailed] = useState(false);
 
   // Ripple feedback states
   const [centerRipple, setCenterRipple] = useState<'play' | 'pause' | null>(null);
@@ -492,6 +495,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setLoopStart(null);
     setLoopEnd(null);
     setPosterFailed(false);
+    setModalImageLoaded(false);
+    setModalImageFailed(false);
   }, [initialIndex, isOpen]);
 
   const items = useMemo(() => album?.items || [], [album]);
@@ -604,6 +609,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       setLoopStart(null);
       setLoopEnd(null);
       setPosterFailed(false);
+      setModalImageLoaded(false);
+      setModalImageFailed(false);
       window.setTimeout(() => {
         setIsCrossfading(false);
       }, 200);
@@ -783,14 +790,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     }
   }, []);
 
-  const rawUrl = currentItem ? ensureHttps(currentItem.url) : '';
-  let streamUrl = rawUrl;
-  if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
-    streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
-    if (!streamUrl.includes('/preview')) {
-      streamUrl = streamUrl.replace(/\?usp=.*$/, '') + '/preview';
-    }
-  }
 
   const activePoster = useMemo(() => {
     if (!currentItem || posterFailed) return '';
@@ -812,9 +811,26 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     );
   }, [currentItem, currentIndex, initialIndex, posterUrl, posterFailed]);
 
+  const rawUrl = currentItem ? safeEncodeUrl(currentItem.url) : '';
+  let streamUrl = rawUrl;
+  if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
+    streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
+    if (!streamUrl.includes('/preview')) {
+      streamUrl = streamUrl.replace(/\?usp=.*$/, '') + '/preview';
+    }
+  }
+
+  // Strict file extension-based video detection: any .mp4/.mov/.mkv/.webm/.avi is strictly a VIDEO
+  const isVideo =
+    isVideoExtension(currentItem?.url || currentItem?.id || currentItem?.title) ||
+    currentItem?.type === 'video';
+  const isDirectVideo =
+    isVideo &&
+    (isVideoExtension(streamUrl) || streamUrl.includes('huggingface.co'));
+
   // Aggressive Playback Initialization: immediately invoke .play().catch(...)
   useEffect(() => {
-    if (!isOpen || currentItem?.type !== 'video' || !videoRef.current) return;
+    if (!isOpen || !isVideo || !videoRef.current) return;
     videoRef.current.currentTime = 0;
     const playPromise = videoRef.current.play();
     if (playPromise !== undefined) {
@@ -826,7 +842,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           // Handled via user tap if blocked by browser policy
         });
     }
-  }, [currentIndex, isOpen, streamUrl, currentItem?.type]);
+  }, [currentIndex, isOpen, streamUrl, isVideo]);
 
   if (!isOpen || !currentItem) return null;
 
@@ -834,10 +850,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const rawTitle = currentItem.title || '';
   const cleanTitle =
     rawTitle.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() ||
-    (currentItem.type === 'video' ? 'Cinema Stream' : 'Photograph');
-  const isDirectVideo =
-    streamUrl.toLowerCase().match(/\.(mp4|webm|mov|mkv)/) !== null ||
-    streamUrl.includes('huggingface.co');
+    (isVideo ? 'Cinema Stream' : 'Photograph');
 
   // Compute A-B loop percentage offsets for timeline
   const loopStartPct = duration > 0 && loopStart !== null ? Math.max(0, Math.min(100, (loopStart / duration) * 100)) : 0;
@@ -871,7 +884,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {currentItem.type === 'image' && (
+          {!isVideo && (
             <button
               onClick={() => setIsZoomed(!isZoomed)}
               className="p-2 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer border border-white/[0.06]"
@@ -935,7 +948,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               }`}
             >
               {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
-              {currentItem.type === 'video' && isDirectVideo && (
+              {isVideo && isDirectVideo && (
                 <video
                   src={streamUrl}
                   aria-hidden="true"
@@ -948,7 +961,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               )}
 
               {/* Video Player */}
-              {currentItem.type === 'video' ? (
+              {isVideo ? (
                 isDirectVideo ? (
                   <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
                     <video
@@ -1292,19 +1305,43 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   />
                 )
               ) : (
-                /* Image Lightbox View */
+                /* Image Lightbox View with Skeleton Shimmer & Obsidian Fallback */
                 <div
-                  onClick={() => setIsZoomed(!isZoomed)}
-                  className="w-full h-full flex items-center justify-center p-3 cursor-pointer overflow-hidden z-10"
+                  onClick={() => !modalImageFailed && setIsZoomed(!isZoomed)}
+                  className="w-full h-full flex items-center justify-center p-3 cursor-pointer overflow-hidden z-10 relative"
                 >
-                  <img
-                    src={directImgUrl}
-                    alt={cleanTitle}
-                    loading="lazy"
-                    className={`max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-transform duration-300 ease-out ${
-                      isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
-                    }`}
-                  />
+                  {/* Intuitive Skeleton Shimmer while loading */}
+                  {!modalImageLoaded && !modalImageFailed && (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden bg-zinc-950/40 z-0">
+                      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                    </div>
+                  )}
+
+                  {!modalImageFailed ? (
+                    <img
+                      src={directImgUrl}
+                      alt={cleanTitle}
+                      loading="lazy"
+                      onLoad={() => setModalImageLoaded(true)}
+                      onError={() => setModalImageFailed(true)}
+                      className={`max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-300 ease-out relative z-10 ${
+                        isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
+                      } ${modalImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                  ) : (
+                    /* Obsidian Typography Card Fallback for Image (Never a Black Slab) */
+                    <div className="flex flex-col items-center justify-center p-6 text-center max-w-md relative z-10 select-none">
+                      <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+                        <Camera className="w-6 h-6 text-zinc-300" />
+                      </div>
+                      <h3 className="text-sm sm:text-base font-bold font-space text-zinc-100 uppercase tracking-wide truncate max-w-xs">
+                        {cleanTitle}
+                      </h3>
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-1">
+                        {album?.name || 'SARWARCYOU PHOTOGRAPH'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1316,7 +1353,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   {cleanTitle}
                 </span>
                 <span className="text-zinc-500 text-[9px] tracking-wider uppercase block mt-0.5">
-                  {currentItem.type === 'video'
+                  {isVideo
                     ? 'SPATIAL HUD • 1080P CINEMATIC STREAM'
                     : isZoomed
                     ? 'ZOOMED 165% • LOSSLESS PHOTOGRAPHY'

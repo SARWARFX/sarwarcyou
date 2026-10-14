@@ -25,6 +25,7 @@ import {
   resolveMultiFrameThumbnailsExt,
 } from '../utils/thumbnailResolver';
 import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
+import { safeEncodeUrl } from '../utils/mediaTypeDetector';
 
 interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -232,7 +233,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   }, [currentIndex, shorts]);
 
   const currentShort = shorts[currentIndex] || shorts[0];
-  const secureUrl = (currentShort?.url || '').replace(/^http:\/\//i, 'https://');
+  const secureUrl = safeEncodeUrl((currentShort?.url || '').replace(/^http:\/\//i, 'https://'));
   let streamUrl = secureUrl;
   if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
     streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');

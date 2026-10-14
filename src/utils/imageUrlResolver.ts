@@ -21,6 +21,8 @@ export function extractDriveFileId(id?: string, url?: string, thumbnail?: string
   return match ? match[1] : null;
 }
 
+import { isVideoExtension, safeEncodeUrl } from './mediaTypeDetector';
+
 export function getDirectImageUrl(
   item: { id?: string; url?: string; thumbnail?: string; type?: string; posterUrl?: string },
   _index = 0
@@ -29,10 +31,10 @@ export function getDirectImageUrl(
   const target = item.thumbnail || item.url || '';
 
   if (target.includes('huggingface.co')) {
-    if (target.toLowerCase().endsWith('.mp4') || item.type === 'video') {
+    if (isVideoExtension(target) || isVideoExtension(item.id) || item.type === 'video') {
       return item.posterUrl || item.thumbnail || '';
     }
-    return encodeURI(ensureHttps(target));
+    return safeEncodeUrl(target);
   }
 
   const fileId = extractDriveFileId(item.id, item.url, item.thumbnail);

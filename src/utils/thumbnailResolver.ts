@@ -96,6 +96,8 @@ export function getAnticipatedThumbnailUrlsWithExt(urlOrPath: string): string[] 
   });
 }
 
+import { isVideoExtension } from './mediaTypeDetector';
+
 /**
  * Resolves verified or anticipated multi-frame thumbnail URLs for a given media item.
  */
@@ -109,10 +111,10 @@ export function resolveMultiFrameThumbnails(
   const raw = ('path' in item && typeof item.path === 'string') ? item.path : (item.url || '');
   if (!raw) return [];
 
-  // Only resolve multi-frame video thumbnails for video assets
+  // Only resolve multi-frame video thumbnails for video assets strictly determined by extension or type
   const isVideo =
     ('type' in item && item.type === 'video') ||
-    /\.(mp4|webm|mov|mkv)(\?|#|$)/i.test(raw);
+    isVideoExtension(raw);
 
   if (isVideo) {
     return getAnticipatedThumbnailUrls(raw);
@@ -132,7 +134,7 @@ export function resolveMultiFrameThumbnailsExt(
 
   const isVideo =
     ('type' in item && item.type === 'video') ||
-    /\.(mp4|webm|mov|mkv)(\?|#|$)/i.test(raw);
+    isVideoExtension(raw);
 
   if (isVideo) {
     return getAnticipatedThumbnailUrlsWithExt(raw);

@@ -1,6 +1,7 @@
 import type { ApiResponseData, HfMediaCatalog, HfMediaItem, AlbumData, StageMediaItem } from '../types';
 import { FALLBACK_HF_CATALOG, FALLBACK_MEDIA_DATA } from '../data/fallbackData';
-import { getDirectImageUrl, ensureHttps } from './imageUrlResolver';
+import { getDirectImageUrl } from './imageUrlResolver';
+import { determineMediaType, safeEncodeUrl } from './mediaTypeDetector';
 
 function isHfCatalog(data: unknown): data is HfMediaCatalog {
   return (
@@ -57,17 +58,18 @@ export function extractTwelveAlbums(
     const mapHfItems = (
       items: HfMediaItem[],
       categoryName: string,
-      type: 'image' | 'video'
+      defaultType: 'image' | 'video'
     ): StageMediaItem[] => {
       return items.map((item, idx) => {
-        const safeUrl = encodeURI(ensureHttps(item.url));
+        const itemType = determineMediaType(item.path || item.name || item.url, defaultType);
+        const safeUrl = safeEncodeUrl(item.url || item.path);
         return {
           id: item.path || `${categoryName}-${idx}`,
           title: item.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() || `${categoryName} ${idx + 1}`,
           url: safeUrl,
-          thumbnail: type === 'image' ? safeUrl : getDirectImageUrl({ id: item.path, url: item.url, type }, idx),
+          thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: item.path, url: item.url, type: itemType }, idx),
           category: categoryName,
-          type,
+          type: itemType,
           thumbnails: item.thumbnails,
         };
       });
@@ -343,14 +345,18 @@ export function extractTwelveAlbums(
     defaultType: 'image' | 'video'
   ): StageMediaItem[] => {
     if (!files) return [];
-    return files.map((f, idx) => ({
-      id: f.id,
-      title: f.name,
-      url: ensureHttps(f.url),
-      thumbnail: getDirectImageUrl({ id: f.id, url: f.url, thumbnail: f.thumbnail }, idx),
-      category: categoryName,
-      type: (f.type as 'image' | 'video') || defaultType,
-    }));
+    return files.map((f, idx) => {
+      const itemType = determineMediaType(f.url || f.name || f.id, f.type || defaultType);
+      const safeUrl = safeEncodeUrl(f.url);
+      return {
+        id: f.id,
+        title: f.name,
+        url: safeUrl,
+        thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: f.id, url: f.url, thumbnail: f.thumbnail, type: itemType }, idx),
+        category: categoryName,
+        type: itemType,
+      };
+    });
   };
 
   const bandhobisFolder = source.leftImageFolder;

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Camera } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
 import { useVideoThumbnail, getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
 import {
   resolveMultiFrameThumbnails,
   resolveMultiFrameThumbnailsExt,
@@ -41,7 +42,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   updateMaxScroll,
   hasDragged,
 }) => {
-  const isVideo = item.type === 'video';
+  // Strict file extension-based video detection: any .mp4/.mov/.mkv/.webm/.avi is strictly a VIDEO
+  const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
   const isShort =
     variant === 'shorts' ||
     album.name.toLowerCase().includes('short') ||
@@ -128,7 +130,11 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
         <div className="flex items-center justify-between">
           <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-            <Play className="w-3 h-3 text-zinc-400 fill-current ml-0.5" />
+            {isVideo ? (
+              <Play className="w-3 h-3 text-zinc-400 fill-current ml-0.5" />
+            ) : (
+              <Camera className="w-3.5 h-3.5 text-zinc-400" />
+            )}
           </div>
           <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest font-semibold">
             SARWARCYOU
@@ -139,7 +145,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             {cleanCardTitle}
           </span>
           <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider block mt-1">
-            {badgeLabel} STREAM
+            {badgeLabel} {isVideo ? 'STREAM' : 'GALLERY'}
           </span>
         </div>
       </div>
@@ -167,6 +173,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({
         </div>
       )}
 
+      {/* Intuitive Skeleton Shimmer while Image is Loading */}
+      {!imageLoaded && !staticFallbackFailed && activeThumbnail && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden bg-zinc-950/40 z-[5]">
+          <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+        </div>
+      )}
+
       {/* Visual Thumbnail Presentation */}
       {activeThumbnail ? (
         <img
@@ -180,9 +193,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             updateMaxScroll?.();
           }}
           onError={() => {
-            if (!useExtFallback && extThumbnails.length > 0) {
+            if (isVideo && !useExtFallback && extThumbnails.length > 0) {
               setUseExtFallback(true);
-            } else if (!remoteImageFailed) {
+            } else if (isVideo && !remoteImageFailed) {
               setRemoteImageFailed(true);
             } else {
               setStaticFallbackFailed(true);

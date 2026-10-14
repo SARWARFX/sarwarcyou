@@ -4,6 +4,8 @@
  * Sanitises filenames and uses Blob streaming with fallback to anchor link.
  */
 
+import { safeEncodeUrl } from './mediaTypeDetector';
+
 /**
  * Sanitise a raw filename or URL path into a clean, filesystem-safe name.
  * Decodes URI-encoded characters, strips query strings, and replaces
@@ -38,6 +40,7 @@ function inferMime(url: string): { mime: string; ext: string } {
   if (lower.endsWith('.webm')) return { mime: 'video/webm', ext: 'webm' };
   if (lower.endsWith('.mov'))  return { mime: 'video/quicktime', ext: 'mov' };
   if (lower.endsWith('.mkv'))  return { mime: 'video/x-matroska', ext: 'mkv' };
+  if (lower.endsWith('.avi'))  return { mime: 'video/x-msvideo', ext: 'avi' };
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return { mime: 'image/jpeg', ext: 'jpg' };
   if (lower.endsWith('.png'))  return { mime: 'image/png', ext: 'png' };
   if (lower.endsWith('.webp')) return { mime: 'image/webp', ext: 'webp' };
@@ -72,7 +75,7 @@ function ensureExtension(name: string, ext: string): string {
  * @param rawName  Optional custom base name; derived from URL if omitted.
  */
 export async function downloadMedia(url: string, rawName?: string): Promise<void> {
-  const safeUrl = url.replace(/^http:\/\//i, 'https://');
+  const safeUrl = safeEncodeUrl(url.replace(/^http:\/\//i, 'https://'));
   const { mime, ext } = inferMime(safeUrl);
   const baseName = rawName ? sanitiseFilename(rawName) : sanitiseFilename(safeUrl);
   const filename = ensureExtension(baseName, ext);
