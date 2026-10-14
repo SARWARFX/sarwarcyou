@@ -592,6 +592,7 @@ function App() {
       <TopNavbar
         albums={albums}
         activeAlbumIndex={activeAlbumIndex}
+        isScrolled={activeAlbumIndex > 0 || mobileScrolled}
         onSelectAlbum={scrollToAlbum}
         onResetHome={handleResetHome}
         onSelectItem={handleSelectItem}

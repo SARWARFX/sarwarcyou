@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UniversalSearchBar } from './UniversalSearchBar';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -8,19 +8,45 @@ interface TopNavbarProps {
   onSelectAlbum?: (index: number) => void;
   onResetHome?: () => void;
   onSelectItem?: (item: StageMediaItem, albumIdx: number) => void;
+  isScrolled?: boolean;
 }
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({
   albums = [],
+  activeAlbumIndex = 0,
   onSelectAlbum,
   onResetHome,
   onSelectItem,
+  isScrolled: propIsScrolled,
 }) => {
+  const [windowScrolled, setWindowScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled =
+        window.scrollY > 80 ||
+        document.documentElement.scrollTop > 80 ||
+        document.body.scrollTop > 80;
+      setWindowScrolled(scrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll, { capture: true });
+    };
+  }, []);
+
+  // Adaptive dock-left when scrolled past initial hero or when navigating albums
+  const isDockedLeft = Boolean(propIsScrolled || windowScrolled || activeAlbumIndex > 0);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
-      <div className="w-full bg-black/90 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4 relative">
-        {/* Brand Logo & Wordmark: Centered on mobile (<768px), Left-aligned on desktop (>=768px) */}
+      <div className="w-full bg-black/90 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4 relative h-16 sm:h-20">
+        {/* Scroll-Adaptive Brand Lockup: Centered on hero load, smoothly shifts to top-left on scroll */}
         <a
           href="/"
           onClick={(e) => {
@@ -28,7 +54,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onResetHome?.();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 md:static md:translate-x-0 md:top-auto md:translate-y-0 brand-lockup inline-flex items-center justify-center gap-[10px] m-0 p-0 flex-shrink-0 cursor-pointer group bg-transparent border-none focus:outline-none select-none z-10"
+          className={`brand-adaptive-header brand-lockup inline-flex items-center gap-[10px] m-0 p-0 flex-shrink-0 cursor-pointer group bg-transparent border-none focus:outline-none select-none z-10 ${
+            isDockedLeft ? 'header-docked-left header-scrolled' : ''
+          }`}
           title="Return to Home / Top"
           aria-label="Return to Home"
         >
@@ -56,13 +84,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             {/* Segment 3: Right Slanted Leg */}
             <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#brand-dynamic-gradient)" />
           </svg>
-          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center transition-opacity group-hover:opacity-95">
+          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center transition-opacity group-hover:opacity-95 text-base sm:text-xl md:text-2xl">
             SARWARCYOU
           </h1>
         </a>
-
-        {/* Empty placeholder on mobile to balance flex layout */}
-        <div className="w-8 md:hidden" aria-hidden="true" />
 
         {/* Right: Universal Search Bar & Fast Navigation */}
         <div className="flex items-center flex-shrink-0 ml-auto z-20">

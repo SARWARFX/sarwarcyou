@@ -1,7 +1,6 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  X,
   ZoomIn,
   ZoomOut,
   Play,
@@ -500,7 +499,29 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [volume, setVolume] = useState(1);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLightboxFullscreen, setIsLightboxFullscreen] = useState(false);
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+  const isFullscreen = isNativeFullscreen || isLightboxFullscreen;
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      const isFull = Boolean(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement
+      );
+      setIsNativeFullscreen(isFull);
+      if (!isFull) {
+        setIsLightboxFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+    };
+  }, []);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
@@ -893,13 +914,33 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
   const toggleFullscreen = useCallback(() => {
     const el = videoContainerRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement) {
-      el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-    } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    if (isFullscreen) {
+      if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+      }
+      setIsLightboxFullscreen(false);
+      setIsNativeFullscreen(false);
+      return;
     }
-  }, []);
+
+    if (el) {
+      const req = el.requestFullscreen || (el as any).webkitRequestFullscreen;
+      if (req) {
+        req.call(el)
+          .then(() => setIsNativeFullscreen(true))
+          .catch(() => {
+            setIsLightboxFullscreen(true);
+          });
+        return;
+      }
+    }
+    // Mobile fallback (iOS Safari, etc.)
+    setIsLightboxFullscreen(true);
+  }, [isFullscreen]);
 
 
   const activePoster = useMemo(() => {
@@ -1017,92 +1058,59 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
-      <div className="w-full px-3.5 sm:px-6 py-2.5 sm:py-3 bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
-        {/* Mobile: Top-Left Homepage Link with Tri-Fold Delta Logo */}
-        <a
-          href="/"
-          onClick={(e) => {
-            e.preventDefault();
-            onClose();
-          }}
-          className="flex md:hidden brand-lockup items-center gap-[10px] m-0 p-0 select-none cursor-pointer group z-20 border-none outline-none"
-          title="Return to Home"
-          aria-label="Return to Home"
-        >
-          <svg
-            className="brand-delta-logo w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-            viewBox="0 0 100 100"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ display: 'block', flexShrink: 0 }}
+      <div className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
+        {/* Left: EXACTLY ONE Single Brand Lockup + Dedicated Metadata Section */}
+        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0 z-20">
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              onClose();
+            }}
+            className="brand-lockup flex items-center gap-[10px] m-0 p-0 select-none cursor-pointer group border-none outline-none flex-shrink-0"
+            title="Return to Home"
+            aria-label="Return to Home"
           >
-            <defs>
-              <linearGradient id="yt-mobile-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#ffffff" />
-                <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
-                <stop offset="100%" stop-color="#ffffff" />
-              </linearGradient>
-            </defs>
-            <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
-            <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
-            <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
-          </svg>
-          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center">
-            SARWARCYOU
-          </h1>
-        </a>
+            <svg
+              className="brand-delta-logo w-[32px] h-[32px] sm:w-[38px] sm:h-[38px] flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+              viewBox="0 0 100 100"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ display: 'block', flexShrink: 0 }}
+            >
+              <defs>
+                <linearGradient id="yt-theater-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
+                  <stop offset="100%" stop-color="#ffffff" />
+                </linearGradient>
+              </defs>
+              <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#yt-theater-brand-dynamic-gradient)" />
+              <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#yt-theater-brand-dynamic-gradient)" />
+              <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#yt-theater-brand-dynamic-gradient)" />
+            </svg>
+            <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center text-sm sm:text-base md:text-lg">
+              SARWARCYOU
+            </h1>
+          </a>
 
-        {/* Desktop: Album Name Pill & Counter on Left (Hidden on Mobile) */}
-        <div className="hidden md:flex items-center gap-2 min-w-0 max-w-[35%] z-10">
-          <span className="px-2.5 py-1 rounded-xl bg-zinc-900/60 text-zinc-200 font-bold tracking-wide text-sm sm:text-base uppercase flex-shrink-0 truncate">
-            {album?.name || 'ALBUM'}
-          </span>
-          <span className="text-zinc-600">•</span>
-          <span className="text-zinc-200 font-bold tracking-wide text-sm sm:text-base flex-shrink-0">
-            {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
-          </span>
-          <span className="text-zinc-200 font-medium truncate hidden xl:inline text-xs sm:text-sm">
-            {cleanTitle}
-          </span>
+          {/* Dedicated Media Metadata (Album Pill & Photo Counter) Beside Brand */}
+          <div className="flex items-center gap-2 min-w-0 pl-2 sm:pl-3 border-l border-white/10 truncate">
+            <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0 truncate hidden xs:inline">
+              {album?.name || 'ALBUM'}
+            </span>
+            <span className="text-zinc-600 hidden xs:inline">•</span>
+            <span className="text-zinc-300 font-bold tracking-wide text-xs flex-shrink-0">
+              {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
+            </span>
+            <span className="text-zinc-400 font-medium truncate hidden md:inline text-xs max-w-[200px] lg:max-w-xs">
+              {cleanTitle}
+            </span>
+          </div>
         </div>
 
-        {/* Desktop: Centered Website Logo & Wordmark (Hidden on Mobile) */}
-        <a
-          href="/"
-          onClick={(e) => {
-            e.preventDefault();
-            onClose();
-          }}
-          className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 brand-lockup items-center justify-center gap-[10px] m-0 p-0 select-none cursor-pointer group z-10 border-none outline-none"
-          title="Return to Home"
-          aria-label="Return to Home"
-        >
-          <svg
-            className="brand-delta-logo w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-            viewBox="0 0 100 100"
-            width="42"
-            height="42"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ display: 'block', flexShrink: 0 }}
-          >
-            <defs>
-              <linearGradient id="yt-desktop-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#ffffff" />
-                <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(205, 100%, 65%)" />
-                <stop offset="100%" stop-color="#ffffff" />
-              </linearGradient>
-            </defs>
-            <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
-            <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
-            <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
-          </svg>
-          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center group-hover:opacity-90 transition-opacity">
-            SARWARCYOU
-          </h1>
-        </a>
-
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-10">
+        {/* Right: Actions (Zoom, Download, Prominent View Full Screen - NO Close Button) */}
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-20">
           {!isVideo && (
             <button
               onClick={() => setIsZoomed(!isZoomed)}
@@ -1143,12 +1151,23 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             )}
           </button>
 
+          {/* Prominent View Full Screen Button (Replaces Close Button) */}
           <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer"
-            title="Close (Esc)"
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-200 hover:text-white text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 cursor-pointer"
+            title={isFullscreen ? 'Exit Full Screen' : 'View Full Screen'}
           >
-            <X className="w-4 h-4" />
+            {isFullscreen ? (
+              <>
+                <Minimize className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline">EXIT FULLSCREEN</span>
+              </>
+            ) : (
+              <>
+                <Maximize className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline">VIEW FULL SCREEN</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -1166,10 +1185,26 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               onTouchMove={handleStageTouchMove}
               onTouchEnd={handleStageTouchEnd}
               onClick={resetHudTimer}
+              onDoubleClick={toggleFullscreen}
               className={`relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden transition-opacity duration-200 aspect-video max-h-[36vh] md:aspect-auto md:max-h-none ${
                 isCrossfading ? 'opacity-30' : 'opacity-100'
-              }`}
+              } ${isLightboxFullscreen ? 'lightbox-fullscreen-active' : ''}`}
             >
+              {/* Fallback Exit Fullscreen Floating Button */}
+              {isLightboxFullscreen && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsLightboxFullscreen(false);
+                  }}
+                  className="fixed top-4 right-4 z-[100000] px-3.5 py-1.5 rounded-full bg-black/85 hover:bg-black text-white text-xs font-mono backdrop-blur-md border border-white/20 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xl"
+                  title="Exit Fullscreen"
+                >
+                  <Minimize className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>EXIT FULLSCREEN</span>
+                </button>
+              )}
+
               {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
               {isVideo && isDirectVideo && (
                 <video
