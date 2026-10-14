@@ -7,6 +7,7 @@ import { AlbumStage } from './components/AlbumStage';
 import { TopNavbar } from './components/TopNavbar';
 import { AlbumProgressDots } from './components/AlbumProgressDots';
 import { SplashPreloader } from './components/SplashPreloader';
+import { MobileGalleryFeed } from './components/MobileGalleryFeed';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
@@ -263,8 +264,24 @@ function App() {
     }
   }, [albums, addToHistory]);
 
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const [mobileScrolled, setMobileScrolled] = useState(false);
+
+  const handleMobileScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setMobileScrolled(e.currentTarget.scrollTop > 250);
+  }, []);
+
   // Luxury Elevator Smooth Navigation
   const scrollToAlbum = useCallback((targetIndex: number) => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      const el = document.getElementById(`mobile-album-${targetIndex}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      setActiveAlbumIndex(targetIndex);
+      return;
+    }
+
     const clamped = Math.max(0, Math.min(albums.length - 1, targetIndex));
     if (clamped === activeAlbumIndexRef.current && !isTransitioningRef.current) return;
     if (isTransitioningRef.current) return;
@@ -300,12 +317,19 @@ function App() {
   }, [scrollToAlbum]);
 
   const handleBackToTop = useCallback(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && mobileScrollRef.current) {
+      mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     scrollToAlbum(0);
   }, [scrollToAlbum]);
 
   const handleResetHome = useCallback(() => {
     setTheaterState((prev) => ({ ...prev, isOpen: false }));
     setShortsState((prev) => ({ ...prev, isOpen: false }));
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && mobileScrollRef.current) {
+      mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     scrollToAlbum(0);
     syncUrlState({ album: null, mediaItem: null, replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -409,11 +433,13 @@ function App() {
     let touchStartX = 0;
 
     const onTouchStart = (e: TouchEvent) => {
+      if (window.innerWidth < 768) return;
       touchStartY = e.touches[0].clientY;
       touchStartX = e.touches[0].clientX;
     };
 
     const onTouchEnd = (e: TouchEvent) => {
+      if (window.innerWidth < 768) return;
       if (isModalOpen) return;
       if (isTransitioningRef.current) return;
 
@@ -495,9 +521,19 @@ function App() {
         initialVideoUrls={initialVideoUrls}
       />
 
-      {/* ================= VERTICAL LUXURY ELEVATOR CONTAINER ================= */}
+      {/* ================= MOBILE HIGH-DENSITY NATIVE SCROLL GALLERY (md:hidden) ================= */}
+      <MobileGalleryFeed
+        albums={albums}
+        onSelectItem={handleSelectItem}
+        recentItems={recentItems}
+        onClearHistory={clearHistory}
+        scrollRef={mobileScrollRef}
+        onScroll={handleMobileScroll}
+      />
+
+      {/* ================= DESKTOP VERTICAL LUXURY ELEVATOR CONTAINER (hidden md:block) ================= */}
       <div
-        className="absolute inset-0 w-full will-change-transform"
+        className="hidden md:block absolute inset-0 w-full will-change-transform"
         style={{
           transform: `translate3d(0, -${activeAlbumIndex * 100}vh, 0)`,
           transition: isTransitioning
@@ -570,7 +606,7 @@ function App() {
       )}
 
       {/* ================= FLOATING "BACK TO TOP" PILL ================= */}
-      {activeAlbumIndex > 0 && (
+      {(activeAlbumIndex > 0 || mobileScrolled) && (
         <button
           onClick={handleBackToTop}
           className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/80 hover:bg-zinc-900 border border-white/10 hover:border-white/25 backdrop-blur-xl text-zinc-300 hover:text-white shadow-2xl transition-all duration-300 ease-out cursor-pointer group"

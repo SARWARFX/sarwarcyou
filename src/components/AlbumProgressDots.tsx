@@ -21,7 +21,7 @@ export const AlbumProgressDots: React.FC<AlbumProgressDotsProps> = ({
   return (
     <nav
       aria-label="12 Album Progress"
-      className="fixed right-3 sm:right-5 top-1/2 -translate-y-1/2 z-35 flex flex-col items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-full border backdrop-blur-2xl select-none pointer-events-auto bg-black/75 border-white/[0.09] shadow-2xl transition-opacity duration-300"
+      className="hidden md:flex fixed right-3 sm:right-5 top-1/2 -translate-y-1/2 z-35 flex-col items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-full border backdrop-blur-2xl select-none pointer-events-auto bg-black/75 border-white/[0.09] shadow-2xl transition-opacity duration-300"
     >
       {albums.map((album, idx) => {
         const isActive = idx === activeAlbumIndex;
