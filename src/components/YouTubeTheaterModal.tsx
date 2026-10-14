@@ -841,14 +841,15 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   // Dock global site header to top-left when theater viewer is active
   useEffect(() => {
     const header = document.getElementById('global-site-header');
-    if (header) {
-      if (isOpen) {
-        header.classList.add('docked-left');
-      } else {
-        header.classList.remove('docked-left');
-      }
+    if (isOpen) {
+      document.body.classList.add('viewing-media');
+      if (header) header.classList.add('docked-left');
+    } else {
+      document.body.classList.remove('viewing-media');
+      if (header) header.classList.remove('docked-left');
     }
     return () => {
+      document.body.classList.remove('viewing-media');
       const h = document.getElementById('global-site-header');
       if (h) h.classList.remove('docked-left');
     };
@@ -1081,9 +1082,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
-      <div className="viewer-top-bar w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
+      <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
         {/* Left: Dedicated Media Metadata (Album Pill & Photo Counter) */}
-        <div className="flex items-center gap-2 min-w-0 truncate z-20">
+        <div className="viewer-media-meta player-media-title z-20">
           <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0 truncate hidden xs:inline">
             {album?.name || 'ALBUM'}
           </span>
@@ -1091,7 +1092,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           <span className="text-zinc-300 font-bold tracking-wide text-xs flex-shrink-0">
             {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
           </span>
-          <span className="text-zinc-400 font-medium truncate hidden md:inline text-xs max-w-[200px] lg:max-w-xs">
+          <span className="truncate max-w-[200px] lg:max-w-xs">
             {cleanTitle}
           </span>
         </div>

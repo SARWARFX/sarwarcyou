@@ -273,35 +273,73 @@ html, body {
 
 #global-site-header.scrolled,
 #global-site-header.docked-left,
+body.viewing-media #global-site-header,
 .site-header.scrolled,
 .site-header.docked-left,
 .main-header.scrolled {
-  left: 1.5rem;
-  transform: translateX(0);
+  position: fixed !important;
+  top: 1rem !important;
+  left: 1.5rem !important;
+  transform: translateX(0) !important;
+  z-index: 100 !important;
+  margin: 0 !important;
 }
 
 @media (max-width: 640px) {
   #global-site-header.scrolled,
   #global-site-header.docked-left,
+  body.viewing-media #global-site-header,
   .site-header.scrolled,
   .site-header.docked-left,
   .main-header.scrolled {
-    left: 1rem;
+    left: 1rem !important;
   }
 }
 
-/* Media Viewer Top Bar Safe Margin for Top-Left Docked Logo */
+/* Reserve space for the fixed/docked logo at top-left */
 .viewer-top-bar,
+.player-header-bar,
 .player-top-bar,
 .media-viewer-top-bar {
-  padding-left: clamp(160px, 18vw, 220px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+  padding-right: 1.5rem !important;
+  /* Clear the logo width + breathing room */
+  padding-left: clamp(210px, 22vw, 280px) !important;
+  box-sizing: border-box !important;
+  position: relative;
+  z-index: 50;
+}
+
+/* Media title & photo counter styling */
+.viewer-media-meta,
+.player-media-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-width: 0 !important;
 }
 
 @media (max-width: 640px) {
   .viewer-top-bar,
+  .player-header-bar,
   .player-top-bar,
   .media-viewer-top-bar {
-    padding-left: clamp(120px, 20vw, 160px) !important;
+    padding-left: clamp(170px, 26vw, 220px) !important;
+    padding-right: 0.75rem !important;
   }
 }
 

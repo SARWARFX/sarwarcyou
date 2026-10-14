@@ -117,14 +117,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Dock global site header to top-left when media viewer is active
   useEffect(() => {
     const header = document.getElementById('global-site-header');
-    if (header) {
-      if (isOpen) {
-        header.classList.add('docked-left');
-      } else {
-        header.classList.remove('docked-left');
-      }
+    if (isOpen) {
+      document.body.classList.add('viewing-media');
+      if (header) header.classList.add('docked-left');
+    } else {
+      document.body.classList.remove('viewing-media');
+      if (header) header.classList.remove('docked-left');
     }
     return () => {
+      document.body.classList.remove('viewing-media');
       const h = document.getElementById('global-site-header');
       if (h) h.classList.remove('docked-left');
     };
@@ -178,15 +179,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     >
       {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
       <div
-        className="viewer-top-bar fixed top-0 left-0 right-0 w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-[110] border-b border-white/[0.06]"
+        className="viewer-top-bar player-header-bar fixed top-0 left-0 right-0 w-full bg-black/85 backdrop-blur-xl border-b border-white/[0.06]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: Dedicated Media Metadata (Pill & Clean Title) */}
-        <div className="flex items-center gap-2 min-w-0 truncate">
+        <div className="viewer-media-meta player-media-title">
           <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0">
             {type === 'video' ? 'Video' : 'Photo'}
           </span>
-          <span className="text-zinc-400 font-medium truncate hidden sm:inline text-xs max-w-[200px] md:max-w-md">
+          <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md">
             {displayTitle}
           </span>
         </div>
