@@ -21,9 +21,11 @@ import {
   Gauge,
   Film,
   Camera,
+  AlertCircle,
+  ExternalLink,
 } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
-import { isVideoExtension, safeEncodeUrl, isHiddenOrSystemFolder } from '../utils/mediaTypeDetector';
+import { isVideoExtension, isHiddenOrSystemFolder, encodeStreamUrl } from '../utils/mediaTypeDetector';
 import { downloadMedia } from '../utils/downloadMedia';
 import {
   getCachedVideoPoster,
@@ -464,6 +466,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const [posterFailed, setPosterFailed] = useState(false);
   const [modalImageLoaded, setModalImageLoaded] = useState(false);
   const [modalImageFailed, setModalImageFailed] = useState(false);
+  const [isStalled, setIsStalled] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const stallTimerRef = useRef<number | null>(null);
 
   // Ripple feedback states
   const [centerRipple, setCenterRipple] = useState<'play' | 'pause' | null>(null);
@@ -489,6 +494,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setHasStarted(false);
     setIsPlaying(false);
     setIsBuffering(true);
+    setIsStalled(false);
+    setPlaybackError(null);
     setCurrentTime(0);
     setDismissOffsetY(0);
     setIsAbLoopActive(false);
@@ -497,6 +504,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setPosterFailed(false);
     setModalImageLoaded(false);
     setModalImageFailed(false);
+    if (stallTimerRef.current) {
+      window.clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    }
   }, [initialIndex, isOpen]);
 
   const items = useMemo(() => album?.items || [], [album]);
@@ -607,6 +618,8 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       setHasStarted(false);
       setIsPlaying(false);
       setIsBuffering(true);
+      setIsStalled(false);
+      setPlaybackError(null);
       setCurrentIndex(next);
       setDismissOffsetY(0);
       setIsAbLoopActive(false);
@@ -815,7 +828,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     );
   }, [currentItem, currentIndex, initialIndex, posterUrl, posterFailed]);
 
-  const rawUrl = currentItem ? safeEncodeUrl(currentItem.url) : '';
+  const rawUrl = currentItem ? encodeStreamUrl(currentItem.url) : '';
   let streamUrl = rawUrl;
   if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
     streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
@@ -823,6 +836,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       streamUrl = streamUrl.replace(/\?usp=.*$/, '') + '/preview';
     }
   }
+  const cleanStreamUrl = encodeStreamUrl(streamUrl);
 
   // Strict file extension-based video detection: any .mp4/.mov/.mkv/.webm/.avi is strictly a VIDEO
   const isVideo =
@@ -830,23 +844,59 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     currentItem?.type === 'video';
   const isDirectVideo =
     isVideo &&
-    (isVideoExtension(streamUrl) || streamUrl.includes('huggingface.co'));
+    (isVideoExtension(cleanStreamUrl) || cleanStreamUrl.includes('huggingface.co'));
 
-  // Aggressive Playback Initialization: immediately invoke .play().catch(...)
+  // Video Streaming Initialization and 15-Second Stall Detector
   useEffect(() => {
-    if (!isOpen || !isVideo || !videoRef.current) return;
-    videoRef.current.currentTime = 0;
-    const playPromise = videoRef.current.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch(() => {
-          // Handled via user tap if blocked by browser policy
-        });
+    if (!isOpen || !isVideo) return;
+    setIsStalled(false);
+    setPlaybackError(null);
+    setIsBuffering(true);
+
+    if (stallTimerRef.current) {
+      window.clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
     }
-  }, [currentIndex, isOpen, streamUrl, isVideo]);
+
+    // 15-second stall detector: If a video fails or stays in readyState < 2 for over 15s
+    stallTimerRef.current = window.setTimeout(() => {
+      if (videoRef.current) {
+        if (videoRef.current.readyState < 2) {
+          setIsStalled(true);
+          setIsBuffering(false);
+        }
+      } else {
+        setIsStalled(true);
+        setIsBuffering(false);
+      }
+    }, 15000);
+
+    // Initial play trigger
+    if (videoRef.current) {
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setHasStarted(true);
+            setIsBuffering(false);
+            setIsStalled(false);
+            setPlaybackError(null);
+          })
+          .catch(() => {
+            // Autoplay blocked by browser policy without gesture; reveal Play button
+            setIsBuffering(false);
+          });
+      }
+    }
+
+    return () => {
+      if (stallTimerRef.current) {
+        window.clearTimeout(stallTimerRef.current);
+        stallTimerRef.current = null;
+      }
+    };
+  }, [currentIndex, isOpen, cleanStreamUrl, isVideo]);
 
   if (!isOpen || !currentItem) return null;
 
@@ -954,12 +1004,13 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
               {isVideo && isDirectVideo && (
                 <video
-                  src={streamUrl}
+                  src={cleanStreamUrl}
                   aria-hidden="true"
                   muted
                   loop
                   playsInline
                   autoPlay
+                  preload="none"
                   className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 scale-105 pointer-events-none z-0"
                 />
               )}
@@ -970,12 +1021,12 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
                     <video
                       ref={videoRef}
-                      key={streamUrl}
-                      src={streamUrl}
+                      key={cleanStreamUrl}
+                      src={cleanStreamUrl}
                       poster={activePoster}
                       autoPlay
                       playsInline
-                      preload="auto"
+                      preload="metadata"
                       controls={false}
                       muted={isMuted}
                       onClick={togglePlay}
@@ -983,16 +1034,58 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       onLoadedMetadata={() => {
                         if (videoRef.current) setDuration(videoRef.current.duration);
                       }}
+                      onLoadedData={() => {
+                        if (videoRef.current && videoRef.current.readyState >= 2) {
+                          setIsBuffering(false);
+                          setIsStalled(false);
+                          setPlaybackError(null);
+                          if (stallTimerRef.current) {
+                            window.clearTimeout(stallTimerRef.current);
+                            stallTimerRef.current = null;
+                          }
+                        }
+                      }}
+                      onCanPlay={() => {
+                        setIsBuffering(false);
+                        setIsStalled(false);
+                        setPlaybackError(null);
+                        if (stallTimerRef.current) {
+                          window.clearTimeout(stallTimerRef.current);
+                          stallTimerRef.current = null;
+                        }
+                      }}
                       onPlaying={() => {
                         setHasStarted(true);
                         setIsPlaying(true);
                         setIsBuffering(false);
+                        setIsStalled(false);
+                        setPlaybackError(null);
+                        if (stallTimerRef.current) {
+                          window.clearTimeout(stallTimerRef.current);
+                          stallTimerRef.current = null;
+                        }
                       }}
                       onWaiting={() => {
-                        setIsBuffering(true);
+                        if (!isStalled && !playbackError) {
+                          setIsBuffering(true);
+                        }
                       }}
-                      onCanPlay={() => {
+                      onError={() => {
+                        const err = videoRef.current?.error;
+                        let msg = 'Failed to load video stream.';
+                        if (err) {
+                          if (err.code === 1) msg = 'Video loading aborted.';
+                          else if (err.code === 2) msg = 'Network error while streaming video.';
+                          else if (err.code === 3) msg = 'Video decoding failed or codec unsupported.';
+                          else if (err.code === 4) msg = 'Video file unavailable or link expired.';
+                        }
+                        setPlaybackError(msg);
+                        setIsStalled(true);
                         setIsBuffering(false);
+                        if (stallTimerRef.current) {
+                          window.clearTimeout(stallTimerRef.current);
+                          stallTimerRef.current = null;
+                        }
                       }}
                       onPlay={() => setIsPlaying(true)}
                       onPause={() => setIsPlaying(false)}
@@ -1028,7 +1121,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       )}
 
                       {/* Sleek Minimal Glowing Buffering Indicator over Poster */}
-                      {!hasStarted && isBuffering && (
+                      {!hasStarted && isBuffering && !isStalled && !playbackError && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 backdrop-blur-[2px]">
                           <div className="relative w-12 h-12 flex items-center justify-center">
                             <div className="absolute inset-0 rounded-full border-2 border-white/10 border-t-white animate-spin" />
@@ -1041,7 +1134,75 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           </span>
                         </div>
                       )}
+
+                      {/* Click to Play Button if Autoplay was held by Browser */}
+                      {!hasStarted && !isBuffering && !isStalled && !playbackError && !isPlaying && (
+                        <div
+                          className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 pointer-events-auto cursor-pointer"
+                          onClick={togglePlay}
+                        >
+                          <div className="w-16 h-16 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 flex items-center justify-center transition-all transform hover:scale-110 shadow-2xl">
+                            <Play className="w-7 h-7 text-white fill-current ml-1" />
+                          </div>
+                          <span className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-200 font-bold">
+                            CLICK TO PLAY
+                          </span>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Explicit Stall / Error Fallback Overlay */}
+                    {(isStalled || playbackError) && (
+                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-6 text-center select-auto">
+                        <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4 text-red-400">
+                          <AlertCircle className="w-7 h-7" />
+                        </div>
+
+                        <span className="px-2.5 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 font-mono text-[10px] uppercase tracking-widest font-bold mb-2">
+                          {playbackError ? 'STREAM ERROR' : 'STREAM STALLED (>15S)'}
+                        </span>
+
+                        <h3 className="text-base sm:text-lg font-bold font-space text-zinc-100 max-w-md truncate mb-1">
+                          {cleanTitle}
+                        </h3>
+
+                        <p className="text-xs text-zinc-400 max-w-sm mb-6 leading-relaxed">
+                          {playbackError ||
+                            'The video stream is taking longer than 15 seconds to buffer. You can retry loading or open/download the raw video directly.'}
+                        </p>
+
+                        <div className="flex flex-wrap items-center justify-center gap-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsStalled(false);
+                              setPlaybackError(null);
+                              setIsBuffering(true);
+                              if (videoRef.current) {
+                                videoRef.current.load();
+                                videoRef.current.play().catch(() => {});
+                              }
+                            }}
+                            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-medium flex items-center gap-2 border border-white/10 transition-colors cursor-pointer"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            RETRY STREAM
+                          </button>
+
+                          <a
+                            href={cleanStreamUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={cleanTitle}
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-semibold text-xs font-mono flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            OPEN / DOWNLOAD VIDEO
+                          </a>
+                        </div>
+                      </div>
+                    )}
 
                     {/* In-stream buffering spinner if video stalls during playback */}
                     {hasStarted && isBuffering && (

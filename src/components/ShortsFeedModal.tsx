@@ -85,7 +85,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     if (videoRef.current) {
-      videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {});
     }
     // Pre-warm next and previous reels for instant swipe
@@ -335,7 +334,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 src={streamUrl}
                 poster={shortPoster || undefined}
                 autoPlay
-                preload="auto"
+                preload="metadata"
                 loop={isLooping}
                 muted={isMuted}
                 playsInline

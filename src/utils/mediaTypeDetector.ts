@@ -107,29 +107,73 @@ export function safeEncodeHfPath(path: string): string {
 }
 
 /**
- * Encodes an entire URL, specifically protecting path segments in Hugging Face CDN URLs
- * from containing illegal characters such as [, ], (, ), spaces, and #.
+ * Strictly encodes video stream URLs so spaces and special characters like [, ], (, ), and &
+ * do not break HTTP Range requests, while preserving the raw direct download/resolve endpoint:
+ * https://huggingface.co/datasets/{USER}/{REPO}/resolve/main/{FILE_PATH}
  */
-export function safeEncodeUrl(url: string): string {
-  if (!url) return '';
-  const safe = url.replace(/^http:\/\//i, 'https://');
+export function encodeStreamUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  let safe = rawUrl.replace(/^http:\/\//i, 'https://');
 
+  // Verify and enforce Hugging Face direct resolve endpoint format (/resolve/main/)
+  if (safe.includes('huggingface.co/datasets/')) {
+    if (safe.includes('/raw/main/')) {
+      safe = safe.replace('/raw/main/', '/resolve/main/');
+    } else if (safe.includes('/tree/main/')) {
+      safe = safe.replace('/tree/main/', '/resolve/main/');
+    }
+  }
+
+  // Handle Hugging Face /resolve/main/
   if (safe.includes('/resolve/main/')) {
     const parts = safe.split('/resolve/main/');
     const base = parts[0];
-    const rest = parts.slice(1).join('/resolve/main/');
-    const [pathPart, queryOrHash] = rest.split(/(?=[?#])/);
-    const encodedPath = safeEncodeHfPath(pathPart || '');
-    return `${base}/resolve/main/${encodedPath}${queryOrHash || ''}`;
+    const pathPart = parts.slice(1).join('/resolve/main/');
+    const cleanPath = pathPart
+      .split('/')
+      .map((segment) =>
+        encodeURIComponent(decodeURIComponent(segment))
+          .replace(/\(/g, '%28')
+          .replace(/\)/g, '%29')
+      )
+      .join('/');
+    return `${base}/resolve/main/${cleanPath}`;
   }
 
-  // If already standard http/https URL, try URI encode
-  try {
-    return encodeURI(decodeURI(safe));
-  } catch {
-    return safe;
+  // If already standard full URL with protocol
+  if (safe.includes('://')) {
+    try {
+      const parsed = new URL(safe);
+      const cleanPath = parsed.pathname
+        .split('/')
+        .map((segment) =>
+          encodeURIComponent(decodeURIComponent(segment))
+            .replace(/\(/g, '%28')
+            .replace(/\)/g, '%29')
+        )
+        .join('/');
+      return `${parsed.origin}${cleanPath}${parsed.search}${parsed.hash}`;
+    } catch {
+      // fallback
+    }
   }
+
+  // Fallback / relative file path: encode each segment
+  return safe
+    .split('/')
+    .map((segment) =>
+      encodeURIComponent(decodeURIComponent(segment))
+        .replace(/\(/g, '%28')
+        .replace(/\)/g, '%29')
+    )
+    .join('/');
 }
+
+/**
+ * Encodes an entire URL, specifically protecting path segments in Hugging Face CDN URLs
+ * from containing illegal characters such as [, ], (, ), spaces, and #.
+ */
+export const safeEncodeUrl = encodeStreamUrl;
 
 /**
  * Checks whether a path or URL belongs to a hidden or system directory (e.g., .thumbnails, .git, .cache, .github)

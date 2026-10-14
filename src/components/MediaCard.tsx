@@ -3,7 +3,7 @@ import { Play, Camera } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
 import { prewarmVideoStream, getCachedVideoPoster } from '../utils/videoPosterGenerator';
 import { useVideoThumbnail, getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
-import { isVideoExtension } from '../utils/mediaTypeDetector';
+import { isVideoExtension, encodeStreamUrl } from '../utils/mediaTypeDetector';
 import {
   resolveMultiFrameThumbnails,
   resolveMultiFrameThumbnailsExt,
@@ -65,15 +65,17 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
   const activeThumbList = useExtFallback ? extThumbnails : primaryThumbnails;
 
+  const streamUrl = isVideo ? encodeStreamUrl(item.url) : '';
+
   // 2. Client-side Canvas/IndexedDB thumbnail fallback if remote WebP isn't ready
   const { thumbnail: clientThumbnail } = useVideoThumbnail(
-    isVideo ? item.url : undefined,
+    isVideo ? streamUrl : undefined,
     isShort
   );
 
   const directImgUrl = getDirectImageUrl(item, idx);
   const staticFallbackThumbnail = isVideo
-    ? clientThumbnail || getCachedThumbnailSync(item.url) || getCachedVideoPoster(item.url) || item.thumbnail
+    ? clientThumbnail || getCachedThumbnailSync(streamUrl) || getCachedThumbnailSync(item.url) || getCachedVideoPoster(streamUrl) || getCachedVideoPoster(item.url) || item.thumbnail
     : directImgUrl;
 
   // 3. YouTube-style Hover Scrubbing hook
@@ -109,10 +111,10 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     <div
       onMouseEnter={() => {
         onHover(idx);
-        if (isVideo) prewarmVideoStream(item.url);
+        if (isVideo) prewarmVideoStream(streamUrl || item.url);
       }}
       onTouchStart={() => {
-        if (isVideo) prewarmVideoStream(item.url);
+        if (isVideo) prewarmVideoStream(streamUrl || item.url);
       }}
       onMouseLeave={() => onHover(null)}
       onClick={(e) => {
