@@ -130,3 +130,83 @@ export function safeEncodeUrl(url: string): string {
     return safe;
   }
 }
+
+/**
+ * Checks whether a path or URL belongs to a hidden or system directory (e.g., .thumbnails, .git, .cache, .github)
+ * or has any path segment starting with a dot.
+ */
+export function isHiddenOrSystemPath(pathOrUrl?: string | null): boolean {
+  if (!pathOrUrl) return false;
+  let clean = pathOrUrl.split('?')[0].split('#')[0];
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {
+    // leave as is
+  }
+
+  // Normalize slashes
+  clean = clean.replace(/\\/g, '/');
+
+  // Strip Hugging Face resolve base or protocol domain if present
+  if (clean.includes('/resolve/main/')) {
+    clean = clean.split('/resolve/main/')[1] || clean;
+  } else if (clean.includes('://')) {
+    try {
+      const parsed = new URL(clean);
+      clean = parsed.pathname;
+    } catch {
+      // fallback
+    }
+  }
+
+  // Normalize leading and trailing slashes
+  clean = clean.replace(/^\/+|\/+$/g, '').trim();
+
+  // Explicit check for .thumbnails
+  const lower = clean.toLowerCase();
+  if (
+    lower === '.thumbnails' ||
+    lower.startsWith('.thumbnails/') ||
+    lower.includes('/.thumbnails/') ||
+    lower.endsWith('/.thumbnails')
+  ) {
+    return true;
+  }
+
+  // Check all path segments: any segment starting with a dot or equal to .thumbnails is hidden/system
+  const segments = clean.split('/');
+  return segments.some((segment) => {
+    const s = segment.trim();
+    return s.startsWith('.') || s.toLowerCase() === '.thumbnails';
+  });
+}
+
+/**
+ * Checks whether a folder name or album ID represents a hidden/system directory.
+ */
+export function isHiddenOrSystemFolder(folderOrName?: string | null): boolean {
+  if (!folderOrName) return false;
+  let clean = folderOrName.trim();
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {
+    // leave as is
+  }
+  clean = clean.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').trim();
+  const lower = clean.toLowerCase();
+
+  if (
+    lower.startsWith('.') ||
+    lower.startsWith('album-.') ||
+    lower === '.thumbnails' ||
+    lower.includes('.thumbnails') ||
+    lower === '.git' ||
+    lower === '.cache' ||
+    lower === '.github' ||
+    lower === '.vscode'
+  ) {
+    return true;
+  }
+
+  return isHiddenOrSystemPath(clean);
+}

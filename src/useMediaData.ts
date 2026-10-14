@@ -33,6 +33,7 @@ import {
   isPhotoExtension,
   safeEncodeHfPath,
   safeEncodeUrl,
+  isHiddenOrSystemPath,
 } from './utils/mediaTypeDetector';
 
 export const VIDEO_EXTENSIONS = /\.(mp4|mov|mkv|webm|avi)(\?|#|$)/i;
@@ -175,6 +176,10 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
   for (const item of tree) {
     if (item.type !== 'file' || !item.path) continue;
     const path = item.path;
+
+    // Strict exclusion: completely ignore any file or path inside .thumbnails or dot-directories
+    if (isHiddenOrSystemPath(path)) continue;
+
     const name = path.split('/').pop() || path;
     const url = buildHfMediaUrl(path);
 
@@ -282,18 +287,24 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
       const rawData = await jsonRes.json();
       if (rawData && Array.isArray(rawData.images) && Array.isArray(rawData.clips)) {
         const catalog: HfMediaCatalog = {
-          clips: (rawData.clips || []).map((x: HfMediaItem) => ({
-            ...x,
-            url: buildHfMediaUrl(x.path || x.name),
-          })),
-          shorts: (rawData.shorts || []).map((x: HfMediaItem) => ({
-            ...x,
-            url: buildHfMediaUrl(x.path || x.name),
-          })),
-          images: (rawData.images || []).map((x: HfMediaItem) => ({
-            ...x,
-            url: buildHfMediaUrl(x.path || x.name),
-          })),
+          clips: (rawData.clips || [])
+            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+            .map((x: HfMediaItem) => ({
+              ...x,
+              url: buildHfMediaUrl(x.path || x.name),
+            })),
+          shorts: (rawData.shorts || [])
+            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+            .map((x: HfMediaItem) => ({
+              ...x,
+              url: buildHfMediaUrl(x.path || x.name),
+            })),
+          images: (rawData.images || [])
+            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+            .map((x: HfMediaItem) => ({
+              ...x,
+              url: buildHfMediaUrl(x.path || x.name),
+            })),
         };
         setCachedCatalog(catalog);
         return catalog;

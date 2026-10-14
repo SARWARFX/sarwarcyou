@@ -1,7 +1,12 @@
 import type { ApiResponseData, HfMediaCatalog, HfMediaItem, AlbumData, StageMediaItem } from '../types';
 import { FALLBACK_HF_CATALOG, FALLBACK_MEDIA_DATA } from '../data/fallbackData';
 import { getDirectImageUrl } from './imageUrlResolver';
-import { determineMediaType, safeEncodeUrl } from './mediaTypeDetector';
+import {
+  determineMediaType,
+  safeEncodeUrl,
+  isHiddenOrSystemPath,
+  isHiddenOrSystemFolder,
+} from './mediaTypeDetector';
 
 function isHfCatalog(data: unknown): data is HfMediaCatalog {
   return (
@@ -17,8 +22,13 @@ function isHfCatalog(data: unknown): data is HfMediaCatalog {
  * Any empty / pending folders (count === 0) are placed cleanly at the very bottom.
  */
 export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
-  const populated = albums.filter((a) => a.items && a.items.length > 0);
-  const empty = albums.filter((a) => !a.items || a.items.length === 0);
+  // Strict filter: exclude .thumbnails, .git, .cache, and any dot-directories from album listings
+  const validAlbums = albums.filter(
+    (a) => !isHiddenOrSystemFolder(a.name) && !isHiddenOrSystemFolder(a.id)
+  );
+
+  const populated = validAlbums.filter((a) => a.items && a.items.length > 0);
+  const empty = validAlbums.filter((a) => !a.items || a.items.length === 0);
 
   const images = populated.filter((a) => a.type === 'image');
   const videos = populated.filter((a) => a.type === 'video');
@@ -60,19 +70,21 @@ export function extractTwelveAlbums(
       categoryName: string,
       defaultType: 'image' | 'video'
     ): StageMediaItem[] => {
-      return items.map((item, idx) => {
-        const itemType = determineMediaType(item.path || item.name || item.url, defaultType);
-        const safeUrl = safeEncodeUrl(item.url || item.path);
-        return {
-          id: item.path || `${categoryName}-${idx}`,
-          title: item.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() || `${categoryName} ${idx + 1}`,
-          url: safeUrl,
-          thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: item.path, url: item.url, type: itemType }, idx),
-          category: categoryName,
-          type: itemType,
-          thumbnails: item.thumbnails,
-        };
-      });
+      return items
+        .filter((item) => !isHiddenOrSystemPath(item.path || item.name || item.url))
+        .map((item, idx) => {
+          const itemType = determineMediaType(item.path || item.name || item.url, defaultType);
+          const safeUrl = safeEncodeUrl(item.url || item.path);
+          return {
+            id: item.path || `${categoryName}-${idx}`,
+            title: item.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() || `${categoryName} ${idx + 1}`,
+            url: safeUrl,
+            thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: item.path, url: item.url, type: itemType }, idx),
+            category: categoryName,
+            type: itemType,
+            thumbnails: item.thumbnails,
+          };
+        });
     };
 
     const bandhobisFiles = mapHfItems(
@@ -277,8 +289,9 @@ export function extractTwelveAlbums(
 
     const extraImageFolders = new Map<string, HfMediaItem[]>();
     for (const img of catalog.images) {
+      if (isHiddenOrSystemPath(img.path || img.name || img.url)) continue;
       const sub = getSubfolder(img.path);
-      if (sub && !isStandardImageFolder(sub)) {
+      if (sub && !isStandardImageFolder(sub) && !isHiddenOrSystemFolder(sub)) {
         const list = extraImageFolders.get(sub) || [];
         list.push(img);
         extraImageFolders.set(sub, list);
@@ -287,8 +300,9 @@ export function extractTwelveAlbums(
 
     const extraClipFolders = new Map<string, HfMediaItem[]>();
     for (const clip of catalog.clips) {
+      if (isHiddenOrSystemPath(clip.path || clip.name || clip.url)) continue;
       const sub = getSubfolder(clip.path);
-      if (sub && !isStandardClipFolder(sub)) {
+      if (sub && !isStandardClipFolder(sub) && !isHiddenOrSystemFolder(sub)) {
         const list = extraClipFolders.get(sub) || [];
         list.push(clip);
         extraClipFolders.set(sub, list);
@@ -298,11 +312,15 @@ export function extractTwelveAlbums(
     let nextIndex = baseAlbums.length;
 
     extraImageFolders.forEach((files, folderKey) => {
+      if (isHiddenOrSystemFolder(folderKey)) return;
+      const validFiles = files.filter((f) => !isHiddenOrSystemPath(f.path || f.name || f.url));
+      if (validFiles.length === 0) return;
       const title = folderKey
         .split(/[-_]+/)
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
-      const mapped = mapHfItems(files, title, 'image');
+      const mapped = mapHfItems(validFiles, title, 'image');
+      if (mapped.length === 0) return;
       baseAlbums.push({
         id: `album-${folderKey}`,
         index: nextIndex++,
@@ -316,11 +334,15 @@ export function extractTwelveAlbums(
     });
 
     extraClipFolders.forEach((files, folderKey) => {
+      if (isHiddenOrSystemFolder(folderKey)) return;
+      const validFiles = files.filter((f) => !isHiddenOrSystemPath(f.path || f.name || f.url));
+      if (validFiles.length === 0) return;
       const title = folderKey
         .split(/[-_]+/)
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
-      const mapped = mapHfItems(files, title, 'video');
+      const mapped = mapHfItems(validFiles, title, 'video');
+      if (mapped.length === 0) return;
       baseAlbums.push({
         id: `album-${folderKey}`,
         index: nextIndex++,
@@ -345,31 +367,37 @@ export function extractTwelveAlbums(
     defaultType: 'image' | 'video'
   ): StageMediaItem[] => {
     if (!files) return [];
-    return files.map((f, idx) => {
-      const itemType = determineMediaType(f.url || f.name || f.id, f.type || defaultType);
-      const safeUrl = safeEncodeUrl(f.url);
-      return {
-        id: f.id,
-        title: f.name,
-        url: safeUrl,
-        thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: f.id, url: f.url, thumbnail: f.thumbnail, type: itemType }, idx),
-        category: categoryName,
-        type: itemType,
-      };
-    });
+    return files
+      .filter((f) => !isHiddenOrSystemPath(f.url || f.name || f.id))
+      .map((f, idx) => {
+        const itemType = determineMediaType(f.url || f.name || f.id, f.type || defaultType);
+        const safeUrl = safeEncodeUrl(f.url);
+        return {
+          id: f.id,
+          title: f.name,
+          url: safeUrl,
+          thumbnail: itemType === 'image' ? safeUrl : getDirectImageUrl({ id: f.id, url: f.url, thumbnail: f.thumbnail, type: itemType }, idx),
+          category: categoryName,
+          type: itemType,
+        };
+      });
   };
 
   const bandhobisFolder = source.leftImageFolder;
   const bandhobisFiles = mapFiles(bandhobisFolder?.files, 'Bandhobis', 'image');
 
-  const centerFolders = source.centerImageFolders || [];
+  const centerFolders = (source.centerImageFolders || []).filter(
+    (f) => !isHiddenOrSystemFolder(f.name) && !isHiddenOrSystemFolder(f.id)
+  );
   const worksFolder = centerFolders.find((f) => f.name.toLowerCase().includes('work'));
   const h2026PhotoFolder = centerFolders.find((f) => f.name === 'H2026');
   const h2025PhotoFolder = centerFolders.find((f) => f.name === 'H2025');
   const classicFolder = centerFolders.find((f) => f.name.toLowerCase().includes('classic'));
   const h2027PhotoFolder = centerFolders.find((f) => f.name === 'H2027');
 
-  const videoFolders = source.videoFolders || [];
+  const videoFolders = (source.videoFolders || []).filter(
+    (f) => !isHiddenOrSystemFolder(f.name) && !isHiddenOrSystemFolder(f.id)
+  );
   const favoriteVideosFolder = videoFolders.find((f) => f.name.toLowerCase().includes('favorite'));
   const h2026VideoFolder = videoFolders.find((f) => f.name === 'H2026');
   const h2025VideoFolder = videoFolders.find((f) => f.name === 'H2025');

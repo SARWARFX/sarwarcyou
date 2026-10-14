@@ -23,7 +23,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { getDirectImageUrl } from '../utils/imageUrlResolver';
-import { isVideoExtension, safeEncodeUrl } from '../utils/mediaTypeDetector';
+import { isVideoExtension, safeEncodeUrl, isHiddenOrSystemFolder } from '../utils/mediaTypeDetector';
 import { downloadMedia } from '../utils/downloadMedia';
 import {
   getCachedVideoPoster,
@@ -505,14 +505,18 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   // Context-Aware Suggested Albums (Filtered strictly by media type)
   const suggestedAlbums = useMemo(() => {
     if (!allAlbums || allAlbums.length === 0) return [];
-    const isVideo = currentItem?.type === 'video';
+    const isVideo =
+      isVideoExtension(currentItem?.url || currentItem?.id || currentItem?.title) ||
+      currentItem?.type === 'video';
     return allAlbums.filter(
       (a) =>
         a.id !== album?.id &&
+        !isHiddenOrSystemFolder(a.name) &&
+        !isHiddenOrSystemFolder(a.id) &&
         (isVideo ? a.type === 'video' : a.type === 'image') &&
         a.items.length > 0
     );
-  }, [allAlbums, album?.id, currentItem?.type]);
+  }, [allAlbums, album?.id, currentItem]);
 
   // Auto-hide HUD after 2.5s of inactivity
   const resetHudTimer = useCallback(() => {
