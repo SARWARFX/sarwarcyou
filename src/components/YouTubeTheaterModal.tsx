@@ -50,6 +50,7 @@ interface YouTubeTheaterModalProps {
   onSwitchAlbum?: (album: AlbumData, initialIndex?: number) => void;
   onNextAlbum?: () => void;
   onPrevAlbum?: () => void;
+  onIndexChange?: (newIndex: number) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -457,6 +458,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   onSwitchAlbum,
   onNextAlbum: _onNextAlbum,
   onPrevAlbum: _onPrevAlbum,
+  onIndexChange,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -533,6 +535,13 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       stallTimerRef.current = null;
     }
   }, [initialIndex, isOpen]);
+
+  // Synchronize active media index with parent / URL router
+  useEffect(() => {
+    if (isOpen) {
+      onIndexChange?.(currentIndex);
+    }
+  }, [currentIndex, isOpen, onIndexChange]);
 
   const items = useMemo(() => album?.items || [], [album]);
   const currentItem: StageMediaItem | undefined = items[currentIndex] || items[0];

@@ -1,3 +1,4 @@
+/* oxlint-disable react-hooks/exhaustive-deps, react/preserve-manual-memoization */
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { useMediaData } from './useMediaData';
@@ -9,6 +10,14 @@ import { SplashPreloader } from './components/SplashPreloader';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
+import {
+  parseUrlState,
+  findMatchingAlbum,
+  findMatchingMediaItem,
+  syncUrlState,
+  getStoredLastActiveAlbum,
+  anchorToAlbumSection,
+} from './utils/urlRouter';
 import type { StageMediaItem } from './types';
 
 function App() {
@@ -47,27 +56,115 @@ function App() {
   const activeAlbumIndexRef = useRef(activeAlbumIndex);
   useEffect(() => {
     activeAlbumIndexRef.current = activeAlbumIndex;
-    const currentAlbum = albums[activeAlbumIndex];
-    if (currentAlbum) {
-      document.title = 'Sarwar C You';
-      const slug = currentAlbum.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      if (window.location.hash !== `#${slug}`) {
-        window.history.replaceState(null, '', `#${slug}`);
-      }
-    }
-  }, [activeAlbumIndex, albums]);
+    document.title = 'Sarwar C You';
+  }, [activeAlbumIndex]);
 
-  // Deep-linking hash support on mount (e.g., #shorts, #works)
+  const hasRestoredAlbumRef = useRef(false);
+  const hasRestoredMediaRef = useRef(false);
+
+  // Deep-linking restoration on initial mount / data ready
   useEffect(() => {
-    const hash = window.location.hash.replace(/^#/, '').toLowerCase();
-    if (hash && albums.length > 0) {
-      const foundIdx = albums.findIndex(
-        (a) => a.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === hash
-      );
-      if (foundIdx >= 0 && foundIdx !== activeAlbumIndexRef.current) {
-        setActiveAlbumIndex(foundIdx);
+    if (albums.length === 0) return;
+
+    const { albumQuery, mediaQuery } = parseUrlState();
+
+    // 1. Restore Album (from URL param or sessionStorage)
+    if (!hasRestoredAlbumRef.current) {
+      const storedAlbum = !albumQuery ? getStoredLastActiveAlbum() : null;
+      const targetQuery = albumQuery || storedAlbum;
+
+      if (targetQuery) {
+        const match = findMatchingAlbum(albums, targetQuery);
+        if (match && match.index !== activeAlbumIndexRef.current) {
+          setActiveAlbumIndex(match.index);
+          anchorToAlbumSection(match.index);
+        }
+      }
+      hasRestoredAlbumRef.current = true;
+    }
+
+    // 2. Restore Media Item (launch modal if requested via ?media=...)
+    if (mediaQuery && !hasRestoredMediaRef.current) {
+      const curAlbum = albums[activeAlbumIndexRef.current];
+      if (curAlbum && curAlbum.items.length > 0) {
+        const mediaMatch = findMatchingMediaItem(curAlbum.items, mediaQuery);
+        if (mediaMatch) {
+          const isShorts =
+            curAlbum.name.toLowerCase().includes('short') ||
+            curAlbum.name.toLowerCase().includes('reel') ||
+            curAlbum.layoutType === 'vertical-waterfall';
+
+          if (isShorts) {
+            setShortsState({
+              isOpen: true,
+              shorts: curAlbum.items,
+              initialIndex: mediaMatch.index,
+            });
+          } else {
+            setTheaterState({
+              isOpen: true,
+              album: curAlbum,
+              initialIndex: mediaMatch.index,
+              posterUrl: undefined,
+            });
+          }
+          hasRestoredMediaRef.current = true;
+        } else if (!isLoading && !!data) {
+          hasRestoredMediaRef.current = true;
+        }
       }
     }
+  }, [albums, isLoading, data]);
+
+  // Browser navigation: Back / Forward popstate synchronization
+  useEffect(() => {
+    const handlePopState = () => {
+      const { albumQuery, mediaQuery } = parseUrlState();
+      if (albums.length === 0) return;
+
+      const albumMatch = albumQuery ? findMatchingAlbum(albums, albumQuery) : null;
+      const targetIdx = albumMatch ? albumMatch.index : 0;
+
+      if (targetIdx !== activeAlbumIndexRef.current) {
+        setActiveAlbumIndex(targetIdx);
+      }
+      anchorToAlbumSection(targetIdx);
+
+      const targetAlbum = albums[targetIdx];
+      if (mediaQuery && targetAlbum && targetAlbum.items.length > 0) {
+        const mediaMatch = findMatchingMediaItem(targetAlbum.items, mediaQuery);
+        if (mediaMatch) {
+          const isShorts =
+            targetAlbum.name.toLowerCase().includes('short') ||
+            targetAlbum.name.toLowerCase().includes('reel') ||
+            targetAlbum.layoutType === 'vertical-waterfall';
+          if (isShorts) {
+            setShortsState({
+              isOpen: true,
+              shorts: targetAlbum.items,
+              initialIndex: mediaMatch.index,
+            });
+            setTheaterState((prev) => ({ ...prev, isOpen: false }));
+          } else {
+            setTheaterState({
+              isOpen: true,
+              album: targetAlbum,
+              initialIndex: mediaMatch.index,
+              posterUrl: undefined,
+            });
+            setShortsState((prev) => ({ ...prev, isOpen: false }));
+          }
+          return;
+        }
+      }
+
+      // No media in route -> close modals cleanly
+      setTheaterState((prev) => ({ ...prev, isOpen: false }));
+      setShortsState((prev) => ({ ...prev, isOpen: false }));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [albums]);
 
   const isTransitioningRef = useRef(false);
@@ -121,6 +218,10 @@ function App() {
         posterUrl,
       });
     }
+
+    if (curAlbum) {
+      syncUrlState({ album: curAlbum, mediaItem: item, replace: false });
+    }
   }, [albums]);
 
   // Luxury Elevator Smooth Navigation
@@ -134,16 +235,22 @@ function App() {
     setPrevAlbumIndex(activeAlbumIndexRef.current);
     setActiveAlbumIndex(clamped);
 
+    const curAlbum = albums[clamped];
+    if (curAlbum) {
+      syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
+    }
+
     // Luxury elevator duration: 950ms + 150ms inertia cooldown
     setTimeout(() => {
       setIsTransitioning(false);
       setPrevAlbumIndex(clamped);
+      anchorToAlbumSection(clamped);
       setTimeout(() => {
         isTransitioningRef.current = false;
         wheelDeltaAccumulatorRef.current = 0;
       }, 150);
     }, 950);
-  }, [albums.length]);
+  }, [albums]);
 
   const handlePrevAlbum = useCallback(() => {
     scrollToAlbum(activeAlbumIndexRef.current - 1);
@@ -161,9 +268,51 @@ function App() {
     setTheaterState((prev) => ({ ...prev, isOpen: false }));
     setShortsState((prev) => ({ ...prev, isOpen: false }));
     scrollToAlbum(0);
-    window.history.replaceState(null, '', '#');
+    syncUrlState({ album: null, mediaItem: null, replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [scrollToAlbum]);
+
+  const handleCloseTheater = useCallback(() => {
+    setTheaterState((prev) => ({ ...prev, isOpen: false }));
+    const curAlbum = albums[activeAlbumIndexRef.current];
+    syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
+    anchorToAlbumSection(activeAlbumIndexRef.current);
+  }, [albums]);
+
+  const handleCloseShorts = useCallback(() => {
+    setShortsState((prev) => ({ ...prev, isOpen: false }));
+    const curAlbum = albums[activeAlbumIndexRef.current];
+    syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
+    anchorToAlbumSection(activeAlbumIndexRef.current);
+  }, [albums]);
+
+  const handleTheaterIndexChange = useCallback((newIdx: number) => {
+    if (theaterState.album && theaterState.album.items[newIdx]) {
+      const item = theaterState.album.items[newIdx];
+      syncUrlState({ album: theaterState.album, mediaItem: item, replace: true });
+    }
+  }, [theaterState.album]);
+
+  const handleShortsIndexChange = useCallback((newIdx: number) => {
+    const curAlbum = albums[activeAlbumIndexRef.current];
+    if (curAlbum && shortsState.shorts[newIdx]) {
+      const item = shortsState.shorts[newIdx];
+      syncUrlState({ album: curAlbum, mediaItem: item, replace: true });
+    }
+  }, [albums, shortsState.shorts]);
+
+  const handleSwitchAlbum = useCallback((targetAlbum: (typeof albums)[0], itemIdx = 0) => {
+    setTheaterState({
+      isOpen: true,
+      album: targetAlbum,
+      initialIndex: itemIdx,
+      posterUrl: undefined,
+    });
+    setActiveAlbumIndex(targetAlbum.index);
+    const item = targetAlbum.items[itemIdx];
+    syncUrlState({ album: targetAlbum, mediaItem: item, replace: false });
+    anchorToAlbumSection(targetAlbum.index);
+  }, []);
 
   const isModalOpen = theaterState.isOpen || shortsState.isOpen;
 
@@ -392,30 +541,24 @@ function App() {
       {/* ================= YOUTUBE-STYLE MEDIA THEATER ================= */}
       <YouTubeTheaterModal
         isOpen={theaterState.isOpen}
-        onClose={() => setTheaterState((prev) => ({ ...prev, isOpen: false }))}
+        onClose={handleCloseTheater}
         album={theaterState.album}
         allAlbums={albums}
         initialIndex={theaterState.initialIndex}
         posterUrl={theaterState.posterUrl}
-        onSwitchAlbum={(targetAlbum, itemIdx = 0) => {
-          setTheaterState({
-            isOpen: true,
-            album: targetAlbum,
-            initialIndex: itemIdx,
-            posterUrl: undefined,
-          });
-          setActiveAlbumIndex(targetAlbum.index);
-        }}
+        onSwitchAlbum={handleSwitchAlbum}
         onNextAlbum={handleNextAlbum}
         onPrevAlbum={handlePrevAlbum}
+        onIndexChange={handleTheaterIndexChange}
       />
 
       {/* ================= 9:16 VERTICAL SHORTS REELS MODAL ================= */}
       <ShortsFeedModal
         isOpen={shortsState.isOpen}
-        onClose={() => setShortsState((prev) => ({ ...prev, isOpen: false }))}
+        onClose={handleCloseShorts}
         shorts={shortsState.shorts}
         initialIndex={shortsState.initialIndex}
+        onIndexChange={handleShortsIndexChange}
       />
     </main>
   );

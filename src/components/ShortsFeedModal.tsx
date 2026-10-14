@@ -32,6 +32,7 @@ interface ShortsFeedModalProps {
   onClose: () => void;
   shorts: StageMediaItem[];
   initialIndex: number;
+  onIndexChange?: (newIndex: number) => void;
 }
 
 function formatShortsTime(seconds: number): string {
@@ -46,6 +47,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   onClose,
   shorts,
   initialIndex,
+  onIndexChange,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(false);
@@ -83,6 +85,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setCurrentTime(0);
     setDuration(0);
   }
+
+  // Synchronize active media index with parent / URL router
+  useEffect(() => {
+    if (isOpen) {
+      onIndexChange?.(currentIndex);
+    }
+  }, [currentIndex, isOpen, onIndexChange]);
 
   const handleNext = useCallback(() => {
     if (currentIndex < shorts.length - 1) {
