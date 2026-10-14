@@ -12,15 +12,21 @@ export function extractHfRelativePath(urlOrPath: string): string {
   // Remove query parameters or hash (#t=0.5)
   clean = clean.split('?')[0].split('#')[0];
 
-  // If full Hugging Face resolve URL:
+  // If full Hugging Face resolve URL or media edge proxy URL:
   if (clean.includes('/resolve/main/')) {
     clean = clean.split('/resolve/main/')[1] || clean;
+  } else if (clean.includes('media.sarwar.cyou/')) {
+    clean = clean.split('media.sarwar.cyou/')[1] || clean;
   } else if (clean.startsWith('http://') || clean.startsWith('https://')) {
     try {
       const parsed = new URL(clean);
-      const parts = parsed.pathname.split('/resolve/main/');
-      if (parts[1]) {
-        clean = parts[1];
+      if (parsed.hostname === 'media.sarwar.cyou') {
+        clean = parsed.pathname.replace(/^\/+/, '');
+      } else {
+        const parts = parsed.pathname.split('/resolve/main/');
+        if (parts[1]) {
+          clean = parts[1];
+        }
       }
     } catch {
       // ignore parse error

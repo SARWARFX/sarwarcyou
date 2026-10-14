@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ensureHttps } from './imageUrlResolver';
+import { ensureHttps, getMediaUrl } from './imageUrlResolver';
 
 const DB_NAME = 'sarwarcyou_thumbnails_v2';
 const DB_VERSION = 1;
@@ -54,7 +54,7 @@ function getDB(): Promise<IDBDatabase | null> {
  */
 export function normalizeVideoUrl(rawUrl: string): string {
   if (!rawUrl) return '';
-  const secure = ensureHttps(rawUrl);
+  const secure = ensureHttps(getMediaUrl(rawUrl));
   return secure.split('#')[0].trim();
 }
 
@@ -256,7 +256,7 @@ function extractFrameFromVideo(cleanUrl: string, isShort: boolean): Promise<stri
 
     try {
       // Append #t=0.5 media fragment
-      video.src = `${cleanUrl}#t=0.5`;
+      video.src = `${getMediaUrl(cleanUrl)}#t=0.5`;
     } catch {
       done(null);
     }

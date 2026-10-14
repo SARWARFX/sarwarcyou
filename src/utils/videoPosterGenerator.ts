@@ -4,6 +4,8 @@
  * Includes media fragment appending (#t=0.5), stream pre-warming, and resilient error handling.
  */
 
+import { getMediaUrl, MEDIA_CDN_BASE } from './imageUrlResolver';
+
 const posterCache = new Map<string, string>();
 const prewarmedUrls = new Set<string>();
 
@@ -12,7 +14,8 @@ const prewarmedUrls = new Set<string>();
  */
 export function getCachedVideoPoster(videoUrl: string): string | null {
   if (!videoUrl) return null;
-  return posterCache.get(videoUrl) || null;
+  const proxyUrl = getMediaUrl(videoUrl);
+  return posterCache.get(proxyUrl) || posterCache.get(videoUrl) || null;
 }
 
 /**
@@ -21,7 +24,7 @@ export function getCachedVideoPoster(videoUrl: string): string | null {
  */
 export function formatVideoPosterUrl(url: string, timeSec = 0.5): string {
   if (!url) return '';
-  const cleanUrl = url.split('#')[0];
+  const cleanUrl = getMediaUrl(url).split('#')[0];
   return `${cleanUrl}#t=${timeSec}`;
 }
 
@@ -34,8 +37,9 @@ export async function extractVideoThumbnail(
   seekTime = 0.5
 ): Promise<string | null> {
   if (!videoUrl || typeof document === 'undefined') return null;
+  const proxyUrl = getMediaUrl(videoUrl);
 
-  const cached = posterCache.get(videoUrl);
+  const cached = posterCache.get(proxyUrl) || posterCache.get(videoUrl);
   if (cached) return cached;
 
   return new Promise((resolve) => {
@@ -90,6 +94,7 @@ export async function extractVideoThumbnail(
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            posterCache.set(proxyUrl, dataUrl);
             posterCache.set(videoUrl, dataUrl);
             cleanup();
             resolve(dataUrl);
@@ -111,7 +116,7 @@ export async function extractVideoThumbnail(
         }
       };
 
-      video.src = videoUrl;
+      video.src = proxyUrl;
     } catch {
       resolve(null);
     }
@@ -127,15 +132,16 @@ const prewarmedMediaElements = new Map<string, HTMLVideoElement>();
  */
 export function prewarmVideoStream(videoUrl: string): void {
   if (!videoUrl || typeof document === 'undefined') return;
-  const safeUrl = videoUrl.replace(/^http:\/\//i, 'https://').split('#')[0];
+  const proxyUrl = getMediaUrl(videoUrl);
+  const safeUrl = proxyUrl.replace(/^http:\/\//i, 'https://').split('#')[0];
   if (prewarmedUrls.has(safeUrl)) return;
   prewarmedUrls.add(safeUrl);
 
   try {
-    // 1. Preconnect link tags for origins (dataset host + LFS CDN domains)
+    // 1. Preconnect link tags for origins (proxy domain + dataset host + LFS CDN domains)
     try {
       const parsed = new URL(safeUrl);
-      const origins = [parsed.origin];
+      const origins = [parsed.origin, MEDIA_CDN_BASE];
       if (parsed.hostname.includes('huggingface.co')) {
         origins.push('https://cdn-lfs.huggingface.co');
         origins.push('https://cdn-lfs-us-1.huggingface.co');

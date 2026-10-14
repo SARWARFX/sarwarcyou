@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ExternalLink, ZoomIn, ZoomOut, Download, Loader2, Maximize, Minimize, Check } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
+import { getMediaUrl } from '../utils/imageUrlResolver';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -135,16 +136,18 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (!url || isDownloading) return;
     setIsDownloading(true);
     try {
+      const dlUrl = getMediaUrl(url);
       if (type === 'video') {
-        await downloadBrandedVideo(url, title);
+        await downloadBrandedVideo(dlUrl, title);
       } else {
-        await applyWatermarkAndDownload(url, title);
+        await applyWatermarkAndDownload(dlUrl, title);
       }
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2000);
     } catch (err) {
       console.warn('Watermarking download error, fallback to downloadMedia:', err);
-      await downloadMedia(url, title);
+      const dlUrl = getMediaUrl(url);
+      await downloadMedia(dlUrl, title);
     } finally {
       setIsDownloading(false);
     }
@@ -284,12 +287,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
         {type === 'video' ? (
           <div className="w-full aspect-video bg-black flex items-center justify-center">
-            {streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
+            {streamUrl.includes('media.sarwar.cyou') || streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
               <video
-                src={streamUrl}
+                src={getMediaUrl(streamUrl)}
                 controls
                 autoPlay
+                preload="metadata"
                 playsInline
+                {...{ 'webkit-playsinline': 'true' }}
+                crossOrigin="anonymous"
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -310,7 +316,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               const driveId = driveIdMatch ? driveIdMatch[1] : null;
               const directImgUrl = driveId
                 ? `https://lh3.googleusercontent.com/u/0/d/${driveId}=w2560`
-                : url;
+                : getMediaUrl(url);
 
               return (
                 <img

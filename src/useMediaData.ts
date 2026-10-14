@@ -32,29 +32,24 @@ interface CachedCatalogEnvelope {
 import {
   isVideoExtension,
   isPhotoExtension,
-  safeEncodeHfPath,
-  safeEncodeUrl,
   isHiddenOrSystemPath,
   isExcludedAlbum,
   isThumbnailFile,
 } from './utils/mediaTypeDetector';
+import { MEDIA_CDN_BASE, getMediaUrl } from './utils/imageUrlResolver';
+
+export { MEDIA_CDN_BASE, getMediaUrl };
 
 export const VIDEO_EXTENSIONS = /\.(mp4|mov|mkv|webm|avi)(\?|#|$)/i;
 export const PHOTO_EXTENSIONS = /\.(jpg|jpeg|png|webp|gif|avif|bmp|tiff|heic|svg)(\?|#|$)/i;
 
 /**
- * Builds a safe, encoded CDN streaming URL for any file path on the Hugging Face dataset.
- * Safely encodes path segments (brackets, parentheses, spaces, hashes) without double-encoding.
+ * Builds a safe, encoded CDN streaming URL for any file path on the repository,
+ * routing through the Cloudflare Worker edge proxy at https://media.sarwar.cyou.
  */
 export function buildHfMediaUrl(filePath: string): string {
   if (!filePath) return '';
-  // If filePath already looks like a complete http/https URL, ensure safe encoding
-  if (/^https?:\/\//i.test(filePath)) {
-    return safeEncodeUrl(filePath);
-  }
-  // Standardize leading slash and encode each path segment individually
-  const encodedSegments = safeEncodeHfPath(filePath);
-  return `${HF_RESOLVE_BASE_URL}${encodedSegments}`;
+  return getMediaUrl(filePath);
 }
 
 /**
@@ -388,14 +383,42 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
   }
 
   // 4. Bundled Fallback
-  return FALLBACK_HF_CATALOG;
+  return {
+    clips: (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
+      ...x,
+      url: getMediaUrl(x.url || x.path || x.name),
+    })),
+    shorts: (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
+      ...x,
+      url: getMediaUrl(x.url || x.path || x.name),
+    })),
+    images: (FALLBACK_HF_CATALOG.images || []).map((x) => ({
+      ...x,
+      url: getMediaUrl(x.url || x.path || x.name),
+    })),
+  };
 }
+
+const getNormalizedFallbackCatalog = (): HfMediaCatalog => ({
+  clips: (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
+    ...x,
+    url: getMediaUrl(x.url || x.path || x.name),
+  })),
+  shorts: (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
+    ...x,
+    url: getMediaUrl(x.url || x.path || x.name),
+  })),
+  images: (FALLBACK_HF_CATALOG.images || []).map((x) => ({
+    ...x,
+    url: getMediaUrl(x.url || x.path || x.name),
+  })),
+});
 
 export const useMediaData = () => {
   const initialData =
     typeof window !== 'undefined'
-      ? getCachedCatalog() || FALLBACK_HF_CATALOG
-      : FALLBACK_HF_CATALOG;
+      ? getCachedCatalog() || getNormalizedFallbackCatalog()
+      : getNormalizedFallbackCatalog();
 
   const { data, error, isLoading, mutate } = useSWR<HfMediaCatalog>(
     'hf-dynamic-catalog',

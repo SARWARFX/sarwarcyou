@@ -7,6 +7,7 @@
  */
 
 import { BRAND_CONFIG } from '../config/brand';
+import { getMediaUrl } from './imageUrlResolver';
 
 /**
  * Universal client-side image watermarking and download trigger.
@@ -29,7 +30,7 @@ export async function applyWatermarkAndDownload(
   } else {
     imageElement = new Image();
     imageElement.crossOrigin = 'anonymous';
-    const srcUrl = typeof source === 'string' ? source : URL.createObjectURL(source);
+    const srcUrl = typeof source === 'string' ? getMediaUrl(source) : URL.createObjectURL(source);
     if (typeof source !== 'string') {
       objectUrlToRevoke = srcUrl;
     }

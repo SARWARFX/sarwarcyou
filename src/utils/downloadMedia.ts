@@ -12,8 +12,9 @@
 
 import { safeEncodeUrl, isVideoExtension } from './mediaTypeDetector';
 import { applyWatermarkAndDownload, applyImageWatermark } from './watermarkImage';
+import { getMediaUrl } from './imageUrlResolver';
 
-export { applyWatermarkAndDownload };
+export { applyWatermarkAndDownload, getMediaUrl };
 
 /**
  * Sanitise a raw filename or URL path into a clean, filesystem-safe name.
@@ -128,7 +129,8 @@ function ensureExtension(name: string, ext: string): string {
  * @param videoTitle  The original title, id, or filename of the video
  */
 export async function downloadBrandedVideo(videoUrl: string, videoTitle?: string): Promise<void> {
-  const safeUrl = safeEncodeUrl(videoUrl.replace(/^http:\/\//i, 'https://'));
+  const proxyUrl = getMediaUrl(videoUrl);
+  const safeUrl = safeEncodeUrl(proxyUrl.replace(/^http:\/\//i, 'https://'));
   const { ext } = inferMime(safeUrl);
   const videoExt = ext || 'mp4';
   const filename = formatBrandedVideoFilename(videoTitle || safeUrl, videoExt);
@@ -186,7 +188,8 @@ export async function downloadBrandedVideo(videoUrl: string, videoTitle?: string
  * @param rawName  Optional custom base name; derived from URL if omitted.
  */
 export async function downloadMedia(url: string, rawName?: string): Promise<void> {
-  const safeUrl = safeEncodeUrl(url.replace(/^http:\/\//i, 'https://'));
+  const proxyUrl = getMediaUrl(url);
+  const safeUrl = safeEncodeUrl(proxyUrl.replace(/^http:\/\//i, 'https://'));
   const { mime, ext } = inferMime(safeUrl);
   const isVideo = mime.startsWith('video/') || isVideoExtension(safeUrl);
 

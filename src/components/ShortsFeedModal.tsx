@@ -28,7 +28,7 @@ import {
   resolveMultiFrameThumbnailsExt,
 } from '../utils/thumbnailResolver';
 import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
-import { safeEncodeUrl } from '../utils/mediaTypeDetector';
+import { getMediaUrl } from '../utils/imageUrlResolver';
 
 interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -261,7 +261,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setIsDownloading(true);
     setDownloadSuccess(false);
     try {
-      await downloadBrandedVideo(item.url, item.title || item.id);
+      const dlUrl = getMediaUrl(item.url);
+      await downloadBrandedVideo(dlUrl, item.title || item.id);
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2000);
     } catch (err) {
@@ -330,17 +331,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   }, [triggerProgressVisible]);
 
   const currentShort = shorts[currentIndex] || shorts[0];
-  const secureUrl = safeEncodeUrl((currentShort?.url || '').replace(/^http:\/\//i, 'https://'));
-  let streamUrl = secureUrl;
+  const rawUrl = (currentShort?.url || '').replace(/^http:\/\//i, 'https://');
+  let streamUrl = rawUrl;
   if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
     streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
+  } else if (!streamUrl.includes('drive.google.com')) {
+    streamUrl = getMediaUrl(streamUrl);
   }
 
   const shortPoster = useMemo(() => {
     if (!currentShort) return '';
     const multiThumbs = resolveMultiFrameThumbnails(currentShort);
     const multiThumbsExt = resolveMultiFrameThumbnailsExt(currentShort);
-    return (
+    const raw = (
       currentShort.thumbnails?.[0] ||
       multiThumbs[0] ||
       multiThumbsExt[0] ||
@@ -350,6 +353,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       formatVideoPosterUrl(streamUrl, 0.5) ||
       ''
     );
+    return raw ? getMediaUrl(raw) : '';
   }, [currentShort, streamUrl]);
 
   const prevShort = currentIndex > 0 ? shorts[currentIndex - 1] : null;
@@ -359,7 +363,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (!prevShort) return '';
     const multiThumbs = resolveMultiFrameThumbnails(prevShort);
     const multiThumbsExt = resolveMultiFrameThumbnailsExt(prevShort);
-    return (
+    const raw = (
       prevShort.thumbnails?.[0] ||
       multiThumbs[0] ||
       multiThumbsExt[0] ||
@@ -368,13 +372,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       prevShort.thumbnail ||
       ''
     );
+    return raw ? getMediaUrl(raw) : '';
   }, [prevShort]);
 
   const nextPoster = useMemo(() => {
     if (!nextShort) return '';
     const multiThumbs = resolveMultiFrameThumbnails(nextShort);
     const multiThumbsExt = resolveMultiFrameThumbnailsExt(nextShort);
-    return (
+    const raw = (
       nextShort.thumbnails?.[0] ||
       multiThumbs[0] ||
       multiThumbsExt[0] ||
@@ -383,6 +388,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       nextShort.thumbnail ||
       ''
     );
+    return raw ? getMediaUrl(raw) : '';
   }, [nextShort]);
 
   if (!isOpen || !shorts.length) return null;
@@ -495,17 +501,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               )}
             </div>
 
-            {streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
+            {streamUrl.includes('media.sarwar.cyou') || streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
               <video
                 ref={videoRef}
                 key={currentShort.id}
-                src={streamUrl}
+                src={getMediaUrl(streamUrl)}
                 poster={shortPoster || undefined}
                 autoPlay
-                preload="auto"
+                preload="metadata"
+                playsInline
+                {...{ 'webkit-playsinline': 'true' }}
+                crossOrigin="anonymous"
                 loop={isLooping}
                 muted={isMuted}
-                playsInline
                 onEnded={() => {
                   if (!isLooping) {
                     if (currentIndex < shorts.length - 1) {

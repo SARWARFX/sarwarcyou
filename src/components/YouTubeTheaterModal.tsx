@@ -22,7 +22,7 @@ import {
   ListVideo,
   Loader2,
 } from 'lucide-react';
-import { getDirectImageUrl } from '../utils/imageUrlResolver';
+import { getDirectImageUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension, isHiddenOrSystemFolder, isExcludedAlbum, encodeStreamUrl } from '../utils/mediaTypeDetector';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import {
@@ -837,17 +837,19 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setDownloadingItemId(target.id || target.url);
     try {
       const isVid = isVideoExtension(target.url || target.id || target.title) || target.type === 'video';
+      const dlUrl = getMediaUrl(target.url);
       if (isVid) {
-        await downloadBrandedVideo(target.url, target.title || target.id);
+        await downloadBrandedVideo(dlUrl, target.title || target.id);
       } else {
-        await applyWatermarkAndDownload(target.url, target.title || target.id);
+        await applyWatermarkAndDownload(dlUrl, target.title || target.id);
       }
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2200);
     } catch (err) {
       console.warn('Watermark download error, falling back to downloadMedia:', err);
       try {
-        await downloadMedia(target.url, target.title || target.id);
+        const dlUrl = getMediaUrl(target.url);
+        await downloadMedia(dlUrl, target.title || target.id);
         setDownloadSuccess(true);
         setTimeout(() => setDownloadSuccess(false), 2200);
       } catch (fallbackErr) {
@@ -948,7 +950,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     const multiThumbs = resolveMultiFrameThumbnails(currentItem);
     const multiThumbsExt = resolveMultiFrameThumbnailsExt(currentItem);
 
-    return (
+    const raw = (
       currentItem.thumbnails?.[0] ||
       multiThumbs[0] ||
       multiThumbsExt[0] ||
@@ -959,9 +961,15 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       getDirectImageUrl(currentItem, currentIndex) ||
       ''
     );
+    return raw ? getMediaUrl(raw) : '';
   }, [currentItem, currentIndex, initialIndex, posterUrl, posterFailed]);
 
-  const rawUrl = currentItem ? encodeStreamUrl(currentItem.url) : '';
+  // Strict file extension-based video detection: any .mp4/.mov/.mkv/.webm/.avi is strictly a VIDEO
+  const isVideo =
+    isVideoExtension(currentItem?.url || currentItem?.id || currentItem?.title) ||
+    currentItem?.type === 'video';
+
+  const rawUrl = currentItem ? currentItem.url : '';
   let streamUrl = rawUrl;
   if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
     streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
@@ -969,15 +977,13 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       streamUrl = streamUrl.replace(/\?usp=.*$/, '') + '/preview';
     }
   }
-  const cleanStreamUrl = encodeStreamUrl(streamUrl);
+  const cleanStreamUrl = isVideo && !streamUrl.includes('drive.google.com')
+    ? encodeStreamUrl(getMediaUrl(streamUrl))
+    : encodeStreamUrl(streamUrl);
 
-  // Strict file extension-based video detection: any .mp4/.mov/.mkv/.webm/.avi is strictly a VIDEO
-  const isVideo =
-    isVideoExtension(currentItem?.url || currentItem?.id || currentItem?.title) ||
-    currentItem?.type === 'video';
   const isDirectVideo =
     isVideo &&
-    (isVideoExtension(cleanStreamUrl) || cleanStreamUrl.includes('huggingface.co'));
+    (isVideoExtension(cleanStreamUrl) || cleanStreamUrl.includes('media.sarwar.cyou') || cleanStreamUrl.includes('huggingface.co'));
 
   // Video Streaming Initialization and 15-Second Stall Detector
   useEffect(() => {
@@ -1172,8 +1178,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   muted
                   loop
                   playsInline
+                  {...{ 'webkit-playsinline': 'true' }}
                   autoPlay
-                  preload="none"
+                  preload="metadata"
+                  crossOrigin="anonymous"
                   className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 scale-105 pointer-events-none z-0"
                 />
               )}
@@ -1192,7 +1200,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       poster={activePoster}
                       autoPlay
                       playsInline
-                      preload="auto"
+                      {...{ 'webkit-playsinline': 'true' }}
+                      preload="metadata"
+                      crossOrigin="anonymous"
                       controls={false}
                       muted={isMuted}
                       onClick={togglePlay}
@@ -1696,7 +1706,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
                   {!modalImageFailed ? (
                     <img
-                      src={directImgUrl}
+                      src={getMediaUrl(directImgUrl)}
                       alt={cleanTitle}
                       loading="lazy"
                       onLoad={() => setModalImageLoaded(true)}
