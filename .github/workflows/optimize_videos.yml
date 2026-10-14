@@ -1,27 +1,121 @@
-import os
-from huggingface_hub import HfApi
+name: Optimize Videos for Instant Web Streaming
 
-api = HfApi(token=os.environ.get("HF_TOKEN"))
-REPO_ID = "SARWARFX/stream-vault"
-LOCAL_OUTPUT_DIR = "./optimized_output"
+on:
+  workflow_dispatch:
+  schedule:
+    # Optional scheduled run every 2 hours if you want automated checks
+    - cron: '0 */2 * * *'
 
-# 1. After your FFmpeg loop finishes saving all 75 videos into LOCAL_OUTPUT_DIR:
-print(f"Uploading entire batch to {REPO_ID} in a single commit...")
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-api.upload_folder(
-    folder_path=LOCAL_OUTPUT_DIR,
-    repo_id=REPO_ID,
-    repo_type="dataset",
-    commit_message="Batch video optimization (bulk upload)"
-)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-# 2. Upload the updated manifest file
-api.upload_file(
-    path_or_fileobj=".optimized_manifest.json",
-    path_in_repo=".optimized_manifest.json",
-    repo_id=REPO_ID,
-    repo_type="dataset",
-    commit_message="Update .optimized_manifest.json"
-)
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install huggingface_hub
 
-print("Batch successfully uploaded using only 2 commits!")
+      - name: Run Video Optimization Pipeline
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - << 'EOF'
+          import os
+          import json
+          import subprocess
+          import shutil
+          from pathlib import Path
+          from huggingface_hub import HfApi, hf_hub_download, list_repo_files
+
+          hf_token = os.environ.get("HF_TOKEN")
+          if not hf_token:
+              raise ValueError("HF_TOKEN secret is missing or empty!")
+
+          api = HfApi(token=hf_token)
+          REPO_ID = "SARWARFX/stream-vault"
+          MANIFEST_FILE = ".optimized_manifest.json"
+          TEMP_OUTPUT_DIR = "./optimized_batch_output"
+          BATCH_SIZE = 75
+
+          os.makedirs(TEMP_OUTPUT_DIR, exist_ok=True)
+
+          # 1. Fetch current manifest
+          manifest = {}
+          try:
+              manifest_path = hf_hub_download(repo_id=REPO_ID, filename=MANIFEST_FILE, repo_type="dataset", token=hf_token)
+              with open(manifest_path, "r", encoding="utf-8") as f:
+                  manifest = json.load(f)
+              print(f"Loaded existing manifest with {len(manifest)} processed items.")
+          except Exception as e:
+              print("No existing manifest found on HF, starting fresh.")
+
+          # 2. List all files in stream-vault
+          all_files = list_repo_files(repo_id=REPO_ID, repo_type="dataset", token=hf_token)
+          video_extensions = ('.mp4', '.mov', '.mkv', '.webm', '.avi')
+          pending_videos = [
+              f for f in all_files 
+              if f.lower().endswith(video_extensions) and not manifest.get(f)
+          ]
+
+          print(f"Total pending videos found: {len(pending_videos)}")
+          batch_to_process = pending_videos[:BATCH_SIZE]
+          print(f"Processing this batch of {len(batch_to_process)} videos...")
+
+          if not batch_to_process:
+              print("All videos are already 100% optimized! Nothing to do.")
+              exit(0)
+
+          processed_in_this_batch = []
+
+          # 3. Transcode batch locally
+          for idx, video_rel_path in enumerate(batch_to_process, 1):
+              print(f"[{idx}/{len(batch_to_process)}] Downloading & Transcoding: {video_rel_path}")
+              try:
+                  local_input = hf_hub_download(repo_id=REPO_ID, filename=video_rel_path, repo_type="dataset", token=hf_token)
+                  local_output = os.path.join(TEMP_OUTPUT_DIR, video_rel_path)
+                  os.makedirs(os.path.dirname(local_output), exist_ok=True)
+
+                  # FFmpeg specs: CRF 18, preset fast, GOP 48 (2s keyframes), +faststart, AAC 128k
+                  cmd = [
+                      "ffmpeg", "-y", "-i", local_input,
+                      "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                      "-g", "48", "-keyint_min", "48", "-sc_threshold", "0",
+                      "-movflags", "+faststart",
+                      "-c:a", "aac", "-b:a", "128k",
+                      local_output
+                  ]
+                  res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+                  if res.returncode != 0:
+                      print(f"FFmpeg error on {video_rel_path}: {res.stderr[:300]}")
+                      continue
+
+                  manifest[video_rel_path] = True
+                  processed_in_this_batch.append(video_rel_path)
+              except Exception as err:
+                  print(f"Failed processing {video_rel_path}: {err}")
+
+          # 4. Save updated manifest locally inside batch folder
+          with open(os.path.join(TEMP_OUTPUT_DIR, MANIFEST_FILE), "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+
+          print(f"Batch completed locally ({len(processed_in_this_batch)} items).")
+
+          # 5. Single bulk upload commit to Hugging Face
+          if processed_in_this_batch:
+              print(f"Pushing entire batch to {REPO_ID} in 1 single commit...")
+              api.upload_folder(
+                  folder_path=TEMP_OUTPUT_DIR,
+                  repo_id=REPO_ID,
+                  repo_type="dataset",
+                  commit_message=f"Optimize {len(processed_in_this_batch)} videos (Single-commit batch pass)"
+              )
+              print("Successfully pushed to Hugging Face with ONLY 1 commit!")
+          EOF
