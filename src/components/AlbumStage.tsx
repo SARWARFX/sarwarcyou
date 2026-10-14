@@ -28,6 +28,7 @@ export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
         onSelectItem={onSelectItem}
         recentItems={recentItems}
         onClearHistory={onClearHistory}
+        isLoading={props.isLoading}
       />
     );
   }

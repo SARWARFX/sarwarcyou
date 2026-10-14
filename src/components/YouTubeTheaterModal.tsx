@@ -1709,6 +1709,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                       src={getMediaUrl(directImgUrl)}
                       alt={cleanTitle}
                       loading="lazy"
+                      decoding="async"
                       onLoad={() => setModalImageLoaded(true)}
                       onError={() => setModalImageFailed(true)}
                       className={`max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-300 ease-out relative z-10 ${

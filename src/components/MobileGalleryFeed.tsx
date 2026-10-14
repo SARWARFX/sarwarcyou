@@ -56,6 +56,7 @@ const MobileCard: React.FC<MobileCardProps> = ({ item, album, idx, onSelectItem 
           src={thumbnailUrl}
           alt={cleanTitle}
           loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover block"
           onError={(e) => {
             const target = e.currentTarget;

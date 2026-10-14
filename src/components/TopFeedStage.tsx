@@ -8,6 +8,7 @@ export interface TopFeedStageProps {
   onSelectItem: (item: StageMediaItem, posterUrl?: string) => void;
   recentItems?: StageMediaItem[];
   onClearHistory?: () => void;
+  isLoading?: boolean;
 }
 
 export const TopFeedStage: React.FC<TopFeedStageProps> = ({
@@ -15,6 +16,7 @@ export const TopFeedStage: React.FC<TopFeedStageProps> = ({
   onSelectItem,
   recentItems = [],
   onClearHistory,
+  isLoading = false,
 }) => {
   const hasHistory = recentItems.length > 0;
 
@@ -45,6 +47,7 @@ export const TopFeedStage: React.FC<TopFeedStageProps> = ({
           items={album.items}
           onSelectItem={onSelectItem}
           icon="releases"
+          isLoading={isLoading}
         />
       </div>
     </div>

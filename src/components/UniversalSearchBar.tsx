@@ -324,6 +324,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                       alt={entry.cleanTitle}
                       className="w-full h-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -419,6 +420,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                         src={activeThumb}
                         alt={entry.cleanTitle}
                         loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       {entry.isVideo && (

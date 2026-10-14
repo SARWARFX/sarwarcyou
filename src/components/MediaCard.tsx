@@ -76,9 +76,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
   const streamUrl = isVideo ? encodeStreamUrl(item.url) : '';
 
-  // 2. Client-side Canvas/IndexedDB thumbnail fallback if remote WebP isn't ready
+  // 2. Client-side Canvas/IndexedDB thumbnail fallback ONLY if hovered (strictly zero eager video preloading)
   const { thumbnail: clientThumbnail } = useVideoThumbnail(
-    isVideo ? streamUrl : undefined,
+    isVideo && isHovered ? streamUrl : undefined,
     isShort
   );
 
@@ -89,7 +89,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       getCachedThumbnailSync(item.url) ||
       getCachedVideoPoster(streamUrl) ||
       getCachedVideoPoster(item.url) ||
-      item.thumbnail
+      item.thumbnail ||
+      item.poster
     : directImgUrl;
 
   // 3. High-performance Hover Scrubbing hook with 404 resilience and zero-blanking
@@ -318,6 +319,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             src={layerA}
             alt={cleanCardTitle}
             draggable={false}
+            loading="lazy"
+            decoding="async"
             style={{ contentVisibility: 'auto' }}
             onLoad={() => handleLayerLoad('A', layerA)}
             onError={() => handleLayerError('A', layerA)}
@@ -334,6 +337,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             src={layerB}
             alt={cleanCardTitle}
             draggable={false}
+            loading="lazy"
+            decoding="async"
             style={{ contentVisibility: 'auto' }}
             onLoad={() => handleLayerLoad('B', layerB)}
             onError={() => handleLayerError('B', layerB)}

@@ -55,6 +55,7 @@ const BentoCell: React.FC<BentoCellProps> = ({
         src={currentUrl}
         alt={item.title || 'Dropbox Bento Photo'}
         loading="lazy"
+        decoding="async"
         onError={(e) => {
           e.currentTarget.style.display = 'none';
         }}

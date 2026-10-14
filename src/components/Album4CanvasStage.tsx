@@ -454,6 +454,7 @@ export const Album4CanvasStage: React.FC<Album4CanvasStageProps> = ({
                   src={directUrl}
                   alt="Photography Artboard"
                   loading="lazy"
+                  decoding="async"
                   draggable={false}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';

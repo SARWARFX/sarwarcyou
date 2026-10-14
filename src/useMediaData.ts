@@ -267,18 +267,16 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
 }
 
 /**
- * Timeout-wrapped fetch helper to prevent network hangs.
+ * Timeout-wrapped fetch helper to prevent network hangs with strict 3-second timeout.
  */
-async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<Response> {
+export async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 3000): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const id = setTimeout(() => controller.abort(), timeout);
   try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    const response = await fetch(url, { ...options, signal: controller.signal });
     return response;
-  } catch (err) {
-    clearTimeout(timeoutId);
-    throw err;
+  } finally {
+    clearTimeout(id);
   }
 }
 
@@ -292,38 +290,40 @@ function parseNextLink(linkHeader: string | null): string | null {
 }
 
 /**
- * Fetches all tree items from Hugging Face Tree API, automatically
- * traversing pagination pages via the Link: <...>; rel="next" header.
+ * Fetches tree items from Hugging Face Tree API with 3s timeout per page.
  */
 export async function fetchAllTreeItems(): Promise<HfTreeItem[]> {
   const allItems: HfTreeItem[] = [];
   let currentUrl: string | null = HF_TREE_API_URL;
   let pages = 0;
-  const MAX_PAGES = 10;
+  const MAX_PAGES = 3;
 
   while (currentUrl && pages < MAX_PAGES) {
     pages++;
-    const res = await fetchWithTimeout(currentUrl, 8000);
-    if (!res.ok) break;
+    try {
+      const res = await fetchWithTimeout(currentUrl, {}, 3000);
+      if (!res.ok) break;
 
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      allItems.push(...data);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        allItems.push(...data);
+      }
+
+      const linkHeader = res.headers.get('Link') || res.headers.get('link');
+      currentUrl = parseNextLink(linkHeader);
+    } catch {
+      break;
     }
-
-    const linkHeader = res.headers.get('Link') || res.headers.get('link');
-    currentUrl = parseNextLink(linkHeader);
   }
 
   return allItems;
 }
 
 /**
- * Multi-tier catalog resolver:
+ * Multi-tier non-blocking catalog resolver:
  * 1. sessionStorage cache (< 60s)
- * 2. Live Hugging Face Dataset Tree API (paginated, resilient)
- * 3. Raw media.json from Hugging Face resolve endpoint
- * 4. Bundled fallback data
+ * 2. Parallel fetch via Promise.allSettled() with strict 3s timeout (Tree API + raw media.json)
+ * 3. Instant bundled fallback data (guaranteed zero hang)
  */
 export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfMediaCatalog> {
   // 1. Session Cache
@@ -334,26 +334,32 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
     }
   }
 
-  // 2. Live Discovery via HF Tree API with pagination support
+  // 2. Parallel non-blocking discovery via Promise.allSettled() with strict 3000ms timeout
   try {
-    const items = await fetchAllTreeItems();
-    if (Array.isArray(items) && items.length > 0) {
-      const parsed = parseTreeToCatalog(items);
+    const [treeResult, mediaJsonResult] = await Promise.allSettled([
+      fetchWithTimeout(HF_TREE_API_URL, {}, 3000).then(async (res) => {
+        if (!res.ok) throw new Error(`HF tree HTTP ${res.status}`);
+        return (await res.json()) as HfTreeItem[];
+      }),
+      fetchWithTimeout(HF_RAW_MEDIA_JSON_URL, {}, 3000).then(async (res) => {
+        if (!res.ok) throw new Error(`HF media.json HTTP ${res.status}`);
+        return await res.json();
+      }),
+    ]);
+
+    // Tier A: Tree API items if fulfilled
+    if (treeResult.status === 'fulfilled' && Array.isArray(treeResult.value) && treeResult.value.length > 0) {
+      const parsed = parseTreeToCatalog(treeResult.value);
       if (parsed.images.length > 0 || parsed.clips.length > 0) {
         setCachedCatalog(parsed);
         return parsed;
       }
     }
-  } catch (err) {
-    console.warn('HF Tree API live discovery failed, trying raw media.json fallback:', err);
-  }
 
-  // 3. Raw media.json Fallback
-  try {
-    const jsonRes = await fetchWithTimeout(HF_RAW_MEDIA_JSON_URL, 8000);
-    if (jsonRes.ok) {
-      const rawData = await jsonRes.json();
-      if (rawData && Array.isArray(rawData.images) && Array.isArray(rawData.clips)) {
+    // Tier B: Raw media.json if fulfilled
+    if (mediaJsonResult.status === 'fulfilled' && mediaJsonResult.value) {
+      const rawData = mediaJsonResult.value;
+      if (Array.isArray(rawData.images) || Array.isArray(rawData.clips)) {
         const catalog: HfMediaCatalog = {
           clips: (rawData.clips || [])
             .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
@@ -368,7 +374,11 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
               url: buildHfMediaUrl(x.path || x.name),
             })),
           images: (rawData.images || [])
-            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url) && !isThumbnailFile(x.path || x.name || x.url))
+            .filter(
+              (x: HfMediaItem) =>
+                !isHiddenOrSystemPath(x.path || x.name || x.url) &&
+                !isThumbnailFile(x.path || x.name || x.url)
+            )
             .map((x: HfMediaItem) => ({
               ...x,
               url: buildHfMediaUrl(x.path || x.name),
@@ -379,24 +389,11 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
       }
     }
   } catch (err) {
-    console.warn('HF raw media.json fallback failed, falling back to bundled data:', err);
+    console.warn('Parallel dynamic catalog fetch failed, using fallback data:', err);
   }
 
-  // 4. Bundled Fallback
-  return {
-    clips: (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
-      ...x,
-      url: getMediaUrl(x.url || x.path || x.name),
-    })),
-    shorts: (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
-      ...x,
-      url: getMediaUrl(x.url || x.path || x.name),
-    })),
-    images: (FALLBACK_HF_CATALOG.images || []).map((x) => ({
-      ...x,
-      url: getMediaUrl(x.url || x.path || x.name),
-    })),
-  };
+  // 3. Bundled Fallback (instant zero-delay)
+  return getNormalizedFallbackCatalog();
 }
 
 const getNormalizedFallbackCatalog = (): HfMediaCatalog => ({

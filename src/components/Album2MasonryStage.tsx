@@ -55,6 +55,7 @@ const MosaicCell: React.FC<MosaicCellProps> = ({
         src={currentUrl}
         alt={item.title || 'Editorial Print'}
         loading="lazy"
+        decoding="async"
         onError={(e) => {
           e.currentTarget.style.display = 'none';
         }}

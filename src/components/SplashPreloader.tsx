@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { preloadInitialThumbnails } from '../utils/clientVideoThumbnails';
-
+ 
 interface SplashPreloaderProps {
   isReady?: boolean;
-  initialVideoUrls?: string[];
 }
 
 export const SplashPreloader: React.FC<SplashPreloaderProps> = ({
   isReady = false,
-  initialVideoUrls = [],
 }) => {
   const [progress, setProgress] = useState<number>(12);
   const [isVisible, setIsVisible] = useState<boolean>(() => {
@@ -89,10 +86,10 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({
       }, 350);
     };
 
-    // Minimum display threshold: ~1.4s ensures clean aesthetic pacing
+    // Immediate/clean aesthetic pacing (~600ms) without blocking page lifecycle
     const triggerCompleteWhenReady = () => {
       const elapsed = performance.now() - startTimeRef.current;
-      const minDisplayThreshold = 1400;
+      const minDisplayThreshold = 600;
       const remainingTime = Math.max(0, minDisplayThreshold - elapsed);
 
       window.setTimeout(() => {
@@ -100,19 +97,13 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({
       }, remainingTime);
     };
 
-    // Safety fallback timeout: max 2.8 seconds guarantees zero permanent lockout
+    // Safety fallback timeout: max 1.5 seconds guarantees zero lockout
     const hardTimeout = window.setTimeout(() => {
       completePreload();
-    }, 2800);
+    }, 1500);
 
     if (isReady) {
-      if (initialVideoUrls && initialVideoUrls.length > 0) {
-        preloadInitialThumbnails(initialVideoUrls, 6, 2600).then(() => {
-          triggerCompleteWhenReady();
-        });
-      } else {
-        triggerCompleteWhenReady();
-      }
+      triggerCompleteWhenReady();
     }
 
     return () => {
@@ -120,7 +111,7 @@ export const SplashPreloader: React.FC<SplashPreloaderProps> = ({
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
     };
-  }, [isReady, initialVideoUrls, isVisible]);
+  }, [isReady, isVisible]);
 
   if (!isVisible) return null;
 

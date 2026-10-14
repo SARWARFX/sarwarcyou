@@ -447,6 +447,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 <img
                   src={prevPoster}
                   alt={prevShort.title || 'Previous Short'}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover pointer-events-none"
                 />
               ) : (
@@ -484,6 +486,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 <img
                   src={shortPoster}
                   alt={displayTitle}
+                  loading="lazy"
+                  decoding="async"
                   className={`w-full h-full ${isLandscape ? 'object-contain' : 'object-cover'}`}
                 />
               ) : (
@@ -722,6 +726,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               <img
                 src={nextPoster}
                 alt={nextShort.title || 'Next Short'}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover pointer-events-none"
               />
             ) : (

@@ -55,8 +55,9 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
   const activeThumbList = useExtFallback ? extThumbnails : primaryThumbnails;
   const streamUrl = isVideo ? encodeStreamUrl(item.url) : '';
 
+  // Client-side Canvas/IndexedDB thumbnail fallback ONLY if hovered (strictly zero eager video preloading)
   const { thumbnail: clientThumbnail } = useVideoThumbnail(
-    isVideo ? streamUrl : undefined,
+    isVideo && isHovered ? streamUrl : undefined,
     isShort
   );
 
@@ -67,7 +68,8 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
       getCachedThumbnailSync(item.url) ||
       getCachedVideoPoster(streamUrl) ||
       getCachedVideoPoster(item.url) ||
-      item.thumbnail
+      item.thumbnail ||
+      item.poster
     : directImgUrl;
 
   const {
@@ -223,6 +225,8 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
             src={layerA}
             alt={cleanTitle}
             draggable={false}
+            loading="lazy"
+            decoding="async"
             style={{ contentVisibility: 'auto' }}
             onLoad={() => handleLayerLoad('A', layerA)}
             onError={() => handleLayerError('A', layerA)}
@@ -238,6 +242,8 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
             src={layerB}
             alt={cleanTitle}
             draggable={false}
+            loading="lazy"
+            decoding="async"
             style={{ contentVisibility: 'auto' }}
             onLoad={() => handleLayerLoad('B', layerB)}
             onError={() => handleLayerError('B', layerB)}
@@ -319,6 +325,7 @@ export interface DynamicMediaCarouselProps {
   onSelectItem: (item: StageMediaItem, posterUrl?: string) => void;
   onClearHistory?: () => void;
   icon?: 'recent' | 'releases';
+  isLoading?: boolean;
 }
 
 export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
@@ -329,6 +336,7 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
   onSelectItem,
   onClearHistory,
   icon = 'releases',
+  isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const isMouseDownRef = useRef(false);
@@ -366,7 +374,29 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
     trackRef.current.scrollBy({ left: delta, behavior: 'smooth' });
   };
 
-  if (!items || items.length === 0) return null;
+  if (!items || items.length === 0) {
+    if (!isLoading) return null;
+    return (
+      <div className="w-full flex flex-col gap-2.5 sm:gap-3.5 select-none animate-pulse">
+        <div className="flex items-center justify-between px-1 sm:px-2">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-zinc-900" />
+            <div className="h-5 w-36 bg-zinc-900 rounded" />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 sm:gap-4 overflow-hidden py-1 px-1">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={`carousel-skeleton-${i}`}
+              className="flex-shrink-0 w-[230px] sm:w-[270px] md:w-[310px] aspect-[16/10] rounded-xl sm:rounded-2xl bg-zinc-900/60 border border-white/[0.04] relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent animate-shimmer" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col gap-2.5 sm:gap-3.5 select-none">
