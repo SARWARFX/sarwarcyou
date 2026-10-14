@@ -287,13 +287,13 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
 
         {isActive ? (
           <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
-            <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-black font-mono font-bold text-[8px] tracking-widest uppercase">
+            <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-black font-mono font-bold text-[10px] tracking-widest uppercase">
               PLAYING
             </span>
           </div>
         ) : isVideo ? (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Play className="w-3 h-3 text-white fill-current" />
+            <Play className="w-3.5 h-3.5 text-white fill-current" />
           </div>
         ) : null}
       </div>
@@ -301,13 +301,13 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({ item, idx, isActive, onSe
       {/* Meta */}
       <div className="flex-1 min-w-0">
         <span
-          className={`text-[11px] font-medium truncate block leading-tight ${
-            isActive ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
+          className={`text-xs sm:text-[13px] font-semibold truncate block leading-tight ${
+            isActive ? 'text-zinc-100' : 'text-zinc-300 group-hover:text-white'
           } transition-colors duration-200`}
         >
           {itemTitle}
         </span>
-        <span className="text-[9px] font-mono text-zinc-500 tracking-wider uppercase block mt-0.5">
+        <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 tracking-wider uppercase block mt-0.5">
           {String(idx + 1).padStart(2, '0')} • {isVideo ? 'VIDEO' : 'PHOTO'}
         </span>
       </div>
@@ -409,13 +409,13 @@ const SuggestedAlbumReel: React.FC<SuggestedAlbumReelProps> = ({ album, onSelect
     <div className="w-full flex flex-col gap-2.5 select-none">
       {/* Folder Header: Prominent clean title with count in parentheses, pure borderless */}
       <div className="flex items-center justify-between px-1">
-        <h4 className="text-xs sm:text-sm font-black font-space text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+        <h4 className="text-sm sm:text-base font-black font-futuristic text-zinc-100 uppercase tracking-wider flex items-center gap-2">
           <span>{album.name}</span>
-          <span className="text-zinc-500 font-mono text-[11px] font-normal">
+          <span className="text-zinc-400 font-mono text-xs font-normal">
             ({album.itemCount || items.length})
           </span>
         </h4>
-        <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest hidden sm:inline">
+        <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-widest hidden sm:inline">
           {isVideo ? 'CINEMA VAULT' : 'PHOTO VAULT'}
         </span>
       </div>
@@ -1638,10 +1638,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             {/* Under-player Editorial Status Bar */}
             <div className="px-4 py-2.5 border-t border-white/[0.06] bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0">
               <div className="truncate max-w-[70%]">
-                <span className="font-medium text-zinc-100 text-[11px] tracking-wide block truncate">
+                <span className="font-semibold text-zinc-100 text-xs sm:text-[13px] tracking-wide block truncate">
                   {cleanTitle}
                 </span>
-                <span className="text-zinc-500 text-[9px] tracking-wider uppercase block mt-0.5">
+                <span className="text-zinc-400 text-[10px] sm:text-[11px] tracking-wider uppercase block mt-0.5">
                   {isVideo
                     ? `VIDEO ${currentIndex + 1} OF ${items.length} • SPATIAL HUD • 1080P CINEMATIC STREAM`
                     : isZoomed

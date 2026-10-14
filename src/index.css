@@ -10,14 +10,17 @@
   --color-brand-purple: #9D00FF;
 }
 
-/* Strip all default focus, focus-visible, and border outlines globally */
-*, *:focus, *:focus-visible {
+/* Strip all visible borders, default focus, focus-visible, and outlines globally */
+*, *::before, *::after {
+  border-color: transparent !important;
   outline: none !important;
+  box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 
-*:focus, *:focus-visible {
-  box-shadow: none !important; /* remove artificial focus rings */
+*, *:focus, *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .font-futuristic {
@@ -33,11 +36,12 @@ html, body {
   overflow: hidden !important;
   background-color: #000000;
   color: #FFFFFF;
-  font-family: var(--font-space), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-orbitron), var(--font-space), -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
   -webkit-user-select: none;
+  letter-spacing: 0.03em;
 }
 
 #root {
