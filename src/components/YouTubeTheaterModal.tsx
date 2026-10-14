@@ -998,11 +998,18 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <polygon className="logo-part-a" points="50,10 63,36 33,90 20,90" fill="currentColor" />
-            <polygon className="logo-part-b" points="68,46 90,90 46,90" fill="currentColor" />
+            <defs>
+              <linearGradient id="yt-mobile-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+                <stop offset="100%" stop-color="#ffffff" />
+              </linearGradient>
+            </defs>
+            <polygon points="50,10 63,36 33,90 20,90" fill="url(#yt-mobile-brand-dynamic-gradient)" />
+            <polygon points="68,46 90,90 46,90" fill="url(#yt-mobile-brand-dynamic-gradient)" />
           </svg>
           <h1 className="brand-title font-brand font-black text-base sm:text-lg tracking-wider whitespace-nowrap m-0 p-0 flex items-center">
-            <span className="brand-part-a">SARWAR</span><span className="brand-part-b">CYOU</span>
+            SARWARCYOU
           </h1>
         </a>
 
@@ -1037,11 +1044,18 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <polygon className="logo-part-a" points="50,10 63,36 33,90 20,90" fill="currentColor" />
-            <polygon className="logo-part-b" points="68,46 90,90 46,90" fill="currentColor" />
+            <defs>
+              <linearGradient id="yt-desktop-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+                <stop offset="100%" stop-color="#ffffff" />
+              </linearGradient>
+            </defs>
+            <polygon points="50,10 63,36 33,90 20,90" fill="url(#yt-desktop-brand-dynamic-gradient)" />
+            <polygon points="68,46 90,90 46,90" fill="url(#yt-desktop-brand-dynamic-gradient)" />
           </svg>
           <h1 className="brand-title font-brand font-black tracking-widest text-xl sm:text-2xl md:text-3xl uppercase whitespace-nowrap m-0 p-0 flex items-center group-hover:opacity-90 transition-opacity">
-            <span className="brand-part-a">SARWAR</span><span className="brand-part-b">CYOU</span>
+            SARWARCYOU
           </h1>
         </a>
 

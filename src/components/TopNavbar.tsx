@@ -41,13 +41,20 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            {/* Component A: Left Quadrilateral Body (SARWAR) */}
-            <polygon id="logo-part-a" className="logo-part-a" points="50,10 63,36 33,90 20,90" fill="currentColor" />
-            {/* Component B: Bottom-Right Triangle (CYOU) */}
-            <polygon id="logo-part-b" className="logo-part-b" points="68,46 90,90 46,90" fill="currentColor" />
+            <defs>
+              <linearGradient id="brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop id="svg-gradient-mid" className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+                <stop offset="100%" stop-color="#ffffff" />
+              </linearGradient>
+            </defs>
+            {/* Component A: Left Quadrilateral Body */}
+            <polygon points="50,10 63,36 33,90 20,90" fill="url(#brand-dynamic-gradient)" />
+            {/* Component B: Bottom-Right Wedge */}
+            <polygon points="68,46 90,90 46,90" fill="url(#brand-dynamic-gradient)" />
           </svg>
           <h1 className="brand-title font-brand font-black text-xl sm:text-2xl md:text-3xl tracking-wider select-none leading-none whitespace-nowrap m-0 p-0 flex items-center transition-opacity group-hover:opacity-95">
-            <span id="title-sarwar" className="brand-part-a">SARWAR</span><span id="title-cyou" className="brand-part-b">CYOU</span>
+            SARWARCYOU
           </h1>
         </a>
 

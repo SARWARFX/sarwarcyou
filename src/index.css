@@ -165,65 +165,41 @@ html, body {
 }
 
 :root {
-  --brand-color-a: hsl(0, 90%, 60%);
-  --brand-color-b: hsl(180, 90%, 60%);
-  --glow-a: hsla(0, 90%, 60%, 0.35);
-  --glow-b: hsla(180, 90%, 60%, 0.35);
+  --current-hue: 200;
+  --dynamic-accent-hue: 200deg;
+  --brand-dynamic-color: hsl(200, 100%, 65%);
+  --brand-dynamic-glow: hsla(200, 100%, 65%, 0.35);
+  --brand-color-a: hsl(200, 100%, 65%);
 }
 
 /* ==========================================================================
-   DYNAMIC TWO-PIECE TRIANGLE LOGO & SPLIT BRAND WORDMARK
+   UNIFIED SPECTRAL GRADIENT BRAND SYSTEM
    ========================================================================== */
 
-/* Component A: Left Quadrilateral Body & SARWAR */
-#logo-part-a,
-.logo-part-a {
-  fill: var(--brand-color-a, #00D2FF) !important;
-  color: var(--brand-color-a, #00D2FF) !important;
-  filter: drop-shadow(0 0 8px var(--glow-a, rgba(0, 210, 255, 0.35)));
-  transition: filter 0.15s ease;
-}
-
-#title-sarwar,
-.brand-part-a {
-  color: var(--brand-color-a, #00D2FF) !important;
-  filter: drop-shadow(0 0 10px var(--glow-a, rgba(0, 210, 255, 0.35)));
-  text-shadow: 0 0 14px var(--glow-a, rgba(0, 210, 255, 0.35));
-  transition: text-shadow 0.15s ease, filter 0.15s ease;
-}
-
-/* Component B: Bottom-Right Triangle & CYOU */
-#logo-part-b,
-.logo-part-b {
-  fill: var(--brand-color-b, #FF2A85) !important;
-  color: var(--brand-color-b, #FF2A85) !important;
-  filter: drop-shadow(0 0 8px var(--glow-b, rgba(255, 42, 133, 0.35)));
-  transition: filter 0.15s ease;
-}
-
-#title-cyou,
-.brand-part-b {
-  color: var(--brand-color-b, #FF2A85) !important;
-  filter: drop-shadow(0 0 10px var(--glow-b, rgba(255, 42, 133, 0.35)));
-  text-shadow: 0 0 14px var(--glow-b, rgba(255, 42, 133, 0.35));
-  transition: text-shadow 0.15s ease, filter 0.15s ease;
-}
-
-/* Split Brand Title Wordmark in Orbitron */
-.brand-title {
+/* Unified Orbitron Wordmark: White -> Dynamic Spectral Hue -> White */
+.brand-title,
+.brand-unified-wordmark {
   font-family: var(--font-brand, 'Orbitron', sans-serif);
   font-weight: 900;
+  background: linear-gradient(135deg, #ffffff 0%, hsl(var(--current-hue, 200), 100%, 65%) 50%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px hsla(var(--current-hue, 200), 100%, 65%, 0.35));
   display: inline-flex;
   align-items: center;
   margin: 0;
   padding: 0;
+  line-height: 1;
   border: none !important;
   outline: none !important;
-  background: transparent !important;
-  line-height: 1;
+  user-select: none;
+  letter-spacing: 0.08em;
+  transition: filter 0.2s ease;
 }
 
-/* SVG Triangle Logo Container */
+/* SVG Triangle Logo Container with matching ambient glow */
 #brand-triangle-logo,
 .brand-triangle-logo {
   display: inline-block;
@@ -231,18 +207,32 @@ html, body {
   border: none !important;
   outline: none !important;
   background: transparent !important;
+  filter: drop-shadow(0 0 10px hsla(var(--current-hue, 200), 100%, 65%, 0.35));
+  transition: filter 0.2s ease;
+}
+
+/* Dynamic SVG Mid Stop sync via CSS */
+#svg-gradient-mid,
+.svg-gradient-mid {
+  stop-color: hsl(var(--current-hue, 200), 100%, 65%);
 }
 
 /* Fallback/compatibility aliases */
+.brand-part-a,
+.brand-part-b,
+.brand-harmonic-text,
+.brand-gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, hsl(var(--current-hue, 200), 100%, 65%) 50%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
 .brand-harmonic-graphic {
   display: inline-block;
   vertical-align: middle;
-}
-
-.brand-harmonic-text,
-.brand-gradient-text {
-  color: var(--brand-color-a, #00D2FF);
-  display: inline-block;
 }
 
 

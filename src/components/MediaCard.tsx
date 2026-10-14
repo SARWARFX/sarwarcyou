@@ -267,8 +267,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
               <Camera className="w-3.5 h-3.5 text-zinc-400" />
             )}
           </div>
-          <span className="text-[9px] font-mono uppercase tracking-widest font-semibold">
-            <span className="brand-part-a">SARWAR</span><span className="brand-part-b">CYOU</span>
+          <span className="text-[9px] font-mono uppercase tracking-widest font-semibold brand-unified-wordmark">
+            SARWARCYOU
           </span>
         </div>
         <div className="mt-auto">

@@ -2,6 +2,7 @@ import React from 'react';
 
 interface BrandTriangleLogoProps {
   id?: string;
+  gradientId?: string;
   width?: number | string;
   height?: number | string;
   className?: string;
@@ -9,6 +10,7 @@ interface BrandTriangleLogoProps {
 
 export const BrandTriangleLogo: React.FC<BrandTriangleLogoProps> = ({
   id = 'brand-triangle-logo',
+  gradientId = 'brand-dynamic-gradient',
   width = 48,
   height = 48,
   className = '',
@@ -23,43 +25,31 @@ export const BrandTriangleLogo: React.FC<BrandTriangleLogoProps> = ({
       xmlns="http://www.w3.org/2000/svg"
       className={`brand-triangle-logo overflow-visible flex-shrink-0 ${className}`}
     >
-      {/* Component A: Left Quadrilateral Body (SARWAR) */}
-      <polygon
-        id="logo-part-a"
-        className="logo-part-a"
-        points="50,10 63,36 33,90 20,90"
-        fill="currentColor"
-      />
-      {/* Component B: Bottom-Right Triangle (CYOU) */}
-      <polygon
-        id="logo-part-b"
-        className="logo-part-b"
-        points="68,46 90,90 46,90"
-        fill="currentColor"
-      />
+      <defs>
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff" />
+          <stop id="svg-gradient-mid" className="svg-gradient-mid" offset="50%" stop-color="hsl(200, 100%, 65%)" />
+          <stop offset="100%" stop-color="#ffffff" />
+        </linearGradient>
+      </defs>
+      {/* Component A: Left Quadrilateral Body */}
+      <polygon points="50,10 63,36 33,90 20,90" fill={`url(#${gradientId})`} />
+      {/* Component B: Bottom-Right Wedge */}
+      <polygon points="68,46 90,90 46,90" fill={`url(#${gradientId})`} />
     </svg>
   );
 };
 
 interface BrandWordmarkProps {
   className?: string;
-  titleSarwarId?: string;
-  titleCyouId?: string;
 }
 
 export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
   className = '',
-  titleSarwarId = 'title-sarwar',
-  titleCyouId = 'title-cyou',
 }) => {
   return (
     <h1 className={`brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center ${className}`}>
-      <span id={titleSarwarId} className="brand-part-a">
-        SARWAR
-      </span>
-      <span id={titleCyouId} className="brand-part-b">
-        CYOU
-      </span>
+      SARWARCYOU
     </h1>
   );
 };
