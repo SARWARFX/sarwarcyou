@@ -36,13 +36,6 @@ interface ShortsFeedModalProps {
   onIndexChange?: (newIndex: number) => void;
 }
 
-function formatShortsTime(seconds: number): string {
-  if (isNaN(seconds) || seconds < 0) return '00:00';
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-}
-
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   isOpen,
   onClose,
@@ -58,6 +51,28 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [playRipple, setPlayRipple] = useState<'play' | 'pause' | null>(null);
+
+  // Auto-hiding progress bar visibility state (hover on desktop, 2.5s auto-hide timer on tap)
+  const [showProgress, setShowProgress] = useState(false);
+  const progressTimerRef = useRef<number | null>(null);
+
+  const triggerProgressVisible = useCallback(() => {
+    setShowProgress(true);
+    if (progressTimerRef.current) {
+      window.clearTimeout(progressTimerRef.current);
+    }
+    progressTimerRef.current = window.setTimeout(() => {
+      setShowProgress(false);
+    }, 2500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) {
+        window.clearTimeout(progressTimerRef.current);
+      }
+    };
+  }, []);
 
   // Dynamic aspect ratio for landscape clips
   const [isLandscape, setIsLandscape] = useState(false);
@@ -204,6 +219,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       lastTapRef.current = { time: now };
     }
     touchStartRef.current = null;
+    triggerProgressVisible();
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -276,6 +292,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const handleProgressPointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
+    triggerProgressVisible();
     isDraggingProgressRef.current = true;
     if (e.currentTarget.setPointerCapture) {
       try {
@@ -285,17 +302,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }
     }
     seekToPosition(e.clientX);
-  }, [seekToPosition]);
+  }, [seekToPosition, triggerProgressVisible]);
 
   const handleProgressPointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDraggingProgressRef.current) return;
     e.stopPropagation();
+    triggerProgressVisible();
     seekToPosition(e.clientX);
-  }, [seekToPosition]);
+  }, [seekToPosition, triggerProgressVisible]);
 
   const handleProgressPointerUp = useCallback((e: React.PointerEvent) => {
     if (isDraggingProgressRef.current) {
       e.stopPropagation();
+      triggerProgressVisible();
       if (e.currentTarget.releasePointerCapture) {
         try {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -305,7 +324,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }
       isDraggingProgressRef.current = false;
     }
-  }, []);
+  }, [triggerProgressVisible]);
 
   const currentShort = shorts[currentIndex] || shorts[0];
   const secureUrl = safeEncodeUrl((currentShort?.url || '').replace(/^http:\/\//i, 'https://'));
@@ -372,7 +391,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
       <div className="relative flex items-center justify-center max-h-[92vh] max-w-[95vw]">
         <div
-          className={`relative rounded-3xl overflow-hidden bg-black shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
+          className={`group/reel relative rounded-3xl overflow-hidden bg-black shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
             isLandscape
               ? 'aspect-video w-[90vw] max-w-[854px] h-auto max-h-[75vh]'
               : 'aspect-[9/16] h-[88vh] max-h-[820px] max-w-[460px]'
@@ -380,7 +399,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             togglePlay();
+            triggerProgressVisible();
           }}
+          onMouseMove={triggerProgressVisible}
         >
           {/* Native Video Element */}
           <div className="absolute inset-0 w-full h-full bg-black z-0">
@@ -470,64 +491,43 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             </div>
           )}
 
-          {/* Top Gradient Overlay & Indicator */}
-          <div className="relative z-10 p-4 sm:p-5 bg-gradient-to-b from-black/80 via-black/30 to-transparent flex items-center justify-between pointer-events-none">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-mono font-bold tracking-widest text-zinc-300 uppercase">
-                {isLandscape ? 'LANDSCAPE REEL' : 'REELS STREAM'}
-              </span>
-            </div>
-            <span className="text-[10px] font-mono font-semibold text-zinc-400">
-              {(currentIndex + 1).toString().padStart(2, '0')} / {shorts.length.toString().padStart(2, '0')}
-            </span>
-          </div>
-
-          {/* Bottom Gradient Overlay & Title */}
-          <div className="relative z-10 px-4 sm:px-5 pb-4 pt-16 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
-            <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-wide truncate drop-shadow-md">
-              {displayTitle}
-            </h2>
-            <div className="text-[9px] font-mono text-zinc-400 tracking-widest uppercase flex items-center justify-between gap-1.5 mt-1">
-              <span>SWIPE UP/DOWN TO CYCLE • DOUBLE-TAP TO PAUSE</span>
-              {duration > 0 && (
-                <span className="text-zinc-300 font-semibold tracking-wider">
-                  {formatShortsTime(currentTime)} / {formatShortsTime(duration)}
-                </span>
-              )}
-            </div>
-
-            {/* Clickable & Draggable Scrubber Bar with Expanded py-2 Hitzone */}
-            <div
-              ref={progressBarRef}
-              onPointerDown={handleProgressPointerDown}
-              onPointerMove={handleProgressPointerMove}
-              onPointerUp={handleProgressPointerUp}
-              onPointerCancel={handleProgressPointerUp}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full py-2 cursor-pointer group/progress select-none pointer-events-auto touch-none"
-              title="Seek Reel Position"
-              role="slider"
-              aria-label="Reel Progress"
-              aria-valuemin={0}
-              aria-valuemax={duration || 100}
-              aria-valuenow={currentTime}
-            >
-              <div className="relative w-full h-[3px] group-hover/progress:h-[5px] rounded-full bg-white/20 overflow-hidden transition-all duration-150">
-                <div
-                  className="h-full bg-emerald-400 transition-all duration-75 relative rounded-full"
-                  style={{
-                    width: `${duration > 0 ? (currentTime / duration) * 100 : ((currentIndex + 1) / shorts.length) * 100}%`,
-                  }}
-                />
-              </div>
+          {/* Sleek Auto-Hiding Progress / Scrubber Bar (Hover on Desktop, 2.5s Auto-Hide on Tap) */}
+          <div
+            ref={progressBarRef}
+            onPointerDown={handleProgressPointerDown}
+            onPointerMove={handleProgressPointerMove}
+            onPointerUp={handleProgressPointerUp}
+            onPointerCancel={handleProgressPointerUp}
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerProgressVisible();
+            }}
+            className={`absolute bottom-0 left-0 right-0 z-30 w-full pb-0 pt-3 px-0 cursor-pointer select-none transition-opacity duration-300 ease-out ${
+              showProgress
+                ? 'opacity-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none group-hover/reel:opacity-100 group-hover/reel:pointer-events-auto'
+            }`}
+            title="Seek Reel Position"
+            role="slider"
+            aria-label="Reel Progress"
+            aria-valuemin={0}
+            aria-valuemax={duration || 100}
+            aria-valuenow={currentTime}
+          >
+            <div className="relative w-full h-[3.5px] bg-white/20 overflow-hidden">
+              <div
+                className="h-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-75 relative"
+                style={{
+                  width: `${duration > 0 ? (currentTime / duration) * 100 : ((currentIndex + 1) / shorts.length) * 100}%`,
+                }}
+              />
             </div>
           </div>
         </div>
 
         {/* ================= FLOATING GLASS ACTION COLUMN ================= */}
         <aside
-          className="flex flex-col gap-3 ml-3 sm:ml-5 z-[130]"
+          className="absolute right-3 bottom-10 sm:static sm:right-auto sm:bottom-auto flex flex-col gap-2.5 sm:gap-3 ml-0 sm:ml-4 md:ml-5 z-[130]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Sound Toggle Button */}
@@ -539,14 +539,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 return next;
               });
             }}
-            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
+            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
               isMuted
-                ? 'bg-black/60 text-zinc-400 hover:text-white'
-                : 'bg-emerald-950/80 text-emerald-300'
+                ? 'bg-black/50 text-zinc-400 hover:text-white border border-white/10'
+                : 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/30'
             }`}
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
 
           {/* Loop Toggle Button */}
@@ -554,68 +554,68 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             onClick={() => {
               setIsLooping((l) => !l);
             }}
-            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
+            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
               isLooping
-                ? 'bg-zinc-800/80 text-white'
-                : 'bg-black/60 text-zinc-500 hover:text-white'
+                ? 'bg-zinc-800/80 text-white border border-white/20'
+                : 'bg-black/50 text-zinc-500 hover:text-white border border-white/10'
             }`}
             title={isLooping ? 'Looping Active' : 'Looping Off'}
           >
-            <Repeat className="w-5 h-5" />
+            <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
           {/* Direct Download Button */}
           <button
             onClick={handleDownload}
             disabled={isDownloading}
-            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl disabled:opacity-40 ${
+            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl disabled:opacity-40 ${
               downloadSuccess
-                ? 'bg-emerald-950/80 text-emerald-300'
-                : 'bg-black/60 text-zinc-400 hover:text-white'
+                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                : 'bg-black/50 text-zinc-400 hover:text-white border border-white/10'
             }`}
             title={isDownloading ? 'Downloading Reel (Branded)...' : 'Download Reel'}
           >
             {downloadSuccess ? (
-              <Check className="w-5 h-5 text-emerald-400" />
+              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
             ) : isDownloading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-cyan-400" />
             ) : (
-              <Download className="w-5 h-5" />
+              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
             )}
           </button>
 
           {/* Share Link Button */}
           <button
             onClick={handleShare}
-            className={`p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
+            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
               copiedLink
-                ? 'bg-emerald-950/80 text-emerald-300'
-                : 'bg-black/60 text-zinc-400 hover:text-white'
+                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                : 'bg-black/50 text-zinc-400 hover:text-white border border-white/10'
             }`}
             title="Share Reel Link"
           >
-            {copiedLink ? <Check className="w-5 h-5 text-emerald-400" /> : <Share2 className="w-5 h-5" />}
+            {copiedLink ? <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" /> : <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
 
-          <div className="w-full h-[1px] bg-white/10 my-1" />
+          <div className="w-full h-[1px] bg-white/10 my-0.5 sm:my-1" />
 
           {/* Up & Down Step Chevrons */}
           <button
             onClick={handlePrev}
             disabled={currentIndex === 0}
-            className="p-3 rounded-2xl bg-black/60 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl"
+            className="p-2.5 sm:p-3 rounded-2xl bg-black/50 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl border border-white/10"
             title="Previous Reel (Up)"
           >
-            <ChevronUp className="w-5 h-5" />
+            <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
           <button
             onClick={handleNext}
             disabled={currentIndex >= shorts.length - 1}
-            className="p-3 rounded-2xl bg-black/60 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl"
+            className="p-2.5 sm:p-3 rounded-2xl bg-black/50 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl border border-white/10"
             title="Next Reel (Down)"
           >
-            <ChevronDown className="w-5 h-5" />
+            <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </aside>
       </div>
