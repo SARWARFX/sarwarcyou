@@ -1,13 +1,7 @@
 name: Generate Multi-Frame Video Thumbnails
 
 on:
-  schedule:
-    - cron: '0 */3 * * *'
   workflow_dispatch:
-
-concurrency:
-  group: "thumbnail-pipeline"
-  cancel-in-progress: false
 
 jobs:
   generate-thumbnails:
@@ -16,23 +10,74 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install System Dependencies (ffmpeg)
+      - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-
-      - name: Install Python Dependencies
-        run: |
-          python -m pip install --upgrade pip
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install huggingface_hub
 
       - name: Run Thumbnail Generation & Upload Pipeline
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          python scripts/generate_thumbnails.py
+          python - << 'EOF'
+          import os
+          import json
+          import subprocess
+          from huggingface_hub import HfApi, hf_hub_download, list_repo_files
+
+          hf_token = os.environ.get("HF_TOKEN")
+          api = HfApi(token=hf_token)
+          REPO_ID = "SARWARFX/stream-vault"
+          LOCAL_THUMB_DIR = "./temp_thumbnails"
+          os.makedirs(LOCAL_THUMB_DIR, exist_ok=True)
+
+          all_files = list_repo_files(repo_id=REPO_ID, repo_type="dataset", token=hf_token)
+          video_files = [f for f in all_files if f.lower().endswith(('.mp4', '.mov', '.webm', '.mkv'))]
+
+          print(f"Total videos found: {len(video_files)}")
+
+          # Generate thumbnails locally first without calling api.upload_file in the loop
+          generated_count = 0
+          for idx, v in enumerate(video_files, 1):
+              thumb_name = os.path.splitext(v)[0] + "_thumb.jpg"
+              dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_name)
+              os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+
+              if os.path.exists(dest_path):
+                  continue
+
+              try:
+                  video_url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{v}"
+                  # Extract 1 frame at 00:00:02 without full video download
+                  cmd = [
+                      "ffmpeg", "-y", "-ss", "00:00:02",
+                      "-i", video_url,
+                      "-frames:v", "1", "-q:v", "3",
+                      dest_path
+                  ]
+                  res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                  if res.returncode == 0 and os.path.exists(dest_path):
+                      generated_count += 1
+              except Exception as e:
+                  print(f"Error on {v}: {e}")
+
+          print(f"Generated {generated_count} new thumbnails locally.")
+
+          # Upload entire folder in 1 single commit
+          if generated_count > 0:
+              print(f"Uploading all thumbnails to {REPO_ID} in 1 single commit...")
+              api.upload_folder(
+                  folder_path=LOCAL_THUMB_DIR,
+                  repo_id=REPO_ID,
+                  repo_type="dataset",
+                  commit_message=f"Add {generated_count} video thumbnails (single-commit bulk upload)"
+              )
+              print("All thumbnails successfully committed in a single operation!")
+          else:
+              print("No new thumbnails needed.")
+          EOF
