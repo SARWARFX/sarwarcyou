@@ -164,7 +164,19 @@ html, body {
   animation: doubleTapFade 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes futuristic-gradient {
+@keyframes harmonic-hue-cycle {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(140deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes harmonic-text-gradient {
   0% {
     background-position: 0% 50%;
   }
@@ -176,14 +188,31 @@ html, body {
   }
 }
 
+/* Applied to the main logo image and favicon */
+.brand-harmonic-graphic {
+  animation: harmonic-hue-cycle 8s ease-in-out infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Applied to SARWARCYOU brand text to match hue cycle */
+.brand-harmonic-text,
 .brand-gradient-text {
-  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc, #38bdf8);
+  background: linear-gradient(
+    135deg,
+    #a855f7 0%,   /* Violet */
+    #6366f1 25%,  /* Indigo */
+    #06b6d4 50%,  /* Cyan */
+    #ec4899 75%,  /* Rose */
+    #a855f7 100%
+  );
   background-size: 300% 300%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: futuristic-gradient 6s ease infinite;
+  animation: harmonic-text-gradient 8s ease-in-out infinite;
   display: inline-block;
 }
+
 

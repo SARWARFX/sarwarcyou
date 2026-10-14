@@ -56,22 +56,27 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   return (
     <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
       <div className="w-full bg-black/90 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4 relative">
-        {/* Brand Wordmark: Centered on mobile (<768px), Left-aligned on desktop (>=768px) */}
-        <button
-          type="button"
+        {/* Brand Logo & Wordmark: Centered on mobile (<768px), Left-aligned on desktop (>=768px) */}
+        <a
+          href="/"
           onClick={(e) => {
             e.preventDefault();
             onResetHome?.();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 md:static md:translate-x-0 md:top-auto md:translate-y-0 flex items-center flex-shrink-0 cursor-pointer group bg-transparent border-none p-0 text-left focus:outline-none z-10"
+          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 md:static md:translate-x-0 md:top-auto md:translate-y-0 flex items-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer group bg-transparent border-none p-0 text-left focus:outline-none select-none z-10"
           title="Return to Home / Top"
           aria-label="Return to Home"
         >
-          <span className="font-brand font-black text-xl sm:text-2xl md:text-3xl tracking-widest brand-gradient-text select-none cursor-pointer uppercase leading-none whitespace-nowrap transition-opacity group-hover:opacity-90">
+          <img
+            src="/brand-logo.png"
+            alt="SARWARCYOU"
+            className="brand-harmonic-graphic h-8 sm:h-9 md:h-10 w-auto object-contain flex-shrink-0"
+          />
+          <span className="font-brand font-black text-xl sm:text-2xl md:text-3xl tracking-widest uppercase brand-harmonic-text select-none leading-none whitespace-nowrap transition-opacity group-hover:opacity-90">
             SARWARCYOU
           </span>
-        </button>
+        </a>
 
         {/* Empty placeholder on mobile to balance flex layout */}
         <div className="w-8 md:hidden" aria-hidden="true" />
