@@ -196,11 +196,13 @@ export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
   const latestAlbum = validAlbums.find((a) => a.id === 'album-latest-releases');
   const otherAlbums = validAlbums.filter((a) => a.id !== 'album-latest-releases');
 
-  const populated = otherAlbums.filter((a) => a.items && a.items.length > 0);
-  const empty = otherAlbums.filter((a) => !a.items || a.items.length === 0);
+  // Enforce strict empty album suppression: strip any phantom, empty, or unpopulated albums
+  const activeAlbums = otherAlbums.filter(
+    (album) => Array.isArray(album.items) && album.items.length > 0
+  );
 
-  const images = populated.filter((a) => a.type === 'image');
-  const videos = populated.filter((a) => a.type === 'video');
+  const images = activeAlbums.filter((a) => a.type === 'image');
+  const videos = activeAlbums.filter((a) => a.type === 'video');
 
   const interleaved: AlbumData[] = [];
   const maxLen = Math.max(images.length, videos.length);
@@ -210,17 +212,19 @@ export function interleaveAlbums(albums: AlbumData[]): AlbumData[] {
     if (i < videos.length) interleaved.push(videos[i]);
   }
 
-  // Combine pinned latest releases + interleaved populated albums + empty/pending folders at the bottom
+  // Combine pinned latest releases (if populated) + interleaved populated albums (no empty galleries)
   const finalAlbums = [
-    ...(latestAlbum ? [latestAlbum] : []),
+    ...(latestAlbum && Array.isArray(latestAlbum.items) && latestAlbum.items.length > 0
+      ? [latestAlbum]
+      : []),
     ...interleaved,
-    ...empty,
   ];
 
-  // Re-index all albums cleanly with their final 0-based index
+  // Re-index all albums cleanly with their final 0-based index and verified item count
   return finalAlbums.map((album, idx) => ({
     ...album,
     index: idx,
+    itemCount: album.items.length,
   }));
 }
 
@@ -316,16 +320,6 @@ export function extractTwelveAlbums(
     const shortsFiles = mapHfItems(
       (catalog.shorts || []).filter((x) => !isHiddenOrSystemPath(x.path || x.name || x.url)),
       'Shorts & Reels',
-      'video'
-    );
-    const h2027PhotoFiles = mapHfItems(
-      catalog.images.filter((x) => getSubfolder(x.path) === 'h2027'),
-      'H2027 Photos',
-      'image'
-    );
-    const h2027VideoFiles = mapHfItems(
-      catalog.clips.filter((x) => getSubfolder(x.path) === 'h2027'),
-      'H2027 Videos',
       'video'
     );
 
@@ -443,26 +437,6 @@ export function extractTwelveAlbums(
         layoutType: 'vertical-waterfall',
         subtitle: 'Tiered Waterfall Deck',
       },
-      {
-        id: 'album-h2027-photos',
-        index: 10,
-        name: 'H2027 Photos',
-        type: 'image',
-        itemCount: h2027PhotoFiles.length,
-        items: h2027PhotoFiles,
-        layoutType: 'coming-soon-photos',
-        subtitle: 'Future Archive // Encrypted',
-      },
-      {
-        id: 'album-h2027-videos',
-        index: 11,
-        name: 'H2027 Videos',
-        type: 'video',
-        itemCount: h2027VideoFiles.length,
-        items: h2027VideoFiles,
-        layoutType: 'coming-soon-videos',
-        subtitle: 'Future Vault // In Queue',
-      },
     ];
 
     // Dynamic Discovery for any newly added custom folders in Images/ or Clips/:
@@ -471,16 +445,14 @@ export function extractTwelveAlbums(
       sub.includes('work') ||
       sub === 'h2026' ||
       sub === 'h2025' ||
-      sub.includes('classic') ||
-      sub === 'h2027';
+      sub.includes('classic');
 
     const isStandardClipFolder = (sub: string) =>
       sub.includes('favorite') ||
       sub === 'h2026' ||
       sub === 'h2025' ||
       sub.includes('other') ||
-      sub === 'bandhobis' ||
-      sub === 'h2027';
+      sub === 'bandhobis';
 
     const extraImageFolders = new Map<string, HfMediaItem[]>();
     for (const img of catalog.images) {
@@ -588,7 +560,6 @@ export function extractTwelveAlbums(
   const h2026PhotoFolder = centerFolders.find((f) => f.name === 'H2026');
   const h2025PhotoFolder = centerFolders.find((f) => f.name === 'H2025');
   const classicFolder = centerFolders.find((f) => f.name.toLowerCase().includes('classic'));
-  const h2027PhotoFolder = centerFolders.find((f) => f.name === 'H2027');
 
   const videoFolders = (source.videoFolders || []).filter(
     (f) => !isHiddenOrSystemFolder(f.name) && !isHiddenOrSystemFolder(f.id)
@@ -597,7 +568,6 @@ export function extractTwelveAlbums(
   const h2026VideoFolder = videoFolders.find((f) => f.name === 'H2026');
   const h2025VideoFolder = videoFolders.find((f) => f.name === 'H2025');
   const othersVideoFolder = videoFolders.find((f) => f.name.toLowerCase().includes('other'));
-  const h2027VideoFolder = videoFolders.find((f) => f.name === 'H2027');
 
   const latestReleasesItems = extractLatestReleases(source, 30);
   const latestReleasesAlbum: AlbumData = {
@@ -714,26 +684,6 @@ export function extractTwelveAlbums(
       items: mapFiles(shortsFolder?.files, 'Shorts & Reels', 'video'),
       layoutType: 'vertical-waterfall',
       subtitle: 'Tiered Waterfall Deck',
-    },
-    {
-      id: 'album-h2027-photos',
-      index: 10,
-      name: 'H2027 Photos',
-      type: 'image',
-      itemCount: h2027PhotoFolder?.files?.length || 0,
-      items: mapFiles(h2027PhotoFolder?.files, 'H2027 Photos', 'image'),
-      layoutType: 'coming-soon-photos',
-      subtitle: 'Future Archive // Encrypted',
-    },
-    {
-      id: 'album-h2027-videos',
-      index: 11,
-      name: 'H2027 Videos',
-      type: 'video',
-      itemCount: h2027VideoFolder?.files?.length || 0,
-      items: mapFiles(h2027VideoFolder?.files, 'H2027 Videos', 'video'),
-      layoutType: 'coming-soon-videos',
-      subtitle: 'Future Vault // In Queue',
     },
   ]);
 }

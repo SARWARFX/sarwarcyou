@@ -106,12 +106,6 @@ export const FALLBACK_MEDIA_DATA: ApiResponseData = {
       ],
     },
     {
-      id: 'h2027-photo-folder',
-      name: 'H2027',
-      count: 0,
-      files: [], // Empty folder 1 -> COMING SOON
-    },
-    {
       id: 'h2026-photo-folder',
       name: 'H2026',
       count: 3,
@@ -218,13 +212,6 @@ export const FALLBACK_MEDIA_DATA: ApiResponseData = {
           url: 'https://drive.google.com/file/d/1VTVyk2U6n_C54sheaL58Y4Qwt7lPkxXM/preview',
         },
       ],
-    },
-    {
-      id: 'h2027-video-folder',
-      name: 'H2027',
-      type: 'video',
-      count: 0,
-      files: [], // Empty folder 2 -> COMING SOON
     },
     {
       id: 'h2026-video-folder',

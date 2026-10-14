@@ -25,9 +25,14 @@ function App() {
   const { data, isLoading, isError } = useMediaData();
   const { recentItems, addToHistory, clearHistory } = useRecentHistory();
 
-  // 12 Distinct Curated Albums (Powered by Hugging Face CDN)
+  // Curated Albums (Powered by Hugging Face CDN) - Strictly filtered to exclude phantom/empty albums
   const albums = useMemo(() => {
-    return extractTwelveAlbums(data || FALLBACK_HF_CATALOG);
+    const rawAlbums = extractTwelveAlbums(data || FALLBACK_HF_CATALOG);
+    // Strip any phantom, empty, or unpopulated albums
+    const activeAlbums = rawAlbums.filter(
+      (album) => Array.isArray(album.items) && album.items.length > 0
+    );
+    return activeAlbums.map((album, idx) => ({ ...album, index: idx }));
   }, [data]);
 
   // First 6 video items in the feed for thumbnail preloading
