@@ -21,6 +21,7 @@ import {
   AlertCircle,
   ListVideo,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { getDirectImageUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension, isHiddenOrSystemFolder, isExcludedAlbum, encodeStreamUrl } from '../utils/mediaTypeDetector';
@@ -532,6 +533,12 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const playlistContainerRef = useRef<HTMLDivElement>(null);
   const suggestedAlbumsRef = useRef<HTMLDivElement>(null);
+  const modalScrollContainerRef = useRef<HTMLDivElement>(null);
+  const [modalScrollTop, setModalScrollTop] = useState(0);
+
+  const handleModalScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setModalScrollTop(e.currentTarget.scrollTop);
+  }, []);
 
   // Auto-sliding queue refs
   const isQueueHoveredRef = useRef(false);
@@ -554,6 +561,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     setPosterFailed(false);
     setModalImageLoaded(false);
     setModalImageFailed(false);
+    setModalScrollTop(0);
+    if (modalScrollContainerRef.current) {
+      modalScrollContainerRef.current.scrollTop = 0;
+    }
     if (stallTimerRef.current) {
       window.clearTimeout(stallTimerRef.current);
       stallTimerRef.current = null;
@@ -1127,9 +1138,13 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       </div>
 
       {/* ===== VERTICALLY SCROLLABLE MODAL BODY ===== */}
-      <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col p-0 md:p-4 lg:p-5 gap-0 md:gap-4">
+      <div
+        ref={modalScrollContainerRef}
+        onScroll={handleModalScroll}
+        className="flex-1 overflow-y-auto no-scrollbar flex flex-col p-0 md:p-4 lg:p-5 gap-0 md:gap-4"
+      >
         {/* ===== MAIN CINEMA STAGE & QUEUE ROW ===== */}
-        <div className="w-full flex flex-col md:flex-row gap-3.5 md:h-[65vh] lg:h-[72vh] md:min-h-[460px] flex-shrink-0">
+        <div className="w-full flex flex-col md:flex-row gap-3.5 min-h-[calc(100dvh-5.5rem)] md:h-[calc(100dvh-5.5rem)] flex-shrink-0">
           {/* ===== LEFT MAIN VIEWPORT (~72% DESKTOP) ===== */}
           <div className="w-full md:w-[70%] lg:w-[72%] md:h-full flex flex-col bg-[#09090b] rounded-none md:rounded-2xl overflow-hidden flex-shrink-0 shadow-2xl relative group/stage sticky top-0 z-20 md:static">
             {/* Cinema Stage Container with Ambilight */}
@@ -1735,30 +1750,13 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             </div>
 
             {/* Under-player Editorial Status Bar */}
-            <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0 gap-2 sm:gap-4">
+            <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0">
               {/* Bottom-left: Active media's file name ONLY (plain text, no tags or extra labels) */}
-              <div className="truncate max-w-[38%] sm:max-w-[42%] text-left">
+              <div className="truncate max-w-full text-left">
                 <span className="font-semibold text-white text-sm sm:text-base tracking-wide block truncate">
                   {currentItem.name || currentItem.title || cleanTitle}
                 </span>
               </div>
-
-              {/* Bottom-middle: Clickable pill reading "Click here to see suggested albums" */}
-              <div className="flex-1 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileTab('suggested');
-                    suggestedAlbumsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className="px-3 sm:px-4 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 hover:border-cyan-500/40 text-zinc-300 hover:text-white text-xs sm:text-sm font-brand tracking-wider transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-lg group/sugbtn"
-                >
-                  <Film className="w-3.5 h-3.5 text-cyan-400 group-hover/sugbtn:scale-110 transition-transform flex-shrink-0" />
-                  <span className="truncate">Click here to see suggested albums</span>
-                </button>
-              </div>
-
-              <div className="w-[10%] hidden sm:block" />
             </div>
             {/* Mobile Segmented Tab Switcher (Suggested vs Queue) */}
             <div className="flex md:hidden items-center p-2 px-3 bg-[#09090b] gap-2 flex-shrink-0">
@@ -1800,28 +1798,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           {/* ===== RIGHT PLAYLIST QUEUE (~28% DESKTOP ONLY) ===== */}
           <div className="hidden md:flex md:w-[30%] lg:w-[28%] h-full flex-col bg-[#09090b] rounded-2xl overflow-hidden shadow-xl flex-shrink-0">
             {/* Queue Header */}
-            <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between flex-shrink-0">
+            <div className="px-4 py-3.5 bg-[#09090b] flex items-center gap-2 flex-shrink-0">
+              <ListVideo className="w-4 h-4 text-zinc-400" />
               <span className="text-sm sm:text-base font-black font-brand tracking-wider text-zinc-200 uppercase">
-                QUEUE ({items.length})
+                QUEUE
               </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleDownload()}
-                  disabled={isDownloading}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-[11px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
-                  title="Download active video"
-                >
-                  {isDownloading ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
-                  ) : (
-                    <Download className="w-3 h-3 text-zinc-400" />
-                  )}
-                  <span>{isDownloading ? 'SAVING...' : 'DOWNLOAD'}</span>
-                </button>
-                <span className="text-zinc-400 flex items-center gap-1 text-xs font-semibold">
-                  <Check className="w-3.5 h-3.5 text-emerald-400" /> READY
-                </span>
-              </div>
             </div>
 
             {/* Scrollable Playlist Cards (With Slow Auto-Slide) */}
@@ -1850,10 +1831,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   onSelect={() => goToIndex(idx)}
                 />
               ))}
-            </div>
-
-            <div className="px-4 py-2.5 bg-black text-center text-xs sm:text-sm font-bold font-brand tracking-wider text-zinc-200 uppercase flex-shrink-0">
-              CLICK OR SCROLL QUEUE
             </div>
           </div>
         </div>
@@ -1946,9 +1923,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   </h3>
                 </div>
               </div>
-              <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider hidden sm:inline">
-                Click any reel item to switch playback
-              </span>
             </div>
 
             {/* Horizontal Auto-Sliding Preview Reels (Dynamic 15s Batch Rotation with Hover Pause) */}
@@ -1990,6 +1964,29 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Pinned Suggested Albums CTA (Fades out on scroll) */}
+      {suggestedAlbums.length > 0 && !isFullscreen && !isLightboxFullscreen && (
+        <div
+          style={{
+            opacity: modalScrollTop > 40 ? 0 : 1,
+            pointerEvents: modalScrollTop > 40 ? 'none' : 'auto',
+          }}
+          className="fixed bottom-[18px] left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-out select-none"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setMobileTab('suggested');
+              suggestedAlbumsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-950/85 hover:bg-zinc-900 backdrop-blur-xl border border-white/10 hover:border-cyan-500/40 text-zinc-300 hover:text-white text-xs sm:text-sm font-['Rajdhani',sans-serif] tracking-wider transition-all duration-200 cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.85)] group"
+          >
+            <span>Scroll down to see suggested albums</span>
+            <ChevronDown className="w-4 h-4 text-cyan-400 group-hover:translate-y-0.5 transition-transform animate-bounce" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
