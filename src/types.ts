@@ -70,6 +70,7 @@ export interface ApiResponse {
 export interface StageMediaItem {
   id: string;
   title: string;
+  name?: string;
   url: string;
   thumbnail: string;
   category: string;

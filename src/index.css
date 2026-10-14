@@ -262,13 +262,14 @@ html, body {
 .main-header {
   position: fixed;
   top: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  transition: left 0.35s ease, transform 0.35s ease;
+  left: 1.5rem;
   z-index: 1000;
   display: flex;
   align-items: center;
-  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
 }
 
 #global-site-header.scrolled,
@@ -277,6 +278,9 @@ body.viewing-media #global-site-header,
 .site-header.scrolled,
 .site-header.docked-left,
 .main-header.scrolled {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
   position: fixed !important;
   top: 1rem !important;
   left: 1.5rem !important;
@@ -335,28 +339,11 @@ body.viewing-media #global-site-header,
   display: none !important;
 }
 
-/* Media title & photo counter styling */
+/* Remove all file counter text rendering directly underneath the top-left site logo when media is open */
 .viewer-media-meta,
-.player-media-title {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  overflow: hidden !important;
-  white-space: nowrap !important;
-  text-overflow: ellipsis !important;
-  font-family: 'Rajdhani', sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 0.95rem !important;
-  color: rgba(255, 255, 255, 0.7) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  min-width: 0 !important;
-}
-
+.player-media-title,
 .viewer-media-counter {
-  font-family: 'Rajdhani', sans-serif !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.05em;
+  display: none !important;
 }
 
 @media (max-width: 640px) {

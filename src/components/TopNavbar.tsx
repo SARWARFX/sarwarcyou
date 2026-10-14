@@ -64,7 +64,13 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   }, [onResetHome]);
 
   return (
-    <div className="fixed top-4 right-4 sm:right-6 z-[1001] flex items-center pointer-events-auto">
+    <div
+      className={`fixed top-4 right-4 sm:right-6 z-[1001] flex items-center transition-all duration-300 ${
+        isScrolled
+          ? 'opacity-100 pointer-events-auto translate-y-0'
+          : 'opacity-0 pointer-events-none -translate-y-2'
+      }`}
+    >
       <UniversalSearchBar
         albums={albums}
         onSelectItem={onSelectItem}

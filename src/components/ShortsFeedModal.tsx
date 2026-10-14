@@ -4,6 +4,8 @@ import {
   X,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Download,
   VolumeX,
   Volume2,
@@ -146,10 +148,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
-      } else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
         handleNext();
-      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
         handlePrev();
       } else if (e.key === ' ') {
@@ -223,10 +225,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    if (Math.abs(e.deltaY) > 30) {
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(delta) > 25) {
       if (isNavigatingRef.current) return;
       isNavigatingRef.current = true;
-      if (e.deltaY > 0) {
+      if (delta > 0) {
         handleNext();
       } else {
         handlePrev();
@@ -349,6 +352,39 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     );
   }, [currentShort, streamUrl]);
 
+  const prevShort = currentIndex > 0 ? shorts[currentIndex - 1] : null;
+  const nextShort = currentIndex < shorts.length - 1 ? shorts[currentIndex + 1] : null;
+
+  const prevPoster = useMemo(() => {
+    if (!prevShort) return '';
+    const multiThumbs = resolveMultiFrameThumbnails(prevShort);
+    const multiThumbsExt = resolveMultiFrameThumbnailsExt(prevShort);
+    return (
+      prevShort.thumbnails?.[0] ||
+      multiThumbs[0] ||
+      multiThumbsExt[0] ||
+      getCachedThumbnailSync(prevShort.url) ||
+      getCachedVideoPoster(prevShort.url) ||
+      prevShort.thumbnail ||
+      ''
+    );
+  }, [prevShort]);
+
+  const nextPoster = useMemo(() => {
+    if (!nextShort) return '';
+    const multiThumbs = resolveMultiFrameThumbnails(nextShort);
+    const multiThumbsExt = resolveMultiFrameThumbnailsExt(nextShort);
+    return (
+      nextShort.thumbnails?.[0] ||
+      multiThumbs[0] ||
+      multiThumbsExt[0] ||
+      getCachedThumbnailSync(nextShort.url) ||
+      getCachedVideoPoster(nextShort.url) ||
+      nextShort.thumbnail ||
+      ''
+    );
+  }, [nextShort]);
+
   if (!isOpen || !shorts.length) return null;
 
   const cleanTitle = currentShort?.title
@@ -389,13 +425,44 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       </div>
 
       {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
-      <div className="relative flex items-center justify-center max-h-[92vh] max-w-[95vw]">
-        <div
-          className={`group/reel relative rounded-3xl overflow-hidden bg-black shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
-            isLandscape
-              ? 'aspect-video w-[90vw] max-w-[854px] h-auto max-h-[75vh]'
-              : 'aspect-[9/16] h-[88vh] max-h-[820px] max-w-[460px]'
-          }`}
+      <div className="relative flex items-center justify-center max-h-[92vh] max-w-[98vw] px-2 sm:px-4 md:px-6 gap-3 sm:gap-4 md:gap-6 overflow-hidden">
+        {/* Previous Short (Desktop Flank) */}
+        {!isLandscape && prevShort && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
+            className="hidden md:flex flex-col items-center justify-center aspect-[9/16] h-[78vh] max-h-[720px] max-w-[400px] rounded-3xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl transition-all duration-300 select-none opacity-35 hover:opacity-60 cursor-pointer scale-95 hover:scale-100 flex-shrink-0"
+            title="Previous Short (Left)"
+          >
+            <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
+              {prevPoster ? (
+                <img
+                  src={prevPoster}
+                  alt={prevShort.title || 'Previous Short'}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+              ) : (
+                <div className="text-zinc-600 text-xs font-mono uppercase tracking-wider">Previous</div>
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <div className="p-3 rounded-full bg-black/60 border border-white/10 text-white/80">
+                  <ChevronLeft className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Center: Active Reel Container + Aside Actions */}
+        <div className="relative flex items-center justify-center flex-shrink-0">
+          <div
+            className={`group/reel relative rounded-3xl overflow-hidden bg-black shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
+              isLandscape
+                ? 'aspect-video w-[90vw] max-w-[854px] h-auto max-h-[75vh]'
+                : 'aspect-[9/16] h-[88vh] max-h-[820px] max-w-[460px]'
+            }`}
           onClick={(e) => {
             e.stopPropagation();
             togglePlay();
@@ -439,6 +506,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 loop={isLooping}
                 muted={isMuted}
                 playsInline
+                onEnded={() => {
+                  if (!isLooping) {
+                    if (currentIndex < shorts.length - 1) {
+                      handleNext();
+                    } else {
+                      setCurrentIndex(0);
+                      setIsPlaying(true);
+                    }
+                  }
+                }}
                 onLoadedMetadata={(e) => {
                   const v = e.currentTarget;
                   if (v.videoWidth && v.videoHeight) {
@@ -599,26 +676,58 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
           <div className="w-full h-[1px] bg-white/10 my-0.5 sm:my-1" />
 
-          {/* Up & Down Step Chevrons */}
+          {/* Up & Down / Left & Right Step Chevrons */}
           <button
             onClick={handlePrev}
             disabled={currentIndex === 0}
             className="p-2.5 sm:p-3 rounded-2xl bg-black/50 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl border border-white/10"
-            title="Previous Reel (Up)"
+            title="Previous Reel (Up / Left)"
           >
-            <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" />
+            <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 md:hidden" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 hidden md:block" />
           </button>
 
           <button
             onClick={handleNext}
             disabled={currentIndex >= shorts.length - 1}
             className="p-2.5 sm:p-3 rounded-2xl bg-black/50 text-zinc-400 hover:text-white disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer shadow-xl backdrop-blur-xl border border-white/10"
-            title="Next Reel (Down)"
+            title="Next Reel (Down / Right)"
           >
-            <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
+            <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 md:hidden" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 hidden md:block" />
           </button>
         </aside>
       </div>
+
+      {/* Next Short (Desktop Flank) */}
+      {!isLandscape && nextShort && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            handleNext();
+          }}
+          className="hidden md:flex flex-col items-center justify-center aspect-[9/16] h-[78vh] max-h-[720px] max-w-[400px] rounded-3xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl transition-all duration-300 select-none opacity-35 hover:opacity-60 cursor-pointer scale-95 hover:scale-100 flex-shrink-0"
+          title="Next Short (Right)"
+        >
+          <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
+            {nextPoster ? (
+              <img
+                src={nextPoster}
+                alt={nextShort.title || 'Next Short'}
+                className="w-full h-full object-cover pointer-events-none"
+              />
+            ) : (
+              <div className="text-zinc-600 text-xs font-mono uppercase tracking-wider">Next</div>
+            )}
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <div className="p-3 rounded-full bg-black/60 border border-white/10 text-white/80">
+                <ChevronRight className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 };

@@ -5,8 +5,6 @@ import {
   ZoomOut,
   Play,
   Pause,
-  ChevronLeft,
-  ChevronRight,
   Check,
   Download,
   Volume2,
@@ -212,8 +210,6 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
   idx,
   isActive,
   onSelect,
-  onDownloadItem,
-  isDownloadingItem,
 }) => {
   const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
   const [isHovered, setIsHovered] = useState(false);
@@ -256,6 +252,8 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
     .replace(/[-_]+/g, ' ')
     .trim();
 
+  const fileName = item.name || itemTitle;
+
   return (
     <div
       onClick={onSelect}
@@ -271,18 +269,18 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
       onTouchStart={() => {
         if (isVideo) prewarmVideoStream(item.url);
       }}
-      className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all duration-200 group ${
+      className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all duration-200 group ${
         isActive
-          ? 'bg-zinc-800/90 shadow-md'
+          ? 'bg-zinc-800/90 shadow-md ring-1 ring-white/10'
           : 'hover:bg-zinc-900/80'
       }`}
     >
-      {/* Thumbnail Container (Obsidian Surface Backing) */}
+      {/* 1. Media Thumbnail */}
       <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-zinc-900 to-black flex-shrink-0">
         {activeThumb ? (
           <img
             src={activeThumb}
-            alt={itemTitle}
+            alt={fileName}
             loading="lazy"
             style={{ contentVisibility: 'auto' }}
             className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
@@ -293,50 +291,23 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
           </div>
         )}
 
-        {isActive ? (
-          <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
-            <span className="px-2 py-0.5 rounded bg-zinc-100 text-black font-mono font-bold text-xs tracking-widest uppercase">
-              PLAYING
-            </span>
-          </div>
-        ) : isVideo ? (
+        {isVideo && !isActive && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Play className="w-3.5 h-3.5 text-white fill-current" />
           </div>
-        ) : null}
+        )}
       </div>
 
-      {/* Meta */}
+      {/* 2. File Name */}
       <div className="flex-1 min-w-0">
         <span
-          className={`text-sm sm:text-base font-bold truncate block leading-tight line-clamp-1 ${
+          className={`text-sm sm:text-base font-bold truncate block leading-tight ${
             isActive ? 'text-zinc-100' : 'text-zinc-300 group-hover:text-white'
           } transition-colors duration-200`}
         >
-          {itemTitle}
-        </span>
-        <span className="text-xs sm:text-sm font-semibold font-mono text-zinc-400 tracking-wider uppercase block mt-0.5">
-          {String(idx + 1).padStart(2, '0')} • {isVideo ? 'VIDEO' : 'PHOTO'}
+          {fileName}
         </span>
       </div>
-
-      {onDownloadItem && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDownloadItem(item);
-          }}
-          disabled={isDownloadingItem}
-          className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 cursor-pointer disabled:opacity-50"
-          title={isDownloadingItem ? 'Downloading...' : `Download ${itemTitle}`}
-        >
-          {isDownloadingItem ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-          ) : (
-            <Download className="w-3.5 h-3.5" />
-          )}
-        </button>
-      )}
     </div>
   );
 };
@@ -560,6 +531,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const playlistContainerRef = useRef<HTMLDivElement>(null);
+  const suggestedAlbumsRef = useRef<HTMLDivElement>(null);
 
   // Auto-sliding queue refs
   const isQueueHoveredRef = useRef(false);
@@ -838,7 +810,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     touchStartRef.current = null;
   }, [onClose, seekRelative, resetHudTimer]);
 
-  const [downloadingItemId, setDownloadingItemId] = useState<string | null>(null);
+  const [, setDownloadingItemId] = useState<string | null>(null);
 
   // Dock global site header to top-left when theater viewer is active
   useEffect(() => {
@@ -1085,13 +1057,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     >
       {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
       <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-none">
-        {/* Left: Dedicated Media Metadata Counter (Clean Counter ONLY, Zero raw filename strings) */}
-        <div className="viewer-media-meta player-media-title z-20 hidden sm:flex items-center">
-          <span className="viewer-media-counter text-zinc-400 font-semibold tracking-wide text-xs flex-shrink-0">
-            {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
-          </span>
-        </div>
-
         {/* Right: Actions (Zoom, Download, Prominent View Full Screen - NO Close Button) */}
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-20">
           {!isVideo && (
@@ -1186,6 +1151,17 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   <Minimize className="w-3.5 h-3.5 text-cyan-400" />
                   <span>EXIT FULLSCREEN</span>
                 </button>
+              )}
+
+              {/* Fullscreen SARWARCYOU Brand Logo docked at Top-Left */}
+              {(isFullscreen || isLightboxFullscreen) && (
+                <div className="absolute top-4 left-4 sm:top-5 sm:left-6 z-[100000] pointer-events-none select-none flex items-center">
+                  <img
+                    src="/SARWARCYOU.svg"
+                    alt="SARWARCYOU"
+                    className="site-brand-logo h-7 sm:h-9 w-auto object-contain filter drop-shadow-[0_2px_10px_rgba(0,168,232,0.45)]"
+                  />
+                </div>
               )}
 
               {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
@@ -1575,9 +1551,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           <span className="text-[10px] text-zinc-400 tracking-wider hidden sm:inline">
                             {formatTime(currentTime)} / {formatTime(duration)}
                           </span>
-                          <span className="text-[9px] font-mono text-zinc-500 tracking-wider uppercase hidden md:inline ml-1">
-                            ({isVideo ? 'Video' : 'Item'} {currentIndex + 1} of {items.length})
-                          </span>
                         </div>
 
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -1681,19 +1654,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           </div>
 
                           <button
-                            onClick={() => handleDownload()}
-                            disabled={isDownloading}
-                            className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                            title={isDownloading ? 'Downloading video...' : 'Download video (Branded)'}
-                          >
-                            {isDownloading ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-                            ) : (
-                              <Download className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-
-                          <button
                             onClick={togglePiP}
                             className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
                             title="Picture in Picture"
@@ -1764,35 +1724,30 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             </div>
 
             {/* Under-player Editorial Status Bar */}
-            <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0">
-              <div className="truncate max-w-[70%]">
+            <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0 gap-2 sm:gap-4">
+              {/* Bottom-left: Active media's file name ONLY (plain text, no tags or extra labels) */}
+              <div className="truncate max-w-[38%] sm:max-w-[42%] text-left">
                 <span className="font-semibold text-white text-sm sm:text-base tracking-wide block truncate">
-                  {cleanTitle}
-                </span>
-                <span className="text-zinc-400 text-xs sm:text-sm font-semibold tracking-wider uppercase block mt-0.5">
-                  {isVideo
-                    ? `VIDEO ${currentIndex + 1} OF ${items.length} • SPATIAL HUD • 1080P CINEMATIC STREAM`
-                    : isZoomed
-                    ? `PHOTO ${currentIndex + 1} OF ${items.length} • ZOOMED 165% • LOSSLESS PHOTOGRAPHY`
-                    : `PHOTO ${currentIndex + 1} OF ${items.length} • HIGH DEFINITION PHOTOGRAPHY`}
+                  {currentItem.name || currentItem.title || cleanTitle}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
+
+              {/* Bottom-middle: Clickable pill reading "Click here to see suggested albums" */}
+              <div className="flex-1 flex justify-center">
                 <button
-                  onClick={() => goToIndex(currentIndex - 1)}
-                  className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
-                  title="Previous (←)"
+                  type="button"
+                  onClick={() => {
+                    setMobileTab('suggested');
+                    suggestedAlbumsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="px-3 sm:px-4 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 hover:border-cyan-500/40 text-zinc-300 hover:text-white text-xs sm:text-sm font-brand tracking-wider transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-lg group/sugbtn"
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => goToIndex(currentIndex + 1)}
-                  className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
-                  title="Next (→)"
-                >
-                  <ChevronRight className="w-4 h-4" />
+                  <Film className="w-3.5 h-3.5 text-cyan-400 group-hover/sugbtn:scale-110 transition-transform flex-shrink-0" />
+                  <span className="truncate">Click here to see suggested albums</span>
                 </button>
               </div>
+
+              <div className="w-[10%] hidden sm:block" />
             </div>
             {/* Mobile Segmented Tab Switcher (Suggested vs Queue) */}
             <div className="flex md:hidden items-center p-2 px-3 bg-[#09090b] gap-2 flex-shrink-0">
@@ -1882,8 +1837,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   idx={idx}
                   isActive={idx === currentIndex}
                   onSelect={() => goToIndex(idx)}
-                  onDownloadItem={handleDownload}
-                  isDownloadingItem={downloadingItemId === (item.id || item.url)}
                 />
               ))}
             </div>
@@ -1899,9 +1852,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           <div className="flex md:hidden flex-col w-full px-3 pt-3 pb-24 space-y-2">
             <div className="px-1 py-1 flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
               <span>Up Next in this Album</span>
-              <span className="flex items-center gap-1 text-emerald-400">
-                <Check className="w-3 h-3" /> Ready
-              </span>
             </div>
             {items.map((item, idx) => (
               <QueueCardItem
@@ -1910,8 +1860,6 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 idx={idx}
                 isActive={idx === currentIndex}
                 onSelect={() => goToIndex(idx)}
-                onDownloadItem={handleDownload}
-                isDownloadingItem={downloadingItemId === (item.id || item.url)}
               />
             ))}
           </div>
@@ -1970,7 +1918,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
         {/* ===== CONTEXT-AWARE RECOMMENDED ALBUMS (DESKTOP ONLY - BELOW THE PLAYER) ===== */}
         {suggestedAlbums.length > 0 && (
-          <div className="hidden md:flex w-full mt-4 px-1 sm:px-2 pb-12 flex-col gap-6">
+          <div ref={suggestedAlbumsRef} className="hidden md:flex w-full mt-4 px-1 sm:px-2 pb-12 flex-col gap-6">
             <div className="flex items-center justify-between pb-1">
               <div className="flex items-center gap-2.5">
                 {currentItem.type === 'video' ? (
