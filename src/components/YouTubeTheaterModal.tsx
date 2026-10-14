@@ -981,12 +981,41 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
       <div className="w-full px-3.5 sm:px-6 py-2.5 sm:py-3 bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
-        <div className="flex items-center gap-2 min-w-0 max-w-[24%] sm:max-w-[28%] md:max-w-[35%] z-10">
+        {/* Mobile: Top-Left Homepage Link */}
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            onClose();
+          }}
+          className="flex md:hidden items-center gap-2 select-none cursor-pointer group z-20"
+          title="Return to Home"
+          aria-label="Return to Home"
+        >
+          <div className="flex items-center justify-center w-6 h-6 flex-shrink-0">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="#00D2FF"
+              style={{ filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.75))' }}
+              className="h-6 w-6 group-hover:scale-105 transition-transform duration-200"
+            >
+              <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
+            </svg>
+          </div>
+          <span className="font-brand font-black text-base sm:text-lg tracking-wider text-white whitespace-nowrap">
+            SARWARCYOU
+          </span>
+        </a>
+
+        {/* Desktop: Album Name Pill & Counter on Left (Hidden on Mobile) */}
+        <div className="hidden md:flex items-center gap-2 min-w-0 max-w-[35%] z-10">
           <span className="px-2.5 py-1 rounded-xl bg-zinc-900/60 text-zinc-200 font-bold tracking-wide text-sm sm:text-base uppercase flex-shrink-0 truncate">
             {album?.name || 'ALBUM'}
           </span>
-          <span className="text-zinc-600 hidden sm:inline">•</span>
-          <span className="text-zinc-200 font-bold tracking-wide hidden sm:inline text-sm sm:text-base flex-shrink-0">
+          <span className="text-zinc-600">•</span>
+          <span className="text-zinc-200 font-bold tracking-wide text-sm sm:text-base flex-shrink-0">
             {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
           </span>
           <span className="text-zinc-200 font-medium truncate hidden xl:inline text-xs sm:text-sm">
@@ -994,26 +1023,26 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           </span>
         </div>
 
-        {/* Centered Website Logo & Brand Name (Enlarged across Desktop & Mobile) */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center gap-2 sm:gap-2.5 md:gap-3 select-none pointer-events-none z-10 max-w-[170px] xs:max-w-[210px] sm:max-w-none">
-          <div className="flex items-center justify-center w-7 h-7 md:w-10 md:h-10 flex-shrink-0">
+        {/* Desktop: Centered Website Logo & Brand Name (Hidden on Mobile) */}
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 items-center gap-2.5 md:gap-3 select-none pointer-events-none z-10">
+          <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
             <svg
               width="40"
               height="40"
               viewBox="0 0 24 24"
               fill="#00D2FF"
               style={{ filter: 'drop-shadow(0 0 12px rgba(0, 210, 255, 0.75))' }}
-              className="h-7 w-7 md:h-10 md:w-10"
+              className="h-10 w-10"
             >
               <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
             </svg>
           </div>
-          <span className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md">
+          <span className="font-brand font-black tracking-widest text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md">
             SARWARCYOU
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0 z-10">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-10">
           {!isVideo && (
             <button
               onClick={() => setIsZoomed(!isZoomed)}

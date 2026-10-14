@@ -69,21 +69,50 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92 backdrop-blur-2xl p-3 sm:p-6 md:p-10 animate-fade-in"
       onClick={onClose}
     >
-      {/* Centered Website Logo & Brand Name (Enlarged across Desktop & Mobile) */}
-      <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-2.5 md:gap-3 select-none pointer-events-none z-[110] max-w-[170px] xs:max-w-[210px] sm:max-w-none">
-        <div className="flex items-center justify-center w-7 h-7 md:w-10 md:h-10 flex-shrink-0">
+      {/* Mobile: Top-Left Homepage Link */}
+      <a
+        href="/"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+        }}
+        className="flex md:hidden absolute top-4 sm:top-6 left-4 sm:left-6 items-center gap-2 select-none cursor-pointer group z-[110]"
+        title="Return to Home"
+        aria-label="Return to Home"
+      >
+        <div className="flex items-center justify-center w-6 h-6 flex-shrink-0">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="#00D2FF"
+            style={{ filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.75))' }}
+            className="h-6 w-6 group-hover:scale-105 transition-transform duration-200"
+          >
+            <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
+          </svg>
+        </div>
+        <span className="font-brand font-black text-base sm:text-lg tracking-wider text-white whitespace-nowrap">
+          SARWARCYOU
+        </span>
+      </a>
+
+      {/* Desktop: Centered Website Logo & Brand Name (Hidden on Mobile) */}
+      <div className="hidden md:flex absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 items-center gap-2.5 md:gap-3 select-none pointer-events-none z-[110]">
+        <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
           <svg
             width="40"
             height="40"
             viewBox="0 0 24 24"
             fill="#00D2FF"
             style={{ filter: 'drop-shadow(0 0 12px rgba(0, 210, 255, 0.75))' }}
-            className="h-7 w-7 md:h-10 md:w-10"
+            className="h-10 w-10"
           >
             <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
           </svg>
         </div>
-        <span className="font-brand font-black tracking-wider md:tracking-widest text-lg sm:text-xl md:text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md">
+        <span className="font-brand font-black tracking-widest text-2xl lg:text-3xl text-white uppercase truncate drop-shadow-md">
           SARWARCYOU
         </span>
       </div>
