@@ -3,7 +3,7 @@ name: Optimize Videos for Instant Web Playback
 on:
   workflow_dispatch:
   schedule:
-    # Automatically runs every 6 hours in the background
+    # Runs automatically every 6 hours to pick up any new batches
     - cron: '0 */6 * * *'
 
 jobs:
@@ -20,121 +20,144 @@ jobs:
 
       - name: Install FFmpeg & Hugging Face Hub
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install huggingface_hub
 
       - name: Run Video Optimization Pipeline
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          REPO_ID: "SARWARFX/stream-vault"
         run: |
           python - << 'EOF'
           import os
           import json
           import subprocess
-          from huggingface_hub import HfApi, hf_hub_download, upload_file, delete_file
+          import tempfile
+          from huggingface_hub import HfApi, hf_hub_download, upload_file
 
-          repo_id = os.environ.get("REPO_ID", "SARWARFX/stream-vault")
-          hf_token = os.environ.get("HF_TOKEN")
-          api = HfApi(token=hf_token)
+          REPO_ID = "SARWARFX/stream-vault"
+          REPO_TYPE = "dataset"
+          MANIFEST_FILE = ".optimized_manifest.json"
+          VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"}
 
-          print(f"Scanning {repo_id} for all video formats...")
+          token = os.environ.get("HF_TOKEN")
+          if not token:
+              raise ValueError("HF_TOKEN secret is not set in repository settings.")
 
-          VIDEO_EXTENSIONS = ('.mp4', '.mkv', '.mov', '.webm', '.avi', '.flv', '.wmv', '.m4v', '.ts')
+          api = HfApi(token=token)
 
-          manifest_file = ".optimized_manifest.json"
+          # 1. Load or initialize manifest of already-optimized videos
           manifest = {}
           try:
-              local_manifest = hf_hub_download(repo_id=repo_id, repo_type="dataset", filename=manifest_file, token=hf_token)
-              with open(local_manifest, "r") as f:
+              manifest_path = hf_hub_download(
+                  repo_id=REPO_ID,
+                  repo_type=REPO_TYPE,
+                  filename=MANIFEST_FILE,
+                  token=token
+              )
+              with open(manifest_path, "r", encoding="utf-8") as f:
                   manifest = json.load(f)
+              print(f"Loaded existing manifest with {len(manifest)} optimized items.")
           except Exception:
-              print("No existing manifest found, starting fresh.")
+              print("No existing manifest found. Starting fresh tracking manifest.")
 
-          repo_files = api.list_repo_files(repo_id=repo_id, repo_type="dataset")
-          video_files = [
-              f for f in repo_files 
-              if f.lower().endswith(VIDEO_EXTENSIONS) and not f.startswith(".thumbnails/")
-          ]
+          # 2. List all files in Hugging Face repository
+          print("Scanning repository files on Hugging Face...")
+          all_files = api.list_repo_files(repo_id=REPO_ID, repo_type=REPO_TYPE)
 
-          print(f"Found {len(video_files)} total video files.")
+          # 3. Filter for videos that have not yet been optimized
+          video_files = []
+          for f in all_files:
+              _, ext = os.path.splitext(f.lower())
+              if ext in VIDEO_EXTENSIONS:
+                  if not manifest.get(f):
+                      video_files.append(f)
 
+          print(f"Found {len(video_files)} remaining videos to optimize.")
+
+          if not video_files:
+              print("All videos are already in web-optimized MP4 format!")
+              exit(0)
+
+          # 4. Process up to 75 videos per batch at fast speed
           processed_count = 0
-          for video_path in video_files:
-              root_name, ext = os.path.splitext(video_path)
-              target_video_path = f"{root_name}.mp4"
+          for rel_path in video_files:
+              print(f"\n==========================================")
+              print(f"[{processed_count + 1}/75] Optimizing: {rel_path}")
+              print(f"==========================================")
 
-              if manifest.get(target_video_path) or manifest.get(video_path):
-                  continue
+              with tempfile.TemporaryDirectory() as tmp_dir:
+                  # Download original video
+                  input_local = hf_hub_download(
+                      repo_id=REPO_ID,
+                      repo_type=REPO_TYPE,
+                      filename=rel_path,
+                      token=token,
+                      local_dir=tmp_dir
+                  )
 
-              print(f"\n--- Processing: {video_path} (Format: {ext}) ---")
-              try:
-                  input_local = hf_hub_download(repo_id=repo_id, repo_type="dataset", filename=video_path, token=hf_token)
-                  output_local = "temp_optimized_stream.mp4"
+                  base_name, _ = os.path.splitext(rel_path)
+                  target_remote_path = f"{base_name}.mp4"
+                  output_local = os.path.join(tmp_dir, "optimized_temp.mp4")
 
-                  # Visually lossless CRF 18, 2s keyframes, faststart header at byte 0
+                  # FFmpeg: CRF 18, preset fast, 2s GOP (48 frames), +faststart, AAC 128k
                   cmd = [
                       "ffmpeg", "-y", "-i", input_local,
-                      "-c:v", "libx264", "-crf", "18", "-preset", "slow",
+                      "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                       "-pix_fmt", "yuv420p",
                       "-g", "48", "-keyint_min", "48", "-sc_threshold", "0",
-                      "-c:a", "aac", "-b:a", "160k",
+                      "-c:a", "aac", "-b:a", "128k",
                       "-movflags", "+faststart",
                       output_local
                   ]
+
+                  print("Running high-speed web optimization...")
                   subprocess.run(cmd, check=True)
 
-                  print(f"Uploading optimized web stream to: {target_video_path}")
-                  api.upload_file(
+                  # Upload optimized video back to Hugging Face
+                  print(f"Uploading optimized file to: {target_remote_path}")
+                  upload_file(
                       path_or_fileobj=output_local,
-                      path_in_repo=target_video_path,
-                      repo_id=repo_id,
-                      repo_type="dataset",
-                      commit_message=f"perf: transcode & optimize {os.path.basename(video_path)} (+faststart, CRF 18)"
+                      path_in_repo=target_remote_path,
+                      repo_id=REPO_ID,
+                      repo_type=REPO_TYPE,
+                      token=token,
+                      commit_message=f"feat(stream): optimize {target_remote_path} (faststart + CRF18)"
                   )
 
-                  # Purge old unplayable container format if it was not an mp4
-                  if ext.lower() != ".mp4" and video_path != target_video_path:
-                      print(f"Purging old container: {video_path}")
+                  # If the original was not .mp4, remove the old file format
+                  if rel_path != target_remote_path:
                       try:
                           api.delete_file(
-                              path_in_repo=video_path,
-                              repo_id=repo_id,
-                              repo_type="dataset",
-                              commit_message=f"cleanup: remove replaced {ext} file in favor of optimized .mp4"
+                              path_in_repo=rel_path,
+                              repo_id=REPO_ID,
+                              repo_type=REPO_TYPE,
+                              commit_message=f"chore(cleanup): remove original {rel_path}"
                           )
-                      except Exception as del_err:
-                          print(f"Notice: Could not delete old file {video_path}: {del_err}")
+                      except Exception as e:
+                          print(f"Notice: Could not delete old file {rel_path}: {e}")
 
-                  manifest[target_video_path] = True
-                  if video_path != target_video_path:
-                      manifest[video_path] = True
+                  # Mark completed in manifest
+                  manifest[target_remote_path] = True
+                  if rel_path != target_remote_path:
+                      manifest[rel_path] = True
+
+                  # Sync manifest immediately after each video
+                  with open(os.path.join(tmp_dir, MANIFEST_FILE), "w", encoding="utf-8") as mf:
+                      json.dump(manifest, mf, indent=2)
+
+                  upload_file(
+                      path_or_fileobj=os.path.join(tmp_dir, MANIFEST_FILE),
+                      path_in_repo=MANIFEST_FILE,
+                      repo_id=REPO_ID,
+                      repo_type=REPO_TYPE,
+                      token=token,
+                      commit_message=f"chore: update optimization manifest ({target_remote_path})"
+                  )
 
                   processed_count += 1
-
-                  if os.path.exists(output_local):
-                      os.remove(output_local)
-
-                  # Batch limit to 10 files per run so it finishes comfortably fast
-                  if processed_count >= 10:
-                      print("Reached batch limit of 10 videos for this run.")
+                  if processed_count >= 75:
+                      print("Reached batch limit of 75 videos for this run.")
                       break
 
-              except Exception as e:
-                  print(f"Error processing {video_path}: {e}")
-
-          if processed_count > 0:
-              with open(manifest_file, "w") as f:
-                  json.dump(manifest, f, indent=2)
-              api.upload_file(
-                  path_or_fileobj=manifest_file,
-                  path_in_repo=manifest_file,
-                  repo_id=repo_id,
-                  repo_type="dataset",
-                  commit_message="chore: update video optimization manifest"
-              )
-              print(f"Successfully processed {processed_count} videos!")
-          else:
-              print("All videos are already in web-optimized MP4 format!")
+          print(f"\nSuccessfully optimized and synced {processed_count} videos!")
           EOF
