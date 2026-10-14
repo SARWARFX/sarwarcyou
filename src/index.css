@@ -3,10 +3,26 @@
 @theme {
   --font-inter: 'Inter', sans-serif;
   --font-space: 'Space Grotesk', sans-serif;
+  --font-orbitron: 'Orbitron', 'Space Grotesk', sans-serif;
 
   --color-brand-cyan: #00D2FF;
   --color-brand-pink: #FF2A85;
   --color-brand-purple: #9D00FF;
+}
+
+/* Strip all default focus, focus-visible, and border outlines globally */
+*, *:focus, *:focus-visible {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+*:focus, *:focus-visible {
+  box-shadow: none !important; /* remove artificial focus rings */
+}
+
+.font-futuristic {
+  font-family: var(--font-orbitron);
+  letter-spacing: 0.08em;
 }
 
 html, body {

@@ -65,29 +65,29 @@ const MobileCard: React.FC<MobileCardProps> = ({ item, album, idx, onSelectItem 
           }}
         />
 
-        {/* Tiny Overlay Badge for Type/Duration (bottom-1 right-1) */}
-        <div className="absolute bottom-1 right-1 text-[9px] px-1 py-0.5 rounded bg-black/70 font-mono text-zinc-300 flex items-center gap-0.5 border border-white/10 pointer-events-none">
+        {/* Type/Duration Overlay Badge (bottom-1.5 right-1.5) */}
+        <div className="absolute bottom-1.5 right-1.5 text-[10px] xs:text-[11px] px-1.5 py-0.5 rounded-md bg-black/85 font-mono font-semibold text-zinc-200 flex items-center gap-1 border border-white/15 pointer-events-none backdrop-blur-sm">
           {isShort ? (
             <>
-              <Film className="w-2.5 h-2.5 text-rose-400" />
+              <Film className="w-3 h-3 text-rose-400" />
               <span>REEL</span>
             </>
           ) : isVideo ? (
             <>
-              <Play className="w-2.5 h-2.5 text-amber-400 fill-current" />
+              <Play className="w-3 h-3 text-amber-400 fill-current" />
               <span>VIDEO</span>
             </>
           ) : (
             <>
-              <Camera className="w-2.5 h-2.5 text-cyan-400" />
+              <Camera className="w-3 h-3 text-cyan-400" />
               <span>PHOTO</span>
             </>
           )}
         </div>
       </div>
 
-      {/* Compact Metadata: 1-line truncated title */}
-      <span className="text-[11px] text-zinc-300 font-medium leading-tight mt-1 line-clamp-1 truncate">
+      {/* Clearer, Prominent Metadata: 1-line truncated title */}
+      <span className="text-xs xs:text-[13px] text-zinc-200 font-semibold leading-snug mt-1.5 line-clamp-1 truncate">
         {cleanTitle}
       </span>
     </div>

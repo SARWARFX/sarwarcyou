@@ -1008,7 +1008,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               <path d="M5.5 3.868v16.264a1.5 1.5 0 002.28 1.282l13.553-8.132a1.5 1.5 0 000-2.564L7.78 2.586A1.5 1.5 0 005.5 3.868z" />
             </svg>
           </div>
-          <span className="font-space font-black tracking-wider text-base sm:text-lg md:text-2xl text-white uppercase truncate drop-shadow-md">
+          <span className="font-futuristic font-black tracking-wider text-base sm:text-lg md:text-2xl text-white uppercase truncate drop-shadow-md">
             SARWARCYOU
           </span>
         </div>
