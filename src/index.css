@@ -296,7 +296,7 @@ body.viewing-media #global-site-header,
   }
 }
 
-/* Reserve space for the fixed/docked logo at top-left */
+/* Reserve space for the fixed/docked logo at top-left & keep top bar borderless */
 .viewer-top-bar,
 .player-header-bar,
 .player-top-bar,
@@ -313,6 +313,26 @@ body.viewing-media #global-site-header,
   box-sizing: border-box !important;
   position: relative;
   z-index: 50;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Eliminate active media filename displays in the top navigation/header row */
+.viewer-top-bar .viewer-title,
+.viewer-top-bar .player-top-filename,
+.viewer-top-bar .active-media-name,
+.viewer-top-bar .media-filename,
+.player-header-bar .viewer-title,
+.player-header-bar .player-top-filename,
+.player-header-bar .active-media-name,
+.player-header-bar .media-filename,
+.viewer-title,
+.player-top-filename,
+.active-media-name,
+.viewer-filename,
+.player-filename {
+  display: none !important;
 }
 
 /* Media title & photo counter styling */
@@ -333,6 +353,12 @@ body.viewing-media #global-site-header,
   min-width: 0 !important;
 }
 
+.viewer-media-counter {
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em;
+}
+
 @media (max-width: 640px) {
   .viewer-top-bar,
   .player-header-bar,
@@ -340,6 +366,8 @@ body.viewing-media #global-site-header,
   .media-viewer-top-bar {
     padding-left: clamp(170px, 26vw, 220px) !important;
     padding-right: 0.75rem !important;
+    border: none !important;
+    border-bottom: none !important;
   }
 }
 

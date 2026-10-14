@@ -1082,18 +1082,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
-      <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative">
-        {/* Left: Dedicated Media Metadata (Album Pill & Photo Counter) */}
-        <div className="viewer-media-meta player-media-title z-20">
-          <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0 truncate hidden xs:inline">
-            {album?.name || 'ALBUM'}
-          </span>
-          <span className="text-zinc-600 hidden xs:inline">•</span>
-          <span className="text-zinc-300 font-bold tracking-wide text-xs flex-shrink-0">
+      <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-none">
+        {/* Left: Dedicated Media Metadata Counter (Clean Counter ONLY, Zero raw filename strings) */}
+        <div className="viewer-media-meta player-media-title z-20 hidden sm:flex items-center">
+          <span className="viewer-media-counter text-zinc-400 font-semibold tracking-wide text-xs flex-shrink-0">
             {isVideo ? 'Video' : 'Photo'} {currentIndex + 1} of {items.length}
-          </span>
-          <span className="truncate max-w-[200px] lg:max-w-xs">
-            {cleanTitle}
           </span>
         </div>
 

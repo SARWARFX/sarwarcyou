@@ -179,19 +179,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     >
       {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
       <div
-        className="viewer-top-bar player-header-bar fixed top-0 left-0 right-0 w-full bg-black/85 backdrop-blur-xl border-b border-white/[0.06]"
+        className="viewer-top-bar player-header-bar fixed top-0 left-0 right-0 w-full bg-black/85 backdrop-blur-xl border-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Left: Dedicated Media Metadata (Pill & Clean Title) */}
-        <div className="viewer-media-meta player-media-title">
-          <span className="px-2 py-0.5 rounded-lg bg-zinc-900/80 text-zinc-300 font-bold tracking-wide text-xs uppercase flex-shrink-0">
-            {type === 'video' ? 'Video' : 'Photo'}
-          </span>
-          <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md">
-            {displayTitle}
-          </span>
-        </div>
-
         {/* Right: Actions (Zoom, Download, External Link, Prominent View Full Screen - NO Close Button) */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ml-auto">
           {type === 'image' && (
