@@ -28,18 +28,19 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onResetHome?.();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 md:static md:translate-x-0 md:top-auto md:translate-y-0 flex items-center justify-center gap-2.5 sm:gap-3.5 flex-shrink-0 cursor-pointer group bg-transparent border-none p-0 focus:outline-none select-none z-10"
+          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 md:static md:translate-x-0 md:top-auto md:translate-y-0 brand-lockup inline-flex items-center justify-center gap-[10px] m-0 p-0 flex-shrink-0 cursor-pointer group bg-transparent border-none focus:outline-none select-none z-10"
           title="Return to Home / Top"
           aria-label="Return to Home"
         >
           <svg
             id="brand-delta-logo"
-            className="brand-delta-logo w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-            viewBox="0 0 120 120"
-            width="48"
-            height="48"
+            className="brand-delta-logo w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] overflow-visible transition-transform duration-300 group-hover:scale-105"
+            viewBox="0 0 100 100"
+            width="42"
+            height="42"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            style={{ display: 'block', flexShrink: 0 }}
           >
             <defs>
               <linearGradient id="brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -48,14 +49,14 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 <stop offset="100%" stop-color="#ffffff" />
               </linearGradient>
             </defs>
-            {/* Piece 1: Left Angled Leg */}
-            <path d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z" fill="url(#brand-dynamic-gradient)" />
-            {/* Piece 2: Right Slant Beam */}
-            <path d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z" fill="url(#brand-dynamic-gradient)" />
-            {/* Piece 3: Bottom Left Fold & Base */}
-            <path d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z" fill="url(#brand-dynamic-gradient)" />
+            {/* Segment 1: Top-Left Apex Bar */}
+            <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#brand-dynamic-gradient)" />
+            {/* Segment 2: Bottom-Left Foot & Center Fold */}
+            <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#brand-dynamic-gradient)" />
+            {/* Segment 3: Right Slanted Leg */}
+            <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#brand-dynamic-gradient)" />
           </svg>
-          <h1 className="brand-title font-brand font-black text-xl sm:text-2xl md:text-3xl tracking-wider select-none leading-none whitespace-nowrap m-0 p-0 flex items-center transition-opacity group-hover:opacity-95">
+          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center transition-opacity group-hover:opacity-95">
             SARWARCYOU
           </h1>
         </a>

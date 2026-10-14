@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 /**
- * useDynamicFavicon & Tri-Fold Interlocking Delta Spectral Engine
+ * useDynamicFavicon & Interlocking Delta Spectral Engine
  *
  * Drives the unified, synchronized spectral gradient:
  * - 3-stop linear gradient: [ #ffffff (0%) -> HSL(θ, 100%, 65%) (50%) -> #ffffff (100%) ]
@@ -13,7 +13,7 @@ import { useEffect } from 'react';
  *     --brand-dynamic-glow: hsla(θ, 100%, 65%, 0.35);
  * - Simultaneously updates all #svg-gradient-mid / .svg-gradient-mid SVG stop colors.
  * - Synchronizes browser dynamic favicon in real time via an offscreen 64x64 canvas
- *   filled with the exact createLinearGradient(0, 0, 64, 64) and tri-fold interlocking delta paths (~15 FPS throttle).
+ *   drawing the exact 3-segment interlocking delta paths filled with the active gradient (~15 FPS throttle).
  * - Fully pauses rendering during document.hidden to eliminate battery/CPU drain.
  */
 export function useDynamicFavicon(_legacyEmblemSrc?: string) {
@@ -57,42 +57,40 @@ export function useDynamicFavicon(_legacyEmblemSrc?: string) {
       grad.addColorStop(1, '#ffffff');
 
       ctx.save();
-      // Scale 0..120 vector coordinates to 64x64 canvas
-      ctx.scale(64 / 120, 64 / 120);
+      // Scale 0..100 vector coordinates to 64x64 canvas
+      ctx.scale(0.64, 0.64);
       ctx.fillStyle = grad;
 
-      // Piece 1: Left Angled Leg (d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z")
+      // Segment 1: Top-Left Apex Bar (d="M 50,6 L 62,28 L 47,56 L 31,56 Z")
       ctx.beginPath();
-      ctx.moveTo(60, 15);
-      ctx.lineTo(43, 45);
-      ctx.lineTo(29, 69);
-      ctx.lineTo(45, 69);
-      ctx.lineTo(55, 52);
-      ctx.lineTo(67, 31);
+      ctx.moveTo(50, 6);
+      ctx.lineTo(62, 28);
+      ctx.lineTo(47, 56);
+      ctx.lineTo(31, 56);
       ctx.closePath();
       ctx.fill();
 
-      // Piece 2: Right Slant Beam (d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z")
+      // Segment 2: Bottom-Left Foot & Center Fold (d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z")
       ctx.beginPath();
-      ctx.moveTo(67, 31);
-      ctx.lineTo(52, 56);
-      ctx.lineTo(68, 56);
-      ctx.lineTo(93, 105);
-      ctx.lineTo(109, 105);
-      ctx.lineTo(75, 37);
+      ctx.moveTo(24, 67);
+      ctx.lineTo(41, 67);
+      ctx.lineTo(54, 92);
+      ctx.lineTo(11, 92);
+      ctx.closePath();
+      ctx.moveTo(44, 67);
+      ctx.lineTo(58, 41);
+      ctx.lineTo(69, 61);
+      ctx.lineTo(55, 61);
       ctx.closePath();
       ctx.fill();
 
-      // Piece 3: Bottom Left Fold & Base (d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z")
+      // Segment 3: Right Slanted Leg (d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z")
       ctx.beginPath();
-      ctx.moveTo(45, 69);
-      ctx.lineTo(29, 69);
-      ctx.lineTo(11, 105);
-      ctx.lineTo(38, 105);
-      ctx.lineTo(53, 75);
-      ctx.lineTo(68, 75);
-      ctx.lineTo(68, 56);
-      ctx.lineTo(52, 56);
+      ctx.moveTo(64, 19);
+      ctx.lineTo(50, 46);
+      ctx.lineTo(63, 69);
+      ctx.lineTo(89, 92);
+      ctx.lineTo(100, 92);
       ctx.closePath();
       ctx.fill();
 
@@ -120,7 +118,12 @@ export function useDynamicFavicon(_legacyEmblemSrc?: string) {
       root.style.setProperty('--brand-color-a', midColor);
 
       // Simultaneously update SVG gradient stop-colors directly
-      const svgMidStops = document.querySelectorAll<SVGStopElement>('#svg-gradient-mid, .svg-gradient-mid');
+      const midElement = document.getElementById('svg-gradient-mid');
+      if (midElement) {
+        midElement.setAttribute('stop-color', midColor);
+        midElement.style.stopColor = midColor;
+      }
+      const svgMidStops = document.querySelectorAll<SVGStopElement>('.svg-gradient-mid');
       for (let i = 0; i < svgMidStops.length; i++) {
         svgMidStops[i].setAttribute('stop-color', midColor);
         svgMidStops[i].style.stopColor = midColor;

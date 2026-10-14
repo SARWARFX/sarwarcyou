@@ -988,15 +988,16 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             e.preventDefault();
             onClose();
           }}
-          className="flex md:hidden items-center gap-2 sm:gap-2.5 select-none cursor-pointer group z-20 border-none outline-none"
+          className="flex md:hidden brand-lockup items-center gap-[10px] m-0 p-0 select-none cursor-pointer group z-20 border-none outline-none"
           title="Return to Home"
           aria-label="Return to Home"
         >
           <svg
-            className="brand-delta-logo w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-            viewBox="0 0 120 120"
+            className="brand-delta-logo w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+            viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            style={{ display: 'block', flexShrink: 0 }}
           >
             <defs>
               <linearGradient id="yt-mobile-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1005,11 +1006,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 <stop offset="100%" stop-color="#ffffff" />
               </linearGradient>
             </defs>
-            <path d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
-            <path d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
-            <path d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
+            <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
+            <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
+            <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#yt-mobile-brand-dynamic-gradient)" />
           </svg>
-          <h1 className="brand-title font-brand font-black text-base sm:text-lg tracking-wider whitespace-nowrap m-0 p-0 flex items-center">
+          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center">
             SARWARCYOU
           </h1>
         </a>
@@ -1035,15 +1036,18 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             e.preventDefault();
             onClose();
           }}
-          className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 items-center gap-2.5 sm:gap-3.5 select-none cursor-pointer group z-10 border-none outline-none"
+          className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 brand-lockup items-center justify-center gap-[10px] m-0 p-0 select-none cursor-pointer group z-10 border-none outline-none"
           title="Return to Home"
           aria-label="Return to Home"
         >
           <svg
-            className="brand-delta-logo w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
-            viewBox="0 0 120 120"
+            className="brand-delta-logo w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] flex-shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
+            viewBox="0 0 100 100"
+            width="42"
+            height="42"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            style={{ display: 'block', flexShrink: 0 }}
           >
             <defs>
               <linearGradient id="yt-desktop-brand-dynamic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1052,11 +1056,11 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 <stop offset="100%" stop-color="#ffffff" />
               </linearGradient>
             </defs>
-            <path d="M 60,15 L 43,45 L 29,69 L 45,69 L 55,52 L 67,31 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
-            <path d="M 67,31 L 52,56 L 68,56 L 93,105 L 109,105 L 75,37 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
-            <path d="M 45,69 L 29,69 L 11,105 L 38,105 L 53,75 L 68,75 L 68,56 L 52,56 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
+            <path d="M 50,6 L 62,28 L 47,56 L 31,56 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
+            <path d="M 24,67 L 41,67 L 54,92 L 11,92 L 24,67 Z M 44,67 L 58,41 L 69,61 L 55,61 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
+            <path d="M 64,19 L 50,46 L 63,69 L 89,92 L 100,92 Z" fill="url(#yt-desktop-brand-dynamic-gradient)" />
           </svg>
-          <h1 className="brand-title font-brand font-black tracking-widest text-xl sm:text-2xl md:text-3xl uppercase whitespace-nowrap m-0 p-0 flex items-center group-hover:opacity-90 transition-opacity">
+          <h1 className="brand-title font-brand font-black select-none leading-none whitespace-nowrap m-0 p-0 flex items-center group-hover:opacity-90 transition-opacity">
             SARWARCYOU
           </h1>
         </a>
