@@ -1,51 +1,133 @@
-name: Clean Old Thumbnails
+name: Generate Multi-Frame Video Thumbnails
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual trigger anytime
+  schedule:
+    # Runs automatically every 24 hours at 00:00 UTC (06:00 AM BD time)
+    - cron: '0 0 * * *'
 
 jobs:
-  clean:
+  generate-thumbnails:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
-        run: pip install huggingface_hub
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install huggingface_hub
 
-      - name: Delete old inline thumbnails on HF
+      - name: Run Multi-Frame Thumbnail Pipeline
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python - << 'EOF'
           import os
-          from huggingface_hub import HfApi, list_repo_files, CommitOperationDelete
+          import subprocess
+          from huggingface_hub import HfApi, list_repo_files
 
           hf_token = os.environ.get("HF_TOKEN")
           api = HfApi(token=hf_token)
           REPO_ID = "SARWARFX/stream-vault"
+          LOCAL_THUMB_DIR = "./temp_thumbnails"
+          os.makedirs(LOCAL_THUMB_DIR, exist_ok=True)
 
+          # Fetch all files from the dataset to make instant O(1) checks
+          print(f"Fetching current file manifest from {REPO_ID}...")
           all_files = list_repo_files(repo_id=REPO_ID, repo_type="dataset", token=hf_token)
+          existing_files_set = set(all_files)
 
-          # Find any file containing '_thumb' in its name (e.g. video_thumb.jpg, video_thumb_1.jpg, etc.)
-          thumb_files = [
+          # Discover all video files across the entire repo (excluding any inside Thumbnails/)
+          video_files = [
               f for f in all_files 
-              if "_thumb" in f.lower() and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
+              if f.lower().endswith(('.mp4', '.mov', '.webm', '.mkv'))
+              and not f.startswith("Thumbnails/")
           ]
 
-          print(f"Found {len(thumb_files)} old inline thumbnail files across all folders.")
+          print(f"Total video files found in vault: {len(video_files)}")
 
-          if thumb_files:
-              operations = [CommitOperationDelete(path_in_repo=f) for f in thumb_files]
-              api.create_commit(
+          PERCENTAGES = [0.20, 0.40, 0.60, 0.80, 0.95]
+          generated_count = 0
+
+          def get_duration(url):
+              cmd = [
+                  "ffprobe", "-v", "error",
+                  "-show_entries", "format=duration",
+                  "-of", "default=noprint_wrappers=1:nokey=1",
+                  url
+              ]
+              res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+              try:
+                  val = float(res.stdout.strip())
+                  return val if val > 0 else None
+              except Exception:
+                  return None
+
+          for idx, v in enumerate(video_files, 1):
+              base_name = os.path.splitext(v)[0]
+              
+              # Expected path inside dedicated Thumbnails/ mirror directory
+              # e.g., 'Thumbnails/Images/Bandhobis/Video Clips/asha8_thumb_1.jpg'
+              expected_thumbs = [f"Thumbnails/{base_name}_thumb_{i+1}.jpg" for i in range(len(PERCENTAGES))]
+              
+              # If all 5 thumbnails already exist remotely, skip entirely
+              if all(t in existing_files_set for t in expected_thumbs):
+                  print(f"[{idx}/{len(video_files)}] [SKIP] All 5 thumbs exist: {v}")
+                  continue
+
+              print(f"[{idx}/{len(video_files)}] [PROCESSING] Sampling 5 frames: {v}")
+              video_url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{v}"
+              
+              duration = get_duration(video_url)
+              if not duration:
+                  print(f"  -> Could not determine duration for {v}, using 10.0s fallback.")
+                  duration = 10.0
+
+              for i, pct in enumerate(PERCENTAGES):
+                  thumb_rel_path = f"Thumbnails/{base_name}_thumb_{i+1}.jpg"
+                  dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_rel_path)
+
+                  if thumb_rel_path in existing_files_set or os.path.exists(dest_path):
+                      continue
+
+                  os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                  seek_time = max(0.2, round(duration * pct, 2))
+
+                  # High efficiency extraction:
+                  # -ss before -i for rapid network seeking
+                  # scale=640:-1 maintains aspect ratio with 640px max width
+                  # -q:v 3 produces high quality compact JPEGs
+                  cmd = [
+                      "ffmpeg", "-y",
+                      "-ss", str(seek_time),
+                      "-i", video_url,
+                      "-frames:v", "1",
+                      "-vf", "scale=640:-1",
+                      "-q:v", "3",
+                      dest_path
+                  ]
+                  res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                  if res.returncode == 0 and os.path.exists(dest_path):
+                      generated_count += 1
+
+          print(f"\nFinished extraction. Total new frame thumbnails generated: {generated_count}")
+
+          # Bulk upload all generated frames in 1 single atomic commit
+          if generated_count > 0:
+              print(f"Committing and uploading to {REPO_ID} (single atomic commit)...")
+              api.upload_folder(
+                  folder_path=LOCAL_THUMB_DIR,
                   repo_id=REPO_ID,
                   repo_type="dataset",
-                  operations=operations,
-                  commit_message=f"Clean up {len(thumb_files)} legacy inline thumbnail files"
+                  commit_message=f"Generate {generated_count} multi-frame video thumbnails (20-95%, 640px)"
               )
-              print(f"Successfully deleted {len(thumb_files)} thumbnail files in 1 single commit!")
+              print("Upload complete!")
           else:
-              print("No inline thumbnail files found.")
+              print("Repository is completely up-to-date. No new uploads needed.")
           EOF
