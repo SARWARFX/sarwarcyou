@@ -1018,7 +1018,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {showSidebar && (
         <div
           className="fixed inset-0 z-50 flex flex-col md:flex-row justify-end items-end md:items-stretch bg-black/75 backdrop-blur-sm animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
-          onClick={() => setShowSidebar(false)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowSidebar(false);
+          }}
         >
           <div
             className="w-full md:w-auto h-[62vh] md:h-full max-h-[85vh] md:max-h-screen flex flex-col shadow-2xl pointer-events-auto overflow-hidden rounded-t-3xl md:rounded-t-none animate-slide-up md:animate-slide-left"
