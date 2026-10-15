@@ -46,7 +46,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 }) => {
   const [activeIdx, setActiveIdx] = useState<number>(propCurrentIndex);
   const [isZoomed, setIsZoomed] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isLightboxFullscreen, setIsLightboxFullscreen] = useState(false);
@@ -477,23 +477,25 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* 2. Right Pane: Sidebar Queue & Suggestions */}
+      {/* 2. Slide-out Queue & Suggestions Drawer (Overlay) */}
       {showSidebar && (
-        <CyberMediaSidebar
-          items={items}
-          activeItem={currentItem}
-          activeIdx={activeIdx}
-          onSelectItem={(_, idx) => {
-            setActiveIdx(idx);
-            setIsZoomed(false);
-            onIndexChange?.(idx);
-          }}
-          mediaType="image"
-          currentFolderName={currentItem?.category || 'Photo Archive'}
-          allFolders={allFolders}
-          onSelectFolder={onSelectFolder}
-          onClose={() => setShowSidebar(false)}
-        />
+        <div className="fixed inset-y-0 right-0 z-50 flex shadow-2xl animate-slide-left">
+          <CyberMediaSidebar
+            items={items}
+            activeItem={currentItem}
+            activeIdx={activeIdx}
+            onSelectItem={(_, idx) => {
+              setActiveIdx(idx);
+              setIsZoomed(false);
+              onIndexChange?.(idx);
+            }}
+            mediaType="image"
+            currentFolderName={currentItem?.category || 'Photo Archive'}
+            allFolders={allFolders}
+            onSelectFolder={onSelectFolder}
+            onClose={() => setShowSidebar(false)}
+          />
+        </div>
       )}
     </div>
   );

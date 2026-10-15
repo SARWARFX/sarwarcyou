@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
-import { CyberHeader, type CyberFilterType } from './components/CyberHeader';
+import { type CyberFilterType } from './components/CyberHeader';
+import { NetflixNav } from './components/NetflixNav';
+import { NetflixBillboard } from './components/NetflixBillboard';
 import { CyberCarouselRow } from './components/CyberCarouselRow';
 import { CyberVideoPlayer } from './components/CyberVideoPlayer';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
@@ -212,6 +214,30 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Featured Headline Item for Netflix Billboard
+  const featuredItem = useMemo(() => {
+    if (rawFeed.allMediaPool && rawFeed.allMediaPool.length > 0) {
+      const topVideo = rawFeed.allMediaPool.find(
+        (it) =>
+          (it.type === 'video' || it.mediaType === 'clip') &&
+          it.mediaType !== 'short' &&
+          !it.category?.toLowerCase().includes('short') &&
+          !it.url?.toLowerCase().includes('/shorts/')
+      );
+      if (topVideo) return topVideo;
+      return rawFeed.allMediaPool[0];
+    }
+    return null;
+  }, [rawFeed]);
+
+  // Surprise Me / Shuffle Handler
+  const handleShuffle = useCallback(() => {
+    if (!rawFeed.allMediaPool || rawFeed.allMediaPool.length === 0) return;
+    const randomIdx = Math.floor(Math.random() * rawFeed.allMediaPool.length);
+    const randomItem = rawFeed.allMediaPool[randomIdx];
+    handleSelectItem(randomItem);
+  }, [rawFeed, handleSelectItem]);
+
   const hasAnyResults =
     feed.latestReleases.length > 0 ||
     feed.shorts.length > 0 ||
@@ -250,17 +276,31 @@ function App() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden relative bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
-      {/* 1. Floating Glass Pill Header */}
-      <CyberHeader
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+      {/* 1. Netflix Dual Navigation (Desktop Left Rail + Mobile Top & Bottom Bars) */}
+      <NetflixNav
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
-        onReset={handleResetHome}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onShuffle={handleShuffle}
+        onResetHome={handleResetHome}
       />
 
-      {/* 2. Structured Multi-Row Discovery Feed */}
-      <main className="w-full max-w-7xl mx-auto pt-24 sm:pt-28 pb-16 px-4 sm:px-8 flex flex-col gap-10 sm:gap-14">
+      {/* Main Content Stage: Left Rail Offset on Desktop, Bottom Dock Offset on Mobile */}
+      <div className="w-full md:pl-16 lg:pl-20 pb-20 md:pb-10 flex flex-col min-h-screen">
+        {/* 2. Netflix Hero Billboard (Headline Banner) */}
+        {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && featuredItem && (
+          <NetflixBillboard
+            item={featuredItem}
+            onPlay={(item) => handleSelectItem(item)}
+            onMoreInfo={(item) => handleSelectItem(item)}
+          />
+        )}
+
+        {/* 3. Structured Discovery Feed */}
+        <main className={`w-full max-w-7xl mx-auto px-4 sm:px-8 flex flex-col gap-10 sm:gap-14 ${
+          !searchQuery && (activeFilter === 'all' || activeFilter === 'clips') ? 'pt-2 sm:pt-4' : 'pt-20 sm:pt-24'
+        }`}>
         {/* Loading State Skeleton */}
         {isLoading && !data && (
           <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
@@ -398,6 +438,7 @@ function App() {
 
       {/* 3. Minimalist Footer */}
       <SiteFooter onBackToTop={handleResetHome} />
+      </div>
 
       {/* Floating Global Back-To-Top Button */}
       <button

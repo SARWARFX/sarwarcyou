@@ -115,9 +115,9 @@ export const CyberCard: React.FC<CyberCardProps> = ({
   const effectiveVariant = isShort ? 'shorts' : (isVideo && variant === 'photo' ? 'standard' : variant);
 
   const sizeClass = {
-    standard: 'w-[260px] sm:w-[290px] md:w-[320px] aspect-[16/10]',
-    shorts: 'w-[160px] sm:w-[190px] md:w-[215px] aspect-[9/16]',
-    photo: 'w-[240px] sm:w-[270px] md:w-[300px] aspect-[4/3]',
+    standard: 'w-[250px] sm:w-[280px] md:w-[310px] aspect-video',
+    shorts: 'w-[150px] sm:w-[175px] md:w-[200px] aspect-[9/16]',
+    photo: 'w-[160px] sm:w-[185px] md:w-[210px] aspect-[2/3]',
   }[effectiveVariant];
 
   const fallbackUrl = item.thumbnail || item.poster || item.url;
@@ -143,7 +143,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
           onClick(item);
         }
       }}
-      className={`group relative flex-shrink-0 cursor-pointer select-none rounded-[14px] overflow-hidden bg-[#08080c] transition-all duration-300 ease-out hover:scale-[1.03] hover:shadow-[0_10px_30px_rgba(0,229,255,0.12)] hover:z-10 ${sizeClass}`}
+      className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-[#08080c] border border-white/5 transition-all duration-300 ease-out hover:scale-[1.04] hover:border-[#00E5FF]/40 hover:shadow-[0_14px_35px_rgba(0,0,0,0.85)] hover:z-20 ${sizeClass}`}
     >
       {/* Background Poster / Fallback */}
       <div className="absolute inset-0 bg-[#08080c] flex flex-col justify-between p-3.5 z-0">

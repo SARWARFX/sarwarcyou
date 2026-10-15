@@ -13,7 +13,7 @@ import {
   Repeat1,
   Gauge,
   ListVideo,
-  X,
+  ArrowLeft,
   Check,
   Loader2,
   ChevronsLeft,
@@ -72,7 +72,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -577,10 +577,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 transition-colors cursor-pointer"
-              title="Close Theater (Esc)"
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 transition-all cursor-pointer hover:border-[#00E5FF]/40"
+              title="Back to Browse (Esc)"
             >
-              <X className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-xs font-bold font-sans hidden sm:inline">Back</span>
             </button>
             <div>
               <div className="flex items-center gap-2">
@@ -988,19 +989,21 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       </div>
       </div>
 
-      {/* 2. Right Pane: Sidebar Queue & Suggestions */}
+      {/* 2. Slide-out Queue & Suggestions Drawer (Overlay) */}
       {showSidebar && (
-        <CyberMediaSidebar
-          items={playlist}
-          activeItem={item}
-          activeIdx={playlist.findIndex((v) => v.id === item.id || v.url === item.url)}
-          onSelectItem={(selected) => onSelectItem?.(selected)}
-          mediaType="video"
-          currentFolderName={item.category || item.parentAlbum || 'Video Archive'}
-          allFolders={allFolders}
-          onSelectFolder={onSelectFolder}
-          onClose={() => setShowSidebar(false)}
-        />
+        <div className="fixed inset-y-0 right-0 z-50 flex shadow-2xl animate-slide-left">
+          <CyberMediaSidebar
+            items={playlist}
+            activeItem={item}
+            activeIdx={playlist.findIndex((v) => v.id === item.id || v.url === item.url)}
+            onSelectItem={(selected) => onSelectItem?.(selected)}
+            mediaType="video"
+            currentFolderName={item.category || item.parentAlbum || 'Video Archive'}
+            allFolders={allFolders}
+            onSelectFolder={onSelectFolder}
+            onClose={() => setShowSidebar(false)}
+          />
+        </div>
       )}
     </div>
   );

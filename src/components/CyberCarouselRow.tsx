@@ -172,19 +172,39 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
         </div>
       </div>
 
-      {/* Scrollable Track */}
-      <div
-        ref={trackRef}
-        className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-2 px-1"
-      >
-        {filteredItems.map((item) => (
-          <CyberCard
-            key={item.id}
-            item={item}
-            variant={variant}
-            onClick={(it) => onSelectItem(it, filteredItems)}
-          />
-        ))}
+      {/* Scrollable Track with Netflix Edge Sliders */}
+      <div className="relative group/row">
+        <button
+          type="button"
+          onClick={() => scrollByDelta(-500)}
+          aria-label={`Scroll ${title} left`}
+          className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-xl items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all duration-200 border border-white/20 hover:scale-110 shadow-[0_8px_25px_rgba(0,0,0,0.85)] cursor-pointer"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <div
+          ref={trackRef}
+          className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-3 px-1"
+        >
+          {filteredItems.map((item) => (
+            <CyberCard
+              key={item.id}
+              item={item}
+              variant={variant}
+              onClick={(it) => onSelectItem(it, filteredItems)}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => scrollByDelta(500)}
+          aria-label={`Scroll ${title} right`}
+          className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-xl items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all duration-200 border border-white/20 hover:scale-110 shadow-[0_8px_25px_rgba(0,0,0,0.85)] cursor-pointer"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
     </section>
   );
