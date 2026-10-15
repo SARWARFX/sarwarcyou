@@ -462,7 +462,7 @@ function App() {
   }, [activeFilter]);
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden relative bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
+    <div className="w-full max-w-full overflow-x-clip relative bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
       {/* 1. Netflix Dual Navigation (Desktop Left Rail + Mobile Top & Bottom Bars) */}
       <NetflixNav
         activeFilter={activeFilter}
@@ -474,7 +474,7 @@ function App() {
       />
 
       {/* Main Content Stage */}
-      <div className="w-full md:pl-12 lg:pl-14 pb-12 flex flex-col min-h-screen">
+      <div className="w-full md:pl-12 lg:pl-14 flex flex-col min-h-screen">
         {/* 2. Netflix Hero Billboard (10 Rotating Landscape Videos Across Folders) */}
         {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && spotlightVideos.length > 0 && (
           <NetflixBillboard
@@ -484,10 +484,16 @@ function App() {
           />
         )}
 
-        {/* 3. Structured Discovery Feed */}
-        <main className={`w-full max-w-7xl mx-auto px-4 sm:px-8 flex flex-col gap-10 sm:gap-14 ${
-          !searchQuery && (activeFilter === 'all' || activeFilter === 'clips') ? 'pt-2 sm:pt-4' : 'pt-20 sm:pt-24'
-        }`}>
+        {/* 3. Sliding Media Curtain (Foreground Content) */}
+        <div
+          className={`relative z-10 ${
+            !searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && spotlightVideos.length > 0
+              ? '-mt-24 md:-mt-32 rounded-t-[2rem] border-t border-white/10 shadow-[0_-20px_60px_rgba(0,0,0,0.95)]'
+              : 'pt-20 sm:pt-24'
+          } bg-[#0a0a0a] px-4 md:px-12 pt-8 pb-32 transform-gpu will-change-transform flex-1 flex flex-col`}
+        >
+          {/* Main Discovery Feed */}
+          <main className="w-full max-w-7xl mx-auto flex flex-col gap-10 sm:gap-14">
         {/* Loading State Skeleton */}
         {isLoading && !data && (
           <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
@@ -663,6 +669,7 @@ function App() {
 
       {/* 3. Minimalist Footer */}
       <SiteFooter onBackToTop={handleResetHome} />
+        </div>
       </div>
 
       {/* Floating Global Back-To-Top Button */}

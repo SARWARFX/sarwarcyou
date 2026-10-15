@@ -65,9 +65,9 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
   const posterSrc = currentItem.thumbnail || currentItem.poster || mediaSrc;
 
   return (
-    <div className="relative w-full h-[62vh] sm:h-[70vh] lg:h-[82vh] max-h-[760px] overflow-hidden select-none bg-black">
+    <div className="sticky top-0 z-0 h-[60vh] md:h-screen w-full overflow-hidden select-none bg-black pointer-events-none">
       {/* 1. Background Cinematic Visual: Video loop or High-Res Backdrop */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 pointer-events-none">
         {isVideo ? (
           <video
             key={currentItem.id || currentItem.url}
@@ -75,32 +75,32 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
             autoPlay
             playsInline
             muted={isMuted}
+            loop
             poster={posterSrc}
             onEnded={handleNext}
-            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in transition-opacity duration-700"
+            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in transition-opacity duration-700 pointer-events-none"
           />
         ) : (
           <img
             key={currentItem.id || currentItem.url}
             src={posterSrc}
             alt={cleanTitle}
-            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in"
+            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in pointer-events-none"
           />
         )}
       </div>
 
-      {/* 2. Cinematic Gradient Overlays (Netflix Signature Fade) */}
-      {/* Bottom fade into the carousel stream */}
-      <div className="absolute inset-x-0 bottom-0 h-48 sm:h-64 bg-gradient-to-t from-[#030305] via-[#030305]/70 to-transparent z-10 pointer-events-none" />
+      {/* 2. Cinematic Gradient Overlays (Subtle bottom fade into dark obsidian curtain) */}
+      <div className="absolute inset-x-0 bottom-0 h-48 sm:h-64 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent z-10 pointer-events-none" />
 
       {/* Left vignette for text legibility */}
-      <div className="absolute inset-y-0 left-0 w-full sm:w-3/4 lg:w-3/5 bg-gradient-to-r from-[#030305] via-[#030305]/80 md:via-[#030305]/40 to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 left-0 w-full sm:w-3/4 lg:w-3/5 bg-gradient-to-r from-black/90 via-black/60 md:via-black/30 to-transparent z-10 pointer-events-none" />
 
       {/* Top vignette for navbar contrast */}
       <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/80 via-black/30 to-transparent z-10 pointer-events-none" />
 
       {/* 3. Hero Metadata & Action CTAs */}
-      <div className="relative z-20 h-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 flex flex-col justify-end pb-12 sm:pb-16 lg:pb-20">
+      <div className="relative z-20 h-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 flex flex-col justify-end pb-28 sm:pb-36 md:pb-44 pointer-events-none">
         <div className="max-w-xl sm:max-w-2xl flex flex-col gap-3 sm:gap-4">
           {/* Top Pill / Brand Label */}
           <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
           </p>
 
           {/* Primary Action Buttons: PLAY & OPEN ALBUM */}
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-3 pt-2 pointer-events-auto">
             <button
               type="button"
               onClick={() => onPlay(currentItem, playlist)}
@@ -161,7 +161,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
           {/* 10-Video Playlist Pips (Rotates every 10s, Clickable) */}
           {playlist.length > 1 && (
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex items-center gap-2 pt-1 pointer-events-auto">
               <div className="flex items-center gap-1.5">
                 {playlist.map((it, idx) => (
                   <button
@@ -188,7 +188,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
       {/* 4. Bottom-Right Controls: Mute/Unmute for background video */}
       {isVideo && (
-        <div className="absolute right-4 sm:right-8 md:right-12 bottom-14 sm:bottom-18 z-20">
+        <div className="absolute right-4 sm:right-8 md:right-12 bottom-28 sm:bottom-36 md:bottom-44 z-20 pointer-events-auto">
           <button
             type="button"
             onClick={() => setIsMuted(!isMuted)}
