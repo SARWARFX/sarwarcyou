@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: pip install huggingface_hub
 
-      - name: Delete old thumbnails on HF
+      - name: Delete old inline thumbnails on HF
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -28,9 +28,14 @@ jobs:
           REPO_ID = "SARWARFX/stream-vault"
 
           all_files = list_repo_files(repo_id=REPO_ID, repo_type="dataset", token=hf_token)
-          thumb_files = [f for f in all_files if f.startswith("thumbnails/")]
 
-          print(f"Found {len(thumb_files)} old thumbnail files to delete.")
+          # Find any file containing '_thumb' in its name (e.g. video_thumb.jpg, video_thumb_1.jpg, etc.)
+          thumb_files = [
+              f for f in all_files 
+              if "_thumb" in f.lower() and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
+          ]
+
+          print(f"Found {len(thumb_files)} old inline thumbnail files across all folders.")
 
           if thumb_files:
               operations = [CommitOperationDelete(path_in_repo=f) for f in thumb_files]
@@ -38,9 +43,9 @@ jobs:
                   repo_id=REPO_ID,
                   repo_type="dataset",
                   operations=operations,
-                  commit_message="Wipe old thumbnails directory"
+                  commit_message=f"Clean up {len(thumb_files)} legacy inline thumbnail files"
               )
-              print("Successfully deleted all old thumbnails in a single commit!")
+              print(f"Successfully deleted {len(thumb_files)} thumbnail files in 1 single commit!")
           else:
-              print("No thumbnails found to delete.")
+              print("No inline thumbnail files found.")
           EOF
