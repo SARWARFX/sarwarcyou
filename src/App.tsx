@@ -1,225 +1,34 @@
-/* oxlint-disable react-hooks/exhaustive-deps, react/preserve-manual-memoization */
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { ArrowUp } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
 import { useMediaData } from './useMediaData';
-import { extractTwelveAlbums } from './utils/albumExtractor';
-import { AlbumStage } from './components/AlbumStage';
-import { TopNavbar } from './components/TopNavbar';
-import { AlbumProgressDots } from './components/AlbumProgressDots';
-import { SplashPreloader } from './components/SplashPreloader';
-import { MobileGalleryFeed } from './components/MobileGalleryFeed';
-import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
+import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
+import { CyberHeader, type CyberFilterType } from './components/CyberHeader';
+import { CyberCarouselRow } from './components/CyberCarouselRow';
+import { CyberVideoPlayer } from './components/CyberVideoPlayer';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { SiteFooter } from './components/SiteFooter';
-import { CreatorToastNotification } from './components/CreatorToastNotification';
-import { FALLBACK_HF_CATALOG } from './data/fallbackData';
-import {
-  parseUrlState,
-  findMatchingAlbum,
-  findMatchingMediaItem,
-  syncUrlState,
-  getStoredLastActiveAlbum,
-  anchorToAlbumSection,
-} from './utils/urlRouter';
-import { useRecentHistory } from './hooks/useRecentHistory';
-import { isExcludedAlbum, isVideoExtension } from './utils/mediaTypeDetector';
 import type { StageMediaItem } from './types';
+import { isVideoExtension } from './utils/mediaTypeDetector';
+import { Film, Sparkles, Image as ImageIcon, Flame } from 'lucide-react';
 
 function App() {
-  const { data, isLoading, isError } = useMediaData();
-  const { recentItems, addToHistory, clearHistory } = useRecentHistory();
+  const { data, isLoading } = useMediaData();
 
-  // Curated Albums (Powered by Hugging Face CDN) - Strictly filtered to exclude phantom/empty albums
-  const albums = useMemo(() => {
-    const rawAlbums = extractTwelveAlbums(data || FALLBACK_HF_CATALOG);
-    // Strip any phantom, empty, or unpopulated albums, and exclude thumbnail/artifact folders
-    const activeAlbums = rawAlbums.filter(
-      (album) =>
-        Array.isArray(album.items) &&
-        album.items.length > 0 &&
-        !isExcludedAlbum(album.name) &&
-        !isExcludedAlbum(album.id)
-    );
-    return activeAlbums.map((album, idx) => ({ ...album, index: idx }));
-  }, [data]);
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<CyberFilterType>('all');
 
-  // Active snapped album index (0 to 11)
-  const [activeAlbumIndex, setActiveAlbumIndex] = useState<number>(0);
-  const [prevAlbumIndex, setPrevAlbumIndex] = useState<number>(0);
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-
-  // Track active media item index per album
-  const [activeMediaIndices, setActiveMediaIndices] = useState<{ [albumIdx: number]: number }>({});
-  // Track active batch per album
-  const [albumBatches, setAlbumBatches] = useState<{ [albumIdx: number]: number }>({});
-
-  const activeAlbumIndexRef = useRef(activeAlbumIndex);
-  useEffect(() => {
-    activeAlbumIndexRef.current = activeAlbumIndex;
-    document.title = 'Sarwar C You';
-  }, [activeAlbumIndex]);
-
-  const hasRestoredAlbumRef = useRef(false);
-  const hasRestoredMediaRef = useRef(false);
-
-  // Deep-linking restoration on initial mount / data ready
-  useEffect(() => {
-    if (albums.length === 0) return;
-
-    const { albumQuery, mediaQuery } = parseUrlState();
-
-    // 1. Restore Album (from URL param or sessionStorage)
-    if (!hasRestoredAlbumRef.current) {
-      const storedAlbum = !albumQuery ? getStoredLastActiveAlbum() : null;
-      const targetQuery = albumQuery || storedAlbum;
-
-      if (targetQuery) {
-        const match = findMatchingAlbum(albums, targetQuery);
-        if (match && match.index !== activeAlbumIndexRef.current) {
-          setActiveAlbumIndex(match.index);
-          anchorToAlbumSection(match.index);
-        }
-      }
-      hasRestoredAlbumRef.current = true;
-    }
-
-    // 2. Restore Media Item (launch modal if requested via ?media=...)
-    if (mediaQuery && !hasRestoredMediaRef.current) {
-      const curAlbum = albums[activeAlbumIndexRef.current];
-      if (curAlbum && curAlbum.items.length > 0) {
-        const mediaMatch = findMatchingMediaItem(curAlbum.items, mediaQuery);
-        if (mediaMatch) {
-          const isShorts =
-            curAlbum.name.toLowerCase().includes('short') ||
-            curAlbum.name.toLowerCase().includes('reel') ||
-            curAlbum.layoutType === 'vertical-waterfall';
-          const isVid = isVideoExtension(mediaMatch.item.url || mediaMatch.item.id) || mediaMatch.item.type === 'video';
-          const isPhoto = !isShorts && (!isVid || mediaMatch.item.type === 'image' || curAlbum.type === 'image');
-
-          if (isShorts) {
-            setShortsState({
-              isOpen: true,
-              shorts: curAlbum.items,
-              initialIndex: mediaMatch.index,
-            });
-            addToHistory(mediaMatch.item);
-          } else if (isPhoto) {
-            const photoItems = curAlbum.items.filter((it) => it.type === 'image' || !isVideoExtension(it.url));
-            const photoIdx = photoItems.findIndex((it) => it.id === mediaMatch.item.id || it.url === mediaMatch.item.url);
-            setLightboxState({
-              isOpen: true,
-              album: curAlbum,
-              items: photoItems.length > 0 ? photoItems : [mediaMatch.item],
-              initialIndex: Math.max(0, photoIdx),
-            });
-            addToHistory(mediaMatch.item);
-          } else {
-            setTheaterState({
-              isOpen: true,
-              album: curAlbum,
-              initialIndex: mediaMatch.index,
-              posterUrl: undefined,
-            });
-            addToHistory(mediaMatch.item);
-          }
-          hasRestoredMediaRef.current = true;
-        } else if (!isLoading && !!data) {
-          hasRestoredMediaRef.current = true;
-        }
-      }
-    }
-  }, [albums, isLoading, data, addToHistory]);
-
-  // Browser navigation: Back / Forward popstate synchronization
-  useEffect(() => {
-    const handlePopState = () => {
-      const { albumQuery, mediaQuery } = parseUrlState();
-      if (albums.length === 0) return;
-
-      const albumMatch = albumQuery ? findMatchingAlbum(albums, albumQuery) : null;
-      const targetIdx = albumMatch ? albumMatch.index : 0;
-
-      if (targetIdx !== activeAlbumIndexRef.current) {
-        setActiveAlbumIndex(targetIdx);
-      }
-      anchorToAlbumSection(targetIdx);
-
-      const targetAlbum = albums[targetIdx];
-      if (mediaQuery && targetAlbum && targetAlbum.items.length > 0) {
-        const mediaMatch = findMatchingMediaItem(targetAlbum.items, mediaQuery);
-        if (mediaMatch) {
-          const isShorts =
-            targetAlbum.name.toLowerCase().includes('short') ||
-            targetAlbum.name.toLowerCase().includes('reel') ||
-            targetAlbum.layoutType === 'vertical-waterfall';
-          const isVid = isVideoExtension(mediaMatch.item.url || mediaMatch.item.id) || mediaMatch.item.type === 'video';
-          const isPhoto = !isShorts && (!isVid || mediaMatch.item.type === 'image' || targetAlbum.type === 'image');
-
-          if (isShorts) {
-            setShortsState({
-              isOpen: true,
-              shorts: targetAlbum.items,
-              initialIndex: mediaMatch.index,
-            });
-            addToHistory(mediaMatch.item);
-            setTheaterState((prev) => ({ ...prev, isOpen: false }));
-            setLightboxState((prev) => ({ ...prev, isOpen: false }));
-          } else if (isPhoto) {
-            const photoItems = targetAlbum.items.filter((it) => it.type === 'image' || !isVideoExtension(it.url));
-            const photoIdx = photoItems.findIndex((it) => it.id === mediaMatch.item.id || it.url === mediaMatch.item.url);
-            setLightboxState({
-              isOpen: true,
-              album: targetAlbum,
-              items: photoItems.length > 0 ? photoItems : [mediaMatch.item],
-              initialIndex: Math.max(0, photoIdx),
-            });
-            addToHistory(mediaMatch.item);
-            setTheaterState((prev) => ({ ...prev, isOpen: false }));
-            setShortsState((prev) => ({ ...prev, isOpen: false }));
-          } else {
-            setTheaterState({
-              isOpen: true,
-              album: targetAlbum,
-              initialIndex: mediaMatch.index,
-              posterUrl: undefined,
-            });
-            addToHistory(mediaMatch.item);
-            setShortsState((prev) => ({ ...prev, isOpen: false }));
-            setLightboxState((prev) => ({ ...prev, isOpen: false }));
-          }
-          return;
-        }
-      }
-
-      // No media in route -> close modals cleanly
-      setTheaterState((prev) => ({ ...prev, isOpen: false }));
-      setShortsState((prev) => ({ ...prev, isOpen: false }));
-      setLightboxState((prev) => ({ ...prev, isOpen: false }));
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [albums]);
-
-  const isTransitioningRef = useRef(false);
-  const wheelDeltaAccumulatorRef = useRef(0);
-  const lastWheelTimeRef = useRef(0);
-
-  // YouTube-Style Media Theater Modal State
+  // Modal / Player States
   const [theaterState, setTheaterState] = useState<{
     isOpen: boolean;
-    album: typeof albums[0] | null;
-    initialIndex: number;
-    posterUrl?: string;
+    item: StageMediaItem | null;
+    playlist: StageMediaItem[];
   }>({
     isOpen: false,
-    album: null,
-    initialIndex: 0,
-    posterUrl: undefined,
+    item: null,
+    playlist: [],
   });
 
-  // Dedicated 9:16 Vertical Shorts Reel Modal State
   const [shortsState, setShortsState] = useState<{
     isOpen: boolean;
     shorts: StageMediaItem[];
@@ -230,521 +39,318 @@ function App() {
     initialIndex: 0,
   });
 
-  // Dedicated High-Definition Image Lightbox State
   const [lightboxState, setLightboxState] = useState<{
     isOpen: boolean;
-    album: typeof albums[0] | null;
+    item: StageMediaItem | null;
     items: StageMediaItem[];
     initialIndex: number;
   }>({
     isOpen: false,
-    album: null,
+    item: null,
     items: [],
     initialIndex: 0,
   });
 
-  // Handle clicking any media item across Driftime scenes or Dynamic Carousels
-  const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number, posterUrl?: string) => {
-    // Record to recently opened history
-    addToHistory(item);
+  // Organize raw catalog data into structured multi-row discovery feed
+  const rawFeed = useMemo(() => organizeVaultFeed(data), [data]);
 
-    const curAlbum = albums[albumIdx];
-    const isItemShorts = Boolean(
-      item.category?.toLowerCase().includes('short') ||
-      item.category?.toLowerCase().includes('reel') ||
-      item.url?.toLowerCase().includes('/shorts/') ||
-      item.id?.toLowerCase().includes('shorts/')
-    );
-    const isAlbumShorts = Boolean(
-      curAlbum?.name.toLowerCase().includes('short') ||
-      curAlbum?.name.toLowerCase().includes('reel') ||
-      curAlbum?.layoutType === 'vertical-waterfall'
-    );
-    const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
-    const isPhoto = !isItemShorts && !isAlbumShorts && (!isVideo || item.type === 'image' || curAlbum?.type === 'image');
+  // Live Real-Time Filtering based on Omnisearch input and category chips
+  const feed = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
 
-    if (isItemShorts || isAlbumShorts) {
-      const shortsAlbum = albums.find((a) => a.id === 'album-shorts');
-      const shortsList = isAlbumShorts && curAlbum ? curAlbum.items : (shortsAlbum?.items || [item]);
-      const itemIdx = shortsList.findIndex((s) => s.id === item.id || s.url === item.url);
+    const matchesQuery = (it: StageMediaItem) => {
+      if (!q) return true;
+      return (
+        it.title.toLowerCase().includes(q) ||
+        (it.category && it.category.toLowerCase().includes(q)) ||
+        (it.name && it.name.toLowerCase().includes(q))
+      );
+    };
 
-      setShortsState({
-        isOpen: true,
-        shorts: shortsList,
-        initialIndex: Math.max(0, itemIdx),
-      });
-      setTheaterState((prev) => ({ ...prev, isOpen: false }));
-      setLightboxState((prev) => ({ ...prev, isOpen: false }));
-    } else if (isPhoto) {
-      const targetAlbum =
-        curAlbum && curAlbum.items.some((it) => it.id === item.id)
-          ? curAlbum
-          : albums.find((a) => a.items.some((it) => it.id === item.id)) || curAlbum;
-      const photoItems = targetAlbum
-        ? targetAlbum.items.filter((it) => it.type === 'image' || !isVideoExtension(it.url))
-        : [item];
-      const itemIdx = photoItems.findIndex((s) => s.id === item.id || s.url === item.url);
-
-      setLightboxState({
-        isOpen: true,
-        album: targetAlbum || null,
-        items: photoItems.length > 0 ? photoItems : [item],
-        initialIndex: Math.max(0, itemIdx),
-      });
-      setTheaterState((prev) => ({ ...prev, isOpen: false }));
-      setShortsState((prev) => ({ ...prev, isOpen: false }));
-    } else {
-      const targetAlbum =
-        curAlbum && curAlbum.items.some((it) => it.id === item.id)
-          ? curAlbum
-          : albums.find((a) => a.items.some((it) => it.id === item.id)) || curAlbum || {
-              id: 'album-view',
-              index: 0,
-              name: item.category || 'Gallery',
-              type: item.type,
-              itemCount: 1,
-              items: [item],
-              layoutType: 'ribbon-slider' as const,
-            };
-
-      const itemIdx = targetAlbum ? targetAlbum.items.findIndex((s) => s.id === item.id) : 0;
-
-      setTheaterState({
-        isOpen: true,
-        album: targetAlbum || null,
-        initialIndex: Math.max(0, itemIdx),
-        posterUrl,
-      });
-      setLightboxState((prev) => ({ ...prev, isOpen: false }));
-      setShortsState((prev) => ({ ...prev, isOpen: false }));
+    // Filter Latest Releases
+    let latest = rawFeed.latestReleases.filter(matchesQuery);
+    if (activeFilter === 'clips') {
+      latest = latest.filter((it) => it.type === 'video' && !it.category?.toLowerCase().includes('short'));
+    } else if (activeFilter === 'images') {
+      latest = latest.filter((it) => it.type === 'image');
+    } else if (activeFilter === 'shorts') {
+      latest = latest.filter((it) => it.category?.toLowerCase().includes('short') || it.url?.toLowerCase().includes('/shorts/'));
     }
 
-    if (curAlbum) {
-      syncUrlState({ album: curAlbum, mediaItem: item, replace: false });
-    }
-  }, [albums, addToHistory]);
+    // Filter Shorts
+    const shorts = (activeFilter === 'all' || activeFilter === 'shorts')
+      ? rawFeed.shorts.filter(matchesQuery)
+      : [];
 
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
-  const [mobileScrolled, setMobileScrolled] = useState(false);
+    // Filter Video Vault Folders
+    const videoFolders = (activeFilter === 'all' || activeFilter === 'clips')
+      ? rawFeed.videoVaultFolders
+          .map((f) => ({
+            ...f,
+            items: f.items.filter(matchesQuery),
+          }))
+          .filter((f) => f.items.length > 0)
+      : [];
 
-  const handleMobileScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setMobileScrolled(e.currentTarget.scrollTop > 250);
-  }, []);
+    // Filter Photo Vault Folders
+    const photoFolders = (activeFilter === 'all' || activeFilter === 'images')
+      ? rawFeed.photoVaultFolders
+          .map((f) => ({
+            ...f,
+            items: f.items.filter(matchesQuery),
+          }))
+          .filter((f) => f.items.length > 0)
+      : [];
 
-  // Luxury Elevator Smooth Navigation
-  const scrollToAlbum = useCallback((targetIndex: number) => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      const el = document.getElementById(`mobile-album-${targetIndex}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return {
+      latestReleases: latest,
+      shorts,
+      videoVaultFolders: videoFolders,
+      photoVaultFolders: photoFolders,
+    };
+  }, [rawFeed, searchQuery, activeFilter]);
+
+  // Universal Media Click Dispatcher
+  const handleSelectItem = useCallback(
+    (item: StageMediaItem, playlistContext?: StageMediaItem[]) => {
+      const isShort = Boolean(
+        item.category?.toLowerCase().includes('short') ||
+        item.category?.toLowerCase().includes('reel') ||
+        item.url?.toLowerCase().includes('/shorts/') ||
+        item.id?.toLowerCase().includes('shorts')
+      );
+
+      const isVid = isShort || item.type === 'video' || isVideoExtension(item.url || item.id);
+      const isPhoto = !isShort && (!isVid || item.type === 'image');
+
+      if (isShort) {
+        const fullShorts = rawFeed.shorts.length > 0 ? rawFeed.shorts : [item];
+        const idx = fullShorts.findIndex((s) => s.id === item.id || s.url === item.url);
+        setShortsState({
+          isOpen: true,
+          shorts: fullShorts,
+          initialIndex: Math.max(0, idx),
+        });
+      } else if (isPhoto) {
+        const fullPhotos = playlistContext && playlistContext.length > 0
+          ? playlistContext
+          : [item];
+        const idx = fullPhotos.findIndex((p) => p.id === item.id || p.url === item.url);
+        setLightboxState({
+          isOpen: true,
+          item,
+          items: fullPhotos,
+          initialIndex: Math.max(0, idx),
+        });
+      } else {
+        // Clips / Cinema Video
+        const fullVideos = playlistContext && playlistContext.length > 0
+          ? playlistContext
+          : [item];
+        setTheaterState({
+          isOpen: true,
+          item,
+          playlist: fullVideos,
+        });
       }
-      setActiveAlbumIndex(targetIndex);
-      return;
-    }
+    },
+    [rawFeed]
+  );
 
-    const maxFloor = albums.length;
-    const clamped = Math.max(0, Math.min(maxFloor, targetIndex));
-    if (clamped === activeAlbumIndexRef.current && !isTransitioningRef.current) return;
-    if (isTransitioningRef.current) return;
-
-    isTransitioningRef.current = true;
-    setIsTransitioning(true);
-    setPrevAlbumIndex(activeAlbumIndexRef.current);
-    setActiveAlbumIndex(clamped);
-
-    const curAlbum = albums[clamped];
-    if (curAlbum) {
-      syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
-    } else {
-      syncUrlState({ album: null, mediaItem: null, replace: true });
-    }
-
-    // Luxury elevator duration: 950ms + 150ms inertia cooldown
-    setTimeout(() => {
-      setIsTransitioning(false);
-      setPrevAlbumIndex(clamped);
-      anchorToAlbumSection(clamped);
-      setTimeout(() => {
-        isTransitioningRef.current = false;
-        wheelDeltaAccumulatorRef.current = 0;
-      }, 150);
-    }, 950);
-  }, [albums]);
-
-  const handlePrevAlbum = useCallback(() => {
-    scrollToAlbum(activeAlbumIndexRef.current - 1);
-  }, [scrollToAlbum]);
-
-  const handleNextAlbum = useCallback(() => {
-    scrollToAlbum(activeAlbumIndexRef.current + 1);
-  }, [scrollToAlbum]);
-
-  const handleBackToTop = useCallback(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768 && mobileScrollRef.current) {
-      mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    scrollToAlbum(0);
-  }, [scrollToAlbum]);
-
-  const handleResetHome = useCallback(() => {
-    setTheaterState((prev) => ({ ...prev, isOpen: false }));
-    setShortsState((prev) => ({ ...prev, isOpen: false }));
-    setLightboxState((prev) => ({ ...prev, isOpen: false }));
-    if (typeof window !== 'undefined' && window.innerWidth < 768 && mobileScrollRef.current) {
-      mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    scrollToAlbum(0);
-    syncUrlState({ album: null, mediaItem: null, replace: true });
+  const handleResetHome = () => {
+    setSearchQuery('');
+    setActiveFilter('all');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [scrollToAlbum]);
+  };
 
-  const handleCloseTheater = useCallback(() => {
-    setTheaterState((prev) => ({ ...prev, isOpen: false }));
-    const curAlbum = albums[activeAlbumIndexRef.current];
-    syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
-    anchorToAlbumSection(activeAlbumIndexRef.current);
-  }, [albums]);
-
-  const handleCloseShorts = useCallback(() => {
-    setShortsState((prev) => ({ ...prev, isOpen: false }));
-    const curAlbum = albums[activeAlbumIndexRef.current];
-    syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
-    anchorToAlbumSection(activeAlbumIndexRef.current);
-  }, [albums]);
-
-  const handleCloseLightbox = useCallback(() => {
-    setLightboxState((prev) => ({ ...prev, isOpen: false }));
-    const curAlbum = albums[activeAlbumIndexRef.current];
-    syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
-    anchorToAlbumSection(activeAlbumIndexRef.current);
-  }, [albums]);
-
-  const handleTheaterIndexChange = useCallback((newIdx: number) => {
-    if (theaterState.album && theaterState.album.items[newIdx]) {
-      const item = theaterState.album.items[newIdx];
-      addToHistory(item);
-      syncUrlState({ album: theaterState.album, mediaItem: item, replace: true });
-    }
-  }, [theaterState.album, addToHistory]);
-
-  const handleShortsIndexChange = useCallback((newIdx: number) => {
-    const curAlbum = albums[activeAlbumIndexRef.current];
-    if (shortsState.shorts[newIdx]) {
-      const item = shortsState.shorts[newIdx];
-      addToHistory(item);
-      if (curAlbum) {
-        syncUrlState({ album: curAlbum, mediaItem: item, replace: true });
-      }
-    }
-  }, [albums, shortsState.shorts, addToHistory]);
-
-  const handleSwitchAlbum = useCallback((targetAlbum: (typeof albums)[0], itemIdx = 0) => {
-    setTheaterState({
-      isOpen: true,
-      album: targetAlbum,
-      initialIndex: itemIdx,
-      posterUrl: undefined,
-    });
-    setActiveAlbumIndex(targetAlbum.index);
-    const item = targetAlbum.items[itemIdx];
-    syncUrlState({ album: targetAlbum, mediaItem: item, replace: false });
-    anchorToAlbumSection(targetAlbum.index);
-  }, []);
-
-  const isModalOpen = theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen;
-
-  // Mouse wheel dampening & smooth elevator gliding
-  useEffect(() => {
-    const onWheel = (e: WheelEvent) => {
-      if (isModalOpen) return;
-
-      // Allow horizontal scrubbing inside albums
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-      e.preventDefault();
-
-      const now = Date.now();
-
-      // Dampen rapid inputs: if currently in elevator motion or cooldown, swallow and update timestamp
-      if (isTransitioningRef.current) {
-        lastWheelTimeRef.current = now;
-        wheelDeltaAccumulatorRef.current = 0;
-        return;
-      }
-
-      // Reset accumulator if previous burst was > 280ms ago
-      if (now - lastWheelTimeRef.current > 280) {
-        wheelDeltaAccumulatorRef.current = 0;
-      }
-      lastWheelTimeRef.current = now;
-
-      wheelDeltaAccumulatorRef.current += e.deltaY;
-
-      // Threshold ensures deliberate elevator floor command without jitter
-      const THRESHOLD = 35;
-      if (Math.abs(wheelDeltaAccumulatorRef.current) >= THRESHOLD) {
-        const direction = wheelDeltaAccumulatorRef.current > 0 ? 1 : -1;
-        wheelDeltaAccumulatorRef.current = 0;
-        if (direction > 0) {
-          handleNextAlbum();
-        } else {
-          handlePrevAlbum();
-        }
-      }
-    };
-
-    window.addEventListener('wheel', onWheel, { passive: false });
-    return () => window.removeEventListener('wheel', onWheel);
-  }, [isModalOpen, handleNextAlbum, handlePrevAlbum]);
-
-  // Mobile Touch Swipe with Dampening
-  useEffect(() => {
-    let touchStartY = 0;
-    let touchStartX = 0;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (window.innerWidth < 768) return;
-      touchStartY = e.touches[0].clientY;
-      touchStartX = e.touches[0].clientX;
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (window.innerWidth < 768) return;
-      if (isModalOpen) return;
-      if (isTransitioningRef.current) return;
-
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-disable-page-swipe="true"]')) return;
-
-      const touchEndY = e.changedTouches[0].clientY;
-      const touchEndX = e.changedTouches[0].clientX;
-      const deltaY = touchStartY - touchEndY;
-      const deltaX = touchStartX - touchEndX;
-
-      // Only trigger if vertical swipe is dominant
-      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 45) {
-        if (deltaY > 0) {
-          handleNextAlbum();
-        } else {
-          handlePrevAlbum();
-        }
-      }
-    };
-
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchend', onTouchEnd, { passive: true });
-    return () => {
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchend', onTouchEnd);
-    };
-  }, [isModalOpen, handleNextAlbum, handlePrevAlbum]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (isModalOpen) return;
-      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-        e.preventDefault();
-        handleNextAlbum();
-      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        e.preventDefault();
-        handlePrevAlbum();
-      } else if (e.key === 'Home') {
-        e.preventDefault();
-        handleBackToTop();
-      } else if (e.key === 'End') {
-        e.preventDefault();
-        scrollToAlbum(albums.length);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isModalOpen, handleNextAlbum, handlePrevAlbum, handleBackToTop, scrollToAlbum, albums.length]);
-
-  // Network Error Screen
-  if (!data && isError) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center text-white p-6 font-mono">
-        <div className="max-w-md p-8 rounded-2xl bg-zinc-950 text-center space-y-4">
-          <div className="text-red-400 text-2xl font-bold">[ NETWORK ERROR ]</div>
-          <p className="text-xs text-white/60">
-            Unable to stream cloud media. Please check your internet connection.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 rounded-full bg-white text-black font-bold text-xs uppercase hover:bg-neutral-200 transition-colors"
-          >
-            RETRY
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const isLightMode = false;
+  const hasAnyResults =
+    feed.latestReleases.length > 0 ||
+    feed.shorts.length > 0 ||
+    feed.videoVaultFolders.length > 0 ||
+    feed.photoVaultFolders.length > 0;
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-black select-none">
-      {/* ================= RESILIENT OLED SPLASH PRELOADER ================= */}
-      <SplashPreloader isReady={!isLoading || !!data} />
-
-      {/* ================= MOBILE HIGH-DENSITY NATIVE SCROLL GALLERY (md:hidden) ================= */}
-      <MobileGalleryFeed
-        albums={albums}
-        onSelectItem={handleSelectItem}
-        recentItems={recentItems}
-        onClearHistory={clearHistory}
-        scrollRef={mobileScrollRef}
-        onScroll={handleMobileScroll}
+    <div className="bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
+      {/* 1. Floating Glass Pill Header */}
+      <CyberHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+        onReset={handleResetHome}
       />
 
-      {/* ================= DESKTOP VERTICAL LUXURY ELEVATOR CONTAINER (hidden md:block) ================= */}
-      <div
-        className="hidden md:block absolute inset-0 w-full will-change-transform"
-        style={{
-          transform: `translate3d(0, -${activeAlbumIndex * 100}vh, 0)`,
-          transition: isTransitioning
-            ? 'transform 950ms cubic-bezier(0.16, 1, 0.3, 1)'
-            : 'none',
-        }}
-      >
-        {albums.map((album, idx) => {
-          const isActive = idx === activeAlbumIndex;
-          const isNear =
-            Math.abs(idx - activeAlbumIndex) <= 1 ||
-            Math.abs(idx - prevAlbumIndex) <= 1;
-          const currentMediaIdx = activeMediaIndices[idx] || 0;
-          const currentBatch = albumBatches[idx] || 0;
+      {/* 2. Structured Multi-Row Discovery Feed */}
+      <main className="w-full max-w-7xl mx-auto pt-24 sm:pt-28 pb-16 px-4 sm:px-8 flex flex-col gap-10 sm:gap-14">
+        {/* Loading State Skeleton */}
+        {isLoading && !data && (
+          <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-[#00E5FF] border-t-transparent animate-spin" />
+            <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">
+              Ingesting stream vault...
+            </span>
+          </div>
+        )}
 
-          return (
-            <section
-              id={`album-section-${idx}`}
-              key={album.id}
-              className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-black"
+        {/* Empty Search State */}
+        {!hasAnyResults && !isLoading && (
+          <div className="w-full py-24 flex flex-col items-center justify-center gap-4 text-center">
+            <Sparkles className="w-10 h-10 text-zinc-600" />
+            <h3 className="text-lg font-bold font-sans text-zinc-300 uppercase tracking-wider">
+              No matching files found
+            </h3>
+            <p className="text-xs text-zinc-500 max-w-sm">
+              We couldn't find any media matching "{searchQuery}". Try searching for another term or click below to reset.
+            </p>
+            <button
+              type="button"
+              onClick={handleResetHome}
+              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold font-sans text-white transition-colors cursor-pointer border border-white/10"
             >
-              {/* Perfectly Centered Editorial Stage */}
-              {isNear && (
-                <AlbumStage
-                  album={album}
-                  isActive={isActive && !isTransitioning}
-                  isVisible={isNear}
-                  isLoading={isLoading}
-                  activeIndex={currentMediaIdx}
-                  onActiveIndexChange={(newIdx) => {
-                    setActiveMediaIndices((prev) => ({ ...prev, [idx]: newIdx }));
-                    if (idx === 0) {
-                      const computedBatch = Math.floor(newIdx / 6);
-                      setAlbumBatches((prev) => {
-                        if (prev[0] !== computedBatch) {
-                          return { ...prev, [0]: computedBatch };
-                        }
-                        return prev;
-                      });
-                    }
-                  }}
-                  batchIndex={currentBatch}
-                  onSelectItem={(item, posterUrl) => handleSelectItem(item, idx, posterUrl)}
-                  recentItems={recentItems}
-                  onClearHistory={clearHistory}
+              RESET SEARCH
+            </button>
+          </div>
+        )}
+
+        {/* SECTION 1: LATEST RELEASES */}
+        {feed.latestReleases.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Flame className="w-4 h-4 text-[#00E5FF]" />
+              <span className="text-[11px] font-mono tracking-widest text-[#00E5FF] font-bold uppercase">
+                FEATURED SPOTLIGHT
+              </span>
+            </div>
+            <CyberCarouselRow
+              title="Latest Releases"
+              subtitle="20 newest items aggregated from all folders"
+              badge={feed.latestReleases.length}
+              items={feed.latestReleases}
+              variant="standard"
+              onSelectItem={(item) => handleSelectItem(item, feed.latestReleases)}
+            />
+          </div>
+        )}
+
+        {/* SECTION 2: SHORTS */}
+        {feed.shorts.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Film className="w-4 h-4 text-fuchsia-400" />
+              <span className="text-[11px] font-mono tracking-widest text-fuchsia-400 font-bold uppercase">
+                VERTICAL STREAM
+              </span>
+            </div>
+            <CyberCarouselRow
+              title="Shorts"
+              subtitle="Dedicated 9:16 vertical reels"
+              badge={feed.shorts.length}
+              items={feed.shorts}
+              variant="shorts"
+              onSelectItem={(item) => handleSelectItem(item, feed.shorts)}
+            />
+          </div>
+        )}
+
+        {/* SECTION 3: VIDEO VAULT */}
+        {feed.videoVaultFolders.length > 0 && (
+          <section className="flex flex-col gap-7 pt-4 border-t border-white/[0.05]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Film className="w-4 h-4 text-amber-400" />
+                <h2 className="text-base sm:text-lg font-black font-sans tracking-wider text-white uppercase">
+                  Video Vault
+                </h2>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase">
+                  ({feed.videoVaultFolders.length} Archive Folders)
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-8">
+              {feed.videoVaultFolders.map((folder) => (
+                <CyberCarouselRow
+                  key={folder.id}
+                  title={folder.name}
+                  badge={folder.count}
+                  items={folder.items}
+                  variant="standard"
+                  onSelectItem={(item) => handleSelectItem(item, folder.items)}
                 />
-              )}
-            </section>
-          );
-        })}
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* ================= DESKTOP MINIMALIST FOOTER SECTION FLOOR ================= */}
-        <section
-          id={`album-section-${albums.length}`}
-          className="relative w-screen h-screen overflow-hidden flex-shrink-0 bg-black flex flex-col justify-center items-center px-4 sm:px-8"
-        >
-          <SiteFooter onBackToTop={handleBackToTop} />
-        </section>
-      </div>
+        {/* SECTION 4: PHOTO VAULT */}
+        {feed.photoVaultFolders.length > 0 && (
+          <section className="flex flex-col gap-7 pt-4 border-t border-white/[0.05]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-cyan-400" />
+                <h2 className="text-base sm:text-lg font-black font-sans tracking-wider text-white uppercase">
+                  Photo Vault
+                </h2>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase">
+                  ({feed.photoVaultFolders.length} Gallery Folders)
+                </span>
+              </div>
+            </div>
 
-      {/* ================= CLEAN OLED TOP NAVBAR ================= */}
-      <TopNavbar
-        albums={albums}
-        activeAlbumIndex={activeAlbumIndex}
-        isScrolled={activeAlbumIndex > 0 || mobileScrolled}
-        onSelectAlbum={scrollToAlbum}
-        onResetHome={handleResetHome}
-        onSelectItem={handleSelectItem}
-      />
+            <div className="flex flex-col gap-8">
+              {feed.photoVaultFolders.map((folder) => (
+                <CyberCarouselRow
+                  key={folder.id}
+                  title={folder.name}
+                  badge={folder.count}
+                  items={folder.items}
+                  variant="photo"
+                  onSelectItem={(item) => handleSelectItem(item, folder.items)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
 
-      {/* ================= RIGHT-SIDE NAVIGATION DOCK ================= */}
-      {!isModalOpen && (
-        <AlbumProgressDots
-          albums={albums}
-          activeAlbumIndex={activeAlbumIndex}
-          onSelectAlbum={scrollToAlbum}
-          isLightMode={isLightMode}
-        />
-      )}
+      {/* 3. Minimalist Footer */}
+      <SiteFooter onBackToTop={handleResetHome} />
 
-      {/* ================= FLOATING "BACK TO TOP" PILL ================= */}
-      {(activeAlbumIndex > 0 || mobileScrolled) && (
-        <button
-          onClick={handleBackToTop}
-          className="fixed bottom-4 right-4 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/80 hover:bg-zinc-900 backdrop-blur-xl text-zinc-300 hover:text-white shadow-2xl transition-all duration-300 ease-out cursor-pointer group"
-          title="Back to Top"
-          aria-label="Back to Top"
-        >
-          <ArrowUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-widest hidden sm:inline">
-            Top
-          </span>
-        </button>
-      )}
-
-      {/* ================= YOUTUBE-STYLE MEDIA THEATER ================= */}
-      <YouTubeTheaterModal
+      {/* 4. Frameless Theater Mode Video Player (Clips) */}
+      <CyberVideoPlayer
         isOpen={theaterState.isOpen}
-        onClose={handleCloseTheater}
-        album={theaterState.album}
-        allAlbums={albums}
-        initialIndex={theaterState.initialIndex}
-        posterUrl={theaterState.posterUrl}
-        onSwitchAlbum={handleSwitchAlbum}
-        onNextAlbum={handleNextAlbum}
-        onPrevAlbum={handlePrevAlbum}
-        onIndexChange={handleTheaterIndexChange}
+        onClose={() => setTheaterState({ isOpen: false, item: null, playlist: [] })}
+        item={theaterState.item}
+        playlist={theaterState.playlist}
+        onSelectItem={(item) => setTheaterState((prev) => ({ ...prev, item }))}
       />
 
-      {/* ================= 9:16 VERTICAL SHORTS REELS MODAL ================= */}
+      {/* 5. Adaptive Shorts Feed Modal */}
       <ShortsFeedModal
         isOpen={shortsState.isOpen}
-        onClose={handleCloseShorts}
+        onClose={() => setShortsState({ isOpen: false, shorts: [], initialIndex: 0 })}
         shorts={shortsState.shorts}
         initialIndex={shortsState.initialIndex}
-        onIndexChange={handleShortsIndexChange}
       />
 
-      {/* ================= HIGH-DEFINITION IMAGE LIGHTBOX ================= */}
+      {/* 6. High-Definition Image Lightbox */}
       <MediaModal
         isOpen={lightboxState.isOpen}
-        onClose={handleCloseLightbox}
-        url={lightboxState.items[lightboxState.initialIndex]?.url || null}
+        onClose={() => setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 })}
+        url={lightboxState.item?.url || null}
         type="image"
-        title={lightboxState.items[lightboxState.initialIndex]?.title}
+        title={lightboxState.item?.title}
         items={lightboxState.items}
         currentIndex={lightboxState.initialIndex}
-        onIndexChange={(newIdx) => {
-          setLightboxState((prev) => ({ ...prev, initialIndex: newIdx }));
-          const curItem = lightboxState.items[newIdx];
-          if (lightboxState.album && curItem) {
-            addToHistory(curItem);
-            syncUrlState({ album: lightboxState.album, mediaItem: curItem, replace: true });
-          }
+        onIndexChange={(idx) => {
+          setLightboxState((prev) => ({
+            ...prev,
+            initialIndex: idx,
+            item: prev.items[idx] || prev.item,
+          }));
         }}
       />
-
-      {/* ================= NON-INTRUSIVE CREATOR TOAST NOTIFICATION ================= */}
-      <CreatorToastNotification
-        isModalOpen={isModalOpen}
-        hasBackToTop={activeAlbumIndex > 0 || mobileScrolled}
-      />
-    </main>
+    </div>
   );
 }
 
