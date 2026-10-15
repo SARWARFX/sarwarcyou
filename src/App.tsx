@@ -249,7 +249,7 @@ function App() {
   }, [activeFilter]);
 
   return (
-    <div className="bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
+    <div className="w-full max-w-full overflow-x-hidden relative bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
       {/* 1. Floating Glass Pill Header */}
       <CyberHeader
         searchQuery={searchQuery}

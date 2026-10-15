@@ -84,9 +84,21 @@
     <!-- Typography Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Global Root Overflow Lock -->
+    <style>
+      html, body {
+        max-width: 100%;
+        overflow-x: hidden;
+        position: relative;
+      }
+      #root {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+    </style>
   </head>
-  <body class="bg-[#030305] text-white font-sans antialiased overflow-hidden select-none selection:bg-[#00D2FF] selection:text-black">
+  <body class="bg-[#030305] text-white font-sans antialiased overflow-x-hidden relative max-w-full select-none selection:bg-[#00D2FF] selection:text-black">
     <script>
       window.BRAND_CONFIG = {
         name: 'SARWARCYOU',
