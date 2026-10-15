@@ -159,8 +159,17 @@ export async function downloadMedia(
   const proxyUrl = getMediaUrl(url);
   const safeUrl = safeEncodeUrl(proxyUrl.replace(/^http:\/\//i, 'https://'));
   const { mime, ext } = inferMime(safeUrl);
-  const isVideo = forcedType === 'clip' || forcedType === 'short' || mime.startsWith('video/') || isVideoExtension(safeUrl);
-  const isShort = forcedType === 'short' || safeUrl.includes('/Shorts/');
+  const isVideo =
+    forcedType === 'clip' ||
+    forcedType === 'short' ||
+    mime.startsWith('video/') ||
+    isVideoExtension(safeUrl);
+  const isShort =
+    forcedType === 'short' ||
+    (forcedType !== 'clip' &&
+      (/\/shorts\//i.test(safeUrl) ||
+        /\/shorts\//i.test(url) ||
+        (rawName ? /\/shorts\//i.test(rawName) : false)));
 
   if (isVideo) {
     return downloadBrandedVideo(safeUrl, rawName, isShort ? 'short' : 'clip');

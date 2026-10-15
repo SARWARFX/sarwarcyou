@@ -46,6 +46,7 @@ import {
   isHiddenOrSystemPath,
   isExcludedAlbum,
   isThumbnailFile,
+  parseMediaPath,
 } from './utils/mediaTypeDetector';
 import { MEDIA_CDN_BASE, getMediaUrl } from './utils/imageUrlResolver';
 
@@ -127,26 +128,47 @@ export function extractCommitMetadata(commits: any[]): Map<string, CommitInfo> {
   const metadata = new Map<string, CommitInfo>();
   if (!Array.isArray(commits)) return metadata;
 
-  const extractPathFromTitle = (title: string): string | null => {
-    if (!title) return null;
-    const m =
-      title.match(/((?:Clips|Images|Shorts)\/[^()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/i) ||
-      title.match(/(?:Upload|optimize|manifest)\s*\(?([^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/i);
-    return m ? m[1].trim() : null;
-  };
-
   for (const c of commits) {
     if (!c || !c.date) continue;
     const timestamp = new Date(c.date).getTime();
     if (isNaN(timestamp) || timestamp <= 0) continue;
-    const matchedPath = extractPathFromTitle(c.title || '');
-    if (matchedPath) {
-      const info: CommitInfo = { date: timestamp, id: c.id, title: c.title };
-      const normalizedPath = matchedPath.replace(/^\/+/, '');
-      const filename = normalizedPath.split('/').pop() || normalizedPath;
-      if (!metadata.has(normalizedPath.toLowerCase())) {
-        metadata.set(normalizedPath.toLowerCase(), info);
+    const info: CommitInfo = { date: timestamp, id: c.id, title: c.title };
+
+    const combinedText = `${c.title || ''}\n${c.message || ''}`;
+
+    // 1. Direct file matches: (Clips|Images|Shorts)/...ext
+    const fileMatches = combinedText.matchAll(
+      /((?:Clips|Images|Shorts)\/[^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/gi
+    );
+    for (const m of fileMatches) {
+      const matched = m[1].trim().replace(/^\/+/, '');
+      const filename = matched.split('/').pop() || matched;
+      if (!metadata.has(matched.toLowerCase())) {
+        metadata.set(matched.toLowerCase(), info);
       }
+      if (!metadata.has(filename.toLowerCase())) {
+        metadata.set(filename.toLowerCase(), info);
+      }
+    }
+
+    // 2. Folder mentions (e.g. Images/Bandhobis or Images/Bandhobis/Video Clips)
+    const folderMatches = combinedText.matchAll(
+      /((?:Clips|Images|Shorts)\/[a-zA-Z0-9_\s]+(?:\/[a-zA-Z0-9_\s]+)?)/gi
+    );
+    for (const m of folderMatches) {
+      const folderKey = m[1].trim().toLowerCase().replace(/^\/+|\/+$/g, '');
+      if (folderKey && !metadata.has(folderKey)) {
+        metadata.set(folderKey, info);
+      }
+    }
+
+    // 3. Simple upload / moved filename pattern
+    const uploadMatches = combinedText.matchAll(
+      /(?:Upload|optimize|manifest|Moved|add)\s*[:\-]?\s*\(?([^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/gi
+    );
+    for (const m of uploadMatches) {
+      const fname = m[1].trim();
+      const filename = fname.split('/').pop() || fname;
       if (!metadata.has(filename.toLowerCase())) {
         metadata.set(filename.toLowerCase(), info);
       }
@@ -285,9 +307,16 @@ export function parseTreeToCatalog(
     let itemDate: number | undefined;
 
     // Resolve date from commit history if available
-    const commitInfo =
+    const segments = path.replace(/\\/g, '/').split('/');
+    let commitInfo =
       commitMetadata?.get(path.toLowerCase()) ||
       commitMetadata?.get(name.toLowerCase());
+
+    if (!commitInfo && commitMetadata && segments.length >= 2) {
+      const folder1 = segments.slice(0, 2).join('/').toLowerCase();
+      const folder2 = segments.slice(0, 3).join('/').toLowerCase();
+      commitInfo = commitMetadata.get(folder2) || commitMetadata.get(folder1);
+    }
 
     if (commitInfo) {
       itemDate = commitInfo.date;
@@ -309,6 +338,8 @@ export function parseTreeToCatalog(
       }
     }
 
+    const parsedPath = parseMediaPath(path);
+
     if (isVideoExtension(path)) {
       const thumbnails = getThumbnailsForVideo(path);
       const directPoster = getDirectPosterForVideo(path);
@@ -317,7 +348,7 @@ export function parseTreeToCatalog(
         : directPoster ? [directPoster] : undefined;
       const poster = directPoster || allThumbnails?.[0];
 
-      if (path.startsWith('Shorts/')) {
+      if (parsedPath.mediaType === 'short') {
         shorts.push({ name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate });
       } else {
         clips.push({ name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate });

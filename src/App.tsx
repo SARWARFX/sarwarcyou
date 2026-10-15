@@ -70,11 +70,11 @@ function App() {
     // Filter Latest Releases
     let latest = rawFeed.latestReleases.filter(matchesQuery);
     if (activeFilter === 'clips') {
-      latest = latest.filter((it) => it.type === 'video' && !it.category?.toLowerCase().includes('short'));
+      latest = latest.filter((it) => it.type === 'video' && it.mediaType !== 'short' && !it.category?.toLowerCase().includes('short'));
     } else if (activeFilter === 'images') {
-      latest = latest.filter((it) => it.type === 'image');
+      latest = latest.filter((it) => it.type === 'image' || it.mediaType === 'photo');
     } else if (activeFilter === 'shorts') {
-      latest = latest.filter((it) => it.category?.toLowerCase().includes('short') || it.url?.toLowerCase().includes('/shorts/'));
+      latest = latest.filter((it) => it.mediaType === 'short' || it.category?.toLowerCase().includes('short') || it.url?.toLowerCase().includes('/shorts/'));
     }
 
     // Filter Shorts
@@ -95,10 +95,17 @@ function App() {
     // Filter Photo Vault Folders
     const photoFolders = (activeFilter === 'all' || activeFilter === 'images')
       ? rawFeed.photoVaultFolders
-          .map((f) => ({
-            ...f,
-            items: f.items.filter(matchesQuery),
-          }))
+          .map((f) => {
+            let items = f.items.filter(matchesQuery);
+            if (activeFilter === 'images') {
+              items = items.filter((it) => it.type === 'image' || it.mediaType === 'photo');
+            }
+            return {
+              ...f,
+              items,
+              count: items.length,
+            };
+          })
           .filter((f) => f.items.length > 0)
       : [];
 
@@ -114,14 +121,15 @@ function App() {
   const handleSelectItem = useCallback(
     (item: StageMediaItem, playlistContext?: StageMediaItem[]) => {
       const isShort = Boolean(
+        item.mediaType === 'short' ||
         item.category?.toLowerCase().includes('short') ||
         item.category?.toLowerCase().includes('reel') ||
         item.url?.toLowerCase().includes('/shorts/') ||
         item.id?.toLowerCase().includes('shorts')
       );
 
-      const isVid = isShort || item.type === 'video' || isVideoExtension(item.url || item.id);
-      const isPhoto = !isShort && (!isVid || item.type === 'image');
+      const isVid = isShort || item.type === 'video' || item.mediaType === 'clip' || isVideoExtension(item.url || item.id);
+      const isPhoto = !isShort && (!isVid || item.type === 'image' || item.mediaType === 'photo');
 
       if (isShort) {
         const fullShorts = rawFeed.shorts.length > 0 ? rawFeed.shorts : [item];
@@ -133,24 +141,30 @@ function App() {
         });
       } else if (isPhoto) {
         const fullPhotos = playlistContext && playlistContext.length > 0
-          ? playlistContext
+          ? playlistContext.filter((p) => p.type === 'image' || p.mediaType === 'photo')
           : [item];
         const idx = fullPhotos.findIndex((p) => p.id === item.id || p.url === item.url);
         setLightboxState({
           isOpen: true,
           item,
-          items: fullPhotos,
+          items: fullPhotos.length > 0 ? fullPhotos : [item],
           initialIndex: Math.max(0, idx),
         });
       } else {
         // Clips / Cinema Video
         const fullVideos = playlistContext && playlistContext.length > 0
-          ? playlistContext
+          ? playlistContext.filter(
+              (v) =>
+                (v.type === 'video' || v.mediaType === 'clip') &&
+                v.mediaType !== 'short' &&
+                !v.category?.toLowerCase().includes('short') &&
+                !v.url?.toLowerCase().includes('/shorts/')
+            )
           : [item];
         setTheaterState({
           isOpen: true,
           item,
-          playlist: fullVideos,
+          playlist: fullVideos.length > 0 ? fullVideos : [item],
         });
       }
     },
@@ -223,11 +237,11 @@ function App() {
             </div>
             <CyberCarouselRow
               title="Latest Releases"
-              subtitle="20 newest items aggregated from all folders"
+              subtitle="30 newest items aggregated from all folders"
               badge={feed.latestReleases.length}
               items={feed.latestReleases}
               variant="standard"
-              onSelectItem={(item) => handleSelectItem(item, feed.latestReleases)}
+              onSelectItem={(item, currentList) => handleSelectItem(item, currentList || feed.latestReleases)}
             />
           </div>
         )}
@@ -247,7 +261,7 @@ function App() {
               badge={feed.shorts.length}
               items={feed.shorts}
               variant="shorts"
-              onSelectItem={(item) => handleSelectItem(item, feed.shorts)}
+              onSelectItem={(item, currentList) => handleSelectItem(item, currentList || feed.shorts)}
             />
           </div>
         )}
@@ -275,7 +289,9 @@ function App() {
                   badge={folder.count}
                   items={folder.items}
                   variant="standard"
-                  onSelectItem={(item) => handleSelectItem(item, folder.items)}
+                  hasMultipleTypes={folder.hasMultipleTypes}
+                  typeCounts={folder.typeCounts}
+                  onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
                 />
               ))}
             </div>
@@ -304,8 +320,10 @@ function App() {
                   title={folder.name}
                   badge={folder.count}
                   items={folder.items}
-                  variant="photo"
-                  onSelectItem={(item) => handleSelectItem(item, folder.items)}
+                  variant={folder.hasMultipleTypes ? 'standard' : 'photo'}
+                  hasMultipleTypes={folder.hasMultipleTypes}
+                  typeCounts={folder.typeCounts}
+                  onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
                 />
               ))}
             </div>

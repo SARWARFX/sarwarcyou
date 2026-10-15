@@ -336,3 +336,97 @@ export function isHiddenOrSystemFolder(folderOrName?: string | null): boolean {
 
   return isHiddenOrSystemPath(clean);
 }
+
+export interface ParsedMediaPath {
+  parentAlbum: string;
+  innerFolder?: string;
+  mediaType: 'clip' | 'short' | 'photo';
+  isNested: boolean;
+}
+
+/**
+ * Universal recursive media path parser for Hugging Face stream vault.
+ * Correctly classifies files by extension and inner folder type regardless of nesting:
+ * - .mp4 inside any "Shorts/" folder -> 'short'
+ * - .mp4 inside any "Video Clips/" or "Clips/" folder -> 'clip'
+ * - Photo files (.jpg, .jpeg, .png, etc.) -> 'photo'
+ * - Preserves the parent album name intact (e.g., Album: "Bandhobis")
+ */
+export function parseMediaPath(rawPath: string): ParsedMediaPath {
+  if (!rawPath) {
+    return { parentAlbum: 'Featured', mediaType: 'photo', isNested: false };
+  }
+
+  const clean = rawPath.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  const segments = clean.split('/');
+  const filename = segments[segments.length - 1] || clean;
+
+  const isVideo = isVideoExtension(filename);
+  const isPhoto = isPhotoExtension(filename);
+
+  // Check if path or any segment indicates a short
+  const hasShortsSegment = segments.some((s) => /^shorts?$/i.test(s.trim())) || clean.toLowerCase().includes('/shorts/');
+
+  let mediaType: 'clip' | 'short' | 'photo' = 'photo';
+  if (isVideo) {
+    if (hasShortsSegment) {
+      mediaType = 'short';
+    } else {
+      mediaType = 'clip';
+    }
+  } else if (isPhoto) {
+    mediaType = 'photo';
+  }
+
+  let parentAlbum = 'Featured';
+  let innerFolder: string | undefined;
+  let isNested = false;
+
+  const root = (segments[0] || '').toLowerCase().trim();
+
+  if (root === 'shorts') {
+    parentAlbum = 'Shorts & Reels';
+    mediaType = 'short';
+    if (segments.length >= 3) {
+      innerFolder = segments.slice(1, -1).join(' / ');
+      isNested = true;
+    }
+  } else if (root === 'clips') {
+    if (segments.length >= 3) {
+      parentAlbum = segments[1];
+      innerFolder = segments.slice(2, -1).join(' / ') || undefined;
+      isNested = segments.length > 3;
+    } else if (segments.length === 2) {
+      parentAlbum = segments[1];
+    }
+    if (!hasShortsSegment) {
+      mediaType = 'clip';
+    }
+  } else if (root === 'images') {
+    if (segments.length >= 4) {
+      // e.g. Images/Bandhobis/Video Clips/asha8.mp4
+      // or Images/Bandhobis/Shorts/Screen_Recording...mp4
+      // or Images/Bandhobis/Images/Asha1.jpg
+      parentAlbum = segments[1];
+      innerFolder = segments.slice(2, -1).join(' / ');
+      isNested = true;
+    } else if (segments.length === 3) {
+      // e.g. Images/works/photo.jpg or Images/Bandhobis/photo.jpg
+      parentAlbum = segments[1];
+    } else if (segments.length === 2) {
+      parentAlbum = 'Featured Photography';
+    }
+  } else {
+    // Non-standard root folder
+    if (segments.length >= 3) {
+      parentAlbum = segments[0];
+      innerFolder = segments.slice(1, -1).join(' / ');
+      isNested = true;
+    } else if (segments.length >= 2) {
+      parentAlbum = segments[0];
+    }
+  }
+
+  return { parentAlbum, innerFolder, mediaType, isNested };
+}
+

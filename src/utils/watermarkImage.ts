@@ -10,6 +10,7 @@
  */
 
 import { getMediaUrl } from './imageUrlResolver';
+import { safeEncodeUrl } from './mediaTypeDetector';
 
 export function formatPhotoDownloadFilename(rawName?: string, ext = 'jpg'): string {
   let base = (rawName || 'photo').trim();
@@ -48,7 +49,8 @@ export async function applyWatermarkAndDownload(
   } else {
     imageElement = new Image();
     imageElement.crossOrigin = 'anonymous';
-    const srcUrl = typeof source === 'string' ? getMediaUrl(source) : URL.createObjectURL(source);
+    const rawUrl = typeof source === 'string' ? getMediaUrl(source) : URL.createObjectURL(source);
+    const srcUrl = typeof source === 'string' ? safeEncodeUrl(rawUrl) : rawUrl;
     if (typeof source !== 'string') {
       objectUrlToRevoke = srcUrl;
     }
@@ -153,7 +155,7 @@ export async function applyImageWatermark(
   let objectUrlToRevoke: string | null = null;
 
   if (typeof source === 'string') {
-    imageSrc = source;
+    imageSrc = safeEncodeUrl(getMediaUrl(source));
   } else {
     imageSrc = URL.createObjectURL(source);
     objectUrlToRevoke = imageSrc;

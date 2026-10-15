@@ -75,6 +75,9 @@ export interface StageMediaItem {
   thumbnail: string;
   category: string;
   type: 'video' | 'image';
+  mediaType?: 'clip' | 'short' | 'photo';
+  parentAlbum?: string;
+  innerFolder?: string;
   poster?: string;
   posterUrl?: string;
   thumbnails?: string[];
@@ -85,9 +88,15 @@ export interface StageMediaItem {
 export interface MediaFolderEntry {
   id: string;
   name: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'composite';
   count: number;
   items: StageMediaItem[];
+  hasMultipleTypes?: boolean;
+  typeCounts?: {
+    photos: number;
+    clips: number;
+    shorts: number;
+  };
 }
 
 export type AlbumLayoutType =

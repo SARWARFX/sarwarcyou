@@ -5,6 +5,7 @@ import {
   isHiddenOrSystemFolder,
   isExcludedAlbum,
   isThumbnailFile,
+  parseMediaPath,
 } from './mediaTypeDetector';
 import { getItemTimestamp } from './albumExtractor';
 
@@ -17,16 +18,18 @@ export interface VaultFeedData {
 
 function cleanTitleFromPath(path: string): string {
   const file = path.split('/').pop() || path;
-  return file
-    .replace(/\.[^/.]+$/, '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b(smartselect|videocapture|screenshot)\b/gi, '')
-    .trim() || 'Media Item';
+  return (
+    file
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b(smartselect|videocapture|screenshot)\b/gi, '')
+      .trim() || 'Media Item'
+  );
 }
 
-function formatFolderName(raw: string): string {
+function formatFolderName(raw: string, mediaTypeHint?: 'video' | 'image' | 'composite'): string {
   const decoded = decodeURIComponent(raw).trim();
-  // Format standard folders nicely
+  // Standard formatted names
   if (/^h2027\s*videos?$/i.test(decoded)) return 'H2027 Videos';
   if (/^h2026\s*videos?$/i.test(decoded)) return 'H2026 Videos';
   if (/^h2025\s*videos?$/i.test(decoded)) return 'H2025 Videos';
@@ -38,6 +41,19 @@ function formatFolderName(raw: string): string {
   if (/^works?$/i.test(decoded)) return 'Works';
   if (/^bandhobis?$/i.test(decoded)) return 'Bandhobis';
   if (/^classic$/i.test(decoded)) return 'Classic';
+
+  if (/^h2027$/i.test(decoded)) {
+    return mediaTypeHint === 'video' ? 'H2027 Videos' : 'H2027 Photos';
+  }
+  if (/^h2026$/i.test(decoded)) {
+    return mediaTypeHint === 'video' ? 'H2026 Videos' : 'H2026 Photos';
+  }
+  if (/^h2025$/i.test(decoded)) {
+    return mediaTypeHint === 'video' ? 'H2025 Videos' : 'H2025 Photos';
+  }
+  if (/^favorite$/i.test(decoded)) return 'Favorite Videos';
+  if (/^others?$/i.test(decoded)) return 'Others Videos';
+
   // Capitalize words
   return decoded
     .split(/[\s_-]+/)
@@ -59,6 +75,9 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
   const shortsRaw = catalog.shorts || [];
   const imagesRaw = catalog.images || [];
 
+  // Map to hold extra nested items (clips, shorts) grouped by parent album
+  const extraItemsByAlbum = new Map<string, StageMediaItem[]>();
+
   // 1. Process Shorts
   const shortsItems: StageMediaItem[] = shortsRaw
     .filter((it) => {
@@ -69,18 +88,31 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       const p = it.path || it.name || it.url;
       const mediaUrl = getMediaUrl(it.url || p);
       const title = cleanTitleFromPath(p);
-      return {
+      const parsed = parseMediaPath(p);
+      const item: StageMediaItem = {
         id: `short-${p.replace(/[/\\.]+/g, '-')}`,
         title,
         name: title,
         url: mediaUrl,
         thumbnail: it.poster ? getMediaUrl(it.poster) : mediaUrl,
         poster: it.poster ? getMediaUrl(it.poster) : undefined,
-        category: 'Shorts & Reels',
+        category: parsed.isNested ? formatFolderName(parsed.parentAlbum) : 'Shorts & Reels',
         type: 'video' as const,
+        mediaType: 'short',
+        parentAlbum: parsed.parentAlbum,
+        innerFolder: parsed.innerFolder,
         date: getItemTimestamp(it),
         lastCommit: it.lastCommit,
       };
+
+      if (parsed.isNested && parsed.parentAlbum) {
+        const normAlbum = parsed.parentAlbum.trim().toLowerCase();
+        const list = extraItemsByAlbum.get(normAlbum) || [];
+        list.push(item);
+        extraItemsByAlbum.set(normAlbum, list);
+      }
+
+      return item;
     })
     .sort((a, b) => (b.date || 0) - (a.date || 0));
 
@@ -89,13 +121,8 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
   for (const it of clipsRaw) {
     const p = it.path || it.name || it.url;
     if (isHiddenOrSystemPath(p) || isExcludedAlbum(p)) continue;
-    const parts = p.replace(/\\/g, '/').split('/');
-    let subfolder = 'Featured Videos';
-    if (parts.length >= 2 && parts[0].toLowerCase() === 'clips') {
-      subfolder = parts[1];
-    } else if (parts.length >= 2) {
-      subfolder = parts[0];
-    }
+    const parsed = parseMediaPath(p);
+    const subfolder = parsed.parentAlbum || 'Featured Videos';
     if (isHiddenOrSystemFolder(subfolder) || isExcludedAlbum(subfolder)) continue;
 
     const mediaUrl = getMediaUrl(it.url || p);
@@ -107,11 +134,21 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       url: mediaUrl,
       thumbnail: it.poster ? getMediaUrl(it.poster) : mediaUrl,
       poster: it.poster ? getMediaUrl(it.poster) : undefined,
-      category: formatFolderName(subfolder),
+      category: formatFolderName(subfolder, 'video'),
       type: 'video',
+      mediaType: 'clip',
+      parentAlbum: parsed.parentAlbum,
+      innerFolder: parsed.innerFolder,
       date: getItemTimestamp(it),
       lastCommit: it.lastCommit,
     };
+
+    if (parsed.isNested && parsed.parentAlbum) {
+      const normAlbum = parsed.parentAlbum.trim().toLowerCase();
+      const list = extraItemsByAlbum.get(normAlbum) || [];
+      list.push(item);
+      extraItemsByAlbum.set(normAlbum, list);
+    }
 
     const list = clipFolderMap.get(subfolder) || [];
     list.push(item);
@@ -119,11 +156,11 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
   }
 
   // Desired order for Video Vault folders
-  const videoOrder = ['h2027', 'h2026', 'h2025', 'favorite', 'others'];
+  const videoOrder = ['h2027', 'h2026', 'h2025', 'favorite', 'bandhobis', 'others'];
   const videoVaultFolders: MediaFolderEntry[] = Array.from(clipFolderMap.entries())
     .map(([rawSubfolder, items]) => ({
       id: `folder-video-${rawSubfolder.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      name: formatFolderName(rawSubfolder),
+      name: formatFolderName(rawSubfolder, 'video'),
       type: 'video' as const,
       count: items.length,
       items: items.sort((a, b) => (b.date || 0) - (a.date || 0)),
@@ -142,13 +179,8 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
   for (const it of imagesRaw) {
     const p = it.path || it.name || it.url;
     if (isHiddenOrSystemPath(p) || isExcludedAlbum(p) || isThumbnailFile(p)) continue;
-    const parts = p.replace(/\\/g, '/').split('/');
-    let subfolder = 'Featured Photography';
-    if (parts.length >= 2 && parts[0].toLowerCase() === 'images') {
-      subfolder = parts[1];
-    } else if (parts.length >= 2) {
-      subfolder = parts[0];
-    }
+    const parsed = parseMediaPath(p);
+    const subfolder = parsed.parentAlbum || 'Featured Photography';
     if (isHiddenOrSystemFolder(subfolder) || isExcludedAlbum(subfolder)) continue;
 
     const mediaUrl = getMediaUrl(it.url || p);
@@ -160,8 +192,11 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       url: mediaUrl,
       thumbnail: mediaUrl,
       poster: mediaUrl,
-      category: formatFolderName(subfolder),
+      category: formatFolderName(subfolder, 'image'),
       type: 'image',
+      mediaType: 'photo',
+      parentAlbum: parsed.parentAlbum,
+      innerFolder: parsed.innerFolder,
       date: getItemTimestamp(it),
       lastCommit: it.lastCommit,
     };
@@ -171,16 +206,44 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
     imageFolderMap.set(subfolder, list);
   }
 
-  // Desired order for Photo Vault folders
+  // Desired order for Photo Vault / Composite folders
   const photoOrder = ['works', 'bandhobis', 'h2027', 'h2026', 'h2025', 'classic'];
   const photoVaultFolders: MediaFolderEntry[] = Array.from(imageFolderMap.entries())
-    .map(([rawSubfolder, items]) => ({
-      id: `folder-photo-${rawSubfolder.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      name: formatFolderName(rawSubfolder),
-      type: 'image' as const,
-      count: items.length,
-      items: items.sort((a, b) => (b.date || 0) - (a.date || 0)),
-    }))
+    .map(([rawSubfolder, items]) => {
+      const normAlbum = rawSubfolder.trim().toLowerCase();
+      const extraItems = extraItemsByAlbum.get(normAlbum) || [];
+      const combinedItems = [...items, ...extraItems];
+
+      // Calculate media type breakdown
+      let photosCount = 0;
+      let clipsCount = 0;
+      let shortsCount = 0;
+
+      for (const it of combinedItems) {
+        if (it.mediaType === 'short') shortsCount++;
+        else if (it.mediaType === 'clip' || it.type === 'video') clipsCount++;
+        else photosCount++;
+      }
+
+      const hasMultipleTypes =
+        (photosCount > 0 && clipsCount > 0) ||
+        (photosCount > 0 && shortsCount > 0) ||
+        (clipsCount > 0 && shortsCount > 0);
+
+      return {
+        id: `folder-photo-${rawSubfolder.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        name: formatFolderName(rawSubfolder, hasMultipleTypes ? 'composite' : 'image'),
+        type: hasMultipleTypes ? ('composite' as const) : ('image' as const),
+        count: combinedItems.length,
+        hasMultipleTypes,
+        typeCounts: {
+          photos: photosCount,
+          clips: clipsCount,
+          shorts: shortsCount,
+        },
+        items: combinedItems.sort((a, b) => (b.date || 0) - (a.date || 0)),
+      };
+    })
     .sort((a, b) => {
       const idxA = photoOrder.findIndex((k) => a.name.toLowerCase().includes(k));
       const idxB = photoOrder.findIndex((k) => b.name.toLowerCase().includes(k));
@@ -190,7 +253,7 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       return a.name.localeCompare(b.name);
     });
 
-  // 4. Unified Latest Releases: Top 20 newest items aggregated from ALL folders
+  // 4. Unified Latest Releases: Top 30 newest items aggregated from ALL folders and depths
   const allMediaPool: StageMediaItem[] = [];
   const seenUrls = new Set<string>();
 
@@ -206,7 +269,7 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
 
   const latestReleases = allMediaPool
     .sort((a, b) => (b.date || 0) - (a.date || 0))
-    .slice(0, 20);
+    .slice(0, 30);
 
   return {
     latestReleases,
@@ -215,3 +278,4 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
     photoVaultFolders,
   };
 }
+

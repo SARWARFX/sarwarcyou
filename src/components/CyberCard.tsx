@@ -19,20 +19,23 @@ export const CyberCard: React.FC<CyberCardProps> = ({
   const isShort =
     variant === 'shorts' ||
     Boolean(
+      item.mediaType === 'short' ||
       item.category?.toLowerCase().includes('short') ||
       item.category?.toLowerCase().includes('reel') ||
       item.url?.toLowerCase().includes('/shorts/') ||
       item.id?.toLowerCase().includes('shorts')
     );
 
-  const isVideo = isShort || item.type === 'video' || /\.(mp4|mov|webm|mkv)$/i.test(item.url);
+  const isVideo = isShort || item.type === 'video' || item.mediaType === 'clip' || /\.(mp4|mov|webm|mkv)$/i.test(item.url);
 
-  // Aspect Ratio & Sizing
+  // Aspect Ratio & Sizing: adapt to item's actual nature even within composite rows
+  const effectiveVariant = isShort ? 'shorts' : (isVideo && variant === 'photo' ? 'standard' : variant);
+
   const sizeClass = {
     standard: 'w-[260px] sm:w-[290px] md:w-[320px] aspect-[16/10]',
     shorts: 'w-[160px] sm:w-[190px] md:w-[215px] aspect-[9/16]',
     photo: 'w-[240px] sm:w-[270px] md:w-[300px] aspect-[4/3]',
-  }[variant];
+  }[effectiveVariant];
 
   const thumbUrl = item.thumbnail || item.poster || item.url;
 
