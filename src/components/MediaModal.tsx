@@ -150,6 +150,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (showSidebar) {
+          setShowSidebar(false);
+          return;
+        }
         if (isFullscreen) {
           if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
             if (document.exitFullscreen) {
@@ -477,24 +481,32 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* 2. Slide-out Queue & Suggestions Drawer (Overlay) */}
+      {/* 2. Slide-out Queue & Suggestions Drawer (Overlay with Backdrop) */}
       {showSidebar && (
-        <div className="fixed inset-y-0 right-0 z-50 flex shadow-2xl animate-slide-left">
-          <CyberMediaSidebar
-            items={items}
-            activeItem={currentItem}
-            activeIdx={activeIdx}
-            onSelectItem={(_, idx) => {
-              setActiveIdx(idx);
-              setIsZoomed(false);
-              onIndexChange?.(idx);
-            }}
-            mediaType="image"
-            currentFolderName={currentItem?.category || 'Photo Archive'}
-            allFolders={allFolders}
-            onSelectFolder={onSelectFolder}
-            onClose={() => setShowSidebar(false)}
-          />
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-auto"
+          onClick={() => setShowSidebar(false)}
+        >
+          <div
+            className="h-full max-h-screen flex shadow-2xl animate-slide-left pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CyberMediaSidebar
+              items={items}
+              activeItem={currentItem}
+              activeIdx={activeIdx}
+              onSelectItem={(_, idx) => {
+                setActiveIdx(idx);
+                setIsZoomed(false);
+                onIndexChange?.(idx);
+              }}
+              mediaType="image"
+              currentFolderName={currentItem?.category || 'Photo Archive'}
+              allFolders={allFolders}
+              onSelectFolder={onSelectFolder}
+              onClose={() => setShowSidebar(false)}
+            />
+          </div>
         </div>
       )}
     </div>

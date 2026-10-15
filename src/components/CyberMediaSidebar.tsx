@@ -55,11 +55,11 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
 
   return (
     <aside
-      className={`w-full md:w-[380px] lg:w-[440px] h-[48vh] md:h-full overflow-y-auto overscroll-contain border-t md:border-t-0 md:border-l border-white/10 p-4 space-y-6 flex-shrink-0 bg-[#07070a]/95 backdrop-blur-2xl no-scrollbar select-none z-30 ${className}`}
+      className={`w-full sm:w-[320px] md:w-[340px] max-w-[90vw] h-full overflow-y-auto overscroll-contain border-l border-white/10 p-4 space-y-6 flex-shrink-0 bg-[#07070a]/98 backdrop-blur-3xl no-scrollbar select-none z-30 shadow-2xl ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Header bar on mobile to allow closing or showing queue info */}
-      <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+      {/* Header bar to allow closing or showing queue info */}
+      <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
         <div className="flex items-center gap-2">
           {mediaType === 'video' ? (
             <Film className="w-4 h-4 text-amber-400" />
@@ -78,8 +78,8 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer md:hidden"
-              title="Close Panel"
+              className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer border border-white/10"
+              title="Close Queue (Esc)"
             >
               <X className="w-4 h-4" />
             </button>

@@ -73,6 +73,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
   const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -436,7 +437,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (document.fullscreenElement) {
+        if (showSidebar) {
+          setShowSidebar(false);
+        } else if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {});
         } else {
           onClose();
@@ -551,28 +554,28 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-50 bg-[#030305] text-white flex flex-col md:flex-row overflow-hidden h-[100dvh] w-screen select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-50 bg-black text-white overflow-hidden h-[100dvh] w-screen select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
     >
-      {/* Primary Media Stage (Left Pane, ~65-70% width on desktop, 100% on mobile) */}
-      <div className="flex-1 relative flex flex-col justify-between overflow-hidden h-full min-h-[50vh] md:min-h-0 bg-[#030305]">
-        {/* 1. Ambient Blurred Glow reflecting active video colors */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
-          <video
-            src={streamUrl}
-            autoPlay
-            loop
-            muted
-            playsInline
-            aria-hidden="true"
-            className="w-full h-full object-cover filter blur-[90px] opacity-35 scale-125"
-          />
-        </div>
+      {/* 1. Ambient Blurred Glow reflecting active video colors */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
+        <video
+          src={streamUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-hidden="true"
+          className="w-full h-full object-cover filter blur-[90px] opacity-35 scale-125"
+        />
+      </div>
 
-        {/* 2. Top Bar (Close X, Title & Queue Toggle) */}
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          className="relative z-40 p-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent flex-shrink-0"
-        >
+      {/* 2. Top Bar Overlay (Back Button, Title & Queue Toggle) */}
+      <div
+        onPointerDown={(e) => e.stopPropagation()}
+        className={`absolute top-0 inset-x-0 z-40 p-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-opacity duration-300 ${
+          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -664,9 +667,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* 3. Frameless Center Video Stage with Responsive Bounds */}
+      {/* 3. Frameless Center Video Stage (100% True Full Screen) */}
       <div
-        className="relative z-10 w-full flex-1 flex items-center justify-center p-2 sm:p-6 pt-16 pb-24 touch-none cursor-pointer overflow-hidden"
+        className="absolute inset-0 w-full h-full flex items-center justify-center touch-none cursor-pointer overflow-hidden z-10"
         onPointerDown={handleStagePointerDown}
         onPointerMove={handleStagePointerMove}
         onPointerUp={handleStagePointerUp}
@@ -683,7 +686,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           autoPlay
           playsInline
           muted={isMuted}
-          className="max-h-[82dvh] md:max-h-[85dvh] max-w-full object-contain rounded-lg shadow-2xl pointer-events-none"
+          className={`w-full h-full pointer-events-none transition-all duration-300 ${
+            fitMode === 'cover' ? 'object-cover' : 'object-contain'
+          }`}
           onTimeUpdate={() => {
             if (videoRef.current) {
               const now = videoRef.current.currentTime;
@@ -975,6 +980,27 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </button>
 
+            {/* Aspect Ratio Fit / Fill Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
+                resetHudTimer();
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer border ${
+                fitMode === 'cover'
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
+                  : 'bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border-white/10'
+              }`}
+              title={
+                fitMode === 'cover'
+                  ? 'Fill Screen Active (Zoomed 100% borderless fill). Click for Aspect Fit.'
+                  : 'Fit Screen Active (Aspect ratio preserved). Click for 100% Borderless Fill.'
+              }
+            >
+              {fitMode === 'cover' ? 'FILL' : 'FIT'}
+            </button>
+
             {/* Fullscreen */}
             <button
               type="button"
@@ -987,22 +1013,29 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           </div>
         </div>
       </div>
-      </div>
 
-      {/* 2. Slide-out Queue & Suggestions Drawer (Overlay) */}
+      {/* 5. Slide-out Queue & Suggestions Drawer (Overlay with Backdrop) */}
       {showSidebar && (
-        <div className="fixed inset-y-0 right-0 z-50 flex shadow-2xl animate-slide-left">
-          <CyberMediaSidebar
-            items={playlist}
-            activeItem={item}
-            activeIdx={playlist.findIndex((v) => v.id === item.id || v.url === item.url)}
-            onSelectItem={(selected) => onSelectItem?.(selected)}
-            mediaType="video"
-            currentFolderName={item.category || item.parentAlbum || 'Video Archive'}
-            allFolders={allFolders}
-            onSelectFolder={onSelectFolder}
-            onClose={() => setShowSidebar(false)}
-          />
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-auto"
+          onClick={() => setShowSidebar(false)}
+        >
+          <div
+            className="h-full max-h-screen flex shadow-2xl animate-slide-left pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CyberMediaSidebar
+              items={playlist}
+              activeItem={item}
+              activeIdx={playlist.findIndex((v) => v.id === item.id || v.url === item.url)}
+              onSelectItem={(selected) => onSelectItem?.(selected)}
+              mediaType="video"
+              currentFolderName={item.category || item.parentAlbum || 'Video Archive'}
+              allFolders={allFolders}
+              onSelectFolder={onSelectFolder}
+              onClose={() => setShowSidebar(false)}
+            />
+          </div>
         </div>
       )}
     </div>
