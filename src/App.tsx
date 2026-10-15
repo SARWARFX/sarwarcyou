@@ -83,15 +83,34 @@ function App() {
       );
     };
 
-    // Filter Latest Releases
-    let latest = rawFeed.latestReleases.filter(matchesQuery);
+    // Filter Latest Releases dynamically from full media pool based on active navigation tab
+    const pool = rawFeed.allMediaPool && rawFeed.allMediaPool.length > 0
+      ? rawFeed.allMediaPool
+      : rawFeed.latestReleases;
+
+    let latestPool = pool.filter(matchesQuery);
     if (activeFilter === 'clips') {
-      latest = latest.filter((it) => it.type === 'video' && it.mediaType !== 'short' && !it.category?.toLowerCase().includes('short'));
+      latestPool = latestPool.filter(
+        (it) =>
+          (it.type === 'video' || it.mediaType === 'clip') &&
+          it.mediaType !== 'short' &&
+          !it.category?.toLowerCase().includes('short') &&
+          !it.url?.toLowerCase().includes('/shorts/')
+      );
     } else if (activeFilter === 'images') {
-      latest = latest.filter((it) => it.type === 'image' || it.mediaType === 'photo');
+      latestPool = latestPool.filter((it) => it.type === 'image' || it.mediaType === 'photo');
     } else if (activeFilter === 'shorts') {
-      latest = latest.filter((it) => it.mediaType === 'short' || it.category?.toLowerCase().includes('short') || it.url?.toLowerCase().includes('/shorts/'));
+      latestPool = latestPool.filter(
+        (it) =>
+          it.mediaType === 'short' ||
+          it.category?.toLowerCase().includes('short') ||
+          it.url?.toLowerCase().includes('/shorts/')
+      );
     }
+
+    const latest = latestPool
+      .sort((a, b) => (b.date || 0) - (a.date || 0))
+      .slice(0, 30);
 
     // Filter Shorts
     const shorts = (activeFilter === 'all' || activeFilter === 'shorts')
@@ -199,6 +218,36 @@ function App() {
     feed.videoVaultFolders.length > 0 ||
     feed.photoVaultFolders.length > 0;
 
+  const latestHeaderInfo = useMemo(() => {
+    switch (activeFilter) {
+      case 'clips':
+        return {
+          title: 'Latest Videos',
+          subtitle: 'Recently added video clips',
+          spotlight: 'VIDEO SPOTLIGHT',
+        };
+      case 'images':
+        return {
+          title: 'Latest Images',
+          subtitle: 'Recently added photographs & artwork',
+          spotlight: 'PHOTO SPOTLIGHT',
+        };
+      case 'shorts':
+        return {
+          title: 'Latest Shorts',
+          subtitle: 'Recently added vertical reels',
+          spotlight: 'SHORTS SPOTLIGHT',
+        };
+      case 'all':
+      default:
+        return {
+          title: 'Latest Releases',
+          subtitle: '30 newest items aggregated from all folders',
+          spotlight: 'FEATURED SPOTLIGHT',
+        };
+    }
+  }, [activeFilter]);
+
   return (
     <div className="bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
       {/* 1. Floating Glass Pill Header */}
@@ -242,21 +291,21 @@ function App() {
           </div>
         )}
 
-        {/* SECTION 1: LATEST RELEASES */}
+        {/* SECTION 1: CONTEXTUAL LATEST RELEASES */}
         {feed.latestReleases.length > 0 && (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 transition-all duration-300">
             <div className="flex items-center gap-2 mb-1">
               <Flame className="w-4 h-4 text-[#00E5FF]" />
               <span className="text-[11px] font-mono tracking-widest text-[#00E5FF] font-bold uppercase">
-                FEATURED SPOTLIGHT
+                {latestHeaderInfo.spotlight}
               </span>
             </div>
             <CyberCarouselRow
-              title="Latest Releases"
-              subtitle="30 newest items aggregated from all folders"
+              title={latestHeaderInfo.title}
+              subtitle={latestHeaderInfo.subtitle}
               badge={feed.latestReleases.length}
               items={feed.latestReleases}
-              variant="standard"
+              variant={activeFilter === 'shorts' ? 'shorts' : activeFilter === 'images' ? 'photo' : 'standard'}
               onSelectItem={(item, currentList) => handleSelectItem(item, currentList || feed.latestReleases)}
             />
           </div>

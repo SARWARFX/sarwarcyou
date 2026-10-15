@@ -15,6 +15,8 @@ import {
   X,
   Check,
   Loader2,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -35,6 +37,14 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatDelta(seconds: number): string {
+  const sign = seconds >= 0 ? '+' : '-';
+  const abs = Math.abs(seconds);
+  const m = Math.floor(abs / 60);
+  const s = Math.floor(abs % 60);
+  return `${sign}${m}:${s.toString().padStart(2, '0')}s`;
 }
 
 export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
@@ -64,6 +74,35 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [showHud, setShowHud] = useState(true);
   const hudTimerRef = useRef<number | null>(null);
 
+  // Samsung One UI Style Horizontal Gesture Scrubbing State
+  const [gestureSeek, setGestureSeek] = useState<{
+    isActive: boolean;
+    isVisible: boolean;
+    deltaSeconds: number;
+    targetTime: number;
+    icon: 'forward' | 'rewind';
+  }>({
+    isActive: false,
+    isVisible: false,
+    deltaSeconds: 0,
+    targetTime: 0,
+    icon: 'forward',
+  });
+
+  const gestureDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startTime: number;
+    isLockedHorizontal: boolean;
+    isLockedVertical: boolean;
+    hasMovedPastThreshold: boolean;
+    targetTime: number;
+    deltaSeconds: number;
+  } | null>(null);
+
+  const gestureFadeTimeoutRef = useRef<number | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -82,6 +121,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   useEffect(() => {
     return () => {
       if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
+      if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
     };
   }, []);
 
@@ -95,6 +135,15 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     setBuffered(0);
     setLoopA(null);
     setLoopB(null);
+    if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
+    gestureDragRef.current = null;
+    setGestureSeek({
+      isActive: false,
+      isVisible: false,
+      deltaSeconds: 0,
+      targetTime: 0,
+      icon: 'forward',
+    });
   }
 
   // A-B Looping Enforcement on state change
@@ -119,6 +168,130 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
     resetHudTimer();
   }, [resetHudTimer]);
+
+  // Samsung One UI Style Horizontal Scrubbing Gesture Handlers
+  const handleStagePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only primary button or touch
+    if (e.button !== 0) return;
+
+    if (gestureFadeTimeoutRef.current) {
+      window.clearTimeout(gestureFadeTimeoutRef.current);
+      gestureFadeTimeoutRef.current = null;
+    }
+
+    const currentVidTime = videoRef.current ? videoRef.current.currentTime : currentTime;
+
+    gestureDragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startTime: currentVidTime,
+      isLockedHorizontal: false,
+      isLockedVertical: false,
+      hasMovedPastThreshold: false,
+      targetTime: currentVidTime,
+      deltaSeconds: 0,
+    };
+  };
+
+  const handleStagePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = gestureDragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+
+    // Direction locking check (prevents interference with vertical gestures or scroll)
+    if (!drag.isLockedHorizontal && !drag.isLockedVertical) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+        drag.isLockedVertical = true;
+        return;
+      }
+      if (Math.abs(dx) > 10 && Math.abs(dx) >= Math.abs(dy)) {
+        drag.isLockedHorizontal = true;
+        drag.hasMovedPastThreshold = true;
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (_) {}
+      }
+    }
+
+    if (drag.isLockedVertical || !drag.isLockedHorizontal) return;
+
+    // Dynamic scrubbing sensitivity: ~10s per 100px dragged, gently scaled for longer videos
+    const vidDuration = videoRef.current?.duration || duration || 60;
+    const secPerPx = Math.max(0.1, Math.min(0.5, vidDuration / 600));
+    const deltaSeconds = Math.round(dx * secPerPx);
+    const targetTime = Math.max(0, Math.min(vidDuration, drag.startTime + deltaSeconds));
+    const actualDelta = Math.round(targetTime - drag.startTime);
+
+    drag.targetTime = targetTime;
+    drag.deltaSeconds = actualDelta;
+
+    setGestureSeek({
+      isActive: true,
+      isVisible: true,
+      deltaSeconds: actualDelta,
+      targetTime,
+      icon: actualDelta >= 0 ? 'forward' : 'rewind',
+    });
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = targetTime;
+      setCurrentTime(targetTime);
+    }
+    resetHudTimer();
+  };
+
+  const handleStagePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = gestureDragRef.current;
+    if (!drag) return;
+
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch (_) {}
+
+    if (drag.hasMovedPastThreshold && drag.isLockedHorizontal) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = drag.targetTime;
+        setCurrentTime(drag.targetTime);
+        if (loopA !== null && loopB !== null && loopB > loopA) {
+          if (drag.targetTime >= loopB || drag.targetTime < loopA) {
+            videoRef.current.currentTime = loopA;
+            setCurrentTime(loopA);
+          }
+        }
+      }
+
+      setGestureSeek((prev) => ({ ...prev, isActive: false }));
+      if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
+      gestureFadeTimeoutRef.current = window.setTimeout(() => {
+        setGestureSeek((prev) => ({ ...prev, isVisible: false }));
+      }, 400);
+    } else if (!drag.hasMovedPastThreshold && !drag.isLockedVertical) {
+      togglePlay();
+    }
+
+    gestureDragRef.current = null;
+  };
+
+  const handleStagePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch (_) {}
+
+    setGestureSeek((prev) => ({ ...prev, isActive: false }));
+    if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
+    gestureFadeTimeoutRef.current = window.setTimeout(() => {
+      setGestureSeek((prev) => ({ ...prev, isVisible: false }));
+    }, 400);
+
+    gestureDragRef.current = null;
+  };
 
   // Relative Seek
   const seekBy = useCallback((delta: number) => {
@@ -248,6 +421,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
       {/* 2. Top Bar (Title & Dismiss) */}
       <div
+        onPointerDown={(e) => e.stopPropagation()}
         className={`absolute top-0 inset-x-0 z-30 p-4 sm:p-6 flex items-center justify-between transition-opacity duration-300 ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
@@ -294,10 +468,53 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         )}
       </div>
 
-      {/* 3. Frameless Center Video Stage */}
+      {/* 2.5 Samsung One UI Style Horizontal Gesture Scrubbing Overlay */}
+      {gestureSeek.isVisible && (
+        <div
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none transition-all duration-300 transform ${
+            gestureSeek.isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-2.5 px-6 py-4 rounded-3xl bg-black/85 backdrop-blur-2xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(0,229,255,0.25)] min-w-[210px]">
+            {/* Top Row: Icon + Delta */}
+            <div className="flex items-center gap-2">
+              {gestureSeek.icon === 'forward' ? (
+                <ChevronsRight className="w-6 h-6 text-[#00E5FF] animate-pulse" />
+              ) : (
+                <ChevronsLeft className="w-6 h-6 text-[#00E5FF] animate-pulse" />
+              )}
+              <span className="text-2xl font-mono font-black tracking-wider text-white">
+                {formatDelta(gestureSeek.deltaSeconds)}
+              </span>
+            </div>
+
+            {/* Target Timestamp / Total Duration */}
+            <div className="text-xs font-mono font-bold tracking-wider text-zinc-300">
+              <span className="text-[#00E5FF]">{formatTime(gestureSeek.targetTime)}</span>
+              <span className="text-zinc-500 mx-1.5">/</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+
+            {/* Mini Progress Bar in Overlay */}
+            {duration > 0 && (
+              <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-[#00E5FF] shadow-[0_0_10px_#00E5FF] transition-all duration-75"
+                  style={{ width: `${Math.max(0, Math.min(100, (gestureSeek.targetTime / duration) * 100))}%` }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. Frameless Center Video Stage with Gesture Scrubbing */}
       <div
-        className="relative z-10 w-full h-full flex items-center justify-center p-2 sm:p-6"
-        onClick={togglePlay}
+        className="relative z-10 w-full h-full flex items-center justify-center p-2 sm:p-6 touch-none cursor-pointer"
+        onPointerDown={handleStagePointerDown}
+        onPointerMove={handleStagePointerMove}
+        onPointerUp={handleStagePointerUp}
+        onPointerCancel={handleStagePointerCancel}
       >
         <video
           ref={videoRef}
@@ -306,7 +523,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           autoPlay
           playsInline
           muted={isMuted}
-          className="max-w-full max-h-[88vh] object-contain rounded-lg shadow-2xl cursor-pointer"
+          className="max-w-full max-h-[88vh] object-contain rounded-lg shadow-2xl pointer-events-none"
           onTimeUpdate={() => {
             if (videoRef.current) {
               const now = videoRef.current.currentTime;
@@ -318,7 +535,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   return;
                 }
               }
-              if (!isDraggingProgress.current) {
+              if (!isDraggingProgress.current && !gestureSeek.isActive) {
                 setCurrentTime(now);
                 if (videoRef.current.buffered.length > 0) {
                   setBuffered(videoRef.current.buffered.end(videoRef.current.buffered.length - 1));
@@ -337,6 +554,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
       {/* 4. Floating HUD Controls (Bottom) */}
       <div
+        onPointerDown={(e) => e.stopPropagation()}
         className={`absolute bottom-4 sm:bottom-6 inset-x-4 sm:inset-x-8 z-30 flex flex-col gap-2 max-w-5xl mx-auto transition-opacity duration-300 ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}

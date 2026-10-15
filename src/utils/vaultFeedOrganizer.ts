@@ -11,6 +11,7 @@ import { getItemTimestamp } from './albumExtractor';
 
 export interface VaultFeedData {
   latestReleases: StageMediaItem[];
+  allMediaPool: StageMediaItem[];
   shorts: StageMediaItem[];
   videoVaultFolders: MediaFolderEntry[];
   photoVaultFolders: MediaFolderEntry[];
@@ -65,6 +66,7 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
   if (!catalog) {
     return {
       latestReleases: [],
+      allMediaPool: [],
       shorts: [],
       videoVaultFolders: [],
       photoVaultFolders: [],
@@ -273,6 +275,7 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
 
   return {
     latestReleases,
+    allMediaPool,
     shorts: shortsItems,
     videoVaultFolders,
     photoVaultFolders,

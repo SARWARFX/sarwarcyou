@@ -45,7 +45,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const isFullscreen = isNativeFullscreen || isLightboxFullscreen;
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const touchStateRef = useRef<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    time: number;
+    isMultiTouch: boolean;
+  } | null>(null);
+  const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
 
   const [prevPropKey, setPrevPropKey] = useState({ propCurrentIndex, isOpen });
   if (prevPropKey.propCurrentIndex !== propCurrentIndex || prevPropKey.isOpen !== isOpen) {
@@ -163,38 +171,83 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     };
   }, [isOpen, onClose, isFullscreen, toggleFullscreen, handleNext, handlePrev]);
 
-  // Touch Swipe for mobile image browsing
+  // Touch Swipe for mobile image browsing with pinch-to-zoom protection
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Abort if multi-touch (e.g. pinch-to-zoom gesture)
+    if (e.touches.length > 1) {
+      if (touchStateRef.current) {
+        touchStateRef.current.isMultiTouch = true;
+      }
+      setTouchDeltaX(0);
+      return;
+    }
+
+    // Only enable swipe navigation when scale is 1x (not zoomed)
+    if (isZoomed) {
+      touchStateRef.current = null;
+      return;
+    }
+
     const t = e.touches[0];
-    touchStartRef.current = {
-      x: t.clientX,
-      y: t.clientY,
+    touchStateRef.current = {
+      startX: t.clientX,
+      startY: t.clientY,
+      currentX: t.clientX,
+      currentY: t.clientY,
       time: performance.now(),
+      isMultiTouch: false,
     };
+    setTouchDeltaX(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStateRef.current || touchStateRef.current.isMultiTouch || isZoomed) return;
+
+    if (e.touches.length > 1) {
+      touchStateRef.current.isMultiTouch = true;
+      setTouchDeltaX(0);
+      return;
+    }
+
+    const t = e.touches[0];
+    touchStateRef.current.currentX = t.clientX;
+    touchStateRef.current.currentY = t.clientY;
+
+    const dx = t.clientX - touchStateRef.current.startX;
+    const dy = t.clientY - touchStateRef.current.startY;
+
+    // Interactive horizontal elastic offset feedback when swiping horizontally
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
+      setTouchDeltaX(Math.max(-100, Math.min(100, dx * 0.35)));
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStartRef.current || isZoomed) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchStartRef.current.x;
-    const dy = t.clientY - touchStartRef.current.y;
-    const dt = performance.now() - touchStartRef.current.time;
+    const state = touchStateRef.current;
+    touchStateRef.current = null;
+    setTouchDeltaX(0);
 
-    // Swipe down to dismiss
-    if (dy > 120 && Math.abs(dx) < 60 && dt < 400) {
+    if (!state || state.isMultiTouch || isZoomed) return;
+
+    const t = e.changedTouches[0];
+    const dx = t.clientX - state.startX;
+    const dy = t.clientY - state.startY;
+    const dt = performance.now() - state.time;
+
+    // 1. Swipe down to dismiss (if vertical downward motion > 120px and not horizontal)
+    if (dy > 120 && Math.abs(dx) < 60 && dt < 450) {
       onClose();
       return;
     }
 
-    // Horizontal swipe between photos
-    if (Math.abs(dx) > 45 && Math.abs(dy) < 60) {
-      if (dx < 0) {
+    // 2. Horizontal swipe navigation: Swiping Left (dx < -50px) -> Next; Swiping Right (dx > 50px) -> Prev
+    if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < -50) {
         handleNext();
-      } else {
+      } else if (dx > 50) {
         handlePrev();
       }
     }
-    touchStartRef.current = null;
   };
 
   const handleDownload = useCallback(async () => {
@@ -235,6 +288,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#030305]/95 backdrop-blur-2xl select-none overflow-hidden animate-fade-in"
       onClick={onClose}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Floating Smoked Frosted Glass Top HUD */}
@@ -371,8 +425,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               src={getMediaUrl(secureUrl)}
               alt={cleanTitle}
               onClick={() => setIsZoomed(!isZoomed)}
-              className={`max-w-full max-h-[82vh] object-contain rounded-xl select-none transition-transform duration-300 ${
-                isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
+              style={{
+                transform: isZoomed
+                  ? 'scale(1.65)'
+                  : touchDeltaX !== 0
+                  ? `translateX(${touchDeltaX}px)`
+                  : 'none',
+                transition: touchDeltaX !== 0 ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+              className={`max-w-full max-h-[82vh] object-contain rounded-xl select-none will-change-transform ${
+                isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
               } drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]`}
               draggable={false}
             />
