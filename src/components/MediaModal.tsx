@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
-  ZoomIn,
-  ZoomOut,
   Download,
   Loader2,
   Maximize,
@@ -502,108 +500,87 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     >
       {/* 1. Left Pane: Primary Media Stage (~65-70% desktop width, 100% mobile) */}
       <div className="flex-1 relative flex flex-col justify-between overflow-hidden h-full min-h-[50vh] md:min-h-0 bg-[#030305]">
-        {/* Floating Top HUD */}
-        <div
-          className="relative z-40 p-3 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] flex justify-center pointer-events-none flex-shrink-0"
+        {/* Top Bar Header */}
+        <header
+          className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="cyber-pill pointer-events-auto flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 w-full max-w-4xl shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
-            {/* Left: Title & Counter */}
-            <div className="flex items-center gap-2 min-w-0 pr-1 sm:pr-2">
-              <span className="text-xs sm:text-sm font-bold font-sans text-zinc-200 uppercase tracking-wider truncate max-w-[130px] sm:max-w-md">
-                {cleanTitle}
+          {/* Top Left Corner: Info Only */}
+          <div className="flex items-center gap-3 text-white/90 min-w-0 pr-4">
+            <span className="text-sm font-semibold tracking-wide truncate max-w-xs md:max-w-md">
+              {currentItem?.title || currentItem?.name || cleanTitle}
+            </span>
+            {hasItemList && (
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/70 font-mono flex-shrink-0">
+                {activeIdx + 1} / {items.length}
               </span>
-              {hasItemList && (
-                <span className="text-[10px] sm:text-xs font-mono font-semibold text-[#00D2FF] bg-[#00D2FF]/10 px-2 py-0.5 rounded-full flex-shrink-0 border border-[#00D2FF]/20">
-                  {activeIdx + 1} / {items.length}
-                </span>
-              )}
-            </div>
-
-            {/* Right: Controls */}
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {type === 'image' && (
-                <button
-                  type="button"
-                  onClick={toggleZoom}
-                  className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  title={isZoomed ? 'Reset Zoom (1x)' : 'Zoom In (2.5x)'}
-                >
-                  {isZoomed ? <ZoomOut className="w-4 h-4 text-[#00D2FF]" /> : <ZoomIn className="w-4 h-4" />}
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold font-brand tracking-wider transition-all cursor-pointer ${
-                  downloadSuccess
-                    ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white'
-                } disabled:opacity-40`}
-                title="Download Clean High-Res Media"
-              >
-                {downloadSuccess ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="hidden sm:inline">SAVED</span>
-                  </>
-                ) : (
-                  <>
-                    {isDownloading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00D2FF]" />
-                    ) : (
-                      <Download className="w-3.5 h-3.5" />
-                    )}
-                    <span className="hidden sm:inline">
-                      {isDownloading ? 'SAVING...' : 'DOWNLOAD'}
-                    </span>
-                  </>
-                )}
-              </button>
-
-              {/* Fullscreen Button -> Enters Truly Full Screen Mode */}
-              <button
-                type="button"
-                onClick={toggleFullscreen}
-                className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title="View Truly Full Screen"
-              >
-                <Maximize className="w-4 h-4" />
-              </button>
-
-              {/* Sidebar Queue Toggle */}
-              {hasItemList && (
-                <button
-                  type="button"
-                  onClick={() => setShowSidebar(!showSidebar)}
-                  className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold font-sans tracking-wider border transition-all cursor-pointer ${
-                    showSidebar
-                      ? 'bg-[#00D2FF]/20 text-[#00D2FF] border-[#00D2FF]/40 shadow-[0_0_12px_rgba(0,210,255,0.25)]'
-                      : 'bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border-white/10'
-                  }`}
-                  title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
-                >
-                  <ListVideo className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">QUEUE</span>
-                  <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
-                    {items.length}
-                  </span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-300 transition-colors cursor-pointer ml-1"
-                title="Close Viewer (Esc)"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            )}
           </div>
-        </div>
+
+          {/* Top Right Corner: Action Buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {/* Queue / Playlist Drawer Button */}
+            {hasItemList && (
+              <button
+                type="button"
+                onClick={() => setShowSidebar(!showSidebar)}
+                className={`p-2 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                  showSidebar
+                    ? 'text-[#00E5FF] bg-white/15'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title={showSidebar ? 'Hide Queue' : 'Show Queue'}
+                aria-label="Toggle queue"
+              >
+                <ListVideo className="w-5 h-5" />
+              </button>
+            )}
+
+            {/* Clean Original Download Button */}
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className={`p-2 rounded-full transition-all cursor-pointer ${
+                downloadSuccess
+                  ? 'text-emerald-400 bg-emerald-500/20'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              } disabled:opacity-40`}
+              title="Download Original Media"
+              aria-label="Download image"
+            >
+              {downloadSuccess ? (
+                <Check className="w-5 h-5 text-emerald-400" />
+              ) : isDownloading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-[#00E5FF]" />
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
+            </button>
+
+            {/* Fullscreen Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              title="Toggle Fullscreen (F)"
+              aria-label="Toggle fullscreen"
+            >
+              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+            </button>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              title="Close (Esc)"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
 
         {/* Side Arrow Navigation within Left Pane */}
         {hasItemList && items.length > 1 && (
