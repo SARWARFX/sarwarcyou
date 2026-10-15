@@ -416,9 +416,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     resetHudTimer();
   }, [resetHudTimer]);
 
-  // Keyboard Shortcuts
+  // Keyboard Shortcuts & Background Body Scroll Locking
   useEffect(() => {
     if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('viewing-media');
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (document.fullscreenElement) {
@@ -444,7 +449,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow || '';
+      document.body.classList.remove('viewing-media');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose, togglePlay, seekBy, toggleFullscreen]);
 
   // Handle Download
@@ -499,7 +508,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-[120] bg-[#030305] flex items-center justify-center select-none overflow-hidden font-sans"
+      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-50 flex flex-col justify-between bg-[#030305] select-none font-sans"
     >
       {/* 1. Ambient Blurred Glow reflecting active video colors */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
@@ -514,12 +523,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         />
       </div>
 
-      {/* 2. Top Bar (Title & Dismiss) */}
+      {/* 2. Top Bar (Close X, Title & Queue) - Permanently Pinned at Top with Safe Area */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`absolute top-0 inset-x-0 z-30 p-4 sm:p-6 flex items-center justify-between transition-opacity duration-300 ${
-          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className="fixed top-0 left-0 right-0 z-50 p-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent"
       >
         <div className="flex items-center gap-3">
           <button
@@ -603,9 +610,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* 3. Frameless Center Video Stage with Gesture Scrubbing */}
+      {/* 3. Frameless Center Video Stage with Responsive Bounds */}
       <div
-        className="relative z-10 w-full h-full flex items-center justify-center p-2 sm:p-6 touch-none cursor-pointer"
+        className="relative z-10 w-full flex-1 flex items-center justify-center p-2 sm:p-6 pt-16 pb-24 touch-none cursor-pointer overflow-hidden"
         onPointerDown={handleStagePointerDown}
         onPointerMove={handleStagePointerMove}
         onPointerUp={handleStagePointerUp}
@@ -622,7 +629,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           autoPlay
           playsInline
           muted={isMuted}
-          className="max-w-full max-h-[88vh] object-contain rounded-lg shadow-2xl pointer-events-none"
+          className="max-w-[94vw] max-h-[72dvh] sm:max-h-[76dvh] object-contain rounded-lg shadow-2xl pointer-events-none"
           onTimeUpdate={() => {
             if (videoRef.current) {
               const now = videoRef.current.currentTime;
@@ -651,10 +658,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         />
       </div>
 
-      {/* 4. Floating HUD Controls (Bottom) */}
+      {/* 4. Floating HUD Controls (Bottom) with Safe Area Inset */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`absolute bottom-4 sm:bottom-6 inset-x-4 sm:inset-x-8 z-30 flex flex-col gap-2 max-w-5xl mx-auto transition-opacity duration-300 ${
+        className={`fixed bottom-0 inset-x-0 z-40 p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2 max-w-5xl mx-auto transition-opacity duration-300 pointer-events-auto ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={(e) => e.stopPropagation()}

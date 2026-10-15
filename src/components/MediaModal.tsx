@@ -285,7 +285,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#030305]/95 backdrop-blur-2xl select-none overflow-hidden animate-fade-in"
+      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-[120] flex flex-col justify-between bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in"
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -293,7 +293,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     >
       {/* Floating Smoked Frosted Glass Top HUD */}
       <div
-        className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none"
+        className="fixed top-0 left-0 right-0 z-50 p-4 pt-[max(1rem,env(safe-area-inset-top))] flex justify-center pointer-events-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="glass-pill pointer-events-auto flex items-center justify-between gap-3 px-4 py-2 w-full max-w-4xl shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
@@ -378,7 +378,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               handlePrev();
             }}
             disabled={activeIdx <= 0}
-            className="fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-3.5 rounded-full glass-panel text-zinc-300 hover:text-white hover:border-[#00D2FF]/40 hover:shadow-[0_0_20px_rgba(0,210,255,0.25)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+            className="fixed left-3 md:left-6 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
             title="Previous (Left Arrow)"
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -390,7 +390,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               handleNext();
             }}
             disabled={activeIdx >= items.length - 1}
-            className="fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-3.5 rounded-full glass-panel text-zinc-300 hover:text-white hover:border-[#00D2FF]/40 hover:shadow-[0_0_20px_rgba(0,210,255,0.25)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+            className="fixed right-3 md:right-6 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
             title="Next (Right Arrow)"
           >
             <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -436,7 +436,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   : 'none',
                 transition: touchDeltaX !== 0 ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
-              className={`max-w-full max-h-[82vh] object-contain rounded-xl select-none will-change-transform ${
+              className={`max-w-[92vw] max-h-[82dvh] object-contain rounded-xl select-none will-change-transform ${
                 isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
               } drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]`}
               draggable={false}

@@ -138,7 +138,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (shorts[currentIndex - 1]?.url) prewarmVideoStream(shorts[currentIndex - 1].url);
   }, [currentIndex, isOpen, shorts]);
 
-  // Keyboard navigation & Escape
+  // Keyboard navigation & Escape + Modal Viewport Lock
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -160,8 +160,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         });
       }
     };
+
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('viewing-media');
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('viewing-media');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose, handleNext, handlePrev]);
 
   // Touch Swipe & Gesture Engine
@@ -401,7 +409,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Shorts and Reels Player"
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/97 backdrop-blur-2xl select-none"
+      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-[120] flex items-center justify-center bg-black/97 backdrop-blur-2xl select-none"
       onClick={onClose}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
@@ -425,7 +433,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         }}
         aria-label="Close shorts reel (Esc)"
         title="Close (Esc)"
-        className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[160] p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white/90 hover:text-white border border-white/20 hover:border-white/40 shadow-[0_4px_24px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95"
+        className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-[160] p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white/90 hover:text-white border border-white/20 hover:border-white/40 shadow-[0_4px_24px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95"
       >
         <X className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
