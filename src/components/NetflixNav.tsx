@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import type { CyberFilterType } from './CyberHeader';
+import { BrandLogo } from './BrandLogo';
 
 export interface NetflixNavProps {
   activeFilter: CyberFilterType;
@@ -161,14 +162,10 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
         <button
           type="button"
           onClick={onResetHome}
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center cursor-pointer"
+          title="Sarwar C You — Home"
         >
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#00E5FF] to-cyan-600 flex items-center justify-center shadow-[0_0_12px_rgba(0,229,255,0.4)]">
-            <span className="text-black font-black text-sm tracking-tight font-sans">S</span>
-          </div>
-          <span className="text-xs font-black tracking-[0.2em] font-sans text-white uppercase drop-shadow">
-            SARWARCYOU
-          </span>
+          <BrandLogo size="sm" />
         </button>
 
         <div className="flex items-center gap-2">

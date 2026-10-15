@@ -12,6 +12,7 @@ export interface CyberCarouselRowProps {
   items: StageMediaItem[];
   variant?: 'standard' | 'shorts' | 'photo';
   onSelectItem: (item: StageMediaItem, currentFilteredItems?: StageMediaItem[]) => void;
+  onViewAll?: () => void;
   hasMultipleTypes?: boolean;
   typeCounts?: {
     photos: number;
@@ -27,6 +28,7 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
   items,
   variant = 'standard',
   onSelectItem,
+  onViewAll,
   hasMultipleTypes,
   typeCounts,
 }) => {
@@ -150,25 +152,18 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
             </div>
           )}
 
-          {/* Scroll Controls */}
-          <div className="flex items-center gap-1.5 ml-auto">
+          {/* View All Action Button */}
+          {onViewAll && (
             <button
               type="button"
-              onClick={() => scrollByDelta(-480)}
-              aria-label={`Scroll ${title} left`}
-              className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all cursor-pointer border border-transparent hover:border-white/10"
+              onClick={onViewAll}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-[#00E5FF]/20 text-zinc-300 hover:text-[#00E5FF] border border-white/10 hover:border-[#00E5FF]/40 text-xs font-mono font-medium transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 group/viewall ml-auto"
+              aria-label={`View all items in ${title}`}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <span>View All</span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#00E5FF] transition-transform duration-200 group-hover/viewall:translate-x-0.5" />
             </button>
-            <button
-              type="button"
-              onClick={() => scrollByDelta(480)}
-              aria-label={`Scroll ${title} right`}
-              className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all cursor-pointer border border-transparent hover:border-white/10"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          )}
         </div>
       </div>
 

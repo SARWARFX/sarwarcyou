@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
 import { type CyberFilterType } from './components/CyberHeader';
@@ -8,6 +8,7 @@ import { CyberCarouselRow } from './components/CyberCarouselRow';
 import { CyberVideoPlayer } from './components/CyberVideoPlayer';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
+import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { SiteFooter } from './components/SiteFooter';
 import type { StageMediaItem } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
@@ -52,6 +53,69 @@ function App() {
     items: [],
     initialIndex: 0,
   });
+
+  // Dedicated "View All" Album View State
+  const [viewAllState, setViewAllState] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    items: StageMediaItem[];
+    variant?: 'standard' | 'shorts' | 'photo';
+    hasMultipleTypes?: boolean;
+    typeCounts?: {
+      photos: number;
+      clips: number;
+      shorts: number;
+    };
+  }>({
+    isOpen: false,
+    title: '',
+    items: [],
+  });
+
+  // Active modal history stack tracker for smart browser back navigation
+  const modalStackRef = useRef<string[]>([]);
+
+  const pushModalState = useCallback((viewName: string) => {
+    modalStackRef.current.push(viewName);
+    window.history.pushState({ modalOpen: true, view: viewName }, '');
+  }, []);
+
+  const handleCloseModal = useCallback((type: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
+    const idx = modalStackRef.current.lastIndexOf(type);
+    if (idx !== -1) {
+      if (idx === modalStackRef.current.length - 1) {
+        window.history.back();
+        return;
+      }
+      modalStackRef.current.splice(idx, 1);
+    }
+    if (type === 'lightbox') setLightboxState((prev) => ({ ...prev, isOpen: false }));
+    else if (type === 'theater') setTheaterState((prev) => ({ ...prev, isOpen: false }));
+    else if (type === 'shorts') setShortsState((prev) => ({ ...prev, isOpen: false }));
+    else if (type === 'viewAll') setViewAllState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  // Intercept hardware/browser Back button to close modals instead of exiting site
+  useEffect(() => {
+    const handlePopState = () => {
+      if (modalStackRef.current.length > 0) {
+        const topModal = modalStackRef.current.pop();
+        if (topModal === 'lightbox') {
+          setLightboxState((prev) => ({ ...prev, isOpen: false }));
+        } else if (topModal === 'theater') {
+          setTheaterState((prev) => ({ ...prev, isOpen: false }));
+        } else if (topModal === 'shorts') {
+          setShortsState((prev) => ({ ...prev, isOpen: false }));
+        } else if (topModal === 'viewAll') {
+          setViewAllState((prev) => ({ ...prev, isOpen: false }));
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Global Back-To-Top Button state (> 300px scroll)
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -171,6 +235,7 @@ function App() {
       if (isShort) {
         const fullShorts = rawFeed.shorts.length > 0 ? rawFeed.shorts : [item];
         const idx = fullShorts.findIndex((s) => s.id === item.id || s.url === item.url);
+        pushModalState('shorts');
         setShortsState({
           isOpen: true,
           shorts: fullShorts,
@@ -181,6 +246,7 @@ function App() {
           ? playlistContext.filter((p) => p.type === 'image' || p.mediaType === 'photo')
           : [item];
         const idx = fullPhotos.findIndex((p) => p.id === item.id || p.url === item.url);
+        pushModalState('lightbox');
         setLightboxState({
           isOpen: true,
           item,
@@ -198,6 +264,7 @@ function App() {
                 !v.url?.toLowerCase().includes('/shorts/')
             )
           : [item];
+        pushModalState('theater');
         setTheaterState({
           isOpen: true,
           item,
@@ -205,7 +272,31 @@ function App() {
         });
       }
     },
-    [rawFeed]
+    [rawFeed, pushModalState]
+  );
+
+  // Dedicated "View All" Album / Collection opener
+  const handleOpenViewAll = useCallback(
+    (
+      title: string,
+      items: StageMediaItem[],
+      variant: 'standard' | 'shorts' | 'photo' = 'standard',
+      subtitle?: string,
+      hasMultipleTypes?: boolean,
+      typeCounts?: { photos: number; clips: number; shorts: number }
+    ) => {
+      pushModalState('viewAll');
+      setViewAllState({
+        isOpen: true,
+        title,
+        subtitle,
+        items,
+        variant,
+        hasMultipleTypes,
+        typeCounts,
+      });
+    },
+    [pushModalState]
   );
 
   const handleResetHome = () => {
@@ -443,6 +534,14 @@ function App() {
               items={feed.latestReleases}
               variant={activeFilter === 'shorts' ? 'shorts' : activeFilter === 'images' ? 'photo' : 'standard'}
               onSelectItem={(item, currentList) => handleSelectItem(item, currentList || feed.latestReleases)}
+              onViewAll={() =>
+                handleOpenViewAll(
+                  latestHeaderInfo.title,
+                  feed.latestReleases,
+                  activeFilter === 'shorts' ? 'shorts' : activeFilter === 'images' ? 'photo' : 'standard',
+                  latestHeaderInfo.subtitle
+                )
+              }
             />
           </div>
         )}
@@ -463,6 +562,14 @@ function App() {
               items={feed.shorts}
               variant="shorts"
               onSelectItem={(item, currentList) => handleSelectItem(item, currentList || feed.shorts)}
+              onViewAll={() =>
+                handleOpenViewAll(
+                  'Shorts',
+                  feed.shorts,
+                  'shorts',
+                  'Dedicated 9:16 vertical reels'
+                )
+              }
             />
           </div>
         )}
@@ -493,6 +600,16 @@ function App() {
                     hasMultipleTypes={folder.hasMultipleTypes}
                     typeCounts={folder.typeCounts}
                     onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
+                    onViewAll={() =>
+                      handleOpenViewAll(
+                        folder.name,
+                        folder.items,
+                        'standard',
+                        `${folder.count} video archive`,
+                        folder.hasMultipleTypes,
+                        folder.typeCounts
+                      )
+                    }
                   />
                 </div>
               ))}
@@ -526,6 +643,16 @@ function App() {
                     hasMultipleTypes={folder.hasMultipleTypes}
                     typeCounts={folder.typeCounts}
                     onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
+                    onViewAll={() =>
+                      handleOpenViewAll(
+                        folder.name,
+                        folder.items,
+                        folder.hasMultipleTypes ? 'standard' : 'photo',
+                        `${folder.count} photo gallery`,
+                        folder.hasMultipleTypes,
+                        folder.typeCounts
+                      )
+                    }
                   />
                 </div>
               ))}
@@ -556,13 +683,14 @@ function App() {
       {/* 4. Frameless Theater Mode Video Player (Clips) */}
       <CyberVideoPlayer
         isOpen={theaterState.isOpen}
-        onClose={() => setTheaterState({ isOpen: false, item: null, playlist: [] })}
+        onClose={() => handleCloseModal('theater')}
         item={theaterState.item}
         playlist={theaterState.playlist}
         allFolders={rawFeed.videoVaultFolders}
         onSelectItem={(item) => setTheaterState((prev) => ({ ...prev, item }))}
         onSelectFolder={(folder) => {
           if (folder.items.length > 0) {
+            pushModalState('theater');
             setTheaterState({
               isOpen: true,
               item: folder.items[0],
@@ -575,7 +703,7 @@ function App() {
       {/* 5. Adaptive Shorts Feed Modal */}
       <ShortsFeedModal
         isOpen={shortsState.isOpen}
-        onClose={() => setShortsState({ isOpen: false, shorts: [], initialIndex: 0 })}
+        onClose={() => handleCloseModal('shorts')}
         shorts={shortsState.shorts}
         initialIndex={shortsState.initialIndex}
       />
@@ -583,7 +711,7 @@ function App() {
       {/* 6. High-Definition Image Lightbox */}
       <MediaModal
         isOpen={lightboxState.isOpen}
-        onClose={() => setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 })}
+        onClose={() => handleCloseModal('lightbox')}
         url={lightboxState.item?.url || null}
         type="image"
         title={lightboxState.item?.title}
@@ -592,6 +720,7 @@ function App() {
         allFolders={rawFeed.photoVaultFolders}
         onSelectFolder={(folder) => {
           if (folder.items.length > 0) {
+            pushModalState('lightbox');
             setLightboxState({
               isOpen: true,
               item: folder.items[0],
@@ -607,6 +736,19 @@ function App() {
             item: prev.items[idx] || prev.item,
           }));
         }}
+      />
+
+      {/* 7. Dedicated Full Album View Modal (Natural Aspect Ratio Masonry for Images) */}
+      <FullAlbumViewModal
+        isOpen={viewAllState.isOpen}
+        title={viewAllState.title}
+        subtitle={viewAllState.subtitle}
+        items={viewAllState.items}
+        variant={viewAllState.variant}
+        hasMultipleTypes={viewAllState.hasMultipleTypes}
+        typeCounts={viewAllState.typeCounts}
+        onClose={() => handleCloseModal('viewAll')}
+        onSelectItem={(item, currentList) => handleSelectItem(item, currentList)}
       />
     </div>
   );

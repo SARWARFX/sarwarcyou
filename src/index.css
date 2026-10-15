@@ -63,20 +63,27 @@ html, body {
   border-radius: 9999px !important;
 }
 
-/* Futuristic Animated Wordmark */
-@keyframes cyber-vault-hue {
+/* Dynamic Animated Brand Gradient */
+@keyframes gradientShift {
   0% {
-    filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.45));
     background-position: 0% 50%;
   }
   50% {
-    filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.55));
     background-position: 100% 50%;
   }
   100% {
-    filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.45));
     background-position: 0% 50%;
   }
+}
+
+.brand-gradient-text {
+  background: linear-gradient(-45deg, #ffffff, #60a5fa, #3b82f6, #8b5cf6, #ffffff);
+  background-size: 300% 300%;
+  animation: gradientShift 6s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
 }
 
 .cyber-wordmark {
@@ -84,22 +91,13 @@ html, body {
   font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  background: linear-gradient(
-    135deg,
-    #ffffff 0%,
-    #00e5ff 28%,
-    #38bdf8 42%,
-    #3b82f6 50%,
-    #8b5cf6 58%,
-    #a855f7 72%,
-    #ffffff 100%
-  );
-  background-size: 250% 100%;
+  background: linear-gradient(-45deg, #ffffff, #60a5fa, #3b82f6, #8b5cf6, #ffffff);
+  background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
-  animation: cyber-vault-hue 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: gradientShift 6s ease infinite;
   display: inline-flex;
   align-items: center;
 }
