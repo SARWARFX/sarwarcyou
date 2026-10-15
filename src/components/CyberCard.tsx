@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Play, Camera, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoThumbnails } from '../utils/thumbnailResolver';
@@ -8,50 +8,106 @@ export interface CyberCardProps {
   item: StageMediaItem;
   variant?: 'standard' | 'shorts' | 'photo';
   onClick: (item: StageMediaItem) => void;
+  albumItems?: StageMediaItem[];
+  initialIndex?: number;
 }
 
 export const CyberCard: React.FC<CyberCardProps> = ({
   item,
   variant = 'standard',
   onClick,
+  albumItems,
+  initialIndex,
 }) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isInViewport, setIsInViewport] = useState(false);
+
+  // Viewport observer to only run timers when card is visible
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInViewport(entry.isIntersecting);
+      },
+      { rootMargin: '100px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Multi-frame thumbnail scrubbing state (5 frames: thumb 1 to thumb 5)
   const [frameIndex, setFrameIndex] = useState(0); // 0 corresponds to _thumb_1.jpg
   const [isHovered, setIsHovered] = useState(false);
   const [failedFrames, setFailedFrames] = useState<Record<number, boolean>>({});
 
+  // 10-Second Auto-Cycling for Album / Multi-Item Media
+  const totalAlbumItems = albumItems && albumItems.length > 0 ? albumItems.length : 0;
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(initialIndex ?? 0);
+
+  useEffect(() => {
+    if (initialIndex !== undefined) {
+      setCurrentPreviewIndex(initialIndex);
+    }
+  }, [initialIndex]);
+
+  useEffect(() => {
+    if (!isInViewport || isHovered || totalAlbumItems <= 1) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      setCurrentPreviewIndex((prev) => (prev + 1) % totalAlbumItems);
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [isInViewport, isHovered, totalAlbumItems]);
+
+  // Resolve currently active preview item
+  const activeItem = useMemo(() => {
+    if (albumItems && albumItems.length > 0) {
+      return albumItems[currentPreviewIndex % albumItems.length] || item;
+    }
+    return item;
+  }, [albumItems, currentPreviewIndex, item]);
+
+  // Reset frame scrubbing when item cycles
+  useEffect(() => {
+    setFailedFrames({});
+    setFrameIndex(0);
+  }, [activeItem.id, activeItem.url]);
+
   const isShort =
     variant === 'shorts' ||
     Boolean(
-      item.mediaType === 'short' ||
-      item.category?.toLowerCase().includes('short') ||
-      item.category?.toLowerCase().includes('reel') ||
-      item.url?.toLowerCase().includes('/shorts/') ||
-      item.id?.toLowerCase().includes('shorts')
+      activeItem.mediaType === 'short' ||
+      activeItem.category?.toLowerCase().includes('short') ||
+      activeItem.category?.toLowerCase().includes('reel') ||
+      activeItem.url?.toLowerCase().includes('/shorts/') ||
+      activeItem.id?.toLowerCase().includes('shorts')
     );
 
-  const isVideo = isShort || item.type === 'video' || item.mediaType === 'clip' || /\.(mp4|mov|webm|mkv)$/i.test(item.url);
+  const isVideo = isShort || activeItem.type === 'video' || activeItem.mediaType === 'clip' || /\.(mp4|mov|webm|mkv)$/i.test(activeItem.url);
 
   const cleanTitle = useMemo(() => {
-    return sanitizeMediaTitle(item.title || item.name, item.category);
-  }, [item.title, item.name, item.category]);
+    return sanitizeMediaTitle(activeItem.title || activeItem.name, activeItem.category);
+  }, [activeItem.title, activeItem.name, activeItem.category]);
 
   const cleanCategory = useMemo(() => {
-    if (item.category) {
-      return item.category.replace(/[-_]+/g, ' ').trim();
+    if (activeItem.category) {
+      return activeItem.category.replace(/[-_]+/g, ' ').trim();
     }
     return isVideo ? 'Cinema' : 'Photography';
-  }, [item.category, isVideo]);
+  }, [activeItem.category, isVideo]);
 
   // 5-Frame pre-rendered thumbnails
   const videoThumbs = useMemo(() => {
     if (!isVideo) return [];
-    if (item.thumbnails && item.thumbnails.length === 5) return item.thumbnails;
-    return getVideoThumbnails(item);
-  }, [isVideo, item]);
+    if (activeItem.thumbnails && activeItem.thumbnails.length === 5) return activeItem.thumbnails;
+    return getVideoThumbnails(activeItem);
+  }, [isVideo, activeItem]);
 
   const hasThumbs = isVideo && videoThumbs.length === 5;
 
@@ -120,16 +176,40 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     photo: 'w-[160px] sm:w-[185px] md:w-[210px] aspect-[2/3]',
   }[effectiveVariant];
 
-  const fallbackUrl = item.thumbnail || item.poster || item.url;
+  const fallbackUrl = activeItem.thumbnail || activeItem.poster || activeItem.url;
   const currentThumbUrl = hasThumbs
     ? (!failedFrames[frameIndex]
         ? videoThumbs[frameIndex]
         : (!failedFrames[0] ? videoThumbs[0] : fallbackUrl))
     : fallbackUrl;
 
+  // Cross-dissolve image layer state
+  const [displayedThumbUrl, setDisplayedThumbUrl] = useState(currentThumbUrl);
+  const [prevThumbUrl, setPrevThumbUrl] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    if (currentThumbUrl && currentThumbUrl !== displayedThumbUrl) {
+      setPrevThumbUrl(displayedThumbUrl);
+      setDisplayedThumbUrl(currentThumbUrl);
+      setImageLoaded(false);
+      setImageError(false);
+    }
+  }, [currentThumbUrl, displayedThumbUrl]);
+
+  const handleImageLoaded = () => {
+    setImageLoaded(true);
+    const timer = setTimeout(() => {
+      setPrevThumbUrl(null);
+    }, 700);
+    return () => clearTimeout(timer);
+  };
+
   return (
     <div
-      onClick={() => onClick(item)}
+      ref={cardRef}
+      onClick={() => onClick(activeItem)}
       onPointerEnter={handlePointerEnter}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
@@ -140,7 +220,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClick(item);
+          onClick(activeItem);
         }
       }}
       className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-black/60 backdrop-blur-md border border-white/10 transition-all duration-300 ease-out hover:scale-[1.04] hover:border-[#00E5FF]/40 hover:shadow-[0_14px_35px_rgba(0,0,0,0.85)] hover:z-20 ${sizeClass}`}
@@ -166,14 +246,25 @@ export const CyberCard: React.FC<CyberCardProps> = ({
         )}
       </div>
 
-      {/* Image Layer with Multi-Frame Hover Scrubbing */}
-      {!imageError && currentThumbUrl && (
+      {/* Cross-Dissolve: Previous Image Layer */}
+      {prevThumbUrl && (
         <img
-          src={currentThumbUrl}
-          alt={item.title}
+          src={prevThumbUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover z-10 opacity-100 pointer-events-none"
+        />
+      )}
+
+      {/* Active Image Layer with Cross-Dissolve Fade */}
+      {!imageError && displayedThumbUrl && (
+        <img
+          key={displayedThumbUrl}
+          src={displayedThumbUrl}
+          alt={activeItem.title}
           loading="lazy"
           decoding="async"
-          onLoad={() => setImageLoaded(true)}
+          onLoad={handleImageLoaded}
           onError={() => {
             if (hasThumbs) {
               setFailedFrames((prev) => ({ ...prev, [frameIndex]: true }));
@@ -181,7 +272,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
               setImageError(true);
             }
           }}
-          className={`absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105 z-10 ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:scale-105 z-10 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -222,6 +313,15 @@ export const CyberCard: React.FC<CyberCardProps> = ({
           </span>
         )}
       </div>
+
+      {/* Corner Counter Badge for Multi-Item Albums */}
+      {totalAlbumItems > 1 && (
+        <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
+          <span className="px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white/90 font-mono text-[9px] font-bold border border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            {(currentPreviewIndex % totalAlbumItems) + 1} / {totalAlbumItems}
+          </span>
+        </div>
+      )}
 
       {/* Play Icon Centered on Hover for Videos */}
       {isVideo && (

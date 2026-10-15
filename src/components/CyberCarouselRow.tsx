@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import type { StageMediaItem } from '../types';
 
@@ -34,10 +34,19 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [subFilter, setSubFilter] = useState<AlbumCategoryFilter>('all');
+  const [isTouchPaused, setIsTouchPaused] = useState(false);
+  const touchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scrollByDelta = (delta: number) => {
-    if (!trackRef.current) return;
-    trackRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+  const handleTouchStart = () => {
+    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+    setIsTouchPaused(true);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+    touchTimeoutRef.current = setTimeout(() => {
+      setIsTouchPaused(false);
+    }, 2500);
   };
 
   const counts = useMemo(() => {
@@ -72,6 +81,16 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
       return true;
     });
   }, [items, showFilters, subFilter]);
+
+  // Duplicate items for continuous seamless -50% marquee loop
+  const marqueeItems = useMemo(() => {
+    if (!filteredItems || filteredItems.length === 0) return [];
+    let base = [...filteredItems];
+    while (base.length < 8) {
+      base = [...base, ...filteredItems];
+    }
+    return [...base, ...base];
+  }, [filteredItems]);
 
   if (!items || items.length === 0) return null;
 
@@ -167,39 +186,31 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
         </div>
       </div>
 
-      {/* Scrollable Track with Netflix Edge Sliders */}
-      <div className="relative group/row">
-        <button
-          type="button"
-          onClick={() => scrollByDelta(-500)}
-          aria-label={`Scroll ${title} left`}
-          className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-xl items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all duration-200 border border-white/20 hover:scale-110 shadow-[0_8px_25px_rgba(0,0,0,0.85)] cursor-pointer"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
+      {/* Continuous Sliding Marquee Track */}
+      <div className="relative group/row overflow-hidden">
         <div
           ref={trackRef}
-          className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-3 px-1"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="w-full overflow-x-auto no-scrollbar scroll-smooth py-3 px-1 select-none"
         >
-          {filteredItems.map((item) => (
-            <CyberCard
-              key={item.id}
-              item={item}
-              variant={variant}
-              onClick={(it) => onSelectItem(it, filteredItems)}
-            />
-          ))}
+          <div
+            className={`flex items-center gap-3.5 sm:gap-4 flex-nowrap animate-marquee-slow group-hover/row:[animation-play-state:paused] hover:[animation-play-state:paused] ${
+              isTouchPaused ? 'is-paused' : ''
+            }`}
+          >
+            {marqueeItems.map((item, idx) => (
+              <CyberCard
+                key={`${item.id || item.url}-${idx}`}
+                item={item}
+                variant={variant}
+                albumItems={filteredItems}
+                initialIndex={idx % filteredItems.length}
+                onClick={(it) => onSelectItem(it, filteredItems)}
+              />
+            ))}
+          </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => scrollByDelta(500)}
-          aria-label={`Scroll ${title} right`}
-          className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-xl items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all duration-200 border border-white/20 hover:scale-110 shadow-[0_8px_25px_rgba(0,0,0,0.85)] cursor-pointer"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
       </div>
     </section>
   );
