@@ -12,8 +12,7 @@ export interface CyberHeaderProps {
 }
 
 const FILTER_OPTIONS: { id: CyberFilterType; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'clips', label: 'Clips' },
+  { id: 'clips', label: 'Video Clips' },
   { id: 'images', label: 'Images' },
   { id: 'shorts', label: 'Shorts' },
 ];

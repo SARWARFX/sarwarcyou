@@ -11,6 +11,7 @@ import {
   Play,
   Pause,
   Loader2,
+  X,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -411,6 +412,24 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
       }}
     >
+      {/* Prominent High-Contrast Close Button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (videoRef.current) {
+            videoRef.current.pause();
+          }
+          setIsPlaying(false);
+          onClose();
+        }}
+        aria-label="Close shorts reel (Esc)"
+        title="Close (Esc)"
+        className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[160] p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white/90 hover:text-white border border-white/20 hover:border-white/40 shadow-[0_4px_24px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95"
+      >
+        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+      </button>
+
       {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
       <div className="relative flex items-center justify-center max-h-[92vh] max-w-[98vw] px-2 sm:px-4 md:px-6 gap-3 sm:gap-4 md:gap-6 overflow-hidden">
         {/* Previous Short (Desktop Flank) */}

@@ -97,16 +97,15 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     setLoopB(null);
   }
 
-  // A-B Looping Enforcement
+  // A-B Looping Enforcement on state change
   useEffect(() => {
-    if (loopA !== null && loopB !== null && loopB > loopA) {
-      if (currentTime >= loopB || currentTime < loopA) {
-        if (videoRef.current) {
-          videoRef.current.currentTime = loopA;
-        }
+    if (loopA !== null && loopB !== null && loopB > loopA && videoRef.current) {
+      if (videoRef.current.currentTime >= loopB || videoRef.current.currentTime < loopA) {
+        videoRef.current.currentTime = loopA;
+        setCurrentTime(loopA);
       }
     }
-  }, [currentTime, loopA, loopB]);
+  }, [loopA, loopB]);
 
   // Play / Pause Toggle
   const togglePlay = useCallback(() => {
@@ -199,11 +198,22 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // Handle A-B Loop Toggle
   const handleToggleLoop = () => {
+    const now = videoRef.current ? videoRef.current.currentTime : currentTime;
+
     if (loopA === null) {
-      setLoopA(currentTime);
-    } else if (loopB === null && currentTime > loopA) {
-      setLoopB(currentTime);
+      // Button state 1 -> Set Point A
+      setLoopA(now);
+      setLoopB(null);
+    } else if (loopB === null) {
+      // Button state 2 -> Set Point B (requires loopB > loopA)
+      if (now > loopA) {
+        setLoopB(now);
+      } else {
+        const safeEnd = Math.min(duration || 0, loopA + 3);
+        setLoopB(safeEnd > loopA ? safeEnd : (duration || loopA + 1));
+      }
     } else {
+      // Button state 4 -> Clear / Reset loop points back to normal unconstrained playback
       setLoopA(null);
       setLoopB(null);
     }
@@ -298,10 +308,21 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           muted={isMuted}
           className="max-w-full max-h-[88vh] object-contain rounded-lg shadow-2xl cursor-pointer"
           onTimeUpdate={() => {
-            if (videoRef.current && !isDraggingProgress.current) {
-              setCurrentTime(videoRef.current.currentTime);
-              if (videoRef.current.buffered.length > 0) {
-                setBuffered(videoRef.current.buffered.end(videoRef.current.buffered.length - 1));
+            if (videoRef.current) {
+              const now = videoRef.current.currentTime;
+              // A-B Looping Enforcement: immediately seek back to loopA when now >= loopB
+              if (loopA !== null && loopB !== null && loopB > loopA) {
+                if (now >= loopB || now < loopA) {
+                  videoRef.current.currentTime = loopA;
+                  setCurrentTime(loopA);
+                  return;
+                }
+              }
+              if (!isDraggingProgress.current) {
+                setCurrentTime(now);
+                if (videoRef.current.buffered.length > 0) {
+                  setBuffered(videoRef.current.buffered.end(videoRef.current.buffered.length - 1));
+                }
               }
             }
           }}
@@ -337,6 +358,33 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             className="absolute left-0 top-0 bottom-0 bg-[#00E5FF] shadow-[0_0_12px_#00E5FF] rounded-full transition-all"
             style={{ width: `${progressPct}%` }}
           />
+
+          {/* A-B Loop Locked Interval Shading */}
+          {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
+            <div
+              className="absolute top-0 bottom-0 bg-cyan-400/35 border-x-2 border-[#00E5FF] shadow-[0_0_12px_rgba(0,229,255,0.7)] z-10 pointer-events-none"
+              style={{
+                left: `${(loopA / duration) * 100}%`,
+                width: `${((loopB - loopA) / duration) * 100}%`,
+              }}
+            />
+          )}
+
+          {/* Marker A */}
+          {duration > 0 && loopA !== null && (
+            <div
+              className="absolute top-0 bottom-0 w-1 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] z-20 pointer-events-none"
+              style={{ left: `${(loopA / duration) * 100}%` }}
+            />
+          )}
+
+          {/* Marker B */}
+          {duration > 0 && loopB !== null && (
+            <div
+              className="absolute top-0 bottom-0 w-1 bg-[#00E5FF] shadow-[0_0_8px_rgba(0,229,255,0.9)] z-20 pointer-events-none"
+              style={{ left: `${(loopB / duration) * 100}%` }}
+            />
+          )}
         </div>
 
         {/* HUD Button Row: Smoked Frosted Glass Pill */}
@@ -410,22 +458,40 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
           {/* Bottom-Right: A-B loop, Speed, Download, Fullscreen */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
-            {/* A-B Loop */}
+            {/* A-B Loop Control Toggle */}
             <button
               type="button"
               onClick={handleToggleLoop}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
                 loopA !== null && loopB !== null
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40'
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/60 shadow-[0_0_16px_rgba(0,229,255,0.4)]'
                   : loopA !== null
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'hover:bg-white/10 text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                  : 'hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-transparent'
               }`}
-              title="A-B Loop"
+              title={
+                loopA !== null && loopB !== null
+                  ? `A-B Loop Active (${formatTime(loopA)} - ${formatTime(loopB)}). Click to reset loop.`
+                  : loopA !== null
+                  ? `Set B (Point A locked at ${formatTime(loopA)}). Click to lock loop.`
+                  : 'Set A (Click to start A-B loop)'
+              }
             >
-              <Repeat className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">
-                {loopA !== null && loopB !== null ? 'A-B ON' : loopA !== null ? 'SET B' : 'LOOP'}
+              <Repeat
+                className={`w-3.5 h-3.5 ${
+                  loopA !== null && loopB !== null
+                    ? 'text-[#00E5FF]'
+                    : loopA !== null
+                    ? 'text-amber-400 animate-pulse'
+                    : ''
+                }`}
+              />
+              <span>
+                {loopA !== null && loopB !== null
+                  ? 'A-B Active'
+                  : loopA !== null
+                  ? `Set B (${formatTime(loopA)})`
+                  : 'Set A'}
               </span>
             </button>
 

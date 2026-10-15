@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
 import { CyberHeader, type CyberFilterType } from './components/CyberHeader';
@@ -9,7 +9,7 @@ import { MediaModal } from './components/MediaModal';
 import { SiteFooter } from './components/SiteFooter';
 import type { StageMediaItem } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
-import { Film, Sparkles, Image as ImageIcon, Flame } from 'lucide-react';
+import { Film, Sparkles, Image as ImageIcon, Flame, ChevronUp } from 'lucide-react';
 
 function App() {
   const { data, isLoading } = useMediaData();
@@ -50,6 +50,22 @@ function App() {
     items: [],
     initialIndex: 0,
   });
+
+  // Global Back-To-Top Button state (> 300px scroll)
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Organize raw catalog data into structured multi-row discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data), [data]);
@@ -333,6 +349,21 @@ function App() {
 
       {/* 3. Minimalist Footer */}
       <SiteFooter onBackToTop={handleResetHome} />
+
+      {/* Floating Global Back-To-Top Button */}
+      <button
+        type="button"
+        onClick={handleScrollToTop}
+        aria-label="Scroll back to top"
+        title="Back to top"
+        className={`fixed bottom-6 right-6 z-40 p-3 rounded-full bg-black/65 hover:bg-black/95 text-zinc-400 hover:text-[#00E5FF] backdrop-blur-xl border border-white/10 hover:border-[#00E5FF]/40 shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all duration-300 cursor-pointer ${
+          showBackToTop
+            ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
+            : 'opacity-0 translate-y-4 pointer-events-none scale-90'
+        }`}
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
 
       {/* 4. Frameless Theater Mode Video Player (Clips) */}
       <CyberVideoPlayer
