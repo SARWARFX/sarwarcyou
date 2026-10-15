@@ -38,7 +38,7 @@ export interface CyberVideoPlayerProps {
   onSelectFolder?: (folder: MediaFolderEntry) => void;
 }
 
-const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const PLAYBACK_SPEED_OPTIONS = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds < 0) return '00:00';
@@ -70,13 +70,26 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [buffered, setBuffered] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
   const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+
+  // Seek bar hover preview state
+  const [seekHover, setSeekHover] = useState<{
+    isHovering: boolean;
+    hoverX: number;
+    hoverPct: number;
+    hoverTime: number;
+  }>({
+    isHovering: false,
+    hoverX: 0,
+    hoverPct: 0,
+    hoverTime: 0,
+  });
 
   // A-B Loop State
   const [loopA, setLoopA] = useState<number | null>(null);
@@ -116,24 +129,96 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const gestureFadeTimeoutRef = useRef<number | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
+  const speedBtnRef = useRef<HTMLButtonElement>(null);
+  const seekDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDraggingProgress = useRef(false);
+
+  // Outside click & ESC key handler for Playback Speed menu
+  useEffect(() => {
+    if (!showSpeedMenu) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        speedMenuRef.current &&
+        !speedMenuRef.current.contains(e.target as Node) &&
+        speedBtnRef.current &&
+        !speedBtnRef.current.contains(e.target as Node)
+      ) {
+        setShowSpeedMenu(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowSpeedMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSpeedMenu]);
+
+  // Debounced 250ms seeking for secondary preview video
+  useEffect(() => {
+    if (!seekHover.isHovering) return;
+
+    if (seekDebounceTimerRef.current) {
+      clearTimeout(seekDebounceTimerRef.current);
+    }
+
+    seekDebounceTimerRef.current = setTimeout(() => {
+      if (
+        previewVideoRef.current &&
+        !isNaN(seekHover.hoverTime) &&
+        previewVideoRef.current.readyState >= 1
+      ) {
+        try {
+          previewVideoRef.current.currentTime = seekHover.hoverTime;
+        } catch {
+          // Seeking ignored if element not ready
+        }
+      }
+    }, 250);
+
+    return () => {
+      if (seekDebounceTimerRef.current) {
+        clearTimeout(seekDebounceTimerRef.current);
+      }
+    };
+  }, [seekHover.hoverTime, seekHover.isHovering]);
+
+  // Ensure playbackSpeed persistence across video changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackSpeed;
+      videoRef.current.preservesPitch = true;
+    }
+  }, [playbackSpeed, item?.id, item?.url]);
 
   // Auto-hide HUD on inactivity
   const resetHudTimer = useCallback(() => {
     setShowHud(true);
     if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
+    if (showSpeedMenu || seekHover.isHovering) return;
     hudTimerRef.current = window.setTimeout(() => {
       setShowHud(false);
       setShowSpeedMenu(false);
-    }, 2800);
-  }, []);
+    }, 3200);
+  }, [showSpeedMenu, seekHover.isHovering]);
 
   useEffect(() => {
     return () => {
       if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
       if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
+      if (seekDebounceTimerRef.current) clearTimeout(seekDebounceTimerRef.current);
     };
   }, []);
 
@@ -418,6 +503,32 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     resetHudTimer();
   };
 
+  // Hover Position & Timestamp Tracking for Seek Bar
+  const handleSeekMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    const vidDuration = videoRef.current?.duration || duration || 0;
+    const time = (pct / 100) * vidDuration;
+
+    setSeekHover({
+      isHovering: true,
+      hoverX: x,
+      hoverPct: pct,
+      hoverTime: time,
+    });
+  };
+
+  const handleSeekMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    handleSeekMouseMove(e);
+  };
+
+  const handleSeekMouseLeave = () => {
+    setSeekHover((prev) => ({ ...prev, isHovering: false }));
+  };
+
   // Toggle Fullscreen
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -548,6 +659,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const cleanPlayerTitle = sanitizeMediaTitle(item.title, item.category);
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferPct = duration > 0 ? (buffered / duration) * 100 : 0;
+
+  // Clamped position for Seek Hover Tooltip
+  const barWidth = progressBarRef.current?.getBoundingClientRect().width || 300;
+  const tooltipWidth = 160;
+  const halfTooltip = tooltipWidth / 2;
+  const clampedX = barWidth > tooltipWidth + 16
+    ? Math.max(halfTooltip + 8, Math.min(barWidth - halfTooltip - 8, seekHover.hoverX))
+    : barWidth / 2;
 
   return (
     <div
@@ -711,6 +830,15 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           onLoadedMetadata={() => {
             if (videoRef.current) {
               setDuration(videoRef.current.duration || 0);
+              videoRef.current.playbackRate = playbackSpeed;
+              videoRef.current.preservesPitch = true;
+            }
+          }}
+          onPlay={() => {
+            setIsPlaying(true);
+            if (videoRef.current) {
+              videoRef.current.playbackRate = playbackSpeed;
+              videoRef.current.preservesPitch = true;
             }
           }}
           onEnded={handleVideoEnded}
@@ -720,58 +848,126 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* 4. Floating HUD Controls (Bottom) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`absolute bottom-0 inset-x-0 z-40 p-2 sm:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-col gap-1.5 sm:gap-2 max-w-5xl mx-auto w-full transition-opacity duration-300 pointer-events-auto overflow-hidden ${
+        className={`absolute bottom-0 inset-x-0 z-40 p-2 sm:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-col gap-1.5 sm:gap-2 max-w-5xl mx-auto w-full transition-opacity duration-300 pointer-events-auto overflow-visible ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Scrubber Bar */}
+        {/* Scrubber Container with Hover Preview */}
         <div
           ref={progressBarRef}
           onClick={handleProgressSeek}
-          className="group/seek relative w-full h-2 hover:h-3 bg-white/10 rounded-full cursor-pointer transition-all flex items-center overflow-hidden"
+          onMouseEnter={handleSeekMouseEnter}
+          onMouseMove={handleSeekMouseMove}
+          onMouseLeave={handleSeekMouseLeave}
+          className="group/seek relative w-full py-2 cursor-pointer select-none overflow-visible"
         >
-          {/* Buffered Progress */}
-          <div
-            className="absolute left-0 top-0 bottom-0 bg-white/20 rounded-full transition-all"
-            style={{ width: `${bufferPct}%` }}
-          />
-          {/* Active Progress with Neon Cyan Glow */}
-          <div
-            className="absolute left-0 top-0 bottom-0 bg-[#00E5FF] shadow-[0_0_12px_#00E5FF] rounded-full transition-all"
-            style={{ width: `${progressPct}%` }}
-          />
-
-          {/* A-B Loop Locked Interval Shading */}
-          {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
+          {/* Floating Hover Preview Tooltip Card */}
+          {seekHover.isHovering && duration > 0 && (
             <div
-              className="absolute top-0 bottom-0 bg-cyan-400/35 border-x-2 border-[#00E5FF] shadow-[0_0_12px_rgba(0,229,255,0.7)] z-10 pointer-events-none"
-              style={{
-                left: `${(loopA / duration) * 100}%`,
-                width: `${((loopB - loopA) / duration) * 100}%`,
-              }}
-            />
+              className="absolute bottom-6 -translate-x-1/2 pointer-events-none transition-transform duration-75 ease-out z-40"
+              style={{ left: `${clampedX}px` }}
+            >
+              <div className="w-40 h-24 rounded-lg overflow-hidden border border-white/20 bg-neutral-900/90 shadow-2xl backdrop-blur-md flex flex-col items-center justify-between relative group/preview">
+                {/* Secondary Preview Video */}
+                <video
+                  ref={previewVideoRef}
+                  src={streamUrl}
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onLoadedMetadata={() => {
+                    if (previewVideoRef.current && seekHover.isHovering) {
+                      previewVideoRef.current.currentTime = seekHover.hoverTime;
+                    }
+                  }}
+                />
+
+                {/* Fallback Poster if preview video hasn't rendered yet */}
+                {(item.thumbnail || item.poster) && (
+                  <img
+                    src={item.thumbnail || item.poster}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover -z-10 opacity-35"
+                  />
+                )}
+
+                {/* Dark gradient overlay at bottom */}
+                <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/85 via-black/45 to-transparent pointer-events-none z-10" />
+
+                {/* Overlaid Time Pill */}
+                <div className="absolute bottom-1.5 inset-x-0 flex items-center justify-center z-20 pointer-events-none">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium text-white bg-black/70 border border-white/10 shadow-md">
+                    {formatTime(seekHover.hoverTime)}
+                  </span>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Marker A */}
-          {duration > 0 && loopA !== null && (
+          {/* Visual Track */}
+          <div className="relative w-full h-2 group-hover/seek:h-2.5 bg-white/10 rounded-full transition-all flex items-center overflow-hidden">
+            {/* Buffered Progress */}
             <div
-              className="absolute top-0 bottom-0 w-1 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] z-20 pointer-events-none"
-              style={{ left: `${(loopA / duration) * 100}%` }}
+              className="absolute left-0 top-0 bottom-0 bg-white/20 rounded-full transition-all"
+              style={{ width: `${bufferPct}%` }}
             />
-          )}
 
-          {/* Marker B */}
-          {duration > 0 && loopB !== null && (
+            {/* Subtle Ghost Scrub Fill on Hover */}
+            {seekHover.isHovering && (
+              <div
+                className="absolute left-0 top-0 bottom-0 bg-white/20 rounded-full pointer-events-none transition-all"
+                style={{ width: `${seekHover.hoverPct}%` }}
+              />
+            )}
+
+            {/* Active Progress with Neon Cyan Glow */}
             <div
-              className="absolute top-0 bottom-0 w-1 bg-[#00E5FF] shadow-[0_0_8px_rgba(0,229,255,0.9)] z-20 pointer-events-none"
-              style={{ left: `${(loopB / duration) * 100}%` }}
+              className="absolute left-0 top-0 bottom-0 bg-[#00E5FF] shadow-[0_0_12px_#00E5FF] rounded-full transition-all"
+              style={{ width: `${progressPct}%` }}
             />
-          )}
+
+            {/* Ghost Scrub Line Marker */}
+            {seekHover.isHovering && (
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-30"
+                style={{ left: `${seekHover.hoverPct}%` }}
+              />
+            )}
+
+            {/* A-B Loop Locked Interval Shading */}
+            {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
+              <div
+                className="absolute top-0 bottom-0 bg-cyan-400/35 border-x-2 border-[#00E5FF] shadow-[0_0_12px_rgba(0,229,255,0.7)] z-10 pointer-events-none"
+                style={{
+                  left: `${(loopA / duration) * 100}%`,
+                  width: `${((loopB - loopA) / duration) * 100}%`,
+                }}
+              />
+            )}
+
+            {/* Marker A */}
+            {duration > 0 && loopA !== null && (
+              <div
+                className="absolute top-0 bottom-0 w-1 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] z-20 pointer-events-none"
+                style={{ left: `${(loopA / duration) * 100}%` }}
+              />
+            )}
+
+            {/* Marker B */}
+            {duration > 0 && loopB !== null && (
+              <div
+                className="absolute top-0 bottom-0 w-1 bg-[#00E5FF] shadow-[0_0_8px_rgba(0,229,255,0.9)] z-20 pointer-events-none"
+                style={{ left: `${(loopB / duration) * 100}%` }}
+              />
+            )}
+          </div>
         </div>
 
         {/* HUD Button Row: Smoked Frosted Glass Pill */}
-        <div className="cyber-pill px-2.5 sm:px-4 py-1.5 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 w-full max-w-full overflow-hidden shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+        <div className="cyber-pill px-2.5 sm:px-4 py-1.5 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 w-full max-w-full overflow-visible shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
           {/* Bottom-Left: Play, Rewind/Forward, Volume, Timestamps */}
           <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
             <button
@@ -916,37 +1112,52 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               </span>
             </button>
 
-            {/* Speed Selector */}
+            {/* Speed Selector Popover */}
             <div className="relative">
               <button
+                ref={speedBtnRef}
                 type="button"
-                onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-zinc-200 text-[11px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer"
+                onClick={() => setShowSpeedMenu((prev) => !prev)}
+                className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white text-[11px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer"
                 title="Playback Speed"
+                aria-haspopup="true"
+                aria-expanded={showSpeedMenu}
               >
-                <Gauge className="w-3.5 h-3.5" />
-                <span>{playbackRate}x</span>
+                <Gauge className="w-3.5 h-3.5 text-violet-400" />
+                <span>{playbackSpeed}x</span>
               </button>
+
               {showSpeedMenu && (
-                <div className="absolute bottom-10 right-0 cyber-glass rounded-xl p-1.5 flex flex-col gap-1 min-w-[75px] shadow-2xl z-50">
-                  {PLAYBACK_RATES.map((rate) => (
-                    <button
-                      key={rate}
-                      type="button"
-                      onClick={() => {
-                        setPlaybackRate(rate);
-                        if (videoRef.current) videoRef.current.playbackRate = rate;
-                        setShowSpeedMenu(false);
-                      }}
-                      className={`px-2 py-1 rounded-md text-xs font-mono font-bold text-left transition-colors cursor-pointer ${
-                        playbackRate === rate
-                          ? 'bg-[#00E5FF]/20 text-[#00E5FF]'
-                          : 'text-zinc-400 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      {rate}x
-                    </button>
-                  ))}
+                <div
+                  ref={speedMenuRef}
+                  className="absolute bottom-12 right-0 mb-2 py-2 px-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-white/10 shadow-2xl flex flex-col gap-1 z-50 min-w-[90px]"
+                >
+                  {PLAYBACK_SPEED_OPTIONS.map((speed) => {
+                    const isSelected = playbackSpeed === speed;
+                    const label = speed === 1 ? '1x (Normal)' : `${speed}x`;
+                    return (
+                      <button
+                        key={speed}
+                        type="button"
+                        onClick={() => {
+                          setPlaybackSpeed(speed);
+                          if (videoRef.current) {
+                            videoRef.current.playbackRate = speed;
+                            videoRef.current.preservesPitch = true;
+                          }
+                          setShowSpeedMenu(false);
+                        }}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
+                          isSelected
+                            ? 'bg-violet-600/30 text-violet-300 font-semibold shadow-[0_0_10px_rgba(139,92,246,0.25)] border border-violet-500/30'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span>{label}</span>
+                        {isSelected && <Check className="w-3 h-3 text-violet-400" />}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
