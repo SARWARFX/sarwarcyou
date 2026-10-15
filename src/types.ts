@@ -104,9 +104,7 @@ export type AlbumLayoutType =
   | 'spiral-helix'
   | 'perspective-tunnel'
   | 'curved-billboard'
-  | 'vertical-waterfall'
-  | 'coming-soon-photos'
-  | 'coming-soon-videos';
+  | 'vertical-waterfall';
 
 export interface AlbumData {
   id: string;

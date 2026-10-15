@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Video, Zap, Image, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, Video, Zap, Image, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AlbumData } from '../types';
 
 interface VerticalFolderMenuProps {
@@ -16,9 +16,6 @@ export const VerticalFolderMenu: React.FC<VerticalFolderMenuProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const getAlbumIcon = (album: AlbumData) => {
-    if (album.itemCount === 0 || album.layoutType.startsWith('coming-soon')) {
-      return <Lock className="w-3.5 h-3.5 text-cyan-400" />;
-    }
     if (album.index === 0) {
       return <Sparkles className="w-3.5 h-3.5 text-[#00D2FF]" />;
     }
@@ -67,16 +64,15 @@ export const VerticalFolderMenu: React.FC<VerticalFolderMenuProps> = ({
             </div>
           )}
 
-          {/* 12 Album List Items */}
+          {/* Dynamic Album List Items */}
           {albums.map((album, idx) => {
             const isActive = idx === activeAlbumIndex;
-            const isComingSoon = album.itemCount === 0 || album.layoutType.startsWith('coming-soon');
 
             return (
               <button
                 key={album.id}
                 onClick={() => onSelectAlbum(idx)}
-                title={`${album.name} (${isComingSoon ? 'Coming Soon' : `${album.itemCount} items`})`}
+                title={`${album.name} (${album.itemCount} items)`}
                 className={`group relative flex items-center justify-between w-full rounded-xl transition-all duration-200 cursor-pointer ${
                   isCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5'
                 } ${
@@ -101,7 +97,7 @@ export const VerticalFolderMenu: React.FC<VerticalFolderMenuProps> = ({
                         {album.name}
                       </span>
                       <span className="text-[8px] font-mono text-white/40 uppercase">
-                        {isComingSoon ? 'SOON' : album.type}
+                        {album.type}
                       </span>
                     </div>
                   )}
@@ -117,7 +113,7 @@ export const VerticalFolderMenu: React.FC<VerticalFolderMenuProps> = ({
                           : 'bg-white/5 text-white/40'
                       }`}
                     >
-                      {isComingSoon ? 'SOON' : album.itemCount}
+                      {album.itemCount}
                     </span>
                     {isActive && (
                       <span className="w-1.5 h-1.5 rounded-full bg-[#00D2FF] shadow-[0_0_8px_#00D2FF] animate-pulse" />

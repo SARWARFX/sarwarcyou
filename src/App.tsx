@@ -10,6 +10,7 @@ import { SplashPreloader } from './components/SplashPreloader';
 import { MobileGalleryFeed } from './components/MobileGalleryFeed';
 import { YouTubeTheaterModal } from './components/YouTubeTheaterModal';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
+import { MediaModal } from './components/MediaModal';
 import { SiteFooter } from './components/SiteFooter';
 import { CreatorToastNotification } from './components/CreatorToastNotification';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
@@ -22,7 +23,7 @@ import {
   anchorToAlbumSection,
 } from './utils/urlRouter';
 import { useRecentHistory } from './hooks/useRecentHistory';
-import { isExcludedAlbum } from './utils/mediaTypeDetector';
+import { isExcludedAlbum, isVideoExtension } from './utils/mediaTypeDetector';
 import type { StageMediaItem } from './types';
 
 function App() {
@@ -93,12 +94,24 @@ function App() {
             curAlbum.name.toLowerCase().includes('short') ||
             curAlbum.name.toLowerCase().includes('reel') ||
             curAlbum.layoutType === 'vertical-waterfall';
+          const isVid = isVideoExtension(mediaMatch.item.url || mediaMatch.item.id) || mediaMatch.item.type === 'video';
+          const isPhoto = !isShorts && (!isVid || mediaMatch.item.type === 'image' || curAlbum.type === 'image');
 
           if (isShorts) {
             setShortsState({
               isOpen: true,
               shorts: curAlbum.items,
               initialIndex: mediaMatch.index,
+            });
+            addToHistory(mediaMatch.item);
+          } else if (isPhoto) {
+            const photoItems = curAlbum.items.filter((it) => it.type === 'image' || !isVideoExtension(it.url));
+            const photoIdx = photoItems.findIndex((it) => it.id === mediaMatch.item.id || it.url === mediaMatch.item.url);
+            setLightboxState({
+              isOpen: true,
+              album: curAlbum,
+              items: photoItems.length > 0 ? photoItems : [mediaMatch.item],
+              initialIndex: Math.max(0, photoIdx),
             });
             addToHistory(mediaMatch.item);
           } else {
@@ -140,6 +153,9 @@ function App() {
             targetAlbum.name.toLowerCase().includes('short') ||
             targetAlbum.name.toLowerCase().includes('reel') ||
             targetAlbum.layoutType === 'vertical-waterfall';
+          const isVid = isVideoExtension(mediaMatch.item.url || mediaMatch.item.id) || mediaMatch.item.type === 'video';
+          const isPhoto = !isShorts && (!isVid || mediaMatch.item.type === 'image' || targetAlbum.type === 'image');
+
           if (isShorts) {
             setShortsState({
               isOpen: true,
@@ -148,6 +164,19 @@ function App() {
             });
             addToHistory(mediaMatch.item);
             setTheaterState((prev) => ({ ...prev, isOpen: false }));
+            setLightboxState((prev) => ({ ...prev, isOpen: false }));
+          } else if (isPhoto) {
+            const photoItems = targetAlbum.items.filter((it) => it.type === 'image' || !isVideoExtension(it.url));
+            const photoIdx = photoItems.findIndex((it) => it.id === mediaMatch.item.id || it.url === mediaMatch.item.url);
+            setLightboxState({
+              isOpen: true,
+              album: targetAlbum,
+              items: photoItems.length > 0 ? photoItems : [mediaMatch.item],
+              initialIndex: Math.max(0, photoIdx),
+            });
+            addToHistory(mediaMatch.item);
+            setTheaterState((prev) => ({ ...prev, isOpen: false }));
+            setShortsState((prev) => ({ ...prev, isOpen: false }));
           } else {
             setTheaterState({
               isOpen: true,
@@ -157,6 +186,7 @@ function App() {
             });
             addToHistory(mediaMatch.item);
             setShortsState((prev) => ({ ...prev, isOpen: false }));
+            setLightboxState((prev) => ({ ...prev, isOpen: false }));
           }
           return;
         }
@@ -165,6 +195,7 @@ function App() {
       // No media in route -> close modals cleanly
       setTheaterState((prev) => ({ ...prev, isOpen: false }));
       setShortsState((prev) => ({ ...prev, isOpen: false }));
+      setLightboxState((prev) => ({ ...prev, isOpen: false }));
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -199,6 +230,19 @@ function App() {
     initialIndex: 0,
   });
 
+  // Dedicated High-Definition Image Lightbox State
+  const [lightboxState, setLightboxState] = useState<{
+    isOpen: boolean;
+    album: typeof albums[0] | null;
+    items: StageMediaItem[];
+    initialIndex: number;
+  }>({
+    isOpen: false,
+    album: null,
+    items: [],
+    initialIndex: 0,
+  });
+
   // Handle clicking any media item across Driftime scenes or Dynamic Carousels
   const handleSelectItem = useCallback((item: StageMediaItem, albumIdx: number, posterUrl?: string) => {
     // Record to recently opened history
@@ -216,6 +260,8 @@ function App() {
       curAlbum?.name.toLowerCase().includes('reel') ||
       curAlbum?.layoutType === 'vertical-waterfall'
     );
+    const isVideo = isVideoExtension(item.url || item.id || item.title) || item.type === 'video';
+    const isPhoto = !isItemShorts && !isAlbumShorts && (!isVideo || item.type === 'image' || curAlbum?.type === 'image');
 
     if (isItemShorts || isAlbumShorts) {
       const shortsAlbum = albums.find((a) => a.id === 'album-shorts');
@@ -227,6 +273,26 @@ function App() {
         shorts: shortsList,
         initialIndex: Math.max(0, itemIdx),
       });
+      setTheaterState((prev) => ({ ...prev, isOpen: false }));
+      setLightboxState((prev) => ({ ...prev, isOpen: false }));
+    } else if (isPhoto) {
+      const targetAlbum =
+        curAlbum && curAlbum.items.some((it) => it.id === item.id)
+          ? curAlbum
+          : albums.find((a) => a.items.some((it) => it.id === item.id)) || curAlbum;
+      const photoItems = targetAlbum
+        ? targetAlbum.items.filter((it) => it.type === 'image' || !isVideoExtension(it.url))
+        : [item];
+      const itemIdx = photoItems.findIndex((s) => s.id === item.id || s.url === item.url);
+
+      setLightboxState({
+        isOpen: true,
+        album: targetAlbum || null,
+        items: photoItems.length > 0 ? photoItems : [item],
+        initialIndex: Math.max(0, itemIdx),
+      });
+      setTheaterState((prev) => ({ ...prev, isOpen: false }));
+      setShortsState((prev) => ({ ...prev, isOpen: false }));
     } else {
       const targetAlbum =
         curAlbum && curAlbum.items.some((it) => it.id === item.id)
@@ -249,6 +315,8 @@ function App() {
         initialIndex: Math.max(0, itemIdx),
         posterUrl,
       });
+      setLightboxState((prev) => ({ ...prev, isOpen: false }));
+      setShortsState((prev) => ({ ...prev, isOpen: false }));
     }
 
     if (curAlbum) {
@@ -322,6 +390,7 @@ function App() {
   const handleResetHome = useCallback(() => {
     setTheaterState((prev) => ({ ...prev, isOpen: false }));
     setShortsState((prev) => ({ ...prev, isOpen: false }));
+    setLightboxState((prev) => ({ ...prev, isOpen: false }));
     if (typeof window !== 'undefined' && window.innerWidth < 768 && mobileScrollRef.current) {
       mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -339,6 +408,13 @@ function App() {
 
   const handleCloseShorts = useCallback(() => {
     setShortsState((prev) => ({ ...prev, isOpen: false }));
+    const curAlbum = albums[activeAlbumIndexRef.current];
+    syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
+    anchorToAlbumSection(activeAlbumIndexRef.current);
+  }, [albums]);
+
+  const handleCloseLightbox = useCallback(() => {
+    setLightboxState((prev) => ({ ...prev, isOpen: false }));
     const curAlbum = albums[activeAlbumIndexRef.current];
     syncUrlState({ album: curAlbum, mediaItem: null, replace: true });
     anchorToAlbumSection(activeAlbumIndexRef.current);
@@ -376,7 +452,7 @@ function App() {
     anchorToAlbumSection(targetAlbum.index);
   }, []);
 
-  const isModalOpen = theaterState.isOpen || shortsState.isOpen;
+  const isModalOpen = theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen;
 
   // Mouse wheel dampening & smooth elevator gliding
   useEffect(() => {
@@ -642,6 +718,25 @@ function App() {
         shorts={shortsState.shorts}
         initialIndex={shortsState.initialIndex}
         onIndexChange={handleShortsIndexChange}
+      />
+
+      {/* ================= HIGH-DEFINITION IMAGE LIGHTBOX ================= */}
+      <MediaModal
+        isOpen={lightboxState.isOpen}
+        onClose={handleCloseLightbox}
+        url={lightboxState.items[lightboxState.initialIndex]?.url || null}
+        type="image"
+        title={lightboxState.items[lightboxState.initialIndex]?.title}
+        items={lightboxState.items}
+        currentIndex={lightboxState.initialIndex}
+        onIndexChange={(newIdx) => {
+          setLightboxState((prev) => ({ ...prev, initialIndex: newIdx }));
+          const curItem = lightboxState.items[newIdx];
+          if (lightboxState.album && curItem) {
+            addToHistory(curItem);
+            syncUrlState({ album: lightboxState.album, mediaItem: curItem, replace: true });
+          }
+        }}
       />
 
       {/* ================= NON-INTRUSIVE CREATOR TOAST NOTIFICATION ================= */}

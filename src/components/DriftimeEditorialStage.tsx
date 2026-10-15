@@ -1,6 +1,6 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Sparkles } from 'lucide-react';
+
 import { MediaCard } from './MediaCard';
 import type { AlbumData, StageMediaItem } from '../types';
 
@@ -9,8 +9,7 @@ export type DriftimeVariant =
   | 'staggered'
   | 'diptych'
   | 'cinematic'
-  | 'shorts'
-  | 'coming-soon';
+  | 'shorts';
 
 interface DriftimeEditorialStageProps {
   album: AlbumData;
@@ -36,14 +35,10 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
   const hoveredCardIdxRef = useRef<number | null>(null);
   hoveredCardIdxRef.current = hoveredCardIdx;
 
-  const isComingSoon =
-    album.itemCount === 0 || album.layoutType.startsWith('coming-soon');
-
   // Strictly map over the actual album items without artificial duplication or dummy placeholders
   const items = useMemo(() => {
-    if (isComingSoon) return [];
     return album.items || [];
-  }, [album.items, isComingSoon]);
+  }, [album.items]);
 
   // Scrubbing & Physics state
   const scrollOffsetRef = useRef(0);
@@ -109,7 +104,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
           if (
             !isWheelActive &&
             !isCardHovered &&
-            !isComingSoon &&
             isActive &&
             items.length > 1 &&
             maxScrollRef.current > 10
@@ -144,7 +138,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [isActive, isComingSoon, items.length]);
+  }, [isActive, items.length]);
 
   // ================= POINTER DRAG & SWIPE HANDLERS =================
   const isPointerCapturedRef = useRef(false);
@@ -242,28 +236,6 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [isActive]);
 
-  // ================= COMING SOON MONOLITH =================
-  if (isComingSoon) {
-    return (
-      <div className="relative w-full h-full flex items-center justify-center bg-black select-none p-6">
-        <div className="absolute inset-0 pointer-events-none opacity-[0.025] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]" />
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.9)_100%)]" />
-
-        {/* Minimalist Editorial Monolith Card */}
-        <div className="relative z-10 w-full max-w-lg aspect-[4/5] sm:aspect-[16/10] rounded-2xl bg-[#09090b] border border-white/[0.07] shadow-2xl flex flex-col items-center justify-center p-8 overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-transparent pointer-events-none" />
-          <div className="w-12 h-12 rounded-full border border-white/[0.08] flex items-center justify-center mb-6 bg-white/[0.02]">
-            <Sparkles className="w-5 h-5 text-zinc-600 animate-pulse" />
-          </div>
-          <div className="w-8 h-[1px] bg-white/10 mb-4" />
-          <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-700 uppercase text-center">
-            Future Vault / Unreleased
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       ref={containerRef}
@@ -286,7 +258,7 @@ export const DriftimeEditorialStage: React.FC<DriftimeEditorialStageProps> = ({
         <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black font-space tracking-tight text-zinc-100 uppercase leading-none truncate">
           {album.name}{' '}
           <span className="text-zinc-600 text-xl sm:text-3xl md:text-4xl font-mono align-baseline">
-            ({isComingSoon ? 0 : album.items.length})
+            ({album.items.length})
           </span>
         </h1>
       </div>

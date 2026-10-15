@@ -1010,20 +1010,15 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
 
   const [, setDownloadingItemId] = useState<string | null>(null);
 
-  // Dock global site header to top-left when theater viewer is active
+  // Maintain viewing-media state when theater viewer is active
   useEffect(() => {
-    const header = document.getElementById('global-site-header');
     if (isOpen) {
       document.body.classList.add('viewing-media');
-      if (header) header.classList.add('docked-left');
     } else {
       document.body.classList.remove('viewing-media');
-      if (header) header.classList.remove('docked-left');
     }
     return () => {
       document.body.classList.remove('viewing-media');
-      const h = document.getElementById('global-site-header');
-      if (h) h.classList.remove('docked-left');
     };
   }, [isOpen]);
 
@@ -1037,7 +1032,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       const isVid = isVideoExtension(target.url || target.id || target.title) || target.type === 'video';
       const dlUrl = getMediaUrl(target.url);
       if (isVid) {
-        await downloadBrandedVideo(dlUrl, target.title || target.id);
+        await downloadBrandedVideo(dlUrl, target.title || target.id, 'clip');
       } else {
         await applyWatermarkAndDownload(dlUrl, target.title || target.id);
       }
@@ -1248,7 +1243,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       }}
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
-      {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
+      {/* ===== TOP STATUS / ACTION BAR ===== */}
       <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-none">
         {/* Right: Actions (Zoom, Download, Prominent View Full Screen - NO Close Button) */}
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-20">
@@ -1352,16 +1347,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 </button>
               )}
 
-              {/* Fullscreen SARWARCYOU Brand Logo docked at Top-Left */}
-              {(isFullscreen || isLightboxFullscreen) && (
-                <div className="absolute top-4 left-4 sm:top-5 sm:left-6 z-[100000] pointer-events-none select-none flex items-center">
-                  <img
-                    src="/SARWARCYOU.svg"
-                    alt="SARWARCYOU"
-                    className="site-brand-logo h-7 sm:h-9 w-auto object-contain filter drop-shadow-[0_2px_10px_rgba(0,168,232,0.45)]"
-                  />
-                </div>
-              )}
+
 
               {/* Dynamic Ambient Luminance Aura (Ambilight Effect) */}
               {isVideo && isDirectVideo && (

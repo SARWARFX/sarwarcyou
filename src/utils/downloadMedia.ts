@@ -1,68 +1,52 @@
 /**
  * downloadMedia.ts
  * Robust client-side download helper for Hugging Face CDN media and local assets.
- * Implements smart branded file renaming for all video downloads:
- *   Template: SARWARCYOU_[Sanitized_Video_Title]_Source-sarwar-cyou.mp4
- *   Example:  SARWARCYOU_Cyber_Pulse_Ep1_Source-sarwar-cyou.mp4
- *
- * Intercepts video downloads via async Blob streaming to enforce custom branded
- * filenames across modern browsers (bypassing CDN cross-origin anchor restrictions),
- * and routes image downloads through client-side canvas watermarking.
+ * Implements 1-Click direct downloads with automated vault filename prefix conventions:
+ *   - Videos: `sarwarcyou_sarwar.cyou_clip_[OriginalName]`
+ *   - Shorts: `sarwarcyou_sarwar.cyou_short_[OriginalName]`
+ *   - Photos: `sarwarcyou_sarwar.cyou_photo_[OriginalName]`
  */
 
 import { safeEncodeUrl, isVideoExtension } from './mediaTypeDetector';
-import { applyWatermarkAndDownload, applyImageWatermark } from './watermarkImage';
+import { applyWatermarkAndDownload, applyImageWatermark, formatPhotoDownloadFilename } from './watermarkImage';
 import { getMediaUrl } from './imageUrlResolver';
 
 export { applyWatermarkAndDownload, getMediaUrl };
 
 /**
  * Sanitise a raw filename or URL path into a clean, filesystem-safe name.
- * Decodes URI-encoded characters, strips query strings, and replaces
- * sequences of unsafe characters with underscores.
  */
 export function sanitiseFilename(raw: string): string {
-  // Take only the last path segment
   let name = raw.split('/').pop() || raw;
-  // Remove query string and hash
   name = name.split('?')[0].split('#')[0];
-  // Decode percent-encoded chars (e.g. %20 -> space, %5B -> [)
   try {
     name = decodeURIComponent(name);
   } catch {
     /* leave as-is */
   }
-  // Replace any residual %20 with spaces
   name = name.replace(/%20/g, ' ');
-  // Strip characters forbidden in Windows/Unix filenames: / \ : * ? " < > |
-  name = name.replace(/[/\\:*?"<>|]+/g, ' ');
-  // Collapse multiple spaces and trim
-  name = name.replace(/\s+/g, ' ').trim();
+  name = name.replace(/[/\\:*?"<>|]+/g, '_');
+  name = name.replace(/\s+/g, '_').trim();
   return name || 'media_file';
 }
 
 /**
- * Formats a video title into the standardized SARWARCYOU branded filename convention:
- * Template: SARWARCYOU_[Sanitized_Video_Title]_Source-sarwar-cyou.mp4
- * Example:  SARWARCYOU_Cyber_Pulse_Ep1_Source-sarwar-cyou.mp4
- *
- * Sanitization rules:
- * - Removes illegal/reserved filesystem characters (/ \ : * ? " < > | . ,).
- * - Replaces whitespace and non-alphanumeric chars with clean underscores.
- * - Collapses repeated underscores and strips leading/trailing punctuation.
- * - Enforces the canonical .mp4 extension (or matching video extension).
+ * Formats media titles into the Style 3 Cyber Vault filename convention:
+ * - Videos: `sarwarcyou_sarwar.cyou_clip_[OriginalName]`
+ * - Shorts: `sarwarcyou_sarwar.cyou_short_[OriginalName]`
+ * - Photos: `sarwarcyou_sarwar.cyou_photo_[OriginalName]`
  */
-export function formatBrandedVideoFilename(rawTitle?: string, ext = 'mp4'): string {
-  let base = (rawTitle || 'clip').trim();
-
-  // Strip query strings and hash anchors
+export function formatVaultFilename(
+  rawTitle?: string,
+  mediaType: 'clip' | 'short' | 'photo' = 'clip',
+  ext = 'mp4'
+): string {
+  let base = (rawTitle || mediaType).trim();
   base = base.split('?')[0].split('#')[0];
-
-  // If a URL or full path was provided, use only the final segment
   base = base.split('/').pop() || base;
 
-  // Remove existing file extension (e.g. .mp4, .webm, .mov, .mkv)
-  base = base.replace(/\.(mp4|webm|mov|mkv|avi|m4v|3gp|flv)$/i, '');
+  // Strip known extensions
+  base = base.replace(/\.(mp4|webm|mov|mkv|avi|m4v|3gp|flv|jpg|jpeg|png|webp|avif|gif)$/i, '');
 
   try {
     base = decodeURIComponent(base);
@@ -70,19 +54,18 @@ export function formatBrandedVideoFilename(rawTitle?: string, ext = 'mp4'): stri
     /* leave as-is */
   }
 
-  // Replace spaces, dots, commas, slashes, and reserved characters with underscores
-  base = base.replace(/[/\\:*?"<>|.,\s]+/g, '_');
+  // Replace invalid filesystem characters and whitespace
+  base = base.replace(/[/\\:*?"<>|]+/g, '_');
+  base = base.replace(/\s+/g, '_');
+  base = base.replace(/_+/g, '_').replace(/^_|_$/g, '') || mediaType;
 
-  // Strip any remaining characters outside alphanumeric, hyphens, and underscores
-  base = base.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const cleanExt = (ext.replace(/^\./, '') || (mediaType === 'photo' ? 'jpg' : 'mp4')).toLowerCase();
+  return `sarwarcyou_sarwar.cyou_${mediaType}_${base}.${cleanExt}`;
+}
 
-  // Collapse consecutive underscores and strip leading/trailing underscores
-  base = base.replace(/_+/g, '_').replace(/^_|_$/g, '');
-
-  const sanitizedTitle = base || 'clip';
-  const cleanExt = (ext.replace(/^\./, '') || 'mp4').toLowerCase();
-
-  return `SARWARCYOU_${sanitizedTitle}_Source-sarwar-cyou.${cleanExt}`;
+// Backwards-compatible alias for existing callers
+export function formatBrandedVideoFilename(rawTitle?: string, ext = 'mp4'): string {
+  return formatVaultFilename(rawTitle, 'clip', ext);
 }
 
 /**
@@ -108,40 +91,26 @@ export function inferMime(url: string): { mime: string; ext: string } {
 }
 
 /**
- * Ensure a filename has the correct extension based on MIME type.
+ * Intercepts video/shorts download actions and fetches the asset as a Blob to enforce
+ * the target filename (sarwarcyou_sarwar.cyou_clip_... or sarwarcyou_sarwar.cyou_short_...)
+ * across modern browsers, bypassing native cross-origin <a download> restrictions.
  */
-function ensureExtension(name: string, ext: string): string {
-  if (!ext) return name;
-  const lower = name.toLowerCase();
-  if (lower.endsWith(`.${ext}`)) return name;
-  // Remove any existing extension if different
-  const lastDot = name.lastIndexOf('.');
-  const base = lastDot > 0 ? name.slice(0, lastDot) : name;
-  return `${base}.${ext}`;
-}
-
-/**
- * Intercepts video download actions and fetches the asset as a Blob to enforce
- * the branded filename (SARWARCYOU_[Sanitized_Video_Title]_Source-sarwar-cyou.mp4)
- * across all modern browsers, bypassing native cross-origin <a download> restrictions.
- *
- * @param videoUrl    The stream or direct CDN URL of the video
- * @param videoTitle  The original title, id, or filename of the video
- */
-export async function downloadBrandedVideo(videoUrl: string, videoTitle?: string): Promise<void> {
+export async function downloadBrandedVideo(
+  videoUrl: string,
+  videoTitle?: string,
+  mediaType: 'clip' | 'short' = 'clip'
+): Promise<void> {
   const proxyUrl = getMediaUrl(videoUrl);
   const safeUrl = safeEncodeUrl(proxyUrl.replace(/^http:\/\//i, 'https://'));
   const { ext } = inferMime(safeUrl);
   const videoExt = ext || 'mp4';
-  const filename = formatBrandedVideoFilename(videoTitle || safeUrl, videoExt);
+  const filename = formatVaultFilename(videoTitle || safeUrl, mediaType, videoExt);
 
   try {
-    // 2. Fetch video binary as Blob
     const response = await fetch(safeUrl, { mode: 'cors', credentials: 'omit' });
     if (!response.ok) throw new Error(`Network response was not ok (${response.status})`);
     const blob = await response.blob();
 
-    // 3. Trigger programmatic download with branded filename
     const blobUrl = window.URL.createObjectURL(
       new Blob([blob], { type: blob.type || 'video/mp4' })
     );
@@ -153,7 +122,6 @@ export async function downloadBrandedVideo(videoUrl: string, videoTitle?: string
     document.body.appendChild(tempLink);
     tempLink.click();
 
-    // 4. Cleanup
     setTimeout(() => {
       if (tempLink.parentNode) {
         document.body.removeChild(tempLink);
@@ -162,7 +130,6 @@ export async function downloadBrandedVideo(videoUrl: string, videoTitle?: string
     }, 30_000);
   } catch (err) {
     console.error('Download error, falling back to direct URL:', err);
-    // Fallback: direct download link
     const fallbackLink = document.createElement('a');
     fallbackLink.href = safeUrl;
     fallbackLink.target = '_blank';
@@ -180,31 +147,31 @@ export async function downloadBrandedVideo(videoUrl: string, videoTitle?: string
 
 /**
  * Primary universal download dispatcher:
- * - Videos: routed through downloadBrandedVideo() for SARWARCYOU branded renaming.
- * - Images: routed through applyImageWatermark() for canvas brand + source watermarking.
- * - Other files: streamed via Blob with fallback to anchor link.
- *
- * @param url      The direct CDN URL of the media file (must be https://)
- * @param rawName  Optional custom base name; derived from URL if omitted.
+ * - Videos/Clips: routed through downloadBrandedVideo(..., 'clip')
+ * - Shorts: routed through downloadBrandedVideo(..., 'short')
+ * - Photos: routed through applyWatermarkAndDownload with sarwarcyou_sarwar.cyou_photo_ prefix
  */
-export async function downloadMedia(url: string, rawName?: string): Promise<void> {
+export async function downloadMedia(
+  url: string,
+  rawName?: string,
+  forcedType?: 'clip' | 'short' | 'photo'
+): Promise<void> {
   const proxyUrl = getMediaUrl(url);
   const safeUrl = safeEncodeUrl(proxyUrl.replace(/^http:\/\//i, 'https://'));
   const { mime, ext } = inferMime(safeUrl);
-  const isVideo = mime.startsWith('video/') || isVideoExtension(safeUrl);
+  const isVideo = forcedType === 'clip' || forcedType === 'short' || mime.startsWith('video/') || isVideoExtension(safeUrl);
+  const isShort = forcedType === 'short' || safeUrl.includes('/Shorts/');
 
-  // Delegate video downloads to branded video downloader
   if (isVideo) {
-    return downloadBrandedVideo(safeUrl, rawName);
+    return downloadBrandedVideo(safeUrl, rawName, isShort ? 'short' : 'clip');
   }
 
   const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/gif';
-  const baseName = rawName ? sanitiseFilename(rawName) : sanitiseFilename(safeUrl);
-  const filename = ensureExtension(baseName, ext || 'jpg');
+  const targetPhotoFilename = formatPhotoDownloadFilename(rawName || safeUrl, ext || 'jpg');
 
   if (isImage) {
     try {
-      await applyWatermarkAndDownload(safeUrl, filename);
+      await applyWatermarkAndDownload(safeUrl, targetPhotoFilename);
       return;
     } catch (wmError) {
       console.warn('Canvas watermarking failed, falling back to direct download:', wmError);
@@ -212,7 +179,6 @@ export async function downloadMedia(url: string, rawName?: string): Promise<void
   }
 
   try {
-    // Attempt Blob-based download (works same-origin or CORS-enabled CDN)
     const res = await fetch(safeUrl, { mode: 'cors', credentials: 'omit' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const originalBlob = await res.blob();
@@ -220,17 +186,14 @@ export async function downloadMedia(url: string, rawName?: string): Promise<void
     const objUrl = URL.createObjectURL(
       new Blob([originalBlob], { type: mime || originalBlob.type || 'application/octet-stream' })
     );
-    triggerDownload(objUrl, filename);
+    triggerDownload(objUrl, targetPhotoFilename);
     setTimeout(() => URL.revokeObjectURL(objUrl), 30_000);
-  } catch (fetchError) {
-    // Fallback: If blob fetch failed, try direct URL watermarking if image
+  } catch {
     if (isImage) {
       try {
         const watermarkedBlob = await applyImageWatermark(safeUrl, mime);
-        const outExt = watermarkedBlob.type === 'image/png' ? 'png' : 'jpg';
-        const watermarkedName = ensureExtension(baseName, outExt);
         const objUrl = URL.createObjectURL(watermarkedBlob);
-        triggerDownload(objUrl, watermarkedName);
+        triggerDownload(objUrl, targetPhotoFilename);
         setTimeout(() => URL.revokeObjectURL(objUrl), 30_000);
         return;
       } catch (imgError) {
@@ -238,9 +201,7 @@ export async function downloadMedia(url: string, rawName?: string): Promise<void
       }
     }
 
-    // Ultimate fallback: trigger browser direct download streaming via <a> tag
-    console.warn('Direct blob fetch failed, falling back to streaming anchor link:', fetchError);
-    triggerDownload(safeUrl, filename);
+    triggerDownload(safeUrl, targetPhotoFilename);
   }
 }
 

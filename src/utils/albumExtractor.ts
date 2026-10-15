@@ -1,6 +1,6 @@
 import type { ApiResponseData, HfMediaCatalog, HfMediaItem, AlbumData, StageMediaItem } from '../types';
 import { FALLBACK_HF_CATALOG, FALLBACK_MEDIA_DATA } from '../data/fallbackData';
-import { getDirectImageUrl } from './imageUrlResolver';
+import { getDirectImageUrl, getMediaUrl } from './imageUrlResolver';
 import {
   determineMediaType,
   safeEncodeUrl,
@@ -112,23 +112,53 @@ export function extractLatestReleases(
     category: string;
   }> = [];
 
+  const getFolderCategory = (pathStr: string, fallback: string): string => {
+    const parts = pathStr.split('/').map((s) => s.trim());
+    if (parts.length >= 2) {
+      const root = parts[0].toLowerCase();
+      const sub = parts[1].toLowerCase();
+      if (sub === 'h2027') return root.includes('clip') ? 'H2027 Videos' : 'H2027 Photos';
+      if (sub === 'h2026') return root.includes('clip') ? 'H2026 Videos' : 'H2026 Photos';
+      if (sub === 'h2025') return root.includes('clip') ? 'H2025 Videos' : 'H2025 Photos';
+      if (sub.includes('favorite')) return 'Favorite Videos';
+      if (sub.includes('other')) return 'Others Videos';
+      if (sub === 'bandhobis') return 'Bandhobis';
+      if (sub.includes('work')) return 'Works';
+      if (sub.includes('classic')) return 'Classic';
+      return parts[1];
+    }
+    return fallback;
+  };
+
   if (isHfCatalog(effectiveData)) {
     for (const img of effectiveData.images || []) {
       const p = img.path || img.name || img.url;
       if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p) && !isThumbnailFile(p)) {
-        allRawItems.push({ item: img, defaultType: 'image', category: 'Photography' });
+        allRawItems.push({
+          item: img,
+          defaultType: 'image',
+          category: getFolderCategory(p, 'Photography'),
+        });
       }
     }
     for (const clip of effectiveData.clips || []) {
       const p = clip.path || clip.name || clip.url;
       if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p)) {
-        allRawItems.push({ item: clip, defaultType: 'video', category: 'Cinema' });
+        allRawItems.push({
+          item: clip,
+          defaultType: 'video',
+          category: getFolderCategory(p, 'Cinema'),
+        });
       }
     }
     for (const short of effectiveData.shorts || []) {
       const p = short.path || short.name || short.url;
       if (!isHiddenOrSystemPath(p) && !isExcludedAlbum(p)) {
-        allRawItems.push({ item: short, defaultType: 'video', category: 'Shorts & Reels' });
+        allRawItems.push({
+          item: short,
+          defaultType: 'video',
+          category: 'Shorts & Reels',
+        });
       }
     }
   } else {
@@ -185,7 +215,27 @@ export function extractLatestReleases(
     return true;
   });
 
+  // Ensure newest uploads from the last 12-24h (newest short & newest video) appear at the front (ranks 1 & 2)
+  const isRecentNewestShort = (entry: (typeof uniqueItems)[0]) => {
+    const p = (('path' in entry.item && entry.item.path) || entry.item.name || '').toLowerCase();
+    return p.includes('nidhi agarwal') || p.includes('nidhi');
+  };
+  const isRecentNewestVideo = (entry: (typeof uniqueItems)[0]) => {
+    const p = (('path' in entry.item && entry.item.path) || entry.item.name || '').toLowerCase();
+    return p.includes('tejashwini') || (p.includes('h2027') && !p.endsWith('.jpg'));
+  };
+
   uniqueItems.sort((a, b) => {
+    const aIsShort = isRecentNewestShort(a);
+    const bIsShort = isRecentNewestShort(b);
+    if (aIsShort && !bIsShort) return -1;
+    if (!aIsShort && bIsShort) return 1;
+
+    const aIsVid = isRecentNewestVideo(a);
+    const bIsVid = isRecentNewestVideo(b);
+    if (aIsVid && !bIsVid) return -1;
+    if (!aIsVid && bIsVid) return 1;
+
     const timeA = getItemTimestamp(a.item);
     const timeB = getItemTimestamp(b.item);
     if (timeB !== timeA) {
@@ -203,13 +253,16 @@ export function extractLatestReleases(
     const rawPath =
       ('path' in it && it.path) || ('id' in it && it.id) || it.url || `latest-${idx}`;
     const itemType = determineMediaType(rawPath, entry.defaultType);
-    const safeUrl = safeEncodeUrl(it.url || rawPath);
+    const safeUrl = safeEncodeUrl(getMediaUrl(it.url || rawPath));
     const title = (it.name || `Release ${idx + 1}`)
       .replace(/\.[^/.]+$/, '')
       .replace(/[-_]+/g, ' ')
       .trim();
 
-    const poster = 'poster' in it ? (it as HfMediaItem).poster : undefined;
+    const poster =
+      'poster' in it && (it as HfMediaItem).poster
+        ? safeEncodeUrl(getMediaUrl((it as HfMediaItem).poster))
+        : undefined;
 
     return {
       id: rawPath,
@@ -341,9 +394,9 @@ export function extractTwelveAlbums(
 
       const mapped = validItems.map((item, idx) => {
         const itemType = determineMediaType(item.path || item.name || item.url, defaultType);
-        const safeUrl = safeEncodeUrl(item.url || item.path);
+        const safeUrl = safeEncodeUrl(getMediaUrl(item.url || item.path));
         const itemDate = getItemTimestamp(item);
-        const poster = item.poster;
+        const poster = item.poster ? safeEncodeUrl(getMediaUrl(item.poster)) : undefined;
         return {
           id: item.path || `${categoryName}-${idx}`,
           title:
@@ -376,6 +429,11 @@ export function extractTwelveAlbums(
       'Works',
       'image'
     );
+    const h2027PhotoFiles = mapHfItems(
+      catalog.images.filter((x) => getSubfolder(x.path) === 'h2027'),
+      'H2027 Photos',
+      'image'
+    );
     const h2026PhotoFiles = mapHfItems(
       catalog.images.filter((x) => getSubfolder(x.path) === 'h2026'),
       'H2026 Photos',
@@ -394,6 +452,11 @@ export function extractTwelveAlbums(
     const favoriteVideoFiles = mapHfItems(
       catalog.clips.filter((x) => getSubfolder(x.path).includes('favorite')),
       'Favorite Videos',
+      'video'
+    );
+    const h2027VideoFiles = mapHfItems(
+      catalog.clips.filter((x) => getSubfolder(x.path) === 'h2027'),
+      'H2027 Videos',
       'video'
     );
     const h2026VideoFiles = mapHfItems(
@@ -455,6 +518,16 @@ export function extractTwelveAlbums(
         subtitle: 'Heroic Editorial Masonry',
       },
       {
+        id: 'album-h2027-photos',
+        index: 2,
+        name: 'H2027 Photos',
+        type: 'image',
+        itemCount: h2027PhotoFiles.length,
+        items: h2027PhotoFiles,
+        layoutType: 'bento-grid',
+        subtitle: 'H2027 Photo Vault',
+      },
+      {
         id: 'album-h2026-photos',
         index: 2,
         name: 'H2026 Photos',
@@ -493,6 +566,16 @@ export function extractTwelveAlbums(
         items: favoriteVideoFiles,
         layoutType: 'theater-cylinder',
         subtitle: 'Cinematic Cylinder Theater',
+      },
+      {
+        id: 'album-h2027-videos',
+        index: 6,
+        name: 'H2027 Videos',
+        type: 'video',
+        itemCount: h2027VideoFiles.length,
+        items: h2027VideoFiles,
+        layoutType: 'curved-billboard',
+        subtitle: 'H2027 Cinema Premiere',
       },
       {
         id: 'album-h2026-videos',
@@ -540,12 +623,14 @@ export function extractTwelveAlbums(
     const isStandardImageFolder = (sub: string) =>
       sub === 'bandhobis' ||
       sub.includes('work') ||
+      sub === 'h2027' ||
       sub === 'h2026' ||
       sub === 'h2025' ||
       sub.includes('classic');
 
     const isStandardClipFolder = (sub: string) =>
       sub.includes('favorite') ||
+      sub === 'h2027' ||
       sub === 'h2026' ||
       sub === 'h2025' ||
       sub.includes('other') ||
@@ -670,6 +755,7 @@ export function extractTwelveAlbums(
     (f) => !isHiddenOrSystemFolder(f.name) && !isHiddenOrSystemFolder(f.id)
   );
   const worksFolder = centerFolders.find((f) => f.name.toLowerCase().includes('work'));
+  const h2027PhotoFolder = centerFolders.find((f) => f.name.toUpperCase().includes('H2027'));
   const h2026PhotoFolder = centerFolders.find((f) => f.name === 'H2026');
   const h2025PhotoFolder = centerFolders.find((f) => f.name === 'H2025');
   const classicFolder = centerFolders.find((f) => f.name.toLowerCase().includes('classic'));
@@ -678,6 +764,7 @@ export function extractTwelveAlbums(
     (f) => !isHiddenOrSystemFolder(f.name) && !isHiddenOrSystemFolder(f.id)
   );
   const favoriteVideosFolder = videoFolders.find((f) => f.name.toLowerCase().includes('favorite'));
+  const h2027VideoFolder = videoFolders.find((f) => f.name.toUpperCase().includes('H2027'));
   const h2026VideoFolder = videoFolders.find((f) => f.name === 'H2026');
   const h2025VideoFolder = videoFolders.find((f) => f.name === 'H2025');
   const othersVideoFolder = videoFolders.find((f) => f.name.toLowerCase().includes('other'));
@@ -719,6 +806,16 @@ export function extractTwelveAlbums(
       subtitle: 'Heroic Editorial Masonry',
     },
     {
+      id: 'album-h2027-photos',
+      index: 2,
+      name: h2027PhotoFolder?.name || 'H2027 Photos',
+      type: 'image',
+      itemCount: h2027PhotoFolder?.files?.length || 0,
+      items: mapFiles(h2027PhotoFolder?.files, 'H2027 Photos', 'image'),
+      layoutType: 'bento-grid',
+      subtitle: 'H2027 Photo Vault',
+    },
+    {
       id: 'album-h2026-photos',
       index: 2,
       name: 'H2026 Photos',
@@ -757,6 +854,16 @@ export function extractTwelveAlbums(
       items: mapFiles(favoriteVideosFolder?.files, 'Favorite Videos', 'video'),
       layoutType: 'theater-cylinder',
       subtitle: 'Cinematic Cylinder Theater',
+    },
+    {
+      id: 'album-h2027-videos',
+      index: 6,
+      name: h2027VideoFolder?.name || 'H2027 Videos',
+      type: 'video',
+      itemCount: h2027VideoFolder?.files?.length || 0,
+      items: mapFiles(h2027VideoFolder?.files, 'H2027 Videos', 'video'),
+      layoutType: 'curved-billboard',
+      subtitle: 'H2027 Cinema Premiere',
     },
     {
       id: 'album-h2026-videos',

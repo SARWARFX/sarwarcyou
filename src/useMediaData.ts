@@ -10,6 +10,17 @@ export const HF_RAW_MEDIA_JSON_URL =
 export const HF_RESOLVE_BASE_URL =
   'https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main/';
 
+export const HF_COMMITS_API_URL =
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/commits/main?limit=150';
+export const HF_OPTIMIZED_MANIFEST_URL =
+  'https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main/.optimized_manifest.json';
+export const HF_CLIPS_TREE_API_URL =
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Clips?recursive=true';
+export const HF_IMAGES_TREE_API_URL =
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Images?recursive=true';
+export const HF_SHORTS_TREE_API_URL =
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Shorts?recursive=true';
+
 // Backwards-compatibility alias
 export const HUGGINGFACE_CATALOG_URL = HF_RAW_MEDIA_JSON_URL;
 
@@ -106,10 +117,52 @@ function normalizeKey(str: string): string {
   return res.toLowerCase().trim();
 }
 
+export interface CommitInfo {
+  date: number;
+  id?: string;
+  title?: string;
+}
+
+export function extractCommitMetadata(commits: any[]): Map<string, CommitInfo> {
+  const metadata = new Map<string, CommitInfo>();
+  if (!Array.isArray(commits)) return metadata;
+
+  const extractPathFromTitle = (title: string): string | null => {
+    if (!title) return null;
+    const m =
+      title.match(/((?:Clips|Images|Shorts)\/[^()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/i) ||
+      title.match(/(?:Upload|optimize|manifest)\s*\(?([^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/i);
+    return m ? m[1].trim() : null;
+  };
+
+  for (const c of commits) {
+    if (!c || !c.date) continue;
+    const timestamp = new Date(c.date).getTime();
+    if (isNaN(timestamp) || timestamp <= 0) continue;
+    const matchedPath = extractPathFromTitle(c.title || '');
+    if (matchedPath) {
+      const info: CommitInfo = { date: timestamp, id: c.id, title: c.title };
+      const normalizedPath = matchedPath.replace(/^\/+/, '');
+      const filename = normalizedPath.split('/').pop() || normalizedPath;
+      if (!metadata.has(normalizedPath.toLowerCase())) {
+        metadata.set(normalizedPath.toLowerCase(), info);
+      }
+      if (!metadata.has(filename.toLowerCase())) {
+        metadata.set(filename.toLowerCase(), info);
+      }
+    }
+  }
+
+  return metadata;
+}
+
 /**
  * Parses raw items from the Hugging Face Tree API into a structured HfMediaCatalog.
  */
-export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
+export function parseTreeToCatalog(
+  tree: HfTreeItem[],
+  commitMetadata?: Map<string, CommitInfo>
+): HfMediaCatalog {
   const clips: HfMediaItem[] = [];
   const shorts: HfMediaItem[] = [];
   const images: HfMediaItem[] = [];
@@ -228,12 +281,26 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
 
     const name = path.split('/').pop() || path;
     const url = buildHfMediaUrl(path);
-    const lastCommit = item.lastCommit;
+    let lastCommit = item.lastCommit;
     let itemDate: number | undefined;
-    if (lastCommit?.date) {
+
+    // Resolve date from commit history if available
+    const commitInfo =
+      commitMetadata?.get(path.toLowerCase()) ||
+      commitMetadata?.get(name.toLowerCase());
+
+    if (commitInfo) {
+      itemDate = commitInfo.date;
+      lastCommit = {
+        date: new Date(commitInfo.date).toISOString(),
+        id: commitInfo.id,
+        title: commitInfo.title,
+      };
+    } else if (lastCommit?.date) {
       const parsed = new Date(lastCommit.date).getTime();
       if (!isNaN(parsed) && parsed > 0) itemDate = parsed;
     }
+
     if (!itemDate) {
       const match = path.match(/(202[4-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
       if (match) {
@@ -267,13 +334,22 @@ export function parseTreeToCatalog(tree: HfTreeItem[]): HfMediaCatalog {
 }
 
 /**
- * Timeout-wrapped fetch helper to prevent network hangs with strict 3-second timeout.
+ * Timeout-wrapped fetch helper with no-cache headers to ensure immediate discovery.
  */
-export async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 3000): Promise<Response> {
+export async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 4000): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const response = await fetch(url, {
+      ...options,
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        ...options.headers,
+      },
+      signal: controller.signal,
+    });
     return response;
   } finally {
     clearTimeout(id);
@@ -322,11 +398,11 @@ export async function fetchAllTreeItems(): Promise<HfTreeItem[]> {
 /**
  * Multi-tier non-blocking catalog resolver:
  * 1. sessionStorage cache (< 60s)
- * 2. Parallel fetch via Promise.allSettled() with strict 3s timeout (Tree API + raw media.json)
+ * 2. Parallel dynamic fetch (Tree API + Commits metadata + raw media.json)
  * 3. Instant bundled fallback data (guaranteed zero hang)
  */
 export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfMediaCatalog> {
-  // 1. Session Cache
+  // 1. Session Cache (if not explicitly bypassed)
   if (!forceBypassCache) {
     const cached = getCachedCatalog();
     if (cached) {
@@ -334,55 +410,103 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
     }
   }
 
-  // 2. Parallel non-blocking discovery via Promise.allSettled() with strict 3000ms timeout
+  // 2. Parallel dynamic discovery with no-store caching
   try {
-    const [treeResult, mediaJsonResult] = await Promise.allSettled([
-      fetchWithTimeout(HF_TREE_API_URL, {}, 3000).then(async (res) => {
+    const [treeResult, commitsResult, mediaJsonResult] = await Promise.allSettled([
+      fetchWithTimeout(HF_TREE_API_URL, {}, 4000).then(async (res) => {
         if (!res.ok) throw new Error(`HF tree HTTP ${res.status}`);
         return (await res.json()) as HfTreeItem[];
       }),
-      fetchWithTimeout(HF_RAW_MEDIA_JSON_URL, {}, 3000).then(async (res) => {
+      fetchWithTimeout(HF_COMMITS_API_URL, {}, 4000).then(async (res) => {
+        if (!res.ok) throw new Error(`HF commits HTTP ${res.status}`);
+        return await res.json();
+      }),
+      fetchWithTimeout(HF_RAW_MEDIA_JSON_URL, {}, 4000).then(async (res) => {
         if (!res.ok) throw new Error(`HF media.json HTTP ${res.status}`);
         return await res.json();
       }),
     ]);
 
+    // Extract real-time commit metadata (upload timestamps & commit messages)
+    let commitMetadata = new Map<string, CommitInfo>();
+    if (commitsResult.status === 'fulfilled' && Array.isArray(commitsResult.value)) {
+      commitMetadata = extractCommitMetadata(commitsResult.value);
+    }
+
     // Tier A: Tree API items if fulfilled
+    let treeItems: HfTreeItem[] = [];
     if (treeResult.status === 'fulfilled' && Array.isArray(treeResult.value) && treeResult.value.length > 0) {
-      const parsed = parseTreeToCatalog(treeResult.value);
-      if (parsed.images.length > 0 || parsed.clips.length > 0) {
+      treeItems = treeResult.value;
+    }
+
+    // Safety fallback: if root tree was truncated (< 500 items), fetch subtrees in parallel
+    if (treeItems.length > 0 && treeItems.length < 500) {
+      try {
+        const [clipsSub, imagesSub, shortsSub] = await Promise.allSettled([
+          fetchWithTimeout(HF_CLIPS_TREE_API_URL, {}, 3000).then((r) => (r.ok ? r.json() : [])),
+          fetchWithTimeout(HF_IMAGES_TREE_API_URL, {}, 3000).then((r) => (r.ok ? r.json() : [])),
+          fetchWithTimeout(HF_SHORTS_TREE_API_URL, {}, 3000).then((r) => (r.ok ? r.json() : [])),
+        ]);
+        const seen = new Set(treeItems.map((x) => x.path));
+        for (const sub of [clipsSub, imagesSub, shortsSub]) {
+          if (sub.status === 'fulfilled' && Array.isArray(sub.value)) {
+            for (const it of sub.value) {
+              if (it && it.path && !seen.has(it.path)) {
+                treeItems.push(it);
+                seen.add(it.path);
+              }
+            }
+          }
+        }
+      } catch {
+        // Continue with available tree items
+      }
+    }
+
+    if (treeItems.length > 0) {
+      const parsed = parseTreeToCatalog(treeItems, commitMetadata);
+      if (parsed.images.length > 0 || parsed.clips.length > 0 || parsed.shorts.length > 0) {
         setCachedCatalog(parsed);
         return parsed;
       }
     }
 
-    // Tier B: Raw media.json if fulfilled
+    // Tier B: Raw media.json if tree failed
     if (mediaJsonResult.status === 'fulfilled' && mediaJsonResult.value) {
       const rawData = mediaJsonResult.value;
-      if (Array.isArray(rawData.images) || Array.isArray(rawData.clips)) {
+      if (Array.isArray(rawData.images) || Array.isArray(rawData.clips) || Array.isArray(rawData.shorts)) {
+        const enrichItem = (x: HfMediaItem): HfMediaItem => {
+          const path = x.path || x.name || '';
+          const name = x.name || path.split('/').pop() || '';
+          const cInfo =
+            commitMetadata.get(path.toLowerCase()) ||
+            commitMetadata.get(name.toLowerCase());
+          const date = cInfo ? cInfo.date : x.date;
+          const lastCommit = cInfo
+            ? { date: new Date(cInfo.date).toISOString(), title: cInfo.title, id: cInfo.id }
+            : x.lastCommit;
+          return {
+            ...x,
+            url: buildHfMediaUrl(x.path || x.name),
+            date,
+            lastCommit,
+          };
+        };
+
         const catalog: HfMediaCatalog = {
           clips: (rawData.clips || [])
             .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-            .map((x: HfMediaItem) => ({
-              ...x,
-              url: buildHfMediaUrl(x.path || x.name),
-            })),
+            .map(enrichItem),
           shorts: (rawData.shorts || [])
             .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-            .map((x: HfMediaItem) => ({
-              ...x,
-              url: buildHfMediaUrl(x.path || x.name),
-            })),
+            .map(enrichItem),
           images: (rawData.images || [])
             .filter(
               (x: HfMediaItem) =>
                 !isHiddenOrSystemPath(x.path || x.name || x.url) &&
                 !isThumbnailFile(x.path || x.name || x.url)
             )
-            .map((x: HfMediaItem) => ({
-              ...x,
-              url: buildHfMediaUrl(x.path || x.name),
-            })),
+            .map(enrichItem),
         };
         setCachedCatalog(catalog);
         return catalog;

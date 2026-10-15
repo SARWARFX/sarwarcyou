@@ -1,32 +1,22 @@
 import React from 'react';
-import { BRAND_CONFIG } from '../config/brand';
 
 interface BrandLogoProps {
   className?: string;
   imgClassName?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export const BrandLogo: React.FC<BrandLogoProps> = ({
-  className = '',
-  imgClassName = '',
-}) => {
-  const brand =
-    typeof window !== 'undefined' && window.BRAND_CONFIG
-      ? window.BRAND_CONFIG
-      : BRAND_CONFIG;
+export const BrandLogo: React.FC<BrandLogoProps> = ({ className = '', size = 'md' }) => {
+  const sizeClasses = {
+    sm: 'text-xs tracking-[0.16em]',
+    md: 'text-sm sm:text-base tracking-[0.2em]',
+    lg: 'text-lg sm:text-2xl tracking-[0.24em]'
+  }[size];
 
   return (
-    <a
-      href="/"
-      className={`brand-link flex items-center select-none ${className}`}
-      aria-label={`${brand.name} Home`}
-    >
-      <img
-        src={brand.logoSrc}
-        alt={brand.name}
-        className={`site-brand-logo ${imgClassName}`}
-      />
-    </a>
+    <div className={`cyber-wordmark inline-flex items-center select-none font-brand font-black cursor-default ${sizeClasses} ${className}`}>
+      SARWARCYOU
+    </div>
   );
 };
 

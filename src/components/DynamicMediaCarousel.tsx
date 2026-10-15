@@ -188,7 +188,7 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="group relative flex-shrink-0 w-[230px] sm:w-[270px] md:w-[310px] aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer select-none bg-zinc-950 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+      className="group relative flex-shrink-0 w-[230px] sm:w-[270px] md:w-[310px] aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer select-none bg-[#08080c] border border-white/[0.08] hover:border-[#00D2FF]/40 hover:shadow-[0_0_24px_rgba(0,210,255,0.18)] transition-all duration-300 shadow-xl hover:-translate-y-1"
     >
       {/* Fallback Obsidian Card Typography branding */}
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 to-black flex flex-col justify-between p-3.5 z-0">

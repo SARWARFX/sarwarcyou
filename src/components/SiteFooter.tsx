@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mail, ShieldCheck, Sparkles, HelpCircle } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 interface SiteFooterProps {
   onBackToTop?: () => void;
@@ -21,11 +22,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
       {/* Top Brand Divider & Wordmark */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-12">
         <div className="flex items-center gap-3">
-          <img
-            src="/SARWARCYOU.svg"
-            alt="SARWARCYOU"
-            className="h-6 sm:h-7 w-auto object-contain opacity-80 filter drop-shadow-[0_2px_8px_rgba(0,210,255,0.25)]"
-          />
+          <BrandLogo size="md" />
           <span className="text-[11px] font-mono tracking-widest text-zinc-500 uppercase">
             / MEDIA VAULT
           </span>

@@ -14,17 +14,14 @@
   --color-brand-purple: #9D00FF;
 }
 
-/* Permanently eliminate all visible borders, wireframes & outlines globally */
+/* Zero default focus outline & tap highlight; allows intentional glass borders */
 *, *::before, *::after {
-  border-color: transparent !important;
   outline: none !important;
-  box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 
 *, *:focus, *:focus-visible {
   outline: none !important;
-  box-shadow: none !important;
 }
 
 .font-brand {
@@ -191,6 +188,88 @@ html, body {
    UNIFIED SPECTRAL GRADIENT BRAND SYSTEM
    ========================================================================== */
 
+/* Style 3: Smoked Frosted Glass UI */
+.glass-panel {
+  background: rgba(15, 15, 20, 0.65) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.glass-pill {
+  background: rgba(15, 15, 20, 0.65) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9999px !important;
+}
+
+.glass-pill-sm {
+  background: rgba(15, 15, 20, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9999px !important;
+}
+
+.glass-panel-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(22, 22, 32, 0.75) !important;
+  border-color: rgba(0, 210, 255, 0.28) !important;
+  box-shadow: 0 0 24px rgba(0, 210, 255, 0.14) !important;
+}
+
+.neon-glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.25);
+}
+
+.neon-glow-violet {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+}
+
+@keyframes cyber-vault-hue {
+  0% {
+    filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.45));
+    background-position: 0% 50%;
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.55));
+    background-position: 100% 50%;
+  }
+  100% {
+    filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.45));
+    background-position: 0% 50%;
+  }
+}
+
+.cyber-wordmark {
+  font-family: 'Orbitron', var(--font-brand), sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #00d2ff 28%,
+    #38bdf8 42%,
+    #3b82f6 50%,
+    #8b5cf6 58%,
+    #a855f7 72%,
+    #ffffff 100%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  animation: cyber-vault-hue 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  display: inline-flex;
+  align-items: center;
+}
+
 /* Tight Brand Lockup Container */
 .brand-header,
 .brand-lockup {
@@ -262,79 +341,55 @@ html, body {
   display: inline-block;
 }
 
-/* Single Unified Brand Logo */
-.site-brand-logo {
-  height: clamp(28px, 4vw, 42px);
-  width: auto;
-  object-fit: contain;
-  display: block;
-  filter: drop-shadow(0 2px 10px rgba(0, 168, 232, 0.25));
-}
-
-/* Single Global Site Header (SSOT) */
+/* Brand Logo & Header Removal */
+.site-brand-logo,
 #global-site-header,
 .site-header,
-.main-header {
-  position: fixed;
-  top: 1rem;
-  left: 1.5rem;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
-}
-
-#global-site-header.scrolled,
-#global-site-header.docked-left,
-body.viewing-media #global-site-header,
-.site-header.scrolled,
-.site-header.docked-left,
-.main-header.scrolled {
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  position: fixed !important;
-  top: 1rem !important;
-  left: 1.5rem !important;
-  transform: translateX(0) !important;
-  z-index: 100 !important;
+.main-header,
+.brand-link {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
   margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
 }
 
-@media (max-width: 640px) {
-  #global-site-header.scrolled,
-  #global-site-header.docked-left,
-  body.viewing-media #global-site-header,
-  .site-header.scrolled,
-  .site-header.docked-left,
-  .main-header.scrolled {
-    left: 1rem !important;
-  }
-}
-
-/* Reserve space for the fixed/docked logo at top-left & keep top bar borderless */
+/* Balanced Viewer & Player Top Bar Layout */
 .viewer-top-bar,
 .player-header-bar,
 .player-top-bar,
 .media-viewer-top-bar {
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: flex-end !important;
   width: 100% !important;
   padding-top: 1rem !important;
   padding-bottom: 1rem !important;
   padding-right: 1.5rem !important;
-  /* Clear the logo width + breathing room */
-  padding-left: clamp(210px, 22vw, 280px) !important;
+  padding-left: 1.5rem !important;
   box-sizing: border-box !important;
   position: relative;
   z-index: 50;
   border: none !important;
   border-bottom: none !important;
   box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  .viewer-top-bar,
+  .player-header-bar,
+  .player-top-bar,
+  .media-viewer-top-bar {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
 }
 
 /* Eliminate active media filename displays in the top navigation/header row */

@@ -256,7 +256,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       }}
       role="article"
       aria-label={item.title ? `${item.title} — ${album.name}` : `${album.name} media item`}
-      className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.07] shadow-2xl hover:shadow-[0_24px_60px_rgba(0,0,0,0.95)] hover:border-white/20 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${aspectClass} ${staggeredOffset} ${diptychMargin}`}
+      className={`relative flex-shrink-0 cursor-pointer group rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/[0.08] shadow-2xl hover:shadow-[0_0_24px_rgba(0,210,255,0.18)] hover:border-[#00D2FF]/40 transition-all duration-300 ease-out hover:scale-[1.018] hover:-translate-y-1 select-none animate-fade-in ${heightClass} ${aspectClass} ${staggeredOffset} ${diptychMargin}`}
     >
       {/* Intentional Obsidian Typography Surface (Zero Black Screen Fallback) */}
       <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">

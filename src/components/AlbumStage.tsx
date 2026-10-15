@@ -36,9 +36,7 @@ export const AlbumStage: React.FC<AlbumStageProps> = (props) => {
   // Dynamic Driftime Editorial Layout Rhythms for interleaved albums:
   let variant: DriftimeVariant = 'filmstrip';
 
-  if (album.itemCount === 0 || album.layoutType?.startsWith('coming-soon')) {
-    variant = 'coming-soon';
-  } else if (
+  if (
     album.id.includes('short') ||
     album.name.toLowerCase().includes('short') ||
     album.name.toLowerCase().includes('reel') ||

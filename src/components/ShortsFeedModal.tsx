@@ -257,7 +257,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setDownloadSuccess(false);
     try {
       const dlUrl = getMediaUrl(item.url);
-      await downloadBrandedVideo(dlUrl, item.title || item.id);
+      await downloadBrandedVideo(dlUrl, item.title || item.id, 'short');
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2000);
     } catch (err) {
@@ -485,6 +485,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Ultra-blurred ambient video backdrop for landscape clips */}
+            {isLandscape && (
+              <video
+                src={getMediaUrl(streamUrl)}
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover filter blur-3xl opacity-40 scale-125 pointer-events-none z-0"
+              />
+            )}
 
             {streamUrl.includes('media.sarwar.cyou') || streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
               <video

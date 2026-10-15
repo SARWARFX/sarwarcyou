@@ -1,7 +1,19 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { ExternalLink, ZoomIn, ZoomOut, Download, Loader2, Maximize, Minimize, Check } from 'lucide-react';
+import {
+  ZoomIn,
+  ZoomOut,
+  Download,
+  Loader2,
+  Maximize,
+  Minimize,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import type { StageMediaItem } from '../types';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -9,6 +21,9 @@ interface MediaModalProps {
   url: string | null;
   type: 'video' | 'image';
   title?: string;
+  items?: StageMediaItem[];
+  currentIndex?: number;
+  onIndexChange?: (newIndex: number) => void;
 }
 
 export const MediaModal: React.FC<MediaModalProps> = ({
@@ -17,7 +32,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   url,
   type,
   title,
+  items = [],
+  currentIndex: propCurrentIndex = 0,
+  onIndexChange,
 }) => {
+  const [activeIdx, setActiveIdx] = useState<number>(propCurrentIndex);
   const [isZoomed, setIsZoomed] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -26,12 +45,36 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const isFullscreen = isNativeFullscreen || isLightboxFullscreen;
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
-  const [prevMediaKey, setPrevMediaKey] = useState({ url, isOpen });
-  if (prevMediaKey.url !== url || prevMediaKey.isOpen !== isOpen) {
-    setPrevMediaKey({ url, isOpen });
+  const [prevPropKey, setPrevPropKey] = useState({ propCurrentIndex, isOpen });
+  if (prevPropKey.propCurrentIndex !== propCurrentIndex || prevPropKey.isOpen !== isOpen) {
+    setPrevPropKey({ propCurrentIndex, isOpen });
+    setActiveIdx(propCurrentIndex);
     setIsZoomed(false);
   }
+
+  // Determine active media item
+  const hasItemList = items && items.length > 0;
+  const currentItem = hasItemList ? items[activeIdx] : null;
+  const activeUrl = currentItem?.url || url;
+  const activeTitle = currentItem?.title || title || (type === 'video' ? 'Video Stream' : 'Photograph');
+
+  const handleNext = useCallback(() => {
+    if (!hasItemList || activeIdx >= items.length - 1) return;
+    const next = activeIdx + 1;
+    setActiveIdx(next);
+    setIsZoomed(false);
+    onIndexChange?.(next);
+  }, [hasItemList, activeIdx, items.length, onIndexChange]);
+
+  const handlePrev = useCallback(() => {
+    if (!hasItemList || activeIdx <= 0) return;
+    const prev = activeIdx - 1;
+    setActiveIdx(prev);
+    setIsZoomed(false);
+    onIndexChange?.(prev);
+  }, [hasItemList, activeIdx, onIndexChange]);
 
   // Sync native fullscreen state
   useEffect(() => {
@@ -79,13 +122,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         return;
       }
     }
-    // Mobile fallback (iOS Safari, etc.)
     setIsLightboxFullscreen(true);
   }, [isFullscreen]);
 
+  // Keyboard navigation & gestures
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         if (isFullscreen) {
           if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
             if (document.exitFullscreen) {
@@ -99,250 +143,244 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         } else {
           onClose();
         }
-      } else if ((e.key === 'f' || e.key === 'F') && isOpen) {
+      } else if (e.key === 'ArrowRight') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        handlePrev();
+      } else if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
       }
     };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('viewing-media');
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('viewing-media');
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose, isFullscreen, toggleFullscreen]);
+  }, [isOpen, onClose, isFullscreen, toggleFullscreen, handleNext, handlePrev]);
 
-  // Dock global site header to top-left when media viewer is active
-  useEffect(() => {
-    const header = document.getElementById('global-site-header');
-    if (isOpen) {
-      document.body.classList.add('viewing-media');
-      if (header) header.classList.add('docked-left');
-    } else {
-      document.body.classList.remove('viewing-media');
-      if (header) header.classList.remove('docked-left');
-    }
-    return () => {
-      document.body.classList.remove('viewing-media');
-      const h = document.getElementById('global-site-header');
-      if (h) h.classList.remove('docked-left');
+  // Touch Swipe for mobile image browsing
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = {
+      x: t.clientX,
+      y: t.clientY,
+      time: performance.now(),
     };
-  }, [isOpen]);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || isZoomed) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    const dt = performance.now() - touchStartRef.current.time;
+
+    // Swipe down to dismiss
+    if (dy > 120 && Math.abs(dx) < 60 && dt < 400) {
+      onClose();
+      return;
+    }
+
+    // Horizontal swipe between photos
+    if (Math.abs(dx) > 45 && Math.abs(dy) < 60) {
+      if (dx < 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+    touchStartRef.current = null;
+  };
 
   const handleDownload = useCallback(async () => {
-    if (!url || isDownloading) return;
+    if (!activeUrl || isDownloading) return;
     setIsDownloading(true);
+    setDownloadSuccess(false);
     try {
-      const dlUrl = getMediaUrl(url);
+      const dlUrl = getMediaUrl(activeUrl);
       if (type === 'video') {
-        await downloadBrandedVideo(dlUrl, title);
+        await downloadBrandedVideo(dlUrl, activeTitle, 'clip');
       } else {
-        await applyWatermarkAndDownload(dlUrl, title);
+        await applyWatermarkAndDownload(dlUrl, activeTitle);
       }
       setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 2000);
+      setTimeout(() => setDownloadSuccess(false), 2200);
     } catch (err) {
-      console.warn('Watermarking download error, fallback to downloadMedia:', err);
-      const dlUrl = getMediaUrl(url);
-      await downloadMedia(dlUrl, title);
+      console.warn('Watermark download error, fallback to downloadMedia:', err);
+      const dlUrl = getMediaUrl(activeUrl);
+      await downloadMedia(dlUrl, activeTitle, type === 'video' ? 'clip' : 'photo');
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 2200);
     } finally {
       setIsDownloading(false);
     }
-  }, [url, title, type, isDownloading]);
+  }, [activeUrl, activeTitle, type, isDownloading]);
 
-  if (!isOpen || !url) return null;
+  if (!isOpen || !activeUrl) return null;
 
-  // Enforce HTTPS
-  const secureUrl = url.replace(/^http:\/\//i, 'https://');
-
-  // Ensure Google Drive URL is iframe embeddable
-  let streamUrl = secureUrl;
-  if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
-    streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
-    if (!streamUrl.includes('/preview')) {
-      streamUrl = streamUrl.replace(/\?usp=.*$/, '') + '/preview';
-    }
-  }
-
-  // Clean up title to remove raw camera/screenshot filenames
-  const cleanTitle = title
-    ? title.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim()
-    : type === 'video' ? 'VIDEO STREAM' : 'PORTRAIT VIEW';
-  const displayTitle = /^smartselect|videocapture|screenshot|photo\s+[a-z0-9]/i.test(cleanTitle)
-    ? (type === 'video' ? 'VIDEO STREAM' : 'PORTRAIT VIEW')
-    : cleanTitle;
+  const secureUrl = activeUrl.replace(/^http:\/\//i, 'https://');
+  const cleanTitle = activeTitle
+    ? activeTitle.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim()
+    : 'Photograph';
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl p-3 sm:p-6 md:p-10 select-none overflow-hidden animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#030305]/95 backdrop-blur-2xl select-none overflow-hidden animate-fade-in"
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
-      {/* ===== TOP STATUS / ACTION BAR (SSOT: Brand logo provided by #global-site-header) ===== */}
+      {/* Floating Smoked Frosted Glass Top HUD */}
       <div
-        className="viewer-top-bar player-header-bar fixed top-0 left-0 right-0 w-full bg-black/85 backdrop-blur-xl border-none"
+        className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Right: Actions (Zoom, Download, External Link, Prominent View Full Screen - NO Close Button) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ml-auto">
-          {type === 'image' && (
+        <div className="glass-pill pointer-events-auto flex items-center justify-between gap-3 px-4 py-2 w-full max-w-4xl shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
+          {/* Left: Title & Counter */}
+          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+            <span className="text-xs sm:text-sm font-bold font-sans text-zinc-200 uppercase tracking-wider truncate max-w-[200px] sm:max-w-md">
+              {cleanTitle}
+            </span>
+            {hasItemList && (
+              <span className="text-[10px] sm:text-xs font-mono font-semibold text-[#00D2FF] bg-[#00D2FF]/10 px-2 py-0.5 rounded-full flex-shrink-0 border border-[#00D2FF]/20">
+                {activeIdx + 1} / {items.length}
+              </span>
+            )}
+          </div>
+
+          {/* Right: Controls */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {type === 'image' && (
+              <button
+                onClick={() => setIsZoomed(!isZoomed)}
+                className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                title={isZoomed ? 'Zoom Out (100%)' : 'Zoom In (165%)'}
+              >
+                {isZoomed ? <ZoomOut className="w-4 h-4 text-[#00D2FF]" /> : <ZoomIn className="w-4 h-4" />}
+              </button>
+            )}
+
             <button
-              onClick={() => setIsZoomed(!isZoomed)}
-              className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer"
-              title={isZoomed ? 'Zoom out (100%)' : 'Zoom in (165%)'}
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-brand tracking-wider transition-all cursor-pointer ${
+                downloadSuccess
+                  ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white border border-white/10'
+              } disabled:opacity-40`}
+              title="1-Click Download"
             >
-              {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
+              {downloadSuccess ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">SAVED</span>
+                </>
+              ) : (
+                <>
+                  {isDownloading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00D2FF]" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isDownloading ? 'SAVING...' : 'DOWNLOAD'}
+                  </span>
+                </>
+              )}
             </button>
-          )}
 
-          <button
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 cursor-pointer ${
-              downloadSuccess
-                ? 'bg-emerald-950/80 text-emerald-300'
-                : 'bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-200 hover:text-white'
-            } disabled:opacity-40`}
-            title="Direct Media Download"
-          >
-            {downloadSuccess ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span className="hidden sm:inline">SAVED</span>
-              </>
-            ) : (
-              <>
-                {isDownloading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">
-                  {isDownloading ? 'DOWNLOADING...' : 'DOWNLOAD'}
-                </span>
-              </>
-            )}
-          </button>
+            <button
+              onClick={toggleFullscreen}
+              className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              title={isFullscreen ? 'Exit Full Screen' : 'View Full Screen'}
+            >
+              {isFullscreen ? <Minimize className="w-4 h-4 text-[#00D2FF]" /> : <Maximize className="w-4 h-4" />}
+            </button>
 
-          <a
-            href={secureUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer"
-            title="Open in new tab"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </a>
-
-          {/* Prominent View Full Screen Button (Replaces Close Button) */}
-          <button
-            onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-200 hover:text-white text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 cursor-pointer"
-            title={isFullscreen ? 'Exit Full Screen' : 'View Full Screen'}
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline">EXIT FULLSCREEN</span>
-              </>
-            ) : (
-              <>
-                <Maximize className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline">VIEW FULL SCREEN</span>
-              </>
-            )}
-          </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-300 transition-colors cursor-pointer ml-1"
+              title="Close Viewer (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main player box */}
-      <div
-        ref={mediaBoxRef}
-        onDoubleClick={toggleFullscreen}
-        className={`relative w-full max-w-5xl max-h-[85vh] rounded-2xl overflow-hidden bg-black/95 shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col items-center justify-center transition-all ${
-          isLightboxFullscreen ? 'is-fullscreen lightbox-fullscreen-active' : 'mt-12 sm:mt-14'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {isLightboxFullscreen && (
+      {/* Side Arrow Navigation (Desktop & Tablet) */}
+      {hasItemList && items.length > 1 && (
+        <>
           <button
             onClick={(e) => {
               e.stopPropagation();
-              toggleFullscreen();
+              handlePrev();
             }}
-            className="absolute top-4 right-4 z-[999999] px-3 py-1.5 rounded-full bg-black/80 hover:bg-black text-white text-xs font-mono font-bold tracking-wider border border-white/20 backdrop-blur-md shadow-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Exit Fullscreen"
+            disabled={activeIdx <= 0}
+            className="fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-3.5 rounded-full glass-panel text-zinc-300 hover:text-white hover:border-[#00D2FF]/40 hover:shadow-[0_0_20px_rgba(0,210,255,0.25)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+            title="Previous (Left Arrow)"
           >
-            <Minimize className="w-3.5 h-3.5 text-cyan-400" />
-            <span>EXIT FULLSCREEN</span>
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-        )}
 
-        <div className="w-full px-5 py-3 bg-white/[0.02] flex items-center justify-between text-xs font-mono text-white/60">
-          <span className="truncate max-w-[80%] font-bold text-white uppercase tracking-wider">{displayTitle}</span>
-          <span className="text-[#00D2FF] font-semibold">{type === 'video' ? 'STREAMING 1080P' : (isZoomed ? 'ZOOMED 165%' : 'HIGH DEFINITION')}</span>
-        </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            disabled={activeIdx >= items.length - 1}
+            className="fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-3.5 rounded-full glass-panel text-zinc-300 hover:text-white hover:border-[#00D2FF]/40 hover:shadow-[0_0_20px_rgba(0,210,255,0.25)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+            title="Next (Right Arrow)"
+          >
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+        </>
+      )}
 
+      {/* Main Image Stage */}
+      <div
+        ref={mediaBoxRef}
+        className={`relative w-full h-full flex items-center justify-center p-3 sm:p-8 md:p-12 transition-all ${
+          isLightboxFullscreen ? 'is-fullscreen lightbox-fullscreen-active' : ''
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {type === 'video' ? (
-          <div className="w-full aspect-video bg-black flex items-center justify-center">
-            {streamUrl.includes('media.sarwar.cyou') || streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
-              <video
-                src={getMediaUrl(streamUrl)}
-                controls
-                autoPlay
-                preload="metadata"
-                playsInline
-                {...{ 'webkit-playsinline': 'true' }}
-                crossOrigin="anonymous"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <iframe
-                src={streamUrl}
-                className="w-full h-full border-0"
-                allow="autoplay; encrypted-media; fullscreen"
-                allowFullScreen
-                title={title || 'Media Stream'}
-              />
-            )}
+          <div className="w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center border border-white/10">
+            <video
+              src={getMediaUrl(secureUrl)}
+              controls
+              autoPlay
+              preload="metadata"
+              playsInline
+              {...{ 'webkit-playsinline': 'true' }}
+              crossOrigin="anonymous"
+              className="w-full h-full object-contain"
+            />
           </div>
         ) : (
-          <div className="relative w-full h-[78vh] flex items-center justify-center p-2 sm:p-4 bg-black/50 overflow-hidden">
-            {/* If Google Drive file ID is present, use high-res direct image CDN */}
-            {(() => {
-              const driveIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-              const driveId = driveIdMatch ? driveIdMatch[1] : null;
-              const directImgUrl = driveId
-                ? `https://lh3.googleusercontent.com/u/0/d/${driveId}=w2560`
-                : getMediaUrl(url);
-
-              return (
-                <img
-                  src={directImgUrl}
-                  alt={title || 'Photo Lightbox'}
-                  onClick={() => setIsZoomed(!isZoomed)}
-                  className={`max-w-full max-h-full object-contain rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/5 transition-transform duration-300 ${
-                    isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
-                  }`}
-                  onError={(e) => {
-                    const parent = e.currentTarget.parentElement;
-                    if (parent && streamUrl) {
-                      e.currentTarget.style.display = 'none';
-                      const iframe = document.createElement('iframe');
-                      iframe.src = streamUrl;
-                      iframe.className = 'w-full h-full border-0 rounded-xl';
-                      iframe.allow = 'fullscreen';
-                      parent.appendChild(iframe);
-                    }
-                  }}
-                />
-              );
-            })()}
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            <img
+              src={getMediaUrl(secureUrl)}
+              alt={cleanTitle}
+              onClick={() => setIsZoomed(!isZoomed)}
+              className={`max-w-full max-h-[82vh] object-contain rounded-xl select-none transition-transform duration-300 ${
+                isZoomed ? 'scale-[1.65] cursor-zoom-out' : 'scale-100 cursor-zoom-in'
+              } drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]`}
+              draggable={false}
+            />
           </div>
         )}
       </div>
     </div>
   );
 };
+
+export default MediaModal;

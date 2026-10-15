@@ -3,11 +3,34 @@
  * Single-Source-of-Truth (SSOT) client-side canvas watermarking pipeline
  * for SARWARCYOU Media Vault (sarwar.cyou).
  *
- * Dynamically stamps BRAND_CONFIG.logoSrc (/SARWARCYOU.svg) onto downloaded images.
+ * Implements offscreen HTML5 canvas drawing:
+ * - Bottom-Left: Stamp "SARWARCYOU" logo with futuristic styling (Orbitron, White -> Electric Blue -> White gradient, drop shadow)
+ * - Bottom-Right: Stamp "sarwar.cyou" with drop-shadow
+ * - Exports blob directly with sarwarcyou_sarwar.cyou_photo_[OriginalName] filename convention.
  */
 
-import { BRAND_CONFIG } from '../config/brand';
 import { getMediaUrl } from './imageUrlResolver';
+
+export function formatPhotoDownloadFilename(rawName?: string, ext = 'jpg'): string {
+  let base = (rawName || 'photo').trim();
+  base = base.split('?')[0].split('#')[0];
+  base = base.split('/').pop() || base;
+
+  // Strip image extensions if already present
+  base = base.replace(/\.(jpg|jpeg|png|webp|avif|gif|bmp|tiff|heic)$/i, '');
+
+  try {
+    base = decodeURIComponent(base);
+  } catch {
+    /* leave as is */
+  }
+
+  base = base.replace(/[/\\:*?"<>|]+/g, '_').trim();
+  base = base.replace(/_+/g, '_').replace(/^_|_$/g, '') || 'photo';
+
+  const cleanExt = (ext.replace(/^\./, '') || 'jpg').toLowerCase();
+  return `sarwarcyou_sarwar.cyou_photo_${base}.${cleanExt}`;
+}
 
 /**
  * Universal client-side image watermarking and download trigger.
@@ -17,11 +40,6 @@ export async function applyWatermarkAndDownload(
   source: HTMLImageElement | string | Blob,
   originalFilename?: string
 ): Promise<void> {
-  const brand =
-    typeof window !== 'undefined' && window.BRAND_CONFIG
-      ? window.BRAND_CONFIG
-      : BRAND_CONFIG;
-
   let imageElement: HTMLImageElement;
   let objectUrlToRevoke: string | null = null;
 
@@ -52,46 +70,50 @@ export async function applyWatermarkAndDownload(
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Unable to acquire 2D canvas context');
 
-    // 1. Draw base photo
+    // 1. Draw base high-res photo
     ctx.drawImage(imageElement, 0, 0);
 
-    // 2. Load SSOT Logo Image dynamically
-    const logoImg = new Image();
-    logoImg.crossOrigin = 'anonymous';
-    logoImg.src = brand.logoSrc;
-    await new Promise((resolve) => {
-      logoImg.onload = resolve;
-      logoImg.onerror = resolve; // fallback gracefully if blocked
-    });
+    const padX = Math.round(canvas.width * 0.035);
+    const padY = Math.round(canvas.height * 0.035);
 
-    // 3. Draw Brand Logo at Top-Left
-    if (logoImg.width) {
-      const logoScale = (canvas.width * 0.16) / logoImg.width; // proportional width
-      const logoW = logoImg.width * logoScale;
-      const logoH = logoImg.height * logoScale;
-      const padX = canvas.width * 0.035;
-      const padY = canvas.height * 0.035;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 10;
-      ctx.drawImage(logoImg, padX, padY, logoW, logoH);
-      ctx.shadowBlur = 0;
-    }
+    // 2. Bottom-Left: Stamp "SARWARCYOU" futuristic wordmark logo
+    ctx.save();
+    const logoFontSize = Math.max(16, Math.round(canvas.width * 0.024));
+    ctx.font = `900 ${logoFontSize}px Orbitron, Rajdhani, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
 
-    // 4. Draw Plain White Source Text at Bottom-Right
-    const fontSize = Math.max(14, Math.round(canvas.width * 0.016));
-    ctx.font = `600 ${fontSize}px Rajdhani, sans-serif`;
-    ctx.fillStyle = '#FFFFFF';
+    const sampleWidth = ctx.measureText('SARWARCYOU').width;
+    const textGrad = ctx.createLinearGradient(padX, 0, padX + sampleWidth, 0);
+    textGrad.addColorStop(0, '#FFFFFF');
+    textGrad.addColorStop(0.5, '#00D2FF');
+    textGrad.addColorStop(1, '#FFFFFF');
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = Math.round(logoFontSize * 0.5);
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = textGrad;
+    ctx.fillText('SARWARCYOU', padX, canvas.height - padY);
+    ctx.restore();
+
+    // 3. Bottom-Right: Stamp "sarwar.cyou" with clean drop shadow
+    ctx.save();
+    const domainFontSize = Math.max(13, Math.round(canvas.width * 0.016));
+    ctx.font = `600 ${domainFontSize}px Rajdhani, sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-    ctx.shadowBlur = 6;
-    ctx.fillText(
-      `Source: ${brand.sourceUrl}`,
-      canvas.width - canvas.width * 0.035,
-      canvas.height - canvas.height * 0.035
-    );
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = Math.round(domainFontSize * 0.45);
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fillText('sarwar.cyou', canvas.width - padX, canvas.height - padY);
+    ctx.restore();
 
-    // 5. Trigger download
+    // 4. Export formatted filename
+    const targetFilename = formatPhotoDownloadFilename(originalFilename, 'jpg');
+
     await new Promise<void>((resolve) => {
       canvas.toBlob(
         (blob) => {
@@ -102,7 +124,7 @@ export async function applyWatermarkAndDownload(
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = originalFilename || 'sarwarcyou-media.jpg';
+          a.download = targetFilename;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -127,11 +149,6 @@ export async function applyImageWatermark(
   source: string | Blob,
   _mimeType?: string
 ): Promise<Blob> {
-  const brand =
-    typeof window !== 'undefined' && window.BRAND_CONFIG
-      ? window.BRAND_CONFIG
-      : BRAND_CONFIG;
-
   let imageSrc: string;
   let objectUrlToRevoke: string | null = null;
 
@@ -163,38 +180,43 @@ export async function applyImageWatermark(
 
     ctx.drawImage(img, 0, 0);
 
-    const logoImg = new Image();
-    logoImg.crossOrigin = 'anonymous';
-    logoImg.src = brand.logoSrc;
-    await new Promise((resolve) => {
-      logoImg.onload = resolve;
-      logoImg.onerror = resolve;
-    });
+    const padX = Math.round(canvas.width * 0.035);
+    const padY = Math.round(canvas.height * 0.035);
 
-    if (logoImg.width) {
-      const logoScale = (canvas.width * 0.16) / logoImg.width;
-      const logoW = logoImg.width * logoScale;
-      const logoH = logoImg.height * logoScale;
-      const padX = canvas.width * 0.035;
-      const padY = canvas.height * 0.035;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 10;
-      ctx.drawImage(logoImg, padX, padY, logoW, logoH);
-      ctx.shadowBlur = 0;
-    }
+    // Bottom-Left
+    ctx.save();
+    const logoFontSize = Math.max(16, Math.round(canvas.width * 0.024));
+    ctx.font = `900 ${logoFontSize}px Orbitron, Rajdhani, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
 
-    const fontSize = Math.max(14, Math.round(canvas.width * 0.016));
-    ctx.font = `600 ${fontSize}px Rajdhani, sans-serif`;
-    ctx.fillStyle = '#FFFFFF';
+    const sampleWidth = ctx.measureText('SARWARCYOU').width;
+    const textGrad = ctx.createLinearGradient(padX, 0, padX + sampleWidth, 0);
+    textGrad.addColorStop(0, '#FFFFFF');
+    textGrad.addColorStop(0.5, '#00D2FF');
+    textGrad.addColorStop(1, '#FFFFFF');
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = Math.round(logoFontSize * 0.5);
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = textGrad;
+    ctx.fillText('SARWARCYOU', padX, canvas.height - padY);
+    ctx.restore();
+
+    // Bottom-Right
+    ctx.save();
+    const domainFontSize = Math.max(13, Math.round(canvas.width * 0.016));
+    ctx.font = `600 ${domainFontSize}px Rajdhani, sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-    ctx.shadowBlur = 6;
-    ctx.fillText(
-      `Source: ${brand.sourceUrl}`,
-      canvas.width - canvas.width * 0.035,
-      canvas.height - canvas.height * 0.035
-    );
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = Math.round(domainFontSize * 0.45);
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fillText('sarwar.cyou', canvas.width - padX, canvas.height - padY);
+    ctx.restore();
 
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
