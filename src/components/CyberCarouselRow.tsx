@@ -34,20 +34,6 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [subFilter, setSubFilter] = useState<AlbumCategoryFilter>('all');
-  const [isTouchPaused, setIsTouchPaused] = useState(false);
-  const touchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleTouchStart = () => {
-    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-    setIsTouchPaused(true);
-  };
-
-  const handleTouchEnd = () => {
-    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-    touchTimeoutRef.current = setTimeout(() => {
-      setIsTouchPaused(false);
-    }, 2500);
-  };
 
   const counts = useMemo(() => {
     if (typeCounts) return typeCounts;
@@ -81,16 +67,6 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
       return true;
     });
   }, [items, showFilters, subFilter]);
-
-  // Duplicate items for continuous seamless -50% marquee loop
-  const marqueeItems = useMemo(() => {
-    if (!filteredItems || filteredItems.length === 0) return [];
-    let base = [...filteredItems];
-    while (base.length < 8) {
-      base = [...base, ...filteredItems];
-    }
-    return [...base, ...base];
-  }, [filteredItems]);
 
   if (!items || items.length === 0) return null;
 
@@ -186,31 +162,21 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
         </div>
       </div>
 
-      {/* Continuous Sliding Marquee Track */}
-      <div className="relative group/row overflow-hidden">
-        <div
-          ref={trackRef}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className="w-full overflow-x-auto no-scrollbar scroll-smooth py-3 px-1 select-none"
-        >
-          <div
-            className={`flex items-center gap-3.5 sm:gap-4 flex-nowrap animate-marquee-slow group-hover/row:[animation-play-state:paused] hover:[animation-play-state:paused] ${
-              isTouchPaused ? 'is-paused' : ''
-            }`}
-          >
-            {marqueeItems.map((item, idx) => (
-              <CyberCard
-                key={`${item.id || item.url}-${idx}`}
-                item={item}
-                variant={variant}
-                albumItems={filteredItems}
-                initialIndex={idx % filteredItems.length}
-                onClick={(it) => onSelectItem(it, filteredItems)}
-              />
-            ))}
-          </div>
-        </div>
+      {/* Natural Horizontal Carousel Track */}
+      <div
+        ref={trackRef}
+        className="flex gap-4 overflow-x-auto no-scrollbar scrollbar-none scroll-smooth px-4 md:px-12 py-2 select-none"
+      >
+        {filteredItems.map((item, idx) => (
+          <CyberCard
+            key={item.id || `${item.url}-${idx}`}
+            item={item}
+            variant={variant}
+            albumItems={filteredItems}
+            initialIndex={idx % filteredItems.length}
+            onClick={(it) => onSelectItem(it, filteredItems)}
+          />
+        ))}
       </div>
     </section>
   );

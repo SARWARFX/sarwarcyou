@@ -131,42 +131,15 @@ html, body {
 }
 
 /* Hide scrollbars for carousel tracks */
-.no-scrollbar::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
   display: none !important;
 }
 
-.no-scrollbar {
+.no-scrollbar,
+.scrollbar-none {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
-}
-
-/* Continuous Cinematic Marquee Effect */
-@keyframes marqueeSlide {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-.animate-marquee-slow {
-  display: flex;
-  width: max-content;
-  animation: marqueeSlide 55s linear infinite;
-  will-change: transform;
-}
-
-.group\/row:hover .animate-marquee-slow,
-.animate-marquee-slow:hover,
-.animate-marquee-slow.is-paused {
-  animation-play-state: paused !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-marquee-slow {
-    animation: none !important;
-  }
 }
 
 /* Minimalist Footer Mailto Links */
