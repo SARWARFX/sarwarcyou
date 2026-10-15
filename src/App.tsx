@@ -286,8 +286,8 @@ function App() {
         onResetHome={handleResetHome}
       />
 
-      {/* Main Content Stage: Left Rail Offset on Desktop, Bottom Dock Offset on Mobile */}
-      <div className="w-full md:pl-16 lg:pl-20 pb-20 md:pb-10 flex flex-col min-h-screen">
+      {/* Main Content Stage */}
+      <div className="w-full md:pl-12 lg:pl-14 pb-12 flex flex-col min-h-screen">
         {/* 2. Netflix Hero Billboard (Headline Banner) */}
         {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && featuredItem && (
           <NetflixBillboard

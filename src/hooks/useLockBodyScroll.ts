@@ -24,12 +24,28 @@ export function useLockBodyScroll(isOpen: boolean = true) {
     document.body.classList.add('viewing-media');
 
     return () => {
+      // 1. Instantly disable smooth scroll so the restore happens in 0ms without animated auto-scroll
+      const html = document.documentElement;
+      const prevHtmlScrollBehavior = html.style.scrollBehavior;
+      const prevBodyScrollBehavior = document.body.style.scrollBehavior;
+      html.style.scrollBehavior = 'auto';
+      document.body.style.scrollBehavior = 'auto';
+
+      // 2. Revert styles
       document.body.style.position = originalStyle.position;
       document.body.style.top = originalStyle.top;
       document.body.style.width = originalStyle.width;
       document.body.style.overflow = originalStyle.overflow;
       document.body.classList.remove('viewing-media');
+
+      // 3. Immediately restore exact scroll position
       window.scrollTo(0, scrollY);
+
+      // 4. Restore smooth scroll behavior on next frame
+      requestAnimationFrame(() => {
+        html.style.scrollBehavior = prevHtmlScrollBehavior;
+        document.body.style.scrollBehavior = prevBodyScrollBehavior;
+      });
     };
   }, [isOpen]);
 }
