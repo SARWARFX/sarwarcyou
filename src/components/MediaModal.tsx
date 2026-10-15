@@ -405,6 +405,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           isLightboxFullscreen ? 'is-fullscreen lightbox-fullscreen-active' : ''
         }`}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {type === 'video' ? (
           <div className="w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center border border-white/10">

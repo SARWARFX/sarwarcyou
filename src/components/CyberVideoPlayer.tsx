@@ -293,6 +293,101 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     gestureDragRef.current = null;
   };
 
+  // Explicit Mobile Touchscreen Handlers for guaranteed compatibility
+  const handleStageTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length > 1) {
+      if (gestureDragRef.current) gestureDragRef.current.isLockedVertical = true;
+      return;
+    }
+    const t = e.touches[0];
+    if (gestureFadeTimeoutRef.current) {
+      window.clearTimeout(gestureFadeTimeoutRef.current);
+      gestureFadeTimeoutRef.current = null;
+    }
+    const currentVidTime = videoRef.current ? videoRef.current.currentTime : currentTime;
+    gestureDragRef.current = {
+      pointerId: -1,
+      startX: t.clientX,
+      startY: t.clientY,
+      startTime: currentVidTime,
+      isLockedHorizontal: false,
+      isLockedVertical: false,
+      hasMovedPastThreshold: false,
+      targetTime: currentVidTime,
+      deltaSeconds: 0,
+    };
+  };
+
+  const handleStageTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const drag = gestureDragRef.current;
+    if (!drag || e.touches.length > 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - drag.startX;
+    const dy = t.clientY - drag.startY;
+
+    if (!drag.isLockedHorizontal && !drag.isLockedVertical) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+        drag.isLockedVertical = true;
+        return;
+      }
+      if (Math.abs(dx) > 10 && Math.abs(dx) >= Math.abs(dy)) {
+        drag.isLockedHorizontal = true;
+        drag.hasMovedPastThreshold = true;
+      }
+    }
+
+    if (drag.isLockedVertical || !drag.isLockedHorizontal) return;
+
+    const vidDuration = videoRef.current?.duration || duration || 60;
+    const secPerPx = Math.max(0.1, Math.min(0.5, vidDuration / 600));
+    const deltaSeconds = Math.round(dx * secPerPx);
+    const targetTime = Math.max(0, Math.min(vidDuration, drag.startTime + deltaSeconds));
+    const actualDelta = Math.round(targetTime - drag.startTime);
+
+    drag.targetTime = targetTime;
+    drag.deltaSeconds = actualDelta;
+
+    setGestureSeek({
+      isActive: true,
+      isVisible: true,
+      deltaSeconds: actualDelta,
+      targetTime,
+      icon: actualDelta >= 0 ? 'forward' : 'rewind',
+    });
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = targetTime;
+      setCurrentTime(targetTime);
+    }
+    resetHudTimer();
+  };
+
+  const handleStageTouchEnd = () => {
+    const drag = gestureDragRef.current;
+    if (!drag) return;
+
+    if (drag.hasMovedPastThreshold && drag.isLockedHorizontal) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = drag.targetTime;
+        setCurrentTime(drag.targetTime);
+        if (loopA !== null && loopB !== null && loopB > loopA) {
+          if (drag.targetTime >= loopB || drag.targetTime < loopA) {
+            videoRef.current.currentTime = loopA;
+            setCurrentTime(loopA);
+          }
+        }
+      }
+
+      setGestureSeek((prev) => ({ ...prev, isActive: false }));
+      if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
+      gestureFadeTimeoutRef.current = window.setTimeout(() => {
+        setGestureSeek((prev) => ({ ...prev, isVisible: false }));
+      }, 400);
+    }
+
+    gestureDragRef.current = null;
+  };
+
   // Relative Seek
   const seekBy = useCallback((delta: number) => {
     if (!videoRef.current) return;
@@ -515,6 +610,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         onPointerMove={handleStagePointerMove}
         onPointerUp={handleStagePointerUp}
         onPointerCancel={handleStagePointerCancel}
+        onTouchStart={handleStageTouchStart}
+        onTouchMove={handleStageTouchMove}
+        onTouchEnd={handleStageTouchEnd}
+        onTouchCancel={handleStageTouchEnd}
       >
         <video
           ref={videoRef}

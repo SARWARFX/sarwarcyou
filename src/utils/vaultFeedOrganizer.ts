@@ -6,8 +6,10 @@ import {
   isExcludedAlbum,
   isThumbnailFile,
   parseMediaPath,
+  isVideoExtension,
 } from './mediaTypeDetector';
 import { getItemTimestamp } from './albumExtractor';
+import { getVideoThumbnails } from './thumbnailResolver';
 
 export interface VaultFeedData {
   latestReleases: StageMediaItem[];
@@ -91,13 +93,16 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       const mediaUrl = getMediaUrl(it.url || p);
       const title = cleanTitleFromPath(p);
       const parsed = parseMediaPath(p);
+      const thumbs = getVideoThumbnails({ url: mediaUrl, path: p, thumbnails: it.thumbnails });
+      const defaultThumb = thumbs[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl);
       const item: StageMediaItem = {
         id: `short-${p.replace(/[/\\.]+/g, '-')}`,
         title,
         name: title,
         url: mediaUrl,
-        thumbnail: it.poster ? getMediaUrl(it.poster) : mediaUrl,
-        poster: it.poster ? getMediaUrl(it.poster) : undefined,
+        thumbnail: defaultThumb,
+        poster: thumbs[0] || (it.poster ? getMediaUrl(it.poster) : undefined),
+        thumbnails: thumbs,
         category: parsed.isNested ? formatFolderName(parsed.parentAlbum) : 'Shorts & Reels',
         type: 'video' as const,
         mediaType: 'short',
@@ -129,13 +134,16 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
 
     const mediaUrl = getMediaUrl(it.url || p);
     const title = cleanTitleFromPath(p);
+    const thumbs = getVideoThumbnails({ url: mediaUrl, path: p, thumbnails: it.thumbnails });
+    const defaultThumb = thumbs[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl);
     const item: StageMediaItem = {
       id: `clip-${p.replace(/[/\\.]+/g, '-')}`,
       title,
       name: title,
       url: mediaUrl,
-      thumbnail: it.poster ? getMediaUrl(it.poster) : mediaUrl,
-      poster: it.poster ? getMediaUrl(it.poster) : undefined,
+      thumbnail: defaultThumb,
+      poster: thumbs[0] || (it.poster ? getMediaUrl(it.poster) : undefined),
+      thumbnails: thumbs,
       category: formatFolderName(subfolder, 'video'),
       type: 'video',
       mediaType: 'clip',
@@ -187,16 +195,20 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
 
     const mediaUrl = getMediaUrl(it.url || p);
     const title = cleanTitleFromPath(p);
+    const isVid = isVideoExtension(p);
+    const thumbs = isVid ? getVideoThumbnails({ url: mediaUrl, path: p, thumbnails: it.thumbnails }) : undefined;
+    const defaultThumb = thumbs ? (thumbs[0] || mediaUrl) : mediaUrl;
     const item: StageMediaItem = {
-      id: `photo-${p.replace(/[/\\.]+/g, '-')}`,
+      id: `${isVid ? 'clip' : 'photo'}-${p.replace(/[/\\.]+/g, '-')}`,
       title,
       name: title,
       url: mediaUrl,
-      thumbnail: mediaUrl,
-      poster: mediaUrl,
-      category: formatFolderName(subfolder, 'image'),
-      type: 'image',
-      mediaType: 'photo',
+      thumbnail: defaultThumb,
+      poster: thumbs ? (thumbs[0] || undefined) : mediaUrl,
+      thumbnails: thumbs,
+      category: formatFolderName(subfolder, isVid ? 'video' : 'image'),
+      type: isVid ? 'video' : 'image',
+      mediaType: isVid ? 'clip' : 'photo',
       parentAlbum: parsed.parentAlbum,
       innerFolder: parsed.innerFolder,
       date: getItemTimestamp(it),

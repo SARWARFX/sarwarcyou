@@ -67,30 +67,57 @@ export function parseVideoPathInfo(urlOrPath: string): VideoPathInfo | null {
 }
 
 /**
- * Derives the anticipated 5-frame pre-rendered thumbnail URLs:
- * thumbnails/{videoName}/{videoName}_thumb_1.jpg through thumb_5.jpg
+ * Derives the 5-frame pre-rendered thumbnail URLs from dedicated mirror directory:
+ * Path format: Thumbnails/${basePathWithoutExtension}_thumb_${1..5}.jpg
  */
 export function getAnticipatedThumbnailUrls(urlOrPath: string): string[] {
-  const info = parseVideoPathInfo(urlOrPath);
-  if (!info) return [];
+  if (!urlOrPath) return [];
 
-  // Primary 5-frame extraction: thumbnails/{videoName}/{videoName}_thumb_1.jpg to thumb_5.jpg
+  const relPath = extractHfRelativePath(urlOrPath);
+  if (!relPath) return [];
+
+  // If already pointing inside Thumbnails/ mirror directory
+  const thumbMatch = relPath.match(/^Thumbnails\/(.+?)_thumb_\d+\.jpg$/i);
+  if (thumbMatch) {
+    const base = thumbMatch[1];
+    return [1, 2, 3, 4, 5].map((idx) => buildHfMediaUrl(`Thumbnails/${base}_thumb_${idx}.jpg`));
+  }
+
+  // Strip video extension (.mp4, .mov, etc.)
+  const basePathWithoutExtension = relPath.replace(/\.(mp4|mov|webm|mkv|m4v|avi|flv)$/i, '');
+  if (!basePathWithoutExtension) return [];
+
   return [1, 2, 3, 4, 5].map((idx) => {
-    return buildHfMediaUrl(`thumbnails/${info.stem}/${info.stem}_thumb_${idx}.jpg`);
+    return buildHfMediaUrl(`Thumbnails/${basePathWithoutExtension}_thumb_${idx}.jpg`);
   });
 }
 
 /**
- * Derives fallback 5-frame thumbnail URLs without the inner filename prefix:
- * thumbnails/{videoName}/thumb_1.jpg through thumb_5.jpg
+ * Derives 5-frame thumbnail URLs for any video media item or path.
+ * Format: Thumbnails/${basePathWithoutExtension}_thumb_${1..5}.jpg
+ */
+export function getVideoThumbnails(
+  itemOrPath: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
+): string[] {
+  if (!itemOrPath) return [];
+
+  if (typeof itemOrPath === 'object' && itemOrPath.thumbnails && itemOrPath.thumbnails.length >= 5) {
+    return itemOrPath.thumbnails.map((t) => buildHfMediaUrl(t));
+  }
+
+  const raw = typeof itemOrPath === 'string'
+    ? itemOrPath
+    : (('path' in itemOrPath && typeof itemOrPath.path === 'string') ? itemOrPath.path : (itemOrPath.url || ''));
+
+  if (!raw) return [];
+  return getAnticipatedThumbnailUrls(raw);
+}
+
+/**
+ * Backwards compatibility alias for fallback multi-frame thumbnail URLs
  */
 export function getAnticipatedThumbnailUrlsWithExt(urlOrPath: string): string[] {
-  const info = parseVideoPathInfo(urlOrPath);
-  if (!info) return [];
-
-  return [1, 2, 3, 4, 5].map((idx) => {
-    return buildHfMediaUrl(`thumbnails/${info.stem}/thumb_${idx}.jpg`);
-  });
+  return getAnticipatedThumbnailUrls(urlOrPath);
 }
 
 import { isVideoExtension } from './mediaTypeDetector';
