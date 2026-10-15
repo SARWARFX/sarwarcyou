@@ -15,7 +15,7 @@ export interface NetflixNavProps {
   onFilterChange: (filter: CyberFilterType) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onShuffle: () => void;
+  onShuffle?: () => void;
   onResetHome: () => void;
 }
 
@@ -77,18 +77,6 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
               : 'opacity-25 -translate-x-3 scale-95'
           }`}
         >
-          {/* Top: Brand Monogram */}
-          <button
-            type="button"
-            onClick={onResetHome}
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00E5FF] to-cyan-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,255,0.4)] hover:shadow-[0_0_22px_rgba(0,229,255,0.7)] transition-all cursor-pointer hover:scale-105 active:scale-95"
-            title="Sarwar C You — Home"
-          >
-            <span className="text-black font-black text-sm tracking-tighter font-sans">S</span>
-          </button>
-
-          <div className="w-5 h-px bg-white/15 my-0.5" />
-
           {/* Navigation Items (Home, Videos, Images, Shorts) */}
           <nav className="flex flex-col items-center gap-2">
             {navItems.map((item) => {
@@ -163,16 +151,6 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
               </div>
             )}
           </div>
-
-          {/* Surprise Me (Shuffle) */}
-          <button
-            type="button"
-            onClick={onShuffle}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-[#00E5FF] hover:bg-white/10 transition-all duration-200 hover:rotate-180 cursor-pointer"
-            title="Surprise Me (Play Random Media)"
-          >
-            <Shuffle className="w-4 h-4" />
-          </button>
         </aside>
       </div>
 

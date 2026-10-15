@@ -1,33 +1,68 @@
-import React, { useState } from 'react';
-import { Play, Info, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Play, Folder, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 
 export interface NetflixBillboardProps {
-  item: StageMediaItem | null;
-  onPlay: (item: StageMediaItem) => void;
-  onMoreInfo?: (item: StageMediaItem) => void;
+  items?: StageMediaItem[];
+  item?: StageMediaItem | null;
+  onPlay: (item: StageMediaItem, playlistContext?: StageMediaItem[]) => void;
+  onOpenAlbum?: (item: StageMediaItem) => void;
 }
 
 export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
+  items,
   item,
   onPlay,
-  onMoreInfo,
+  onOpenAlbum,
 }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
 
-  if (!item) return null;
+  // Determine playlist: prioritize 10-video rotating playlist, fallback to single item
+  const playlist = useMemo(() => {
+    if (items && items.length > 0) return items;
+    if (item) return [item];
+    return [];
+  }, [items, item]);
+
+  // Keep currentIndex bounded
+  const safeIndex = playlist.length > 0 ? currentIndex % playlist.length : 0;
+  const currentItem = playlist[safeIndex] || null;
+
+  // 10-second timer to auto-advance to next video across different folders
+  useEffect(() => {
+    if (playlist.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % playlist.length);
+    }, 10000);
+
+    return () => clearInterval(timer);
+  }, [playlist.length, safeIndex]);
+
+  const handleNext = () => {
+    if (playlist.length > 1) {
+      setCurrentIndex((prev) => (prev + 1) % playlist.length);
+    }
+  };
+
+  const handleSelectIndex = (idx: number) => {
+    setCurrentIndex(idx);
+  };
+
+  if (!currentItem) return null;
 
   const isVideo =
-    item.type === 'video' ||
-    item.mediaType === 'clip' ||
-    item.mediaType === 'short' ||
-    /\.(mp4|mov|webm)$/i.test(item.url);
+    currentItem.type === 'video' ||
+    currentItem.mediaType === 'clip' ||
+    currentItem.mediaType === 'short' ||
+    /\.(mp4|mov|webm)$/i.test(currentItem.url);
 
-  const cleanTitle = sanitizeMediaTitle(item.title || item.name, item.category);
-  const mediaSrc = getMediaUrl(item.url);
-  const posterSrc = item.thumbnail || item.poster || mediaSrc;
+  const cleanTitle = sanitizeMediaTitle(currentItem.title || currentItem.name, currentItem.category);
+  const mediaSrc = getMediaUrl(currentItem.url);
+  const posterSrc = currentItem.thumbnail || currentItem.poster || mediaSrc;
 
   return (
     <div className="relative w-full h-[62vh] sm:h-[70vh] lg:h-[82vh] max-h-[760px] overflow-hidden select-none bg-black">
@@ -35,16 +70,18 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
       <div className="absolute inset-0 z-0">
         {isVideo ? (
           <video
+            key={currentItem.id || currentItem.url}
             src={mediaSrc}
             autoPlay
-            loop
-            muted={isMuted}
             playsInline
+            muted={isMuted}
             poster={posterSrc}
-            className="w-full h-full object-cover object-center scale-105 filter brightness-90"
+            onEnded={handleNext}
+            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in transition-opacity duration-700"
           />
         ) : (
           <img
+            key={currentItem.id || currentItem.url}
             src={posterSrc}
             alt={cleanTitle}
             className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in"
@@ -72,7 +109,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
               SARWARCYOU SPOTLIGHT
             </span>
             <span className="text-[10px] sm:text-xs font-mono font-semibold text-zinc-400 uppercase tracking-widest">
-              {item.category || (isVideo ? 'Cinema Archive' : 'Photo Vault')}
+              {currentItem.category || (isVideo ? 'Cinema Archive' : 'Photo Vault')}
             </span>
           </div>
 
@@ -100,11 +137,11 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
             High definition master archive streamed directly via Cloudflare CDN. Produced, curated, and graded by Sarwar C You.
           </p>
 
-          {/* Primary Action Buttons */}
+          {/* Primary Action Buttons: PLAY & OPEN ALBUM */}
           <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
-              onClick={() => onPlay(item)}
+              onClick={() => onPlay(currentItem, playlist)}
               className="flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3 rounded-xl bg-white hover:bg-zinc-200 text-black font-black font-sans text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-[0_8px_25px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -113,14 +150,39 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
             <button
               type="button"
-              onClick={() => onMoreInfo ? onMoreInfo(item) : onPlay(item)}
-              className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold font-sans text-xs sm:text-sm tracking-wider uppercase backdrop-blur-xl border border-white/20 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+              onClick={() => (onOpenAlbum ? onOpenAlbum(currentItem) : onPlay(currentItem, playlist))}
+              className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold font-sans text-xs sm:text-sm tracking-wider uppercase backdrop-blur-xl border border-white/20 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer group/album"
+              title={currentItem.category ? `Open ${currentItem.category} Album` : 'Open Album'}
             >
-              <Info className="w-4 h-4" />
-              <span className="hidden sm:inline">MORE INFO</span>
-              <span className="sm:hidden">INFO</span>
+              <Folder className="w-4 h-4 text-[#00E5FF] transition-transform duration-200 group-hover/album:scale-110" />
+              <span>OPEN ALBUM</span>
             </button>
           </div>
+
+          {/* 10-Video Playlist Pips (Rotates every 10s, Clickable) */}
+          {playlist.length > 1 && (
+            <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-1.5">
+                {playlist.map((it, idx) => (
+                  <button
+                    key={it.id || idx}
+                    type="button"
+                    onClick={() => handleSelectIndex(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      idx === safeIndex
+                        ? 'w-7 sm:w-9 bg-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.8)]'
+                        : 'w-2 sm:w-2.5 bg-white/30 hover:bg-white/60'
+                    }`}
+                    title={`Spotlight video ${idx + 1} of ${playlist.length}: ${it.title || it.name}`}
+                    aria-label={`Jump to spotlight video ${idx + 1}`}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] font-mono font-bold text-zinc-400">
+                <span className="text-[#00E5FF]">{safeIndex + 1}</span> / {playlist.length}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

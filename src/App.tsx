@@ -214,21 +214,117 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Featured Headline Item for Netflix Billboard
-  const featuredItem = useMemo(() => {
-    if (rawFeed.allMediaPool && rawFeed.allMediaPool.length > 0) {
-      const topVideo = rawFeed.allMediaPool.find(
-        (it) =>
-          (it.type === 'video' || it.mediaType === 'clip') &&
-          it.mediaType !== 'short' &&
-          !it.category?.toLowerCase().includes('short') &&
-          !it.url?.toLowerCase().includes('/shorts/')
-      );
-      if (topVideo) return topVideo;
-      return rawFeed.allMediaPool[0];
+  /**
+   * Picks 10 random landscape videos distributed across different video folders.
+   * On each page visit, visitors will see a different, newly randomized set of videos.
+   */
+  const spotlightVideos = useMemo(() => {
+    const folders = rawFeed.videoVaultFolders;
+    if (!folders || folders.length === 0) return [];
+
+    // 1. Gather all strictly landscape video items per folder
+    const folderVideos: { folderId: string; folderName: string; videos: StageMediaItem[] }[] = [];
+
+    for (const folder of folders) {
+      const landscapeVideos = folder.items.filter((item) => {
+        // Must be video/clip
+        const isVid =
+          item.type === 'video' ||
+          item.mediaType === 'clip' ||
+          isVideoExtension(item.url || item.id);
+        if (!isVid) return false;
+
+        // Must NOT be short or vertical reel
+        const isShort =
+          item.mediaType === 'short' ||
+          item.category?.toLowerCase().includes('short') ||
+          item.category?.toLowerCase().includes('reel') ||
+          item.url?.toLowerCase().includes('/shorts/') ||
+          item.id?.toLowerCase().includes('shorts');
+        if (isShort) return false;
+
+        return true;
+      });
+
+      if (landscapeVideos.length > 0) {
+        // Shuffle videos within this folder
+        const shuffled = [...landscapeVideos].sort(() => Math.random() - 0.5);
+        folderVideos.push({
+          folderId: folder.id,
+          folderName: folder.name,
+          videos: shuffled,
+        });
+      }
     }
-    return null;
-  }, [rawFeed]);
+
+    if (folderVideos.length === 0) return [];
+
+    // 2. Shuffle folders so we sample across different folders on each visit
+    const shuffledFolders = [...folderVideos].sort(() => Math.random() - 0.5);
+
+    // 3. Round-robin pick up to 10 videos across different folders
+    const selected: StageMediaItem[] = [];
+    const TARGET_COUNT = 10;
+    let round = 0;
+    let hasMore = true;
+
+    while (selected.length < TARGET_COUNT && hasMore) {
+      let pickedInThisRound = 0;
+      for (const f of shuffledFolders) {
+        if (round < f.videos.length) {
+          selected.push(f.videos[round]);
+          pickedInThisRound++;
+          if (selected.length >= TARGET_COUNT) break;
+        }
+      }
+      if (pickedInThisRound === 0) {
+        hasMore = false;
+      }
+      round++;
+    }
+
+    // 4. Randomize the presentation order so the 10 videos play in a random sequence
+    return selected.sort(() => Math.random() - 0.5);
+  }, [rawFeed.videoVaultFolders]);
+
+  // Navigate/scroll directly to the album that contains the spotlight video
+  const handleOpenAlbum = useCallback((item: StageMediaItem) => {
+    // Ensure the video folders are visible in the current view
+    if (activeFilter !== 'all' && activeFilter !== 'clips') {
+      setActiveFilter('all');
+    }
+    if (searchQuery) {
+      setSearchQuery('');
+    }
+
+    // Locate the matching folder in videoVaultFolders
+    const targetFolder = rawFeed.videoVaultFolders.find((f) =>
+      f.items.some((it) => it.id === item.id || it.url === item.url) ||
+      f.name.toLowerCase() === item.category?.toLowerCase() ||
+      (item.parentAlbum && f.id.toLowerCase().includes(item.parentAlbum.toLowerCase())) ||
+      (item.parentAlbum && f.name.toLowerCase().includes(item.parentAlbum.toLowerCase()))
+    );
+
+    const folderId = targetFolder ? targetFolder.id : null;
+
+    setTimeout(() => {
+      if (folderId) {
+        const el = document.getElementById(folderId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-2', 'ring-[#00E5FF]', 'rounded-2xl', 'p-2', 'bg-[#00E5FF]/5', 'transition-all', 'duration-500');
+          setTimeout(() => {
+            el.classList.remove('ring-2', 'ring-[#00E5FF]', 'rounded-2xl', 'p-2', 'bg-[#00E5FF]/5');
+          }, 2500);
+          return;
+        }
+      }
+      const vaultSec = document.getElementById('video-vault-section');
+      if (vaultSec) {
+        vaultSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }, [activeFilter, searchQuery, rawFeed.videoVaultFolders]);
 
   // Surprise Me / Shuffle Handler
   const handleShuffle = useCallback(() => {
@@ -288,12 +384,12 @@ function App() {
 
       {/* Main Content Stage */}
       <div className="w-full md:pl-12 lg:pl-14 pb-12 flex flex-col min-h-screen">
-        {/* 2. Netflix Hero Billboard (Headline Banner) */}
-        {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && featuredItem && (
+        {/* 2. Netflix Hero Billboard (10 Rotating Landscape Videos Across Folders) */}
+        {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && spotlightVideos.length > 0 && (
           <NetflixBillboard
-            item={featuredItem}
-            onPlay={(item) => handleSelectItem(item)}
-            onMoreInfo={(item) => handleSelectItem(item)}
+            items={spotlightVideos}
+            onPlay={(item, playlist) => handleSelectItem(item, playlist)}
+            onOpenAlbum={(item) => handleOpenAlbum(item)}
           />
         )}
 
@@ -373,7 +469,7 @@ function App() {
 
         {/* SECTION 3: VIDEO VAULT */}
         {feed.videoVaultFolders.length > 0 && (
-          <section className="flex flex-col gap-7 pt-4 border-t border-white/[0.05]">
+          <section id="video-vault-section" className="flex flex-col gap-7 pt-4 border-t border-white/[0.05] scroll-mt-20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Film className="w-4 h-4 text-amber-400" />
@@ -388,16 +484,17 @@ function App() {
 
             <div className="flex flex-col gap-8">
               {feed.videoVaultFolders.map((folder) => (
-                <CyberCarouselRow
-                  key={folder.id}
-                  title={folder.name}
-                  badge={folder.count}
-                  items={folder.items}
-                  variant="standard"
-                  hasMultipleTypes={folder.hasMultipleTypes}
-                  typeCounts={folder.typeCounts}
-                  onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
-                />
+                <div id={folder.id} key={folder.id} className="scroll-mt-24 transition-all duration-500">
+                  <CyberCarouselRow
+                    title={folder.name}
+                    badge={folder.count}
+                    items={folder.items}
+                    variant="standard"
+                    hasMultipleTypes={folder.hasMultipleTypes}
+                    typeCounts={folder.typeCounts}
+                    onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
+                  />
+                </div>
               ))}
             </div>
           </section>
@@ -405,7 +502,7 @@ function App() {
 
         {/* SECTION 4: PHOTO VAULT */}
         {feed.photoVaultFolders.length > 0 && (
-          <section className="flex flex-col gap-7 pt-4 border-t border-white/[0.05]">
+          <section id="photo-vault-section" className="flex flex-col gap-7 pt-4 border-t border-white/[0.05] scroll-mt-20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-cyan-400" />
@@ -420,16 +517,17 @@ function App() {
 
             <div className="flex flex-col gap-8">
               {feed.photoVaultFolders.map((folder) => (
-                <CyberCarouselRow
-                  key={folder.id}
-                  title={folder.name}
-                  badge={folder.count}
-                  items={folder.items}
-                  variant={folder.hasMultipleTypes ? 'standard' : 'photo'}
-                  hasMultipleTypes={folder.hasMultipleTypes}
-                  typeCounts={folder.typeCounts}
-                  onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
-                />
+                <div id={folder.id} key={folder.id} className="scroll-mt-24 transition-all duration-500">
+                  <CyberCarouselRow
+                    title={folder.name}
+                    badge={folder.count}
+                    items={folder.items}
+                    variant={folder.hasMultipleTypes ? 'standard' : 'photo'}
+                    hasMultipleTypes={folder.hasMultipleTypes}
+                    typeCounts={folder.typeCounts}
+                    onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
+                  />
+                </div>
               ))}
             </div>
           </section>
