@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import type { StageMediaItem } from '../types';
 
 interface MediaModalProps {
@@ -133,6 +135,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setIsLightboxFullscreen(true);
   }, [isFullscreen]);
 
+  // Strict background scroll-lock
+  useLockBodyScroll(isOpen);
+
   // Keyboard navigation & gestures
   useEffect(() => {
     if (!isOpen) return;
@@ -160,13 +165,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
     };
 
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('viewing-media');
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = 'unset';
-      document.body.classList.remove('viewing-media');
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose, isFullscreen, toggleFullscreen, handleNext, handlePrev]);
@@ -277,15 +278,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   if (!isOpen || !activeUrl) return null;
 
   const secureUrl = activeUrl.replace(/^http:\/\//i, 'https://');
-  const cleanTitle = activeTitle
-    ? activeTitle.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim()
-    : 'Photograph';
+  const cleanTitle = sanitizeMediaTitle(activeTitle, type === 'video' ? 'Video' : 'Photograph');
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-[120] flex flex-col justify-between bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in"
+      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-[120] flex flex-col justify-between bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in touch-none touch-action-none overscroll-contain"
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

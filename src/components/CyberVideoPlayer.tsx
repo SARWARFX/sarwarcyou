@@ -21,6 +21,8 @@ import {
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 
 export interface CyberVideoPlayerProps {
   isOpen: boolean;
@@ -416,13 +418,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     resetHudTimer();
   }, [resetHudTimer]);
 
-  // Keyboard Shortcuts & Background Body Scroll Locking
+  // Strict background scroll-lock
+  useLockBodyScroll(isOpen);
+
+  // Keyboard Shortcuts
   useEffect(() => {
     if (!isOpen) return;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('viewing-media');
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -450,8 +451,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = originalOverflow || '';
-      document.body.classList.remove('viewing-media');
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose, togglePlay, seekBy, toggleFullscreen]);
@@ -500,6 +499,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   if (!isOpen || !item) return null;
 
   const streamUrl = getMediaUrl(item.url);
+  const cleanPlayerTitle = sanitizeMediaTitle(item.title, item.category);
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferPct = duration > 0 ? (buffered / duration) * 100 : 0;
 
@@ -508,7 +508,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-50 flex flex-col justify-between bg-[#030305] select-none font-sans"
+      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-50 flex flex-col justify-between bg-[#030305] select-none font-sans touch-none touch-action-none overscroll-contain"
     >
       {/* 1. Ambient Blurred Glow reflecting active video colors */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
@@ -539,7 +539,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           </button>
           <div>
             <h1 className="text-sm sm:text-base font-bold text-white tracking-wide truncate max-w-sm sm:max-w-md">
-              {item.title}
+              {cleanPlayerTitle}
             </h1>
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
               {item.category || 'Cinema Vault'}
@@ -948,7 +948,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                         isActive ? 'text-[#00E5FF]' : 'text-zinc-200'
                       }`}
                     >
-                      {queueItem.title}
+                      {sanitizeMediaTitle(queueItem.title, queueItem.category)}
                     </span>
                     <span className="text-[10px] font-mono text-zinc-500 block truncate mt-0.5">
                       #{qIdx + 1} • {queueItem.category || 'Clips'}

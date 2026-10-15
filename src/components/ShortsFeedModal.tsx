@@ -26,6 +26,8 @@ import {
 } from '../utils/thumbnailResolver';
 import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 
 interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -138,7 +140,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (shorts[currentIndex - 1]?.url) prewarmVideoStream(shorts[currentIndex - 1].url);
   }, [currentIndex, isOpen, shorts]);
 
-  // Keyboard navigation & Escape + Modal Viewport Lock
+  // Strict background scroll-lock
+  useLockBodyScroll(isOpen);
+
+  // Keyboard navigation & Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -161,13 +166,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }
     };
 
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('viewing-media');
     window.addEventListener('keydown', handleKeyDown);
-
     return () => {
-      document.body.style.overflow = 'unset';
-      document.body.classList.remove('viewing-media');
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose, handleNext, handlePrev]);
@@ -397,19 +397,17 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   if (!isOpen || !shorts.length) return null;
 
-  const cleanTitle = currentShort?.title
-    ? currentShort.title.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim()
-    : 'Short Reel';
-  const displayTitle = /^smartselect|videocapture|screenshot|photo\s+[a-z0-9]/i.test(cleanTitle)
-    ? 'Vertical Short Reel'
-    : cleanTitle;
+  const displayTitle = sanitizeMediaTitle(
+    currentShort?.title,
+    currentShort?.category || 'Vertical Short Reel'
+  );
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Shorts and Reels Player"
-      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-[120] flex items-center justify-center bg-black/97 backdrop-blur-2xl select-none"
+      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-[120] flex items-center justify-center bg-black/97 backdrop-blur-2xl select-none touch-none touch-action-none overscroll-contain"
       onClick={onClose}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}

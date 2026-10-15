@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Play, Camera, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoThumbnails } from '../utils/thumbnailResolver';
+import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 
 export interface CyberCardProps {
   item: StageMediaItem;
@@ -33,6 +34,17 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     );
 
   const isVideo = isShort || item.type === 'video' || item.mediaType === 'clip' || /\.(mp4|mov|webm|mkv)$/i.test(item.url);
+
+  const cleanTitle = useMemo(() => {
+    return sanitizeMediaTitle(item.title || item.name, item.category);
+  }, [item.title, item.name, item.category]);
+
+  const cleanCategory = useMemo(() => {
+    if (item.category) {
+      return item.category.replace(/[-_]+/g, ' ').trim();
+    }
+    return isVideo ? 'Cinema' : 'Photography';
+  }, [item.category, isVideo]);
 
   // 5-Frame pre-rendered thumbnails
   const videoThumbs = useMemo(() => {
@@ -149,7 +161,9 @@ export const CyberCard: React.FC<CyberCardProps> = ({
             SARWARCYOU
           </span>
         </div>
-        <span className="text-xs font-medium text-zinc-400 truncate">{item.title}</span>
+        {!isShort && (
+          <span className="text-xs font-medium text-zinc-400 truncate">{cleanTitle}</span>
+        )}
       </div>
 
       {/* Image Layer with Multi-Frame Hover Scrubbing */}
@@ -219,14 +233,28 @@ export const CyberCard: React.FC<CyberCardProps> = ({
       )}
 
       {/* Bottom Gradient Metadata Bar */}
-      <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 via-black/45 to-transparent z-20 pointer-events-none flex flex-col justify-end">
-        <span className="text-xs sm:text-sm font-semibold text-zinc-100 truncate block leading-tight">
-          {item.title}
-        </span>
-        <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mt-0.5 truncate">
-          {item.category || (isShort ? 'Short Reel' : isVideo ? 'Cinema' : 'Photography')}
-        </span>
-      </div>
+      {isShort ? (
+        <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-black/85 via-black/40 to-transparent z-20 pointer-events-none flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-zinc-300">
+            <Film className="w-3.5 h-3.5 text-fuchsia-400" />
+            <span className="text-[10px] font-mono font-bold tracking-wider text-fuchsia-300 uppercase">
+              REEL
+            </span>
+          </div>
+          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-zinc-300 border border-white/10">
+            9:16
+          </span>
+        </div>
+      ) : (
+        <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 via-black/45 to-transparent z-20 pointer-events-none flex flex-col justify-end">
+          <span className="text-xs sm:text-sm font-semibold text-zinc-100 truncate block leading-tight">
+            {cleanTitle}
+          </span>
+          <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mt-0.5 truncate">
+            {cleanCategory}
+          </span>
+        </div>
+      )}
 
       {/* Ambient Gloss Highlight on Hover */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-cyan-400/[0.03] to-white/[0.08] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-25" />

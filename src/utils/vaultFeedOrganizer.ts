@@ -10,6 +10,7 @@ import {
 } from './mediaTypeDetector';
 import { getItemTimestamp } from './albumExtractor';
 import { getVideoThumbnails } from './thumbnailResolver';
+import { sanitizeMediaTitle } from './titleSanitizer';
 
 export interface VaultFeedData {
   latestReleases: StageMediaItem[];
@@ -19,15 +20,8 @@ export interface VaultFeedData {
   photoVaultFolders: MediaFolderEntry[];
 }
 
-function cleanTitleFromPath(path: string): string {
-  const file = path.split('/').pop() || path;
-  return (
-    file
-      .replace(/\.[^/.]+$/, '')
-      .replace(/[-_]+/g, ' ')
-      .replace(/\b(smartselect|videocapture|screenshot)\b/gi, '')
-      .trim() || 'Media Item'
-  );
+function cleanTitleFromPath(path: string, category?: string): string {
+  return sanitizeMediaTitle(path, category);
 }
 
 function formatFolderName(raw: string, mediaTypeHint?: 'video' | 'image' | 'composite'): string {
