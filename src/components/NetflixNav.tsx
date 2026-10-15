@@ -9,7 +9,6 @@ import {
   X,
 } from 'lucide-react';
 import type { CyberFilterType } from './CyberHeader';
-import { BrandLogo } from './BrandLogo';
 
 export interface NetflixNavProps {
   activeFilter: CyberFilterType;
@@ -156,40 +155,29 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 2. MOBILE: TOP BAR (Brand Header + Quick Search/Shuffle)      */}
+      {/* 2. MOBILE: TOP BAR (Quick Search & Shuffle Controls)           */}
       {/* ============================================================== */}
-      <header className="md:hidden fixed top-0 inset-x-0 h-14 bg-gradient-to-b from-[#030305]/95 via-[#030305]/80 to-transparent z-30 px-4 flex items-center justify-between pt-[env(safe-area-inset-top)] pointer-events-auto">
+      <header className="md:hidden fixed top-0 inset-x-0 h-14 bg-gradient-to-b from-[#030305]/95 via-[#030305]/80 to-transparent z-30 px-4 flex items-center justify-end gap-2 pt-[env(safe-area-inset-top)] pointer-events-auto">
         <button
           type="button"
-          onClick={onResetHome}
-          className="flex items-center cursor-pointer"
-          title="Sarwar C You — Home"
+          onClick={onShuffle}
+          className="p-2 rounded-full bg-black/60 text-zinc-300 hover:text-[#00E5FF] border border-white/10 cursor-pointer"
+          title="Random Media"
         >
-          <BrandLogo size="sm" />
+          <Shuffle className="w-4 h-4" />
         </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onShuffle}
-            className="p-2 rounded-full bg-black/60 text-zinc-300 hover:text-[#00E5FF] border border-white/10 cursor-pointer"
-            title="Random Media"
-          >
-            <Shuffle className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSearchInput(!showSearchInput)}
-            className={`p-2 rounded-full border transition-all cursor-pointer ${
-              showSearchInput || searchQuery
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40'
-                : 'bg-black/60 text-zinc-300 border-white/10'
-            }`}
-            title="Search"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowSearchInput(!showSearchInput)}
+          className={`p-2 rounded-full border transition-all cursor-pointer ${
+            showSearchInput || searchQuery
+              ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40'
+              : 'bg-black/60 text-zinc-300 border-white/10'
+          }`}
+          title="Search"
+        >
+          <Search className="w-4 h-4" />
+        </button>
       </header>
 
       {/* Mobile Omnisearch Dropdown Bar */}

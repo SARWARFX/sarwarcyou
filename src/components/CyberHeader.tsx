@@ -22,21 +22,11 @@ export const CyberHeader: React.FC<CyberHeaderProps> = ({
   onSearchChange,
   activeFilter,
   onFilterChange,
-  onReset,
+  onReset: _onReset,
 }) => {
   return (
     <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 flex justify-center px-3 sm:px-4 pointer-events-none">
       <div className="cyber-pill pointer-events-auto flex items-center justify-between gap-2.5 sm:gap-4 px-3 sm:px-5 py-2 w-full max-w-4xl shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300">
-        {/* Brand Wordmark */}
-        <button
-          type="button"
-          onClick={onReset}
-          className="cyber-wordmark text-xs sm:text-sm font-black tracking-[0.2em] cursor-pointer flex-shrink-0"
-          title="Sarwar C You Media Vault"
-        >
-          SARWARCYOU
-        </button>
-
         {/* Omnisearch Input */}
         <div className="relative flex-1 max-w-xs sm:max-w-sm flex items-center">
           <Search className="absolute left-3 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
