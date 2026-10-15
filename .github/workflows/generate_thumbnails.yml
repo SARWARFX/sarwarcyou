@@ -1,9 +1,9 @@
 name: Generate Multi-Frame Video Thumbnails
 
 on:
-  workflow_dispatch: # Allows manual trigger anytime
+  workflow_dispatch:
   schedule:
-    # Runs automatically every 24 hours at 00:00 UTC (06:00 AM BD time)
+    # Runs automatically once every 24 hours at 00:00 UTC (06:00 AM BD time)
     - cron: '0 0 * * *'
 
 jobs:
@@ -24,6 +24,7 @@ jobs:
           pip install huggingface_hub
 
       - name: Run Multi-Frame Thumbnail Pipeline
+        id: thumbnail_step
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -38,12 +39,10 @@ jobs:
           LOCAL_THUMB_DIR = "./temp_thumbnails"
           os.makedirs(LOCAL_THUMB_DIR, exist_ok=True)
 
-          # Fetch all files from the dataset to make instant O(1) checks
           print(f"Fetching current file manifest from {REPO_ID}...")
           all_files = list_repo_files(repo_id=REPO_ID, repo_type="dataset", token=hf_token)
           existing_files_set = set(all_files)
 
-          # Discover all video files across the entire repo (excluding any inside Thumbnails/)
           video_files = [
               f for f in all_files 
               if f.lower().endswith(('.mp4', '.mov', '.webm', '.mkv'))
@@ -71,12 +70,8 @@ jobs:
 
           for idx, v in enumerate(video_files, 1):
               base_name = os.path.splitext(v)[0]
-              
-              # Expected path inside dedicated Thumbnails/ mirror directory
-              # e.g., 'Thumbnails/Images/Bandhobis/Video Clips/asha8_thumb_1.jpg'
               expected_thumbs = [f"Thumbnails/{base_name}_thumb_{i+1}.jpg" for i in range(len(PERCENTAGES))]
               
-              # If all 5 thumbnails already exist remotely, skip entirely
               if all(t in existing_files_set for t in expected_thumbs):
                   print(f"[{idx}/{len(video_files)}] [SKIP] All 5 thumbs exist: {v}")
                   continue
@@ -99,10 +94,6 @@ jobs:
                   os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                   seek_time = max(0.2, round(duration * pct, 2))
 
-                  # High efficiency extraction:
-                  # -ss before -i for rapid network seeking
-                  # scale=640:-1 maintains aspect ratio with 640px max width
-                  # -q:v 3 produces high quality compact JPEGs
                   cmd = [
                       "ffmpeg", "-y",
                       "-ss", str(seek_time),
@@ -118,7 +109,9 @@ jobs:
 
           print(f"\nFinished extraction. Total new frame thumbnails generated: {generated_count}")
 
-          # Bulk upload all generated frames in 1 single atomic commit
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"generated_count={generated_count}\n")
+
           if generated_count > 0:
               print(f"Committing and uploading to {REPO_ID} (single atomic commit)...")
               api.upload_folder(
@@ -131,3 +124,12 @@ jobs:
           else:
               print("Repository is completely up-to-date. No new uploads needed.")
           EOF
+
+      - name: Purge Cloudflare Cache
+        if: steps.thumbnail_step.outputs.generated_count != '0'
+        run: |
+          echo "New thumbnails uploaded, triggering Cloudflare Cache Purge..."
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+               -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+               -H "Content-Type: application/json" \
+               --data '{"purge_everything":true}' | grep -o '"success":true' || echo "Cache purge finished."
