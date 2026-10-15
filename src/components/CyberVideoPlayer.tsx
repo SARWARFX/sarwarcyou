@@ -10,6 +10,7 @@ import {
   RotateCcw,
   RotateCw,
   Repeat,
+  Repeat1,
   Gauge,
   ListVideo,
   X,
@@ -18,18 +19,23 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
-import type { StageMediaItem } from '../types';
+import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { CyberMediaSidebar } from './CyberMediaSidebar';
+
+export type VideoRepeatMode = 'off' | 'all' | 'one';
 
 export interface CyberVideoPlayerProps {
   isOpen: boolean;
   onClose: () => void;
   item: StageMediaItem | null;
   playlist?: StageMediaItem[];
+  allFolders?: MediaFolderEntry[];
   onSelectItem?: (item: StageMediaItem) => void;
+  onSelectFolder?: (folder: MediaFolderEntry) => void;
 }
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -54,7 +60,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   onClose,
   item,
   playlist = [],
+  allFolders = [],
   onSelectItem,
+  onSelectFolder,
 }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -64,7 +72,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [showQueue, setShowQueue] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
@@ -496,6 +505,40 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     resetHudTimer();
   };
 
+  // Video Queue logic and Repeat Mode Handler
+  const handleVideoEnded = useCallback(() => {
+    if (repeatMode === 'one') {
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch(() => {});
+      }
+      setIsPlaying(true);
+      return;
+    }
+
+    if (!item || !playlist.length) return;
+    const currentIdx = playlist.findIndex((v) => v.id === item.id || v.url === item.url);
+    const hasNext = currentIdx >= 0 && currentIdx < playlist.length - 1;
+
+    if (repeatMode === 'all') {
+      if (hasNext) {
+        onSelectItem?.(playlist[currentIdx + 1]);
+      } else if (playlist.length > 0) {
+        onSelectItem?.(playlist[0]);
+      }
+      setIsPlaying(true);
+      return;
+    }
+
+    // Normal ('off' / Autoplay Next)
+    if (hasNext) {
+      onSelectItem?.(playlist[currentIdx + 1]);
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
+  }, [repeatMode, playlist, item, onSelectItem]);
+
   if (!isOpen || !item) return null;
 
   const streamUrl = getMediaUrl(item.url);
@@ -508,67 +551,77 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-50 flex flex-col justify-between bg-[#030305] select-none font-sans touch-none touch-action-none overscroll-contain"
+      className="fixed inset-0 z-50 bg-[#030305] text-white flex flex-col md:flex-row overflow-hidden h-[100dvh] w-screen select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
     >
-      {/* 1. Ambient Blurred Glow reflecting active video colors */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
-        <video
-          src={streamUrl}
-          autoPlay
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
-          className="w-full h-full object-cover filter blur-[90px] opacity-35 scale-125"
-        />
-      </div>
-
-      {/* 2. Top Bar (Close X, Title & Queue) - Permanently Pinned at Top with Safe Area */}
-      <div
-        onPointerDown={(e) => e.stopPropagation()}
-        className="fixed top-0 left-0 right-0 z-50 p-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent"
-      >
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 transition-colors cursor-pointer"
-            title="Close Theater (Esc)"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          <div>
-            <h1 className="text-sm sm:text-base font-bold text-white tracking-wide truncate max-w-sm sm:max-w-md">
-              {cleanPlayerTitle}
-            </h1>
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-              {item.category || 'Cinema Vault'}
-            </span>
-          </div>
+      {/* Primary Media Stage (Left Pane, ~65-70% width on desktop, 100% on mobile) */}
+      <div className="flex-1 relative flex flex-col justify-between overflow-hidden h-full min-h-[50vh] md:min-h-0 bg-[#030305]">
+        {/* 1. Ambient Blurred Glow reflecting active video colors */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
+          <video
+            src={streamUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+            className="w-full h-full object-cover filter blur-[90px] opacity-35 scale-125"
+          />
         </div>
 
-        {/* Right Action: Queue Toggle */}
-        {playlist.length > 1 && (
+        {/* 2. Top Bar (Close X, Title & Queue Toggle) */}
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className="relative z-40 p-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent flex-shrink-0"
+        >
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 transition-colors cursor-pointer"
+              title="Close Theater (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm sm:text-base font-bold text-white tracking-wide truncate max-w-xs sm:max-w-md">
+                  {cleanPlayerTitle}
+                </h1>
+                {playlist.length > 0 && (
+                  <span className="text-[10px] font-mono font-bold text-[#00E5FF] bg-[#00E5FF]/10 px-2 py-0.5 rounded-full border border-[#00E5FF]/20 flex-shrink-0">
+                    {playlist.findIndex((v) => v.id === item.id || v.url === item.url) + 1} / {playlist.length}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+                {item.category || 'Cinema Vault'}
+              </span>
+            </div>
+          </div>
+
+          {/* Right Action: Queue Toggle */}
           <button
             type="button"
             onClick={() => {
-              setShowQueue(!showQueue);
+              setShowSidebar(!showSidebar);
               resetHudTimer();
             }}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
-              showQueue
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40'
+              showSidebar
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
                 : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
             }`}
+            title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
           >
             <ListVideo className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">QUEUE</span>
-            <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
-              {playlist.length}
-            </span>
+            {playlist.length > 0 && (
+              <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
+                {playlist.length}
+              </span>
+            )}
           </button>
-        )}
-      </div>
+        </div>
 
       {/* 2.5 Samsung One UI Style Horizontal Gesture Scrubbing Overlay */}
       {gestureSeek.isVisible && (
@@ -629,7 +682,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           autoPlay
           playsInline
           muted={isMuted}
-          className="max-w-[94vw] max-h-[72dvh] sm:max-h-[76dvh] object-contain rounded-lg shadow-2xl pointer-events-none"
+          className="max-h-[82dvh] md:max-h-[85dvh] max-w-full object-contain rounded-lg shadow-2xl pointer-events-none"
           onTimeUpdate={() => {
             if (videoRef.current) {
               const now = videoRef.current.currentTime;
@@ -654,14 +707,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               setDuration(videoRef.current.duration || 0);
             }
           }}
-          onEnded={() => setIsPlaying(false)}
+          onEnded={handleVideoEnded}
         />
       </div>
 
-      {/* 4. Floating HUD Controls (Bottom) with Safe Area Inset */}
+      {/* 4. Floating HUD Controls (Bottom) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`fixed bottom-0 inset-x-0 z-40 p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2 max-w-5xl mx-auto transition-opacity duration-300 pointer-events-auto ${
+        className={`absolute bottom-0 inset-x-0 z-40 p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2 max-w-5xl mx-auto w-full transition-opacity duration-300 pointer-events-auto ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -819,6 +872,44 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               </span>
             </button>
 
+            {/* 3-State Repeat Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setRepeatMode((prev) => {
+                  if (prev === 'off') return 'all';
+                  if (prev === 'all') return 'one';
+                  return 'off';
+                });
+                resetHudTimer();
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
+                repeatMode !== 'off'
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/60 shadow-[0_0_12px_rgba(0,229,255,0.35)]'
+                  : 'hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-transparent'
+              }`}
+              title={
+                repeatMode === 'off'
+                  ? 'Autoplay Next (Click for Repeat All)'
+                  : repeatMode === 'all'
+                  ? 'Repeat Queue / All (Click for Repeat One)'
+                  : 'Repeat One (Click for Normal)'
+              }
+            >
+              {repeatMode === 'one' ? (
+                <Repeat1 className="w-3.5 h-3.5 text-[#00E5FF]" />
+              ) : (
+                <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#00E5FF]' : ''}`} />
+              )}
+              <span>
+                {repeatMode === 'off'
+                  ? 'Autoplay'
+                  : repeatMode === 'all'
+                  ? 'Repeat All'
+                  : 'Repeat 1'}
+              </span>
+            </button>
+
             {/* Speed Selector */}
             <div className="relative">
               <button
@@ -895,70 +986,21 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           </div>
         </div>
       </div>
+      </div>
 
-      {/* 5. Right-Hand Queue: Smoked Frosted-Glass Panel */}
-      {showQueue && playlist.length > 0 && (
-        <aside className="absolute top-0 right-0 bottom-0 w-80 sm:w-96 z-40 cyber-glass border-l border-white/[0.08] flex flex-col p-4 shadow-2xl animate-slide-left">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <ListVideo className="w-4 h-4 text-[#00E5FF]" />
-              <h2 className="text-sm font-bold font-sans text-white uppercase tracking-wider">
-                Video Queue
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowQueue(false)}
-              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Queue List */}
-          <div className="flex-1 overflow-y-auto no-scrollbar py-3 flex flex-col gap-2">
-            {playlist.map((queueItem, qIdx) => {
-              const isActive = queueItem.id === item.id || queueItem.url === item.url;
-              return (
-                <div
-                  key={queueItem.id || qIdx}
-                  onClick={() => onSelectItem?.(queueItem)}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                    isActive
-                      ? 'bg-white/15 border border-[#00E5FF]/40 shadow-[0_0_15px_rgba(0,229,255,0.15)]'
-                      : 'hover:bg-white/5 border border-transparent'
-                  }`}
-                >
-                  <div className="relative w-20 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0">
-                    <img
-                      src={queueItem.thumbnail || queueItem.poster || queueItem.url}
-                      alt={queueItem.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    {isActive && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Play className="w-3 h-3 text-[#00E5FF] fill-current" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span
-                      className={`text-xs font-semibold block truncate ${
-                        isActive ? 'text-[#00E5FF]' : 'text-zinc-200'
-                      }`}
-                    >
-                      {sanitizeMediaTitle(queueItem.title, queueItem.category)}
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-500 block truncate mt-0.5">
-                      #{qIdx + 1} • {queueItem.category || 'Clips'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </aside>
+      {/* 2. Right Pane: Sidebar Queue & Suggestions */}
+      {showSidebar && (
+        <CyberMediaSidebar
+          items={playlist}
+          activeItem={item}
+          activeIdx={playlist.findIndex((v) => v.id === item.id || v.url === item.url)}
+          onSelectItem={(selected) => onSelectItem?.(selected)}
+          mediaType="video"
+          currentFolderName={item.category || item.parentAlbum || 'Video Archive'}
+          allFolders={allFolders}
+          onSelectFolder={onSelectFolder}
+          onClose={() => setShowSidebar(false)}
+        />
       )}
     </div>
   );

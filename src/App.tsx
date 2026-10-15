@@ -420,7 +420,17 @@ function App() {
         onClose={() => setTheaterState({ isOpen: false, item: null, playlist: [] })}
         item={theaterState.item}
         playlist={theaterState.playlist}
+        allFolders={rawFeed.videoVaultFolders}
         onSelectItem={(item) => setTheaterState((prev) => ({ ...prev, item }))}
+        onSelectFolder={(folder) => {
+          if (folder.items.length > 0) {
+            setTheaterState({
+              isOpen: true,
+              item: folder.items[0],
+              playlist: folder.items,
+            });
+          }
+        }}
       />
 
       {/* 5. Adaptive Shorts Feed Modal */}
@@ -440,6 +450,17 @@ function App() {
         title={lightboxState.item?.title}
         items={lightboxState.items}
         currentIndex={lightboxState.initialIndex}
+        allFolders={rawFeed.photoVaultFolders}
+        onSelectFolder={(folder) => {
+          if (folder.items.length > 0) {
+            setLightboxState({
+              isOpen: true,
+              item: folder.items[0],
+              items: folder.items,
+              initialIndex: 0,
+            });
+          }
+        }}
         onIndexChange={(idx) => {
           setLightboxState((prev) => ({
             ...prev,
