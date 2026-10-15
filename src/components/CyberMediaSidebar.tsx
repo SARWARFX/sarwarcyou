@@ -55,9 +55,12 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
 
   return (
     <aside
-      className={`w-full sm:w-[320px] md:w-[340px] max-w-[90vw] h-full overflow-y-auto overscroll-contain border-l border-white/10 p-4 space-y-6 flex-shrink-0 bg-[#07070a]/98 backdrop-blur-3xl no-scrollbar select-none z-30 shadow-2xl ${className}`}
+      className={`w-full md:w-[340px] max-w-full md:max-w-[90vw] h-full overflow-y-auto overscroll-contain border-t md:border-t-0 md:border-l border-white/10 p-3.5 sm:p-4 space-y-5 flex-shrink-0 bg-[#07070a]/98 backdrop-blur-3xl no-scrollbar select-none z-30 shadow-2xl ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
+      {/* Mobile top pull handle */}
+      <div className="w-12 h-1.5 bg-white/20 hover:bg-white/40 rounded-full mx-auto -mt-1 mb-2 md:hidden" />
+
       {/* Header bar to allow closing or showing queue info */}
       <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
         <div className="flex items-center gap-2">

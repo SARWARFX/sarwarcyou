@@ -554,7 +554,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-50 bg-black text-white overflow-hidden h-[100dvh] w-screen select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-50 bg-black text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
     >
       {/* 1. Ambient Blurred Glow reflecting active video colors */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
@@ -720,7 +720,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* 4. Floating HUD Controls (Bottom) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`absolute bottom-0 inset-x-0 z-40 p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2 max-w-5xl mx-auto w-full transition-opacity duration-300 pointer-events-auto ${
+        className={`absolute bottom-0 inset-x-0 z-40 p-2 sm:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-col gap-1.5 sm:gap-2 max-w-5xl mx-auto w-full transition-opacity duration-300 pointer-events-auto overflow-hidden ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -771,13 +771,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
 
         {/* HUD Button Row: Smoked Frosted Glass Pill */}
-        <div className="cyber-pill px-4 py-2.5 flex items-center justify-between gap-3 shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+        <div className="cyber-pill px-2.5 sm:px-4 py-1.5 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 w-full max-w-full overflow-hidden shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
           {/* Bottom-Left: Play, Rewind/Forward, Volume, Timestamps */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
             <button
               type="button"
               onClick={togglePlay}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex-shrink-0"
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
             >
               {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
@@ -786,33 +786,33 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={() => seekBy(-10)}
-              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex-shrink-0"
               title="10s Back"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <button
               type="button"
               onClick={() => seekBy(10)}
-              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex-shrink-0"
               title="10s Forward"
             >
-              <RotateCw className="w-4 h-4" />
+              <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             {/* Volume */}
-            <div className="flex items-center gap-1.5 group/vol">
+            <div className="flex items-center gap-1 group/vol flex-shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   setIsMuted(!isMuted);
                   if (videoRef.current) videoRef.current.muted = !isMuted;
                 }}
-                className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
                 title="Mute / Unmute (M)"
               >
-                {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
               </button>
               <input
                 type="range"
@@ -829,23 +829,23 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                     videoRef.current.muted = false;
                   }
                 }}
-                className="w-14 sm:w-18 h-1 accent-[#00E5FF] cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+                className="hidden sm:inline-block w-14 sm:w-18 h-1 accent-[#00E5FF] cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
               />
             </div>
 
             {/* Timestamp */}
-            <span className="text-[11px] sm:text-xs font-mono font-medium text-zinc-300 tracking-wider">
+            <span className="text-[10px] sm:text-xs font-mono font-medium text-zinc-300 tracking-wider whitespace-nowrap">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>
 
           {/* Bottom-Right: A-B loop, Speed, Download, Fullscreen */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
-            {/* A-B Loop Control Toggle */}
+          <div className="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
+            {/* A-B Loop Control Toggle (Desktop only) */}
             <button
               type="button"
               onClick={handleToggleLoop}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
                 loopA !== null && loopB !== null
                   ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/60 shadow-[0_0_16px_rgba(0,229,255,0.4)]'
                   : loopA !== null
@@ -889,7 +889,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 });
                 resetHudTimer();
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
                 repeatMode !== 'off'
                   ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/60 shadow-[0_0_12px_rgba(0,229,255,0.35)]'
                   : 'hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-transparent'
@@ -907,7 +907,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               ) : (
                 <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#00E5FF]' : ''}`} />
               )}
-              <span>
+              <span className="hidden sm:inline">
                 {repeatMode === 'off'
                   ? 'Autoplay'
                   : repeatMode === 'all'
@@ -921,7 +921,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-zinc-200 text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-zinc-200 text-[11px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer"
                 title="Playback Speed"
               >
                 <Gauge className="w-3.5 h-3.5" />
@@ -956,7 +956,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               type="button"
               onClick={handleDownload}
               disabled={isDownloading}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-sans tracking-wider transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg text-xs font-bold font-sans tracking-wider transition-all cursor-pointer ${
                 downloadSuccess
                   ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
                   : 'hover:bg-white/10 text-zinc-300 hover:text-white'
@@ -987,7 +987,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
                 resetHudTimer();
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer border ${
+              className={`px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer border ${
                 fitMode === 'cover'
                   ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
                   : 'bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border-white/10'
@@ -1005,7 +1005,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex-shrink-0"
               title="Fullscreen (F)"
             >
               {document.fullscreenElement ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
@@ -1014,14 +1014,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       </div>
 
-      {/* 5. Slide-out Queue & Suggestions Drawer (Overlay with Backdrop) */}
+      {/* 5. Slide-out Queue & Suggestions Drawer (Responsive Bottom Sheet on Mobile, Right Drawer on Desktop) */}
       {showSidebar && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-auto"
+          className="fixed inset-0 z-50 flex flex-col md:flex-row justify-end items-end md:items-stretch bg-black/75 backdrop-blur-sm animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
           onClick={() => setShowSidebar(false)}
         >
           <div
-            className="h-full max-h-screen flex shadow-2xl animate-slide-left pointer-events-auto"
+            className="w-full md:w-auto h-[62vh] md:h-full max-h-[85vh] md:max-h-screen flex flex-col shadow-2xl pointer-events-auto overflow-hidden rounded-t-3xl md:rounded-t-none animate-slide-up md:animate-slide-left"
             onClick={(e) => e.stopPropagation()}
           >
             <CyberMediaSidebar

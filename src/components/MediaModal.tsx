@@ -295,7 +295,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 w-screen h-[100dvh] overflow-hidden z-[120] flex flex-col md:flex-row bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in touch-none touch-action-none overscroll-contain"
+      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[120] flex flex-col md:flex-row bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in touch-none touch-action-none overscroll-contain"
       onClick={onClose}
     >
       {/* 1. Left Pane: Primary Media Stage (~65-70% desktop width, 100% mobile) */}
@@ -481,14 +481,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* 2. Slide-out Queue & Suggestions Drawer (Overlay with Backdrop) */}
+      {/* 2. Slide-out Queue & Suggestions Drawer (Responsive Bottom Sheet on Mobile, Right Drawer on Desktop) */}
       {showSidebar && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-auto"
+          className="fixed inset-0 z-50 flex flex-col md:flex-row justify-end items-end md:items-stretch bg-black/75 backdrop-blur-sm animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
           onClick={() => setShowSidebar(false)}
         >
           <div
-            className="h-full max-h-screen flex shadow-2xl animate-slide-left pointer-events-auto"
+            className="w-full md:w-auto h-[62vh] md:h-full max-h-[85vh] md:max-h-screen flex flex-col shadow-2xl pointer-events-auto overflow-hidden rounded-t-3xl md:rounded-t-none animate-slide-up md:animate-slide-left"
             onClick={(e) => e.stopPropagation()}
           >
             <CyberMediaSidebar
