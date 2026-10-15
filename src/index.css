@@ -27,7 +27,7 @@ html, body {
   width: 100%;
   max-width: 100%;
   min-height: 100%;
-  overflow-x: clip;
+  overflow-x: hidden;
   position: relative;
   background-color: #030305;
   color: #FFFFFF;
@@ -43,7 +43,7 @@ html, body {
   max-width: 100%;
   min-height: 100vh;
   position: relative;
-  overflow-x: clip;
+  overflow-x: hidden;
   background-color: #030305;
 }
 

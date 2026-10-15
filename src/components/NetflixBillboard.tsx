@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Play, Folder, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
-import { getVideoThumbnails } from '../utils/thumbnailResolver';
 
 export interface NetflixBillboardProps {
   items?: StageMediaItem[];
@@ -20,7 +19,6 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Determine playlist: prioritize 10-video rotating playlist, fallback to single item
   const playlist = useMemo(() => {
@@ -54,26 +52,6 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
     setCurrentIndex(idx);
   };
 
-  // Video ad-style mid-point start handler (seeks only after bytes are buffered)
-  const handleCanPlay = useCallback(() => {
-    if (videoRef.current && !videoRef.current.dataset.seeked) {
-      const targetTime = (videoRef.current.duration || 60) * 0.35;
-      if (!isNaN(targetTime) && targetTime > 0) {
-        videoRef.current.currentTime = targetTime;
-        videoRef.current.dataset.seeked = "true";
-      }
-      videoRef.current.play().catch(() => {});
-    }
-  }, []);
-
-  // Ensure mid-point start is also checked if video was already buffered/cached
-  useEffect(() => {
-    const vid = videoRef.current;
-    if (vid && !vid.dataset.seeked && vid.readyState >= 3) {
-      handleCanPlay();
-    }
-  }, [currentItem?.id, currentItem?.url, handleCanPlay]);
-
   if (!currentItem) return null;
 
   const isVideo =
@@ -84,50 +62,45 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
   const cleanTitle = sanitizeMediaTitle(currentItem.title || currentItem.name, currentItem.category);
   const mediaSrc = getMediaUrl(currentItem.url);
-  const videoThumb = isVideo ? (getVideoThumbnails(currentItem)[0] || '') : '';
-  const posterSrc = currentItem.thumbnail || currentItem.poster || videoThumb || (isVideo ? undefined : mediaSrc);
+  const posterSrc = currentItem.thumbnail || currentItem.poster || mediaSrc;
 
   return (
-    <>
-      {/* 1. Fixed Viewport Stage for Spotlight Background Video */}
-      <div className="fixed inset-0 -z-10 w-full h-full overflow-hidden select-none pointer-events-none">
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          {isVideo ? (
-            <video
-              ref={videoRef}
-              key={currentItem.id || currentItem.url}
-              src={mediaSrc}
-              autoPlay
-              playsInline
-              muted={isMuted}
-              loop
-              poster={posterSrc}
-              onCanPlay={handleCanPlay}
-              onEnded={handleNext}
-              className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in transition-opacity duration-700 pointer-events-none"
-            />
-          ) : (
-            <img
-              key={currentItem.id || currentItem.url}
-              src={posterSrc}
-              alt={cleanTitle}
-              className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in pointer-events-none"
-            />
-          )}
-        </div>
-
-        {/* Subtle, non-blocking translucent scrim overlay over the video */}
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-none" />
-
-        {/* Left vignette for text legibility */}
-        <div className="absolute inset-y-0 left-0 w-full sm:w-3/4 lg:w-3/5 bg-gradient-to-r from-black/80 via-black/40 to-transparent pointer-events-none" />
-
-        {/* Top vignette for navbar contrast */}
-        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/80 via-black/20 to-transparent pointer-events-none" />
+    <div className="relative w-full h-[62vh] sm:h-[70vh] lg:h-[82vh] max-h-[760px] overflow-hidden select-none bg-black">
+      {/* 1. Background Cinematic Visual: Video loop or High-Res Backdrop */}
+      <div className="absolute inset-0 z-0">
+        {isVideo ? (
+          <video
+            key={currentItem.id || currentItem.url}
+            src={mediaSrc}
+            autoPlay
+            playsInline
+            muted={isMuted}
+            poster={posterSrc}
+            onEnded={handleNext}
+            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in transition-opacity duration-700"
+          />
+        ) : (
+          <img
+            key={currentItem.id || currentItem.url}
+            src={posterSrc}
+            alt={cleanTitle}
+            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in"
+          />
+        )}
       </div>
 
-      {/* 2. Hero Metadata & Action CTAs (Positioned in the initial 65vh hero stage) */}
-      <div className="absolute top-0 inset-x-0 h-[65vh] z-20 max-w-7xl mx-auto px-4 sm:px-8 md:px-12 flex flex-col justify-end pb-6 sm:pb-10 pointer-events-none">
+      {/* 2. Cinematic Gradient Overlays (Netflix Signature Fade) */}
+      {/* Bottom fade into the carousel stream */}
+      <div className="absolute inset-x-0 bottom-0 h-48 sm:h-64 bg-gradient-to-t from-[#030305] via-[#030305]/70 to-transparent z-10 pointer-events-none" />
+
+      {/* Left vignette for text legibility */}
+      <div className="absolute inset-y-0 left-0 w-full sm:w-3/4 lg:w-3/5 bg-gradient-to-r from-[#030305] via-[#030305]/80 md:via-[#030305]/40 to-transparent z-10 pointer-events-none" />
+
+      {/* Top vignette for navbar contrast */}
+      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/80 via-black/30 to-transparent z-10 pointer-events-none" />
+
+      {/* 3. Hero Metadata & Action CTAs */}
+      <div className="relative z-20 h-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 flex flex-col justify-end pb-12 sm:pb-16 lg:pb-20">
         <div className="max-w-xl sm:max-w-2xl flex flex-col gap-3 sm:gap-4">
           {/* Top Pill / Brand Label */}
           <div className="flex items-center gap-2">
@@ -165,7 +138,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
           </p>
 
           {/* Primary Action Buttons: PLAY & OPEN ALBUM */}
-          <div className="flex items-center gap-3 pt-2 pointer-events-auto">
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
               onClick={() => onPlay(currentItem, playlist)}
@@ -188,7 +161,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
           {/* 10-Video Playlist Pips (Rotates every 10s, Clickable) */}
           {playlist.length > 1 && (
-            <div className="flex items-center gap-2 pt-1 pointer-events-auto">
+            <div className="flex items-center gap-2 pt-1">
               <div className="flex items-center gap-1.5">
                 {playlist.map((it, idx) => (
                   <button
@@ -211,22 +184,22 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
             </div>
           )}
         </div>
-
-        {/* 3. Bottom-Right Controls: Mute/Unmute for background video */}
-        {isVideo && (
-          <div className="absolute right-4 sm:right-8 md:right-12 bottom-6 sm:bottom-10 z-20 pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => setIsMuted(!isMuted)}
-              className="p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 transition-all hover:scale-110 cursor-pointer shadow-[0_8px_25px_rgba(0,0,0,0.7)]"
-              title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-            >
-              {isMuted ? <VolumeX className="w-4 h-4 text-zinc-300" /> : <Volume2 className="w-4 h-4 text-[#00E5FF]" />}
-            </button>
-          </div>
-        )}
       </div>
-    </>
+
+      {/* 4. Bottom-Right Controls: Mute/Unmute for background video */}
+      {isVideo && (
+        <div className="absolute right-4 sm:right-8 md:right-12 bottom-14 sm:bottom-18 z-20">
+          <button
+            type="button"
+            onClick={() => setIsMuted(!isMuted)}
+            className="p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 transition-all hover:scale-110 cursor-pointer shadow-[0_8px_25px_rgba(0,0,0,0.7)]"
+            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4 text-zinc-300" /> : <Volume2 className="w-4 h-4 text-[#00E5FF]" />}
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
