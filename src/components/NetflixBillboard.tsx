@@ -3,6 +3,7 @@ import { Play, Folder, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { getVideoThumbnails } from '../utils/thumbnailResolver';
 
 export interface NetflixBillboardProps {
   items?: StageMediaItem[];
@@ -53,31 +54,25 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
     setCurrentIndex(idx);
   };
 
-  // Video ad-style mid-point start handler (starts at 35% duration)
-  const handleLoadedMetadata = useCallback(() => {
-    const vid = videoRef.current;
-    if (vid && Number.isFinite(vid.duration) && vid.duration > 0) {
-      try {
-        vid.currentTime = vid.duration * 0.35;
-        const playPromise = vid.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            console.debug('Autoplay notice:', err);
-          });
-        }
-      } catch (e) {
-        console.debug('Error setting currentTime:', e);
+  // Video ad-style mid-point start handler (seeks only after bytes are buffered)
+  const handleCanPlay = useCallback(() => {
+    if (videoRef.current && !videoRef.current.dataset.seeked) {
+      const targetTime = (videoRef.current.duration || 60) * 0.35;
+      if (!isNaN(targetTime) && targetTime > 0) {
+        videoRef.current.currentTime = targetTime;
+        videoRef.current.dataset.seeked = "true";
       }
+      videoRef.current.play().catch(() => {});
     }
   }, []);
 
-  // Ensure mid-point start is also checked if video metadata was already cached by browser
+  // Ensure mid-point start is also checked if video was already buffered/cached
   useEffect(() => {
     const vid = videoRef.current;
-    if (vid && vid.readyState >= 1 && Number.isFinite(vid.duration) && vid.duration > 0) {
-      handleLoadedMetadata();
+    if (vid && !vid.dataset.seeked && vid.readyState >= 3) {
+      handleCanPlay();
     }
-  }, [currentItem?.id, currentItem?.url, handleLoadedMetadata]);
+  }, [currentItem?.id, currentItem?.url, handleCanPlay]);
 
   if (!currentItem) return null;
 
@@ -89,7 +84,8 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
   const cleanTitle = sanitizeMediaTitle(currentItem.title || currentItem.name, currentItem.category);
   const mediaSrc = getMediaUrl(currentItem.url);
-  const posterSrc = currentItem.thumbnail || currentItem.poster || mediaSrc;
+  const videoThumb = isVideo ? (getVideoThumbnails(currentItem)[0] || '') : '';
+  const posterSrc = currentItem.thumbnail || currentItem.poster || videoThumb || (isVideo ? undefined : mediaSrc);
 
   return (
     <>
@@ -106,7 +102,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
               muted={isMuted}
               loop
               poster={posterSrc}
-              onLoadedMetadata={handleLoadedMetadata}
+              onCanPlay={handleCanPlay}
               onEnded={handleNext}
               className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in transition-opacity duration-700 pointer-events-none"
             />
