@@ -143,10 +143,10 @@ export const CyberCard: React.FC<CyberCardProps> = ({
           onClick(item);
         }
       }}
-      className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-[#08080c] border border-white/5 transition-all duration-300 ease-out hover:scale-[1.04] hover:border-[#00E5FF]/40 hover:shadow-[0_14px_35px_rgba(0,0,0,0.85)] hover:z-20 ${sizeClass}`}
+      className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-black/60 backdrop-blur-md border border-white/10 transition-all duration-300 ease-out hover:scale-[1.04] hover:border-[#00E5FF]/40 hover:shadow-[0_14px_35px_rgba(0,0,0,0.85)] hover:z-20 ${sizeClass}`}
     >
       {/* Background Poster / Fallback */}
-      <div className="absolute inset-0 bg-[#08080c] flex flex-col justify-between p-3.5 z-0">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col justify-between p-3.5 z-0">
         <div className="flex items-center justify-between">
           <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
             {isShort ? (
