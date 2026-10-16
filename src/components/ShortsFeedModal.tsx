@@ -91,9 +91,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const isNavigatingRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const previousIndexRef = useRef(currentIndex);
+
   const [prevProps, setPrevProps] = useState({ initialIndex, isOpen });
   if (prevProps.initialIndex !== initialIndex || prevProps.isOpen !== isOpen) {
     setPrevProps({ initialIndex, isOpen });
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
     setCurrentIndex(initialIndex);
     setDismissOffsetY(0);
     setIsPlaying(true);
@@ -111,6 +116,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const handleNext = useCallback(() => {
     if (currentIndex < shorts.length - 1) {
+      // Pause current video immediately so it stops decoding frames in the background
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
       setCurrentIndex((prev) => prev + 1);
       setIsPlaying(true);
       setDismissOffsetY(0);
@@ -121,6 +130,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
+      // Pause current video immediately so it stops decoding frames in the background
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
       setCurrentIndex((prev) => prev - 1);
       setIsPlaying(true);
       setDismissOffsetY(0);
@@ -129,15 +142,44 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [currentIndex]);
 
-  // Aggressive playback trigger and adjacent reel pre-warming
+  // Aggressive instant playback trigger and one-ahead pre-warming
   useEffect(() => {
-    if (!isOpen) return;
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {});
+    if (!isOpen) {
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+      return;
     }
-    // Pre-warm next and previous reels for instant swipe
-    if (shorts[currentIndex + 1]?.url) prewarmVideoStream(shorts[currentIndex + 1].url);
-    if (shorts[currentIndex - 1]?.url) prewarmVideoStream(shorts[currentIndex - 1].url);
+
+    // When active short changes, pause previous playback if still running
+    if (previousIndexRef.current !== currentIndex) {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+      previousIndexRef.current = currentIndex;
+    }
+
+    const video = videoRef.current;
+    if (video) {
+      // Call activeVideoRef.current.play().catch(...) immediately
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // If browser autoplay policy blocks unmuted audio on mobile, mute and retry immediately
+          if (!video.muted) {
+            video.muted = true;
+            setIsMuted(true);
+            video.play().catch(() => {});
+          }
+        });
+      }
+    }
+
+    // Pre-warm next reel ONLY for instant swipe (previous reel is NOT pre-warmed to conserve mobile RAM)
+    if (shorts[currentIndex + 1]?.url) {
+      prewarmVideoStream(shorts[currentIndex + 1].url);
+    }
   }, [currentIndex, isOpen, shorts]);
 
   // Strict background scroll-lock
@@ -363,6 +405,21 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const prevShort = currentIndex > 0 ? shorts[currentIndex - 1] : null;
   const nextShort = currentIndex < shorts.length - 1 ? shorts[currentIndex + 1] : null;
 
+  const nextRawUrl = (nextShort?.url || '').replace(/^http:\/\//i, 'https://');
+  let nextStreamUrl = nextRawUrl;
+  if (nextStreamUrl.includes('drive.google.com') && !nextStreamUrl.includes('/preview')) {
+    nextStreamUrl = nextStreamUrl.replace(/\/view(\?.*)?$/, '/preview');
+  } else if (!nextStreamUrl.includes('drive.google.com') && nextStreamUrl) {
+    nextStreamUrl = getMediaUrl(nextStreamUrl);
+  }
+  const isNextVideo = Boolean(
+    nextStreamUrl &&
+      (nextStreamUrl.includes('media.sarwar.cyou') ||
+        nextStreamUrl.includes('huggingface.co') ||
+        nextStreamUrl.endsWith('.mp4') ||
+        nextStreamUrl.includes('.mp4?'))
+  );
+
   const prevPoster = useMemo(() => {
     if (!prevShort) return '';
     const multiThumbs = resolveMultiFrameThumbnails(prevShort);
@@ -514,26 +571,31 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             {/* Ultra-blurred ambient video backdrop for landscape clips */}
             {isLandscape && (
               <video
-                src={getMediaUrl(streamUrl)}
+                key="shorts-ambient-video"
+                src={streamUrl}
                 autoPlay
                 loop
                 muted
+                preload="none"
                 playsInline
+                {...{ 'webkit-playsinline': 'true' }}
+                disablePictureInPicture
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover filter blur-3xl opacity-40 scale-125 pointer-events-none z-0"
               />
             )}
 
-            {streamUrl.includes('media.sarwar.cyou') || streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') ? (
+            {streamUrl.includes('media.sarwar.cyou') || streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mp4?') ? (
               <video
                 ref={videoRef}
-                key={currentShort.id}
-                src={getMediaUrl(streamUrl)}
+                key="shorts-active-video"
+                src={streamUrl}
                 poster={shortPoster || undefined}
                 autoPlay
-                preload="metadata"
+                preload="auto"
                 playsInline
                 {...{ 'webkit-playsinline': 'true' }}
+                disablePictureInPicture
                 crossOrigin="anonymous"
                 loop
                 muted={isMuted}
@@ -546,11 +608,18 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     setDuration(v.duration);
                   }
                 }}
+                onCanPlay={(e) => {
+                  if (isPlaying) {
+                    e.currentTarget.play().catch(() => {});
+                  }
+                }}
                 onTimeUpdate={() => {
                   if (videoRef.current && !isDraggingProgressRef.current) {
                     setCurrentTime(videoRef.current.currentTime);
                   }
                 }}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
                 className={`w-full h-full relative z-10 transition-all duration-300 ${
                   isLandscape ? 'object-contain' : 'object-cover'
                 }`}
@@ -563,6 +632,21 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 allow="autoplay; encrypted-media; fullscreen"
                 allowFullScreen
                 title={displayTitle}
+              />
+            )}
+
+            {/* One-Ahead Hidden Video Preloader for Next Short (currentIndex + 1) */}
+            {nextShort && nextStreamUrl && isNextVideo && (
+              <video
+                key={`preload-${nextShort.id || currentIndex + 1}`}
+                src={nextStreamUrl}
+                preload="auto"
+                muted
+                playsInline
+                {...{ 'webkit-playsinline': 'true' }}
+                disablePictureInPicture
+                style={{ display: 'none' }}
+                aria-hidden="true"
               />
             )}
           </div>
