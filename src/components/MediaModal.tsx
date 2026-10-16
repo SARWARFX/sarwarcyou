@@ -44,13 +44,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 }) => {
   const [activeIdx, setActiveIdx] = useState<number>(propCurrentIndex);
   const [scale, setScale] = useState<number>(1);
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const isZoomed = scale > 1.05;
 
   // Single Tap to Toggle Controls (with 250ms double-tap protection)
   const [showControls, setShowControls] = useState<boolean>(true);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isTouchInteractionRef = useRef<boolean>(false);
+  const lastTouchTimeRef = useRef<number>(0);
 
   const [showSidebar, setShowSidebar] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -77,7 +77,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const pinchStateRef = useRef<{
     startDist: number;
     startScale: number;
-    startPan: { x: number; y: number };
+    startPosition: { x: number; y: number };
     lastTouchX: number;
     lastTouchY: number;
     isPinching: boolean;
@@ -85,14 +85,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   }>({
     startDist: 0,
     startScale: 1,
-    startPan: { x: 0, y: 0 },
+    startPosition: { x: 0, y: 0 },
     lastTouchX: 0,
     lastTouchY: 0,
     isPinching: false,
     isPanning: false,
   });
 
-  const lastTapRef = useRef<number>(0);
+  const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
 
   const wakeFullscreenClose = useCallback(() => {
     setShowFullscreenClose(true);
@@ -114,7 +114,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setPrevPropKey({ propCurrentIndex, isOpen });
     setActiveIdx(propCurrentIndex);
     setScale(1);
-    setPan({ x: 0, y: 0 });
+    setPosition({ x: 0, y: 0 });
     setShowControls(true);
   }
 
@@ -129,7 +129,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const next = activeIdx + 1;
     setActiveIdx(next);
     setScale(1);
-    setPan({ x: 0, y: 0 });
+    setPosition({ x: 0, y: 0 });
     onIndexChange?.(next);
   }, [hasItemList, activeIdx, items.length, onIndexChange]);
 
@@ -138,7 +138,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const prev = activeIdx - 1;
     setActiveIdx(prev);
     setScale(1);
-    setPan({ x: 0, y: 0 });
+    setPosition({ x: 0, y: 0 });
     onIndexChange?.(prev);
   }, [hasItemList, activeIdx, onIndexChange]);
 
@@ -174,7 +174,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setIsLightboxFullscreen(false);
     setIsNativeFullscreen(false);
     setScale(1);
-    setPan({ x: 0, y: 0 });
+    setPosition({ x: 0, y: 0 });
   }, []);
 
   const toggleFullscreen = useCallback(() => {
@@ -233,19 +233,35 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // -------------------------------------------------------------
   // Mobile Touch Gestures & Desktop Zoom Handlers
   // -------------------------------------------------------------
-  const toggleZoom = useCallback(() => {
+  const handleDoubleTap = useCallback((e?: React.TouchEvent | React.MouseEvent) => {
+    if (e) {
+      if ('cancelable' in e && e.cancelable) {
+        e.preventDefault();
+      }
+      if ('stopPropagation' in e) {
+        e.stopPropagation();
+      }
+    }
+    // Clear single-tap timer so controls don't flicker
+    if (singleTapTimerRef.current) {
+      clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = null;
+    }
+
     if (scale > 1.05) {
+      // ALWAYS RESET to natural default state when already zoomed
       setScale(1);
-      setPan({ x: 0, y: 0 });
+      setPosition({ x: 0, y: 0 });
     } else {
+      // Zoom in to 2.5x centered around natural view
       setScale(2.5);
-      setPan({ x: 0, y: 0 });
+      setPosition({ x: 0, y: 0 });
     }
   }, [scale]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    lastTouchTimeRef.current = Date.now();
     wakeFullscreenClose();
-    isTouchInteractionRef.current = true;
 
     // Multi-touch: Two-finger pinch gesture setup
     if (e.touches.length === 2) {
@@ -257,12 +273,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       pinchStateRef.current = {
         startDist: dist,
         startScale: scale,
-        startPan: { ...pan },
-        lastTouchX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        lastTouchY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        startPosition: { ...position },
+        lastTouchX: midX,
+        lastTouchY: midY,
         isPinching: true,
         isPanning: false,
       };
@@ -275,20 +293,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (e.touches.length === 1) {
       const t = e.touches[0];
       const now = performance.now();
-      const timeSinceLastTap = now - lastTapRef.current;
+      const timeSinceLastTap = now - lastTapRef.current.time;
+      const distFromLastTap = Math.hypot(
+        t.clientX - lastTapRef.current.x,
+        t.clientY - lastTapRef.current.y
+      );
 
-      // Double tap to zoom (2.5x vs 1x)
-      if (timeSinceLastTap < 280) {
-        lastTapRef.current = 0;
-        if (singleTapTimerRef.current) {
-          clearTimeout(singleTapTimerRef.current);
-          singleTapTimerRef.current = null;
-        }
-        toggleZoom();
+      // Double tap to zoom / reset (second tap within 300ms and 35px)
+      if (timeSinceLastTap < 300 && distFromLastTap < 35) {
+        lastTapRef.current = { time: 0, x: 0, y: 0 };
+        handleDoubleTap(e);
         touchStateRef.current = null;
         return;
       }
-      lastTapRef.current = now;
 
       // Drag / Pan while zoomed in (scale > 1.05)
       if (scale > 1.05) {
@@ -319,6 +336,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    lastTouchTimeRef.current = Date.now();
     wakeFullscreenClose();
 
     // Multi-touch: Two-finger continuous pinch zooming (clamped 1x to 4x)
@@ -331,8 +349,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const factor = dist / pinchStateRef.current.startDist;
         const newScale = Math.max(1, Math.min(4, pinchStateRef.current.startScale * factor));
         setScale(newScale);
+
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const dMidX = midX - pinchStateRef.current.lastTouchX;
+        const dMidY = midY - pinchStateRef.current.lastTouchY;
+        pinchStateRef.current.lastTouchX = midX;
+        pinchStateRef.current.lastTouchY = midY;
+
         if (newScale <= 1.05) {
-          setPan({ x: 0, y: 0 });
+          setPosition({ x: 0, y: 0 });
+        } else {
+          const maxPanX = Math.max(0, (window.innerWidth * (newScale - 1)) / 2 + 50);
+          const maxPanY = Math.max(0, (window.innerHeight * (newScale - 1)) / 2 + 50);
+          setPosition((prev) => ({
+            x: Math.max(-maxPanX, Math.min(maxPanX, prev.x + dMidX)),
+            y: Math.max(-maxPanY, Math.min(maxPanY, prev.y + dMidY)),
+          }));
         }
       }
       return;
@@ -355,14 +388,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const maxPanX = Math.max(0, (window.innerWidth * (scale - 1)) / 2 + 50);
       const maxPanY = Math.max(0, (window.innerHeight * (scale - 1)) / 2 + 50);
 
-      setPan((prev) => ({
+      setPosition((prev) => ({
         x: Math.max(-maxPanX, Math.min(maxPanX, prev.x + dx)),
         y: Math.max(-maxPanY, Math.min(maxPanY, prev.y + dy)),
       }));
       return;
     }
 
-    // Horizontal swipe preview feedback ONLY when scale === 1
+    // Horizontal swipe preview feedback ONLY when scale <= 1.05
     if (!touchStateRef.current || scale > 1.05) return;
     const t = e.touches[0];
     touchStateRef.current.currentX = t.clientX;
@@ -377,15 +410,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    lastTouchTimeRef.current = Date.now();
+
     if (e.touches.length === 0) {
       pinchStateRef.current.isPinching = false;
       pinchStateRef.current.isPanning = false;
 
       // Snap back if pinched below 1.05x
-      if (scale < 1.05) {
+      if (scale <= 1.05) {
         setScale(1);
-        setPan({ x: 0, y: 0 });
+        setPosition({ x: 0, y: 0 });
       }
+    } else if (e.touches.length === 1 && pinchStateRef.current.isPinching) {
+      pinchStateRef.current.isPinching = false;
+      pinchStateRef.current.isPanning = scale > 1.05;
+      const t = e.touches[0];
+      pinchStateRef.current.lastTouchX = t.clientX;
+      pinchStateRef.current.lastTouchY = t.clientY;
     }
 
     const state = touchStateRef.current;
@@ -399,9 +440,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const dy = t.clientY - state.startY;
     const dt = performance.now() - state.time;
 
-    // Stationary single tap check (< 10px move & < 300ms)
-    const isStationaryTap = Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 300;
+    // Stationary single tap check (< 20px move & < 300ms)
+    const isStationaryTap = Math.abs(dx) < 20 && Math.abs(dy) < 20 && dt < 300;
     if (isStationaryTap) {
+      lastTapRef.current = {
+        time: performance.now(),
+        x: t.clientX,
+        y: t.clientY,
+      };
+
       // 250ms timeout to distinguish single tap from double tap
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current);
@@ -436,8 +483,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   // Desktop Click handlers (with double-click protection)
   const handleStageClick = () => {
-    if (isTouchInteractionRef.current) {
-      isTouchInteractionRef.current = false;
+    if (Date.now() - lastTouchTimeRef.current < 600) {
       return;
     }
 
@@ -452,11 +498,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   const handleStageDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (singleTapTimerRef.current) {
-      clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = null;
+    if (Date.now() - lastTouchTimeRef.current < 600) {
+      return;
     }
-    toggleZoom();
+    handleDoubleTap(e);
   };
 
   // Wheel zoom on desktop
@@ -467,7 +512,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const newScale = Math.max(1, Math.min(5, scale * zoomFactor));
     setScale(newScale);
     if (newScale <= 1.05) {
-      setPan({ x: 0, y: 0 });
+      setPosition({ x: 0, y: 0 });
     }
   };
 
@@ -527,17 +572,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             alt={cleanTitle}
             style={{
               transform:
-                scale > 1.05
-                  ? `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`
-                  : touchDeltaX !== 0
+                touchDeltaX !== 0
                   ? `translateX(${touchDeltaX}px)`
-                  : 'none',
+                  : `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
               transition:
                 pinchStateRef.current.isPinching ||
                 pinchStateRef.current.isPanning ||
                 touchDeltaX !== 0
                   ? 'none'
-                  : 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
+                  : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}
             className="w-full h-full object-contain pointer-events-none select-none max-w-none max-h-none"
             draggable={false}
@@ -734,15 +777,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 alt={cleanTitle}
                 style={{
                   transform:
-                    scale > 1.05
-                      ? `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`
-                      : touchDeltaX !== 0
+                    touchDeltaX !== 0
                       ? `translateX(${touchDeltaX}px)`
-                      : 'none',
+                      : `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
                   transition:
                     pinchStateRef.current.isPinching || pinchStateRef.current.isPanning || touchDeltaX !== 0
                       ? 'none'
-                      : 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
+                      : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
                 className={`max-w-full max-h-[82dvh] md:max-h-[85dvh] object-contain rounded-xl select-none will-change-transform ${
                   isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
@@ -774,7 +815,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               onSelectItem={(_, idx) => {
                 setActiveIdx(idx);
                 setScale(1);
-                setPan({ x: 0, y: 0 });
+                setPosition({ x: 0, y: 0 });
                 onIndexChange?.(idx);
               }}
               mediaType="image"
