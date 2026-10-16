@@ -47,6 +47,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const isZoomed = scale > 1.05;
 
+  // Single Tap to Toggle Controls (with 250ms double-tap protection)
+  const [showControls, setShowControls] = useState<boolean>(true);
+  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTouchInteractionRef = useRef<boolean>(false);
+
   const [showSidebar, setShowSidebar] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -97,12 +102,20 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }, 2500);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+      if (fullscreenCloseTimerRef.current) window.clearTimeout(fullscreenCloseTimerRef.current);
+    };
+  }, []);
+
   const [prevPropKey, setPrevPropKey] = useState({ propCurrentIndex, isOpen });
   if (prevPropKey.propCurrentIndex !== propCurrentIndex || prevPropKey.isOpen !== isOpen) {
     setPrevPropKey({ propCurrentIndex, isOpen });
     setActiveIdx(propCurrentIndex);
     setScale(1);
     setPan({ x: 0, y: 0 });
+    setShowControls(true);
   }
 
   // Determine active media item
@@ -218,13 +231,28 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   }, [isOpen, onClose, isFullscreen, toggleFullscreen, exitFullscreen, showSidebar, handleNext, handlePrev]);
 
   // -------------------------------------------------------------
-  // Touch Handlers with 2-Finger Pinch Zooming and Panning
+  // Mobile Touch Gestures & Desktop Zoom Handlers
   // -------------------------------------------------------------
+  const toggleZoom = useCallback(() => {
+    if (scale > 1.05) {
+      setScale(1);
+      setPan({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+      setPan({ x: 0, y: 0 });
+    }
+  }, [scale]);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     wakeFullscreenClose();
+    isTouchInteractionRef.current = true;
 
-    // Two-finger pinch gesture
+    // Multi-touch: Two-finger pinch gesture setup
     if (e.touches.length === 2) {
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -247,32 +275,38 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (e.touches.length === 1) {
       const t = e.touches[0];
       const now = performance.now();
+      const timeSinceLastTap = now - lastTapRef.current;
 
-      // Double tap to zoom toggle (2.5x vs 1x)
-      if (now - lastTapRef.current < 280) {
+      // Double tap to zoom (2.5x vs 1x)
+      if (timeSinceLastTap < 280) {
         lastTapRef.current = 0;
-        if (scale > 1.05) {
-          setScale(1);
-          setPan({ x: 0, y: 0 });
-        } else {
-          setScale(2.5);
-          setPan({ x: 0, y: 0 });
+        if (singleTapTimerRef.current) {
+          clearTimeout(singleTapTimerRef.current);
+          singleTapTimerRef.current = null;
         }
+        toggleZoom();
+        touchStateRef.current = null;
         return;
       }
       lastTapRef.current = now;
 
-      // Panning while zoomed in
+      // Drag / Pan while zoomed in (scale > 1.05)
       if (scale > 1.05) {
         pinchStateRef.current.isPanning = true;
         pinchStateRef.current.isPinching = false;
         pinchStateRef.current.lastTouchX = t.clientX;
         pinchStateRef.current.lastTouchY = t.clientY;
-        touchStateRef.current = null;
+        touchStateRef.current = {
+          startX: t.clientX,
+          startY: t.clientY,
+          currentX: t.clientX,
+          currentY: t.clientY,
+          time: now,
+        };
         return;
       }
 
-      // Normal swipe gesture setup
+      // Normal swipe gesture setup when at 1x
       touchStateRef.current = {
         startX: t.clientX,
         startY: t.clientY,
@@ -287,7 +321,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const handleTouchMove = (e: React.TouchEvent) => {
     wakeFullscreenClose();
 
-    // Two-finger pinch zooming
+    // Multi-touch: Two-finger continuous pinch zooming (clamped 1x to 4x)
     if (e.touches.length === 2 && pinchStateRef.current.isPinching) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -295,13 +329,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       );
       if (pinchStateRef.current.startDist > 0) {
         const factor = dist / pinchStateRef.current.startDist;
-        const newScale = Math.max(1, Math.min(5, pinchStateRef.current.startScale * factor));
+        const newScale = Math.max(1, Math.min(4, pinchStateRef.current.startScale * factor));
         setScale(newScale);
+        if (newScale <= 1.05) {
+          setPan({ x: 0, y: 0 });
+        }
       }
       return;
     }
 
-    // Single-finger panning when zoomed in
+    // Drag / Pan with 1 finger when zoomed in (scale > 1.05)
     if (e.touches.length === 1 && scale > 1.05 && pinchStateRef.current.isPanning) {
       const t = e.touches[0];
       const dx = t.clientX - pinchStateRef.current.lastTouchX;
@@ -309,8 +346,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       pinchStateRef.current.lastTouchX = t.clientX;
       pinchStateRef.current.lastTouchY = t.clientY;
 
-      const maxPanX = (window.innerWidth * (scale - 1)) / 1.6;
-      const maxPanY = (window.innerHeight * (scale - 1)) / 1.6;
+      if (touchStateRef.current) {
+        touchStateRef.current.currentX = t.clientX;
+        touchStateRef.current.currentY = t.clientY;
+      }
+
+      // Boundary clamp to inspect every corner without losing image
+      const maxPanX = Math.max(0, (window.innerWidth * (scale - 1)) / 2 + 50);
+      const maxPanY = Math.max(0, (window.innerHeight * (scale - 1)) / 2 + 50);
 
       setPan((prev) => ({
         x: Math.max(-maxPanX, Math.min(maxPanX, prev.x + dx)),
@@ -319,8 +362,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       return;
     }
 
-    // Single-finger swipe navigation when scale is 1x (only in normal viewer mode)
-    if (!touchStateRef.current || scale > 1.05 || isFullscreen) return;
+    // Horizontal swipe preview feedback ONLY when scale === 1
+    if (!touchStateRef.current || scale > 1.05) return;
     const t = e.touches[0];
     touchStateRef.current.currentX = t.clientX;
     touchStateRef.current.currentY = t.clientY;
@@ -328,8 +371,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const dx = t.clientX - touchStateRef.current.startX;
     const dy = t.clientY - touchStateRef.current.startY;
 
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
-      setTouchDeltaX(Math.max(-100, Math.min(100, dx * 0.35)));
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+      setTouchDeltaX(Math.max(-80, Math.min(80, dx * 0.35)));
     }
   };
 
@@ -338,7 +381,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       pinchStateRef.current.isPinching = false;
       pinchStateRef.current.isPanning = false;
 
-      // Snap back if pinched below 1x
+      // Snap back if pinched below 1.05x
       if (scale < 1.05) {
         setScale(1);
         setPan({ x: 0, y: 0 });
@@ -349,12 +392,31 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     touchStateRef.current = null;
     setTouchDeltaX(0);
 
-    if (!state || scale > 1.05 || isFullscreen) return;
+    if (!state) return;
 
     const t = e.changedTouches[0];
     const dx = t.clientX - state.startX;
     const dy = t.clientY - state.startY;
     const dt = performance.now() - state.time;
+
+    // Stationary single tap check (< 10px move & < 300ms)
+    const isStationaryTap = Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 300;
+    if (isStationaryTap) {
+      // 250ms timeout to distinguish single tap from double tap
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+      }
+      singleTapTimerRef.current = setTimeout(() => {
+        setShowControls((prev) => !prev);
+        singleTapTimerRef.current = null;
+      }, 250);
+      return;
+    }
+
+    // When scale > 1, horizontal swipe navigation is strictly disabled to allow free panning
+    if (scale > 1.05) {
+      return;
+    }
 
     // Swipe down to dismiss
     if (dy > 120 && Math.abs(dx) < 60 && dt < 450) {
@@ -362,7 +424,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       return;
     }
 
-    // Horizontal swipe navigation
+    // Horizontal swipe navigation (distance > 50px)
     if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < -50) {
         handleNext();
@@ -372,15 +434,29 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   };
 
-  // Double click / tap toggle
-  const toggleZoom = () => {
-    if (scale > 1.05) {
-      setScale(1);
-      setPan({ x: 0, y: 0 });
-    } else {
-      setScale(2.5);
-      setPan({ x: 0, y: 0 });
+  // Desktop Click handlers (with double-click protection)
+  const handleStageClick = () => {
+    if (isTouchInteractionRef.current) {
+      isTouchInteractionRef.current = false;
+      return;
     }
+
+    if (singleTapTimerRef.current) {
+      clearTimeout(singleTapTimerRef.current);
+    }
+    singleTapTimerRef.current = setTimeout(() => {
+      setShowControls((prev) => !prev);
+      singleTapTimerRef.current = null;
+    }, 250);
+  };
+
+  const handleStageDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (singleTapTimerRef.current) {
+      clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = null;
+    }
+    toggleZoom();
   };
 
   // Wheel zoom on desktop
@@ -435,8 +511,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[150] bg-black select-none touch-none touch-action-none flex items-center justify-center animate-fade-in"
-        onClick={wakeFullscreenClose}
+        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[150] bg-black select-none touch-none touch-action-none flex items-center justify-center animate-fade-in cursor-pointer"
+        onClick={handleStageClick}
+        onDoubleClick={handleStageDoubleClick}
         onMouseMove={wakeFullscreenClose}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -449,11 +526,18 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             src={getMediaUrl(secureUrl)}
             alt={cleanTitle}
             style={{
-              transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`,
+              transform:
+                scale > 1.05
+                  ? `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`
+                  : touchDeltaX !== 0
+                  ? `translateX(${touchDeltaX}px)`
+                  : 'none',
               transition:
-                pinchStateRef.current.isPinching || pinchStateRef.current.isPanning
+                pinchStateRef.current.isPinching ||
+                pinchStateRef.current.isPanning ||
+                touchDeltaX !== 0
                   ? 'none'
-                  : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  : 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
             }}
             className="w-full h-full object-contain pointer-events-none select-none max-w-none max-h-none"
             draggable={false}
@@ -468,7 +552,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             exitFullscreen();
           }}
           className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[160] p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.95)] hover:border-[#00D2FF]/60 hover:text-[#00D2FF] transition-all duration-300 cursor-pointer ${
-            showFullscreenClose
+            showControls && showFullscreenClose
               ? 'opacity-100 scale-100 pointer-events-auto'
               : 'opacity-0 scale-90 pointer-events-none'
           }`}
@@ -502,7 +586,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       <div className="flex-1 relative flex flex-col justify-between overflow-hidden h-full min-h-[50vh] md:min-h-0 bg-[#030305]">
         {/* Top Bar Header */}
         <header
-          className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto"
+          className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300 ${
+            showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Left Corner: Info Only */}
@@ -592,7 +678,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 handlePrev();
               }}
               disabled={activeIdx <= 0}
-              className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+              className={`absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all duration-300 cursor-pointer disabled:opacity-20 disabled:pointer-events-none ${
+                showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+              }`}
               title="Previous (Left Arrow)"
             >
               <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -605,7 +693,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 handleNext();
               }}
               disabled={activeIdx >= items.length - 1}
-              className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+              className={`absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all duration-300 cursor-pointer disabled:opacity-20 disabled:pointer-events-none ${
+                showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+              }`}
               title="Next (Right Arrow)"
             >
               <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -616,8 +706,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* Main Media Stage */}
         <div
           ref={mediaBoxRef}
-          className="flex-1 relative w-full h-full flex items-center justify-center p-3 sm:p-6 md:p-8 transition-all overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          className="flex-1 relative w-full h-full flex items-center justify-center p-3 sm:p-6 md:p-8 transition-all overflow-hidden cursor-pointer"
+          onClick={handleStageClick}
+          onDoubleClick={handleStageDoubleClick}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -641,7 +732,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               <img
                 src={getMediaUrl(secureUrl)}
                 alt={cleanTitle}
-                onClick={toggleZoom}
                 style={{
                   transform:
                     scale > 1.05
@@ -652,7 +742,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   transition:
                     pinchStateRef.current.isPinching || pinchStateRef.current.isPanning || touchDeltaX !== 0
                       ? 'none'
-                      : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                      : 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
                 }}
                 className={`max-w-full max-h-[82dvh] md:max-h-[85dvh] object-contain rounded-xl select-none will-change-transform ${
                   isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
