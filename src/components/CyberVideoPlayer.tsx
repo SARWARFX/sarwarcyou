@@ -7,8 +7,6 @@ import {
   Maximize,
   Minimize,
   Download,
-  RotateCcw,
-  RotateCw,
   Repeat,
   Repeat1,
   Gauge,
@@ -68,8 +66,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -539,6 +536,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     resetHudTimer();
   }, [resetHudTimer]);
 
+  // Handle Mute Toggle
+  const handleToggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (videoRef.current) {
+        videoRef.current.muted = next;
+      }
+      return next;
+    });
+    resetHudTimer();
+  }, [resetHudTimer]);
+
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);
 
@@ -565,10 +574,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       } else if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
       } else if (e.key === 'm' || e.key === 'M') {
-        setIsMuted((m) => {
-          if (videoRef.current) videoRef.current.muted = !m;
-          return !m;
-        });
+        handleToggleMute();
       }
     };
 
@@ -576,7 +582,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose, togglePlay, seekBy, toggleFullscreen]);
+  }, [isOpen, onClose, togglePlay, seekBy, toggleFullscreen, handleToggleMute]);
 
   // Handle Download
   const handleDownload = async () => {
@@ -595,24 +601,28 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   };
 
-  // Handle A-B Loop Toggle
+  // Handle A-B Loop Toggle (1st tap: Point A, 2nd tap: Point B & loop, 3rd tap: Clear)
   const handleToggleLoop = () => {
     const now = videoRef.current ? videoRef.current.currentTime : currentTime;
 
     if (loopA === null) {
-      // Button state 1 -> Set Point A
+      // 1st tap: Set Point A
       setLoopA(now);
       setLoopB(null);
     } else if (loopB === null) {
-      // Button state 2 -> Set Point B (requires loopB > loopA)
-      if (now > loopA) {
-        setLoopB(now);
-      } else {
+      // 2nd tap: Set Point B and start looping immediately
+      let endPoint = now;
+      if (endPoint <= loopA) {
         const safeEnd = Math.min(duration || 0, loopA + 3);
-        setLoopB(safeEnd > loopA ? safeEnd : (duration || loopA + 1));
+        endPoint = safeEnd > loopA ? safeEnd : (duration || loopA + 1);
       }
+      setLoopB(endPoint);
+      if (videoRef.current) {
+        videoRef.current.currentTime = loopA;
+      }
+      setCurrentTime(loopA);
     } else {
-      // Button state 4 -> Clear / Reset loop points back to normal unconstrained playback
+      // 3rd tap: Clear loop
       setLoopA(null);
       setLoopB(null);
     }
@@ -722,28 +732,113 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </div>
           </div>
 
-          {/* Right Action: Queue Toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowSidebar(!showSidebar);
-              resetHudTimer();
-            }}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
-              showSidebar
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
-                : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
-            }`}
-            title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
-          >
-            <ListVideo className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">QUEUE</span>
-            {playlist.length > 0 && (
-              <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
-                {playlist.length}
+          {/* Right Action: Repeat, Fit/Fill, Download, Queue */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* 3-State Repeat Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setRepeatMode((prev) => {
+                  if (prev === 'off') return 'all';
+                  if (prev === 'all') return 'one';
+                  return 'off';
+                });
+                resetHudTimer();
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
+                repeatMode !== 'off'
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
+              }`}
+              title={
+                repeatMode === 'off'
+                  ? 'Autoplay Next (Click for Repeat All)'
+                  : repeatMode === 'all'
+                  ? 'Repeat Queue / All (Click for Repeat One)'
+                  : 'Repeat One (Click for Normal)'
+              }
+            >
+              {repeatMode === 'one' ? (
+                <Repeat1 className="w-3.5 h-3.5 text-[#00E5FF]" />
+              ) : (
+                <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#00E5FF]' : ''}`} />
+              )}
+              <span className="hidden md:inline">
+                {repeatMode === 'off'
+                  ? 'Autoplay'
+                  : repeatMode === 'all'
+                  ? 'Repeat All'
+                  : 'Repeat 1'}
               </span>
-            )}
-          </button>
+            </button>
+
+            {/* Aspect Ratio Fit / Fill Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
+                resetHudTimer();
+              }}
+              className={`px-2.5 py-1.5 rounded-full text-[10px] font-mono font-bold tracking-wider transition-colors cursor-pointer border backdrop-blur-xl ${
+                fitMode === 'cover'
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
+                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
+              }`}
+              title={fitMode === 'cover' ? 'Fill Screen Active. Click for Aspect Fit.' : 'Fit Screen Active. Click for 100% Fill.'}
+            >
+              {fitMode === 'cover' ? 'FILL' : 'FIT'}
+            </button>
+
+            {/* 1-Click Download */}
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
+                downloadSuccess
+                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/30'
+                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
+              } disabled:opacity-40`}
+              title="Download Clip"
+            >
+              {downloadSuccess ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">SAVED</span>
+                </>
+              ) : isDownloading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00E5FF]" />
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">SAVE</span>
+                </>
+              )}
+            </button>
+
+            {/* Queue Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowSidebar(!showSidebar);
+                resetHudTimer();
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
+                showSidebar
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
+              }`}
+              title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
+            >
+              <ListVideo className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">QUEUE</span>
+              {playlist.length > 0 && (
+                <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
+                  {playlist.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
       {/* 2.5 Samsung One UI Style Horizontal Gesture Scrubbing Overlay */}
@@ -940,7 +1035,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* A-B Loop Locked Interval Shading */}
             {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
               <div
-                className="absolute top-0 bottom-0 bg-cyan-400/35 border-x-2 border-[#00E5FF] shadow-[0_0_12px_rgba(0,229,255,0.7)] z-10 pointer-events-none"
+                className="absolute top-0 bottom-0 bg-violet-500/30 border-x-2 border-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.6)] z-10 pointer-events-none"
                 style={{
                   left: `${(loopA / duration) * 100}%`,
                   width: `${((loopB - loopA) / duration) * 100}%`,
@@ -959,7 +1054,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* Marker B */}
             {duration > 0 && loopB !== null && (
               <div
-                className="absolute top-0 bottom-0 w-1 bg-[#00E5FF] shadow-[0_0_8px_rgba(0,229,255,0.9)] z-20 pointer-events-none"
+                className="absolute top-0 bottom-0 w-1 bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.9)] z-20 pointer-events-none"
                 style={{ left: `${(loopB / duration) * 100}%` }}
               />
             )}
@@ -968,147 +1063,63 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
         {/* HUD Button Row: Smoked Frosted Glass Pill */}
         <div className="cyber-pill px-2.5 sm:px-4 py-1.5 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 w-full max-w-full overflow-visible shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
-          {/* Bottom-Left: Play, Rewind/Forward, Volume, Timestamps */}
-          <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+          {/* Left side: Play/Pause button + Current Time / Duration counter */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             <button
               type="button"
               onClick={togglePlay}
-              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex-shrink-0"
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
             >
-              {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+              {isPlaying ? (
+                <Pause className="w-4 h-4 fill-current" />
+              ) : (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => seekBy(-10)}
-              className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex-shrink-0"
-              title="10s Back"
-            >
-              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => seekBy(10)}
-              className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex-shrink-0"
-              title="10s Forward"
-            >
-              <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-
-            {/* Volume */}
-            <div className="flex items-center gap-1 group/vol flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMuted(!isMuted);
-                  if (videoRef.current) videoRef.current.muted = !isMuted;
-                }}
-                className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title="Mute / Unmute (M)"
-              >
-                {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setVolume(val);
-                  setIsMuted(false);
-                  if (videoRef.current) {
-                    videoRef.current.volume = val;
-                    videoRef.current.muted = false;
-                  }
-                }}
-                className="hidden sm:inline-block w-14 sm:w-18 h-1 accent-[#00E5FF] cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-              />
-            </div>
-
-            {/* Timestamp */}
-            <span className="text-[10px] sm:text-xs font-mono font-medium text-zinc-300 tracking-wider whitespace-nowrap">
-              {formatTime(currentTime)} / {formatTime(duration)}
+            <span className="text-[11px] sm:text-xs font-mono font-medium text-white/80 tracking-wider whitespace-nowrap select-none">
+              {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
             </span>
           </div>
 
-          {/* Bottom-Right: A-B loop, Speed, Download, Fullscreen */}
-          <div className="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
-            {/* A-B Loop Control Toggle (Desktop only) */}
+          {/* Right side: A-B Loop pill + Playback Speed button + Mute Toggle button + Fullscreen toggle */}
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+            {/* A-B Loop Pill (Fully visible & interactive on mobile & desktop) */}
             <button
               type="button"
               onClick={handleToggleLoop}
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 flex-shrink-0 ${
                 loopA !== null && loopB !== null
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/60 shadow-[0_0_16px_rgba(0,229,255,0.4)]'
+                  ? 'bg-violet-600/30 text-violet-300 border border-violet-500/30 shadow-[0_0_12px_rgba(139,92,246,0.3)]'
                   : loopA !== null
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
-                  : 'hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-transparent'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                  : 'p-2 text-white/80 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
               title={
                 loopA !== null && loopB !== null
-                  ? `A-B Loop Active (${formatTime(loopA)} - ${formatTime(loopB)}). Click to reset loop.`
+                  ? `A-B Loop Active (${formatTime(loopA)} - ${formatTime(loopB)}). Tap to clear.`
                   : loopA !== null
-                  ? `Set B (Point A locked at ${formatTime(loopA)}). Click to lock loop.`
-                  : 'Set A (Click to start A-B loop)'
+                  ? `Set Point B (Point A set at ${formatTime(loopA)}). Tap to lock loop.`
+                  : 'Set Point A (Tap to start A-B loop)'
               }
+              aria-label="A-B Loop"
             >
               <Repeat
                 className={`w-3.5 h-3.5 ${
                   loopA !== null && loopB !== null
-                    ? 'text-[#00E5FF]'
+                    ? 'text-violet-300'
                     : loopA !== null
                     ? 'text-amber-400 animate-pulse'
-                    : ''
+                    : 'text-current'
                 }`}
               />
-              <span>
+              <span className="text-[11px] sm:text-xs">
                 {loopA !== null && loopB !== null
-                  ? 'A-B Active'
+                  ? 'A-B'
                   : loopA !== null
-                  ? `Set B (${formatTime(loopA)})`
-                  : 'Set A'}
-              </span>
-            </button>
-
-            {/* 3-State Repeat Mode Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setRepeatMode((prev) => {
-                  if (prev === 'off') return 'all';
-                  if (prev === 'all') return 'one';
-                  return 'off';
-                });
-                resetHudTimer();
-              }}
-              className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer ${
-                repeatMode !== 'off'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/60 shadow-[0_0_12px_rgba(0,229,255,0.35)]'
-                  : 'hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-transparent'
-              }`}
-              title={
-                repeatMode === 'off'
-                  ? 'Autoplay Next (Click for Repeat All)'
-                  : repeatMode === 'all'
-                  ? 'Repeat Queue / All (Click for Repeat One)'
-                  : 'Repeat One (Click for Normal)'
-              }
-            >
-              {repeatMode === 'one' ? (
-                <Repeat1 className="w-3.5 h-3.5 text-[#00E5FF]" />
-              ) : (
-                <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#00E5FF]' : ''}`} />
-              )}
-              <span className="hidden sm:inline">
-                {repeatMode === 'off'
-                  ? 'Autoplay'
-                  : repeatMode === 'all'
-                  ? 'Repeat All'
-                  : 'Repeat 1'}
+                  ? 'Set B'
+                  : 'A-B'}
               </span>
             </button>
 
@@ -1162,62 +1173,24 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </div>
 
-            {/* 1-Click Download */}
+            {/* Mute / Unmute Toggle */}
             <button
               type="button"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg text-xs font-bold font-sans tracking-wider transition-all cursor-pointer ${
-                downloadSuccess
-                  ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                  : 'hover:bg-white/10 text-zinc-300 hover:text-white'
-              } disabled:opacity-40`}
-              title="Download Clip"
+              onClick={handleToggleMute}
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              title={isMuted ? 'Unmute' : 'Mute'}
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
-              {downloadSuccess ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden sm:inline">SAVED</span>
-                </>
-              ) : (
-                <>
-                  {isDownloading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00E5FF]" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span className="hidden sm:inline">DOWNLOAD</span>
-                </>
-              )}
-            </button>
-
-            {/* Aspect Ratio Fit / Fill Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
-                resetHudTimer();
-              }}
-              className={`px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer border ${
-                fitMode === 'cover'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
-                  : 'bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border-white/10'
-              }`}
-              title={
-                fitMode === 'cover'
-                  ? 'Fill Screen Active (Zoomed 100% borderless fill). Click for Aspect Fit.'
-                  : 'Fit Screen Active (Aspect ratio preserved). Click for 100% Borderless Fill.'
-              }
-            >
-              {fitMode === 'cover' ? 'FILL' : 'FIT'}
+              {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-violet-400" />}
             </button>
 
             {/* Fullscreen */}
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-1 sm:p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex-shrink-0"
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title="Fullscreen (F)"
+              aria-label="Toggle Fullscreen"
             >
               {document.fullscreenElement ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
