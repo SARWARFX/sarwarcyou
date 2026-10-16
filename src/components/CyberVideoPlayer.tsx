@@ -11,17 +11,16 @@ import {
   Repeat1,
   Gauge,
   ListVideo,
-  ArrowLeft,
   Check,
   Loader2,
   ChevronsLeft,
   ChevronsRight,
+  X,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 
 export type VideoRepeatMode = 'off' | 'all' | 'one';
@@ -666,7 +665,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   if (!isOpen || !item) return null;
 
   const streamUrl = getMediaUrl(item.url);
-  const cleanPlayerTitle = sanitizeMediaTitle(item.title, item.category);
+  const albumName = item.category || item.parentAlbum || 'Cinema Vault';
+  const activeIdx = playlist.findIndex((v) => v.id === item.id || v.url === item.url);
+  const currentItemIndex = activeIdx >= 0 ? activeIdx + 1 : 1;
+  const totalCount = playlist.length;
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferPct = duration > 0 ? (buffered / duration) * 100 : 0;
 
@@ -698,148 +700,63 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         />
       </div>
 
-      {/* 2. Top Bar Overlay (Back Button, Title & Queue Toggle) */}
+      {/* 2. Top Bar Overlay (Top Left: Album Name with File Count; Top Right: Queue & Close) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`absolute top-0 inset-x-0 z-40 p-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-opacity duration-300 ${
+        className={`absolute top-0 inset-x-0 z-40 p-4 sm:px-6 sm:py-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-opacity duration-300 ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 transition-all cursor-pointer hover:border-[#00E5FF]/40"
-              title="Back to Browse (Esc)"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-xs font-bold font-sans hidden sm:inline">Back</span>
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-bold text-white tracking-wide truncate max-w-xs sm:max-w-md">
-                  {cleanPlayerTitle}
-                </h1>
-                {playlist.length > 0 && (
-                  <span className="text-[10px] font-mono font-bold text-[#00E5FF] bg-[#00E5FF]/10 px-2 py-0.5 rounded-full border border-[#00E5FF]/20 flex-shrink-0">
-                    {playlist.findIndex((v) => v.id === item.id || v.url === item.url) + 1} / {playlist.length}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-                {item.category || 'Cinema Vault'}
-              </span>
-            </div>
-          </div>
-
-          {/* Right Action: Repeat, Fit/Fill, Download, Queue */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* 3-State Repeat Mode Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setRepeatMode((prev) => {
-                  if (prev === 'off') return 'all';
-                  if (prev === 'all') return 'one';
-                  return 'off';
-                });
-                resetHudTimer();
-              }}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
-                repeatMode !== 'off'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
-                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
-              }`}
-              title={
-                repeatMode === 'off'
-                  ? 'Autoplay Next (Click for Repeat All)'
-                  : repeatMode === 'all'
-                  ? 'Repeat Queue / All (Click for Repeat One)'
-                  : 'Repeat One (Click for Normal)'
-              }
-            >
-              {repeatMode === 'one' ? (
-                <Repeat1 className="w-3.5 h-3.5 text-[#00E5FF]" />
-              ) : (
-                <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#00E5FF]' : ''}`} />
-              )}
-              <span className="hidden md:inline">
-                {repeatMode === 'off'
-                  ? 'Autoplay'
-                  : repeatMode === 'all'
-                  ? 'Repeat All'
-                  : 'Repeat 1'}
-              </span>
-            </button>
-
-            {/* Aspect Ratio Fit / Fill Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
-                resetHudTimer();
-              }}
-              className={`px-2.5 py-1.5 rounded-full text-[10px] font-mono font-bold tracking-wider transition-colors cursor-pointer border backdrop-blur-xl ${
-                fitMode === 'cover'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
-                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
-              }`}
-              title={fitMode === 'cover' ? 'Fill Screen Active. Click for Aspect Fit.' : 'Fit Screen Active. Click for 100% Fill.'}
-            >
-              {fitMode === 'cover' ? 'FILL' : 'FIT'}
-            </button>
-
-            {/* 1-Click Download */}
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
-                downloadSuccess
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/30'
-                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
-              } disabled:opacity-40`}
-              title="Download Clip"
-            >
-              {downloadSuccess ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden sm:inline">SAVED</span>
-                </>
-              ) : isDownloading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00E5FF]" />
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">SAVE</span>
-                </>
-              )}
-            </button>
-
-            {/* Queue Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowSidebar(!showSidebar);
-                resetHudTimer();
-              }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer ${
-                showSidebar
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
-                  : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
-              }`}
-              title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
-            >
-              <ListVideo className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">QUEUE</span>
-              {playlist.length > 0 && (
-                <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
-                  {playlist.length}
-                </span>
-              )}
-            </button>
-          </div>
+        {/* Top Left: Album Name with File Count (No file name) */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-sm sm:text-base font-bold tracking-wide text-white truncate max-w-[200px] xs:max-w-xs sm:max-w-md">
+            {albumName}
+          </span>
+          {totalCount > 0 && (
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-[#00E5FF] font-mono font-bold border border-[#00E5FF]/30 flex-shrink-0">
+              {currentItemIndex} / {totalCount}
+            </span>
+          )}
         </div>
+
+        {/* Top Right: Queue and Close Button */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Queue Toggle Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowSidebar((prev) => !prev);
+              resetHudTimer();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
+              showSidebar
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
+            }`}
+            title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
+            aria-label="Queue & Suggestions"
+          >
+            <ListVideo className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">QUEUE</span>
+            {totalCount > 0 && (
+              <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
+                {totalCount}
+              </span>
+            )}
+          </button>
+
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 hover:border-white/30 transition-all cursor-pointer active:scale-95"
+            title="Close Player (Esc)"
+            aria-label="Close Player"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
 
       {/* 2.5 Samsung One UI Style Horizontal Gesture Scrubbing Overlay */}
       {gestureSeek.isVisible && (
@@ -1062,14 +979,15 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
 
         {/* HUD Button Row: Smoked Frosted Glass Pill */}
-        <div className="cyber-pill px-2.5 sm:px-4 py-1.5 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 w-full max-w-full overflow-visible shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+        <div className="cyber-pill px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2 w-full max-w-full overflow-x-auto scrollbar-none shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
           {/* Left side: Play/Pause button + Current Time / Duration counter */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={togglePlay}
-              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
                 <Pause className="w-4 h-4 fill-current" />
@@ -1078,23 +996,55 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </button>
 
-            <span className="text-[11px] sm:text-xs font-mono font-medium text-white/80 tracking-wider whitespace-nowrap select-none">
+            <span className="text-[10px] sm:text-xs font-mono font-medium text-white/80 tracking-wider whitespace-nowrap select-none">
               {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
             </span>
           </div>
 
-          {/* Right side: A-B Loop pill + Playback Speed button + Mute Toggle button + Fullscreen toggle */}
-          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-            {/* A-B Loop Pill (Fully visible & interactive on mobile & desktop) */}
+          {/* Right side: Repeat, AB Repeat, Fit/Fill, Download, Speed, Mute, Fullscreen */}
+          <div className="flex items-center gap-0.5 sm:gap-1.5 flex-shrink-0">
+            {/* 3-State Repeat Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setRepeatMode((prev) => {
+                  if (prev === 'off') return 'all';
+                  if (prev === 'all') return 'one';
+                  return 'off';
+                });
+                resetHudTimer();
+              }}
+              className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
+                repeatMode !== 'off'
+                  ? 'bg-violet-600/30 text-violet-300 border border-violet-500/40 shadow-[0_0_10px_rgba(139,92,246,0.25)]'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+              title={
+                repeatMode === 'off'
+                  ? 'Autoplay Next (Click for Repeat All)'
+                  : repeatMode === 'all'
+                  ? 'Repeat Queue / All (Click for Repeat One)'
+                  : 'Repeat One (Click for Normal)'
+              }
+              aria-label={`Repeat mode: ${repeatMode}`}
+            >
+              {repeatMode === 'one' ? (
+                <Repeat1 className="w-4 h-4 text-violet-300" />
+              ) : (
+                <Repeat className={`w-4 h-4 ${repeatMode === 'all' ? 'text-violet-300' : ''}`} />
+              )}
+            </button>
+
+            {/* A-B Loop Pill */}
             <button
               type="button"
               onClick={handleToggleLoop}
-              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 flex-shrink-0 ${
+              className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 flex-shrink-0 ${
                 loopA !== null && loopB !== null
-                  ? 'bg-violet-600/30 text-violet-300 border border-violet-500/30 shadow-[0_0_12px_rgba(139,92,246,0.3)]'
+                  ? 'bg-violet-600/30 text-violet-300 border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.3)]'
                   : loopA !== null
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                  : 'p-2 text-white/80 hover:text-white hover:bg-white/10 border border-transparent'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                  : 'p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
               title={
                 loopA !== null && loopB !== null
@@ -1114,7 +1064,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                     : 'text-current'
                 }`}
               />
-              <span className="text-[11px] sm:text-xs">
+              <span className="text-[10px] sm:text-xs">
                 {loopA !== null && loopB !== null
                   ? 'A-B'
                   : loopA !== null
@@ -1123,13 +1073,57 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               </span>
             </button>
 
+            {/* Aspect Ratio Fit / Fill Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
+                resetHudTimer();
+              }}
+              className={`px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer border flex-shrink-0 active:scale-95 ${
+                fitMode === 'cover'
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_8px_rgba(0,229,255,0.3)]'
+                  : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border-white/10'
+              }`}
+              title={
+                fitMode === 'cover'
+                  ? 'Fill Screen Active (Zoomed borderless fill). Click for Aspect Fit.'
+                  : 'Fit Screen Active (Aspect ratio preserved). Click for 100% Borderless Fill.'
+              }
+              aria-label={`Fit mode: ${fitMode}`}
+            >
+              {fitMode === 'cover' ? 'FILL' : 'FIT'}
+            </button>
+
+            {/* 1-Click Download */}
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
+                downloadSuccess
+                  ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              } disabled:opacity-40`}
+              title={downloadSuccess ? 'Video Clip Saved' : isDownloading ? 'Downloading Video...' : 'Download Video Clip'}
+              aria-label="Download Video"
+            >
+              {downloadSuccess ? (
+                <Check className="w-4 h-4 text-emerald-400" />
+              ) : isDownloading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-[#00E5FF]" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+
             {/* Speed Selector Popover */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <button
                 ref={speedBtnRef}
                 type="button"
                 onClick={() => setShowSpeedMenu((prev) => !prev)}
-                className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white text-[11px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer active:scale-95"
                 title="Playback Speed"
                 aria-haspopup="true"
                 aria-expanded={showSpeedMenu}
@@ -1141,7 +1135,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               {showSpeedMenu && (
                 <div
                   ref={speedMenuRef}
-                  className="absolute bottom-12 right-0 mb-2 py-2 px-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-white/10 shadow-2xl flex flex-col gap-1 z-50 min-w-[90px]"
+                  className="absolute bottom-11 right-0 mb-1 py-1.5 px-1 rounded-xl bg-neutral-900/95 backdrop-blur-xl border border-white/15 shadow-2xl flex flex-col gap-0.5 z-50 min-w-[85px] max-h-[50vh] overflow-y-auto"
                 >
                   {PLAYBACK_SPEED_OPTIONS.map((speed) => {
                     const isSelected = playbackSpeed === speed;
@@ -1158,7 +1152,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                           }
                           setShowSpeedMenu(false);
                         }}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
+                        className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-1.5 ${
                           isSelected
                             ? 'bg-violet-600/30 text-violet-300 font-semibold shadow-[0_0_10px_rgba(139,92,246,0.25)] border border-violet-500/30'
                             : 'text-zinc-400 hover:text-white hover:bg-white/10'
@@ -1177,7 +1171,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleToggleMute}
-              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title={isMuted ? 'Unmute' : 'Mute'}
               aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
@@ -1188,7 +1182,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title="Fullscreen (F)"
               aria-label="Toggle Fullscreen"
             >
