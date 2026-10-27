@@ -76,9 +76,6 @@ const MasonryImageCard: React.FC<{
           <div className="relative z-10 w-11 h-11 rounded-full bg-white/15 group-hover:bg-[#00E5FF]/25 border border-white/20 group-hover:border-[#00E5FF]/60 flex items-center justify-center text-white group-hover:text-[#00E5FF] transition-all duration-200 shadow-md group-hover:scale-110">
             <Play className="w-4 h-4 fill-current ml-0.5" />
           </div>
-          <span className="relative z-10 text-[10px] font-mono text-zinc-300 mt-2 font-semibold tracking-wider uppercase">
-            Stream Video
-          </span>
         </div>
       ) : (
         <>
@@ -97,14 +94,20 @@ const MasonryImageCard: React.FC<{
           />
         </>
       )}
-      {/* Sleek Gradient Overlay on Hover */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3 pointer-events-none">
-        <span className="text-xs font-bold font-sans text-white line-clamp-1 drop-shadow">
+      {/* Sleek Minimal Name Bar */}
+      <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center pointer-events-none">
+        <span
+          title={cleanTitle}
+          className="text-xs font-medium text-white block truncate"
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '120px',
+          }}
+        >
           {cleanTitle}
         </span>
-        <div className="flex items-center gap-1.5 mt-1 text-[10px] font-mono text-zinc-300">
-          <span className="text-[#00E5FF] font-semibold tracking-wider">{isVideo ? 'STREAM VIDEO' : 'VIEW PHOTO'}</span>
-        </div>
       </div>
     </div>
   );
@@ -113,7 +116,6 @@ const MasonryImageCard: React.FC<{
 export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
   isOpen,
   title,
-  subtitle,
   items,
   variant = 'standard',
   hasMultipleTypes,
@@ -238,14 +240,6 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             <h1 className="text-base sm:text-xl font-bold font-sans tracking-wide text-white uppercase truncate">
               {title}
             </h1>
-            <span className="text-[10px] sm:text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/25 whitespace-nowrap flex-shrink-0">
-              {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
-            </span>
-            {subtitle && (
-              <span className="text-xs font-mono text-zinc-400 hidden md:inline truncate">
-                — {subtitle}
-              </span>
-            )}
           </div>
         </div>
 
