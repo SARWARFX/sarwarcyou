@@ -262,8 +262,13 @@ function extractFrameFromVideo(cleanUrl: string, isShort: boolean): Promise<stri
     };
 
     try {
+      const mediaUrl = getMediaUrl(cleanUrl);
+      if (!mediaUrl) {
+        done(null);
+        return;
+      }
       // Append #t=1.0 media fragment with edge CDN base
-      video.src = `${getMediaUrl(cleanUrl)}#t=1.0`;
+      video.src = `${mediaUrl}#t=1.0`;
     } catch {
       done(null);
     }

@@ -38,6 +38,15 @@ export function normalizeRepoPath(path: string): string {
   }
 
   // 1. Specific legacy files
+  if (/ustream_thumb/i.test(clean)) {
+    return '';
+  }
+  if (/Tejashwini.*Lulustream/i.test(clean)) {
+    return 'Video Clips/Clips 2027/webmedia-serial-427.mp4';
+  }
+  if (/Nidhi.*Agarwal/i.test(clean)) {
+    return 'Shorts/webmedia-serial-340.mp4';
+  }
   if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean)) {
     return 'REALTube/REALTube Video Clips/asha8.mp4';
   }
@@ -117,6 +126,11 @@ export const HF_RESOLVE_BASE = 'https://huggingface.co/datasets/SARWARFX/stream-
 export function getMediaUrl(relativePath?: string | null): string {
   if (!relativePath) return '';
   let path = relativePath.trim();
+
+  // Guard against legacy nonexistent thumbnail references
+  if (path.includes('ustream_thumb')) {
+    return '';
+  }
 
   // Strip trailing media fragment like #t=1.0 or query parameters
   path = path.replace(/#t=[\d.,]+$/i, '').split('?')[0];

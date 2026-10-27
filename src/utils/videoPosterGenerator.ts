@@ -25,6 +25,7 @@ export function getCachedVideoPoster(videoUrl: string): string | null {
 export function formatVideoPosterUrl(url: string, timeSec = 1.0): string {
   if (!url) return '';
   const cleanUrl = getMediaUrl(url).split('#')[0];
+  if (!cleanUrl) return '';
   return `${cleanUrl}#t=${timeSec}`;
 }
 

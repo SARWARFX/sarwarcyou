@@ -1695,12 +1695,11 @@
     {
       "name": "webmedia-serial-427.mp4",
       "path": "Clips/H2027/webmedia-serial-427.mp4",
-      "url": "https://media.sarwar.cyou/Clips/H2027/Tejashwini%20Prabhakar%20Lulustream.mp4",
-      "poster": "https://media.sarwar.cyou/Clips/H2027/Tejashwini%20Prabhakar%20Lulustream_thumb.jpg",
+      "url": "https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main/Clips/H2027/webmedia-serial-427.mp4",
       "date": 1791994675000,
       "lastCommit": {
         "date": "2026-10-14T16:17:55.000Z",
-        "title": "feat(stream): optimize Clips/H2027/Tejashwini Prabhakar Lulustream.mp4"
+        "title": "feat(stream): optimize Clips/H2027/webmedia-serial-427.mp4"
       }
     },
     {
@@ -2483,11 +2482,11 @@
     {
       "name": "webmedia-serial-340.mp4",
       "path": "Shorts/webmedia-serial-340.mp4",
-      "url": "https://media.sarwar.cyou/Shorts/Nidhi%20Agarwal.mp4",
+      "url": "https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main/Shorts/webmedia-serial-340.mp4",
       "date": 1792016403000,
       "lastCommit": {
         "date": "2026-10-14T22:20:03.000Z",
-        "title": "Upload Nidhi Agarwal.mp4"
+        "title": "Upload webmedia-serial-340.mp4"
       }
     },
     {

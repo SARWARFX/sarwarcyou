@@ -288,11 +288,11 @@ export function extractLatestReleases(
   // Ensure newest uploads from the last 12-24h (newest short & newest video) appear at the front (ranks 1 & 2)
   const isRecentNewestShort = (entry: (typeof uniqueItems)[0]) => {
     const p = (('path' in entry.item && entry.item.path) || entry.item.name || '').toLowerCase();
-    return p.includes('nidhi agarwal') || p.includes('nidhi');
+    return p.includes('webmedia-serial-340') || p.includes('nidhi');
   };
   const isRecentNewestVideo = (entry: (typeof uniqueItems)[0]) => {
     const p = (('path' in entry.item && entry.item.path) || entry.item.name || '').toLowerCase();
-    return p.includes('tejashwini') || (p.includes('h2027') && !p.endsWith('.jpg'));
+    return p.includes('webmedia-serial-427') || p.includes('tejashwini') || (p.includes('h2027') && !p.endsWith('.jpg'));
   };
 
   uniqueItems.sort((a, b) => {

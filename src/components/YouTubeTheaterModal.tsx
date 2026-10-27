@@ -295,7 +295,7 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
             style={{ contentVisibility: 'auto' }}
             className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
           />
-        ) : isVideo ? (
+        ) : isVideo && getMediaUrl(item.url) ? (
           <div className="relative w-full h-full bg-zinc-950 flex items-center justify-center overflow-hidden">
             <video
               src={`${getMediaUrl(item.url)}#t=1.0`}
