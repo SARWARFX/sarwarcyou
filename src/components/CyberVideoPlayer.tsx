@@ -22,6 +22,7 @@ import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 
@@ -912,9 +913,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 />
 
                 {/* Fallback Poster if preview video hasn't rendered yet */}
-                {(item.thumbnail || item.poster) && (
+                {((item.thumbnail && !isVideoExtension(item.thumbnail)) || (item.poster && !isVideoExtension(item.poster))) && (
                   <img
-                    src={item.thumbnail || item.poster}
+                    src={(!isVideoExtension(item.thumbnail || '') ? item.thumbnail : '') || (!isVideoExtension(item.poster || '') ? item.poster : '')}
                     alt=""
                     aria-hidden="true"
                     className="absolute inset-0 w-full h-full object-cover -z-10 opacity-35"

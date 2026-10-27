@@ -49,9 +49,10 @@ import {
   parseMediaPath,
 } from './utils/mediaTypeDetector';
 import { extractTimestampFromPath } from './utils/albumExtractor';
-import { MEDIA_CDN_BASE, getMediaUrl } from './utils/imageUrlResolver';
+import { MEDIA_CDN_BASE, getMediaUrl, normalizeRepoPath } from './utils/imageUrlResolver';
+import { getVideoThumbnails } from './utils/thumbnailResolver';
 
-export { MEDIA_CDN_BASE, getMediaUrl };
+export { MEDIA_CDN_BASE, getMediaUrl, normalizeRepoPath };
 
 export const VIDEO_EXTENSIONS = /\.(mp4|mov|mkv|webm|avi)(\?|#|$)/i;
 export const PHOTO_EXTENSIONS = /\.(jpg|jpeg|png|webp|gif|avif|bmp|tiff|heic|svg)(\?|#|$)/i;
@@ -192,6 +193,7 @@ export function parseTreeToCatalog(
   const allMedia: HfMediaItem[] = [];
 
   // Index all pre-rendered thumbnails and posters
+  const thumbnailsByVideoKey = new Map<string, string[]>();
   const thumbnailsByFolder = new Map<string, string[]>();
   const directPosterByVideoKey = new Map<string, string>();
 
@@ -207,6 +209,19 @@ export function parseTreeToCatalog(
 
     if (isImageFile && (isThumbnailFile(item.path) || item.path.startsWith('thumbnails/') || item.path.startsWith('.thumbnails/'))) {
       const url = buildHfMediaUrl(item.path);
+
+      // Direct mirror mapping: Thumbnails/${basePathWithoutExtension}_thumb_${1..5}.jpg
+      const mirrorMatch = item.path.match(/^Thumbnails\/(.+?)_thumb_([1-5])\.jpg$/i);
+      if (mirrorMatch) {
+        const videoKey = mirrorMatch[1];
+        const frameIdx = parseInt(mirrorMatch[2], 10) - 1;
+        const list = thumbnailsByVideoKey.get(videoKey) || ['', '', '', '', ''];
+        list[frameIdx] = url;
+        thumbnailsByVideoKey.set(videoKey, list);
+        thumbnailsByVideoKey.set(videoKey.toLowerCase(), list);
+        thumbnailsByVideoKey.set(videoKey.trim(), list);
+        thumbnailsByVideoKey.set(videoKey.trim().toLowerCase(), list);
+      }
 
       // 1. Directory-level mapping (thumbnails/{videoName}/thumb_{1..5}.jpg)
       const lastSlash = item.path.lastIndexOf('/');
@@ -251,7 +266,15 @@ export function parseTreeToCatalog(
     const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
     const stem = fileName.replace(/\.[^/.]+$/, '');
 
-    // 1. Primary standard: thumbnails/{videoName} (thumbnails/<videoName>/<videoName>_thumb_<1..5>.jpg)
+    const basePath = videoPath.replace(/\.[^/.]+$/, '');
+    const directThumbs =
+      thumbnailsByVideoKey.get(basePath) ||
+      thumbnailsByVideoKey.get(basePath.trim()) ||
+      thumbnailsByVideoKey.get(basePath.toLowerCase()) ||
+      thumbnailsByVideoKey.get(basePath.trim().toLowerCase());
+    if (directThumbs && directThumbs.filter(Boolean).length >= 1) {
+      return directThumbs.filter(Boolean) as string[];
+    }
     const primaryFolder = `thumbnails/${stem}`;
     const primaryMatch =
       thumbnailsByFolder.get(primaryFolder) ||
@@ -281,7 +304,7 @@ export function parseTreeToCatalog(
       thumbnailsByFolder.get(normalizeKey(extFolder));
     if (extMatch && extMatch.length > 0) return extMatch;
 
-    return undefined;
+    return getVideoThumbnails(videoPath);
   };
 
   // Helper to match direct poster for a video path
@@ -425,7 +448,7 @@ export async function fetchAllTreeItems(): Promise<HfTreeItem[]> {
   while (currentUrl && pages < MAX_PAGES) {
     pages++;
     try {
-      const res = await fetchWithTimeout(currentUrl, {}, 4000);
+      const res = await fetchWithTimeout(currentUrl, {}, 12000);
       if (!res.ok) break;
 
       const data = await res.json();
@@ -521,7 +544,8 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
       const rawData = mediaJsonResult.value;
       if (Array.isArray(rawData.images) || Array.isArray(rawData.clips) || Array.isArray(rawData.shorts)) {
         const enrichItem = (x: HfMediaItem): HfMediaItem => {
-          const path = x.path || x.name || '';
+          const rawPath = x.path || x.name || '';
+          const path = normalizeRepoPath(rawPath);
           const name = x.name || path.split('/').pop() || '';
           const cInfo =
             commitMetadata.get(path.toLowerCase()) ||
@@ -535,7 +559,9 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
             : x.lastCommit;
           return {
             ...x,
-            url: buildHfMediaUrl(x.path || x.name),
+            path,
+            name,
+            url: buildHfMediaUrl(path),
             date,
             lastCommit,
           };
@@ -549,26 +575,36 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
             return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
           });
 
-        const clips = sortItems(
-          (rawData.clips || [])
-            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-            .map(enrichItem)
-        );
-        const shorts = sortItems(
-          (rawData.shorts || [])
-            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-            .map(enrichItem)
-        );
-        const images = sortItems(
-          (rawData.images || [])
-            .filter(
-              (x: HfMediaItem) =>
-                !isHiddenOrSystemPath(x.path || x.name || x.url) &&
-                !isThumbnailFile(x.path || x.name || x.url)
-            )
-            .map(enrichItem)
-        );
+        const rawClipsList = (rawData.clips || []).map(enrichItem);
+        const rawShortsList = (rawData.shorts || []).map(enrichItem);
+        const rawImagesList = (rawData.images || []).map(enrichItem);
+        const allEnrichedRaw = [...rawClipsList, ...rawShortsList, ...rawImagesList];
+        const rawClips: HfMediaItem[] = [];
+        const rawShorts: HfMediaItem[] = [];
+        const rawImages: HfMediaItem[] = [];
+        const seen = new Set<string>();
+        for (const item of allEnrichedRaw) {
+          const p = item.path || item.name || '';
+          if (isHiddenOrSystemPath(p) || isThumbnailFile(p)) continue;
+          const key = p.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (isVideoExtension(p)) {
+            const parsed = parseMediaPath(p);
+            if (parsed.mediaType === 'short') {
+              rawShorts.push(item);
+            } else {
+              rawClips.push(item);
+            }
+          } else if (isPhotoExtension(p)) {
+            rawImages.push(item);
+          }
+        }
+        const clips = sortItems(rawClips);
+        const shorts = sortItems(rawShorts);
+        const images = sortItems(rawImages);
         const allMedia = sortItems([...clips, ...shorts, ...images]);
+
 
         const catalog: HfMediaCatalog = {
           clips,

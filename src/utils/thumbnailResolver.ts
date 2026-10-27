@@ -1,5 +1,6 @@
 import { buildHfMediaUrl } from '../useMediaData';
 import type { StageMediaItem, HfMediaItem } from '../types';
+import { normalizeRepoPath } from './imageUrlResolver';
 
 /**
  * Extract clean relative path within the Hugging Face dataset from any URL or path.
@@ -40,7 +41,8 @@ export function extractHfRelativePath(urlOrPath: string): string {
     // leave as is
   }
 
-  return clean.replace(/^\/+/, '');
+  const rawClean = clean.replace(/^\/+/, '');
+  return normalizeRepoPath(rawClean);
 }
 
 export interface VideoPathInfo {
@@ -83,7 +85,7 @@ export function getAnticipatedThumbnailUrls(urlOrPath: string): string[] {
     return [1, 2, 3, 4, 5].map((idx) => buildHfMediaUrl(`Thumbnails/${base}_thumb_${idx}.jpg`));
   }
 
-  // Strip video extension (.mp4, .mov, etc.)
+  // Strip video extension (.mp4, .mov, etc.) preserving exact character stem (including any trailing spaces)
   const basePathWithoutExtension = relPath.replace(/\.(mp4|mov|webm|mkv|m4v|avi|flv)$/i, '');
   if (!basePathWithoutExtension) return [];
 
@@ -137,7 +139,7 @@ export function resolveMultiFrameThumbnails(
   item: StageMediaItem | HfMediaItem | { url: string; path?: string; thumbnails?: string[]; type?: string }
 ): string[] {
   if (item.thumbnails && item.thumbnails.length > 0) {
-    return item.thumbnails;
+    return item.thumbnails.map((t) => buildHfMediaUrl(t));
   }
 
   const raw = ('path' in item && typeof item.path === 'string') ? item.path : (item.url || '');
@@ -161,18 +163,7 @@ export function resolveMultiFrameThumbnails(
 export function resolveMultiFrameThumbnailsExt(
   item: StageMediaItem | HfMediaItem | { url: string; path?: string; thumbnails?: string[]; type?: string }
 ): string[] {
-  const raw = ('path' in item && typeof item.path === 'string') ? item.path : (item.url || '');
-  if (!raw) return [];
-
-  const isVideo =
-    ('type' in item && item.type === 'video') ||
-    isVideoExtension(raw);
-
-  if (isVideo) {
-    return getAnticipatedThumbnailUrlsWithExt(raw);
-  }
-
-  return [];
+  return resolveMultiFrameThumbnails(item);
 }
 
 /**

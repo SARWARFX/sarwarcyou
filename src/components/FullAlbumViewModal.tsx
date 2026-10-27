@@ -5,6 +5,8 @@ import { CyberCard } from './CyberCard';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
+import { getVideoThumbnails } from '../utils/thumbnailResolver';
 import { sortMediaItems } from '../utils/albumExtractor';
 import { createShareableAlbumUrl, copyToClipboard } from '../utils/urlRouter';
 
@@ -40,8 +42,11 @@ const MasonryImageCard: React.FC<{
     () => sanitizeMediaTitle(item.title || item.name, item.category),
     [item.title, item.name, item.category]
   );
-  const imgUrl = getMediaUrl(item.url);
-  const thumbUrl = item.thumbnail || imgUrl;
+  const isVideo = item.type === 'video' || item.mediaType === 'clip' || item.mediaType === 'short' || isVideoExtension(item.url || item.id);
+  const videoThumb = isVideo ? (item.thumbnail && !isVideoExtension(item.thumbnail) ? item.thumbnail : (item.poster || getVideoThumbnails(item)[0])) : null;
+  const rawUrl = isVideo ? (videoThumb || '') : (item.thumbnail || getMediaUrl(item.url));
+  const thumbUrl = isVideoExtension(rawUrl) ? '' : rawUrl;
+
 
   return (
     <div
@@ -67,7 +72,7 @@ const MasonryImageCard: React.FC<{
           {cleanTitle}
         </span>
         <div className="flex items-center gap-1.5 mt-1 text-[10px] font-mono text-zinc-300">
-          <span className="text-[#00E5FF] font-semibold tracking-wider">VIEW PHOTO</span>
+          <span className="text-[#00E5FF] font-semibold tracking-wider">{isVideo ? 'STREAM VIDEO' : 'VIEW PHOTO'}</span>
         </div>
       </div>
     </div>

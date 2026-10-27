@@ -24,13 +24,79 @@ export function extractDriveFileId(id?: string, url?: string, thumbnail?: string
 import { isVideoExtension } from './mediaTypeDetector';
 
 /**
+ * Normalizes legacy, relocated, or mismatched dataset paths to their canonical locations
+ * in the SARWARFX/stream-vault Hugging Face repository.
+ */
+export function normalizeRepoPath(path: string): string {
+  if (!path) return '';
+  let clean = path.replace(/\\/g, '/').replace(/^\/+/, '');
+
+  // 1. Specific legacy remappings (e.g., stale media.json or manifest references)
+  if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean)) {
+    return 'REALTube/REALTube Video Clips/asha8.mp4';
+  }
+  if (/^Thumbnails\/Images\/Bandhobis\/asha8_thumb_/i.test(clean)) {
+    return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/REALTube/REALTube Video Clips/');
+  }
+  if (/^Images\/Bandhobis\/Asha/i.test(clean)) {
+    return clean.replace(/^Images\/Bandhobis\//i, 'REALTube/REALTube Images/');
+  }
+  if (/^Images\/Bandhobis\/Anamika/i.test(clean)) {
+    return clean.replace(/^Images\/Bandhobis\//i, 'REALTube/REALTube Images/');
+  }
+  if (/^Images\/Bandhobis\//i.test(clean)) {
+    return clean.replace(/^Images\/Bandhobis\//i, 'Photographs/Classic Images/');
+  }
+  if (/^Thumbnails\/Images\/Bandhobis\//i.test(clean)) {
+    return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/Photographs/Classic Images/');
+  }
+
+  // 2. Folder namespace renames (Images -> Photographs, Clips -> Video Clips)
+  if (/^Images\//i.test(clean)) {
+    return clean.replace(/^Images\//i, 'Photographs/');
+  }
+  if (/^Thumbnails\/Images\//i.test(clean)) {
+    return clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
+  }
+  if (/^Clips\//i.test(clean)) {
+    return clean.replace(/^Clips\//i, 'Video Clips/');
+  }
+  if (/^Thumbnails\/Clips\//i.test(clean)) {
+    return clean.replace(/^Thumbnails\/Clips\//i, 'Thumbnails/Video Clips/');
+  }
+
+  return clean;
+}
+
+/**
+ * Safely encodes individual path segments for URLs.
+ * Idempotent: calls decodeURIComponent first to prevent double-encoding (%20 -> %2520).
+ */
+export function encodeMediaPathSegments(path: string): string {
+  if (!path) return '';
+  return path
+    .split('/')
+    .filter(Boolean)
+    .map((seg) => {
+      const decoded = decodeURIComponent(seg);
+      return encodeURIComponent(decoded)
+        .replace(/\(/g, '%28')
+        .replace(/\)/g, '%29')
+        .replace(/'/g, '%27')
+        .replace(/!/g, '%21')
+        .replace(/\*/g, '%2A');
+    })
+    .join('/');
+}
+
+/**
  * Global Edge Proxy origin for SARWARCYOU Media Vault (Cloudflare Worker).
  */
 export const MEDIA_CDN_BASE = 'https://media.sarwar.cyou';
 
 /**
  * Universal media URL builder: routes all repository videos, photos, and generated thumbnails
- * through the Cloudflare Worker edge proxy at https://media.sarwar.cyou.
+ * through the Cloudflare Worker edge proxy at https://media.sarwar.cyou with safe URL encoding.
  *
  * @param relativePath Relative file path or full Hugging Face resolve URL
  */
@@ -63,10 +129,11 @@ export function getMediaUrl(relativePath?: string | null): string {
   // Strip media.sarwar.cyou base URL if already prefixed
   path = path.replace(/^https?:\/\/media\.sarwar\.cyou\//i, '');
 
-  const cleanPath = path.replace(/^\/+/, '');
+  const normalized = normalizeRepoPath(path);
+  const cleanPath = normalized.replace(/^\/+/, '');
   if (!cleanPath) return '';
 
-  return `${MEDIA_CDN_BASE}/${cleanPath}`;
+  return `${MEDIA_CDN_BASE}/${encodeMediaPathSegments(cleanPath)}`;
 }
 
 export function getDirectImageUrl(
@@ -87,7 +154,7 @@ export function getDirectImageUrl(
   // Video items: resolve poster thumbnail through proxy
   if (isVideoExtension(target) || isVideoExtension(item.id) || item.type === 'video') {
     const posterTarget = item.poster || item.posterUrl || item.thumbnail || '';
-    if (posterTarget) {
+    if (posterTarget && !isVideoExtension(posterTarget)) {
       return getMediaUrl(posterTarget);
     }
     return '';

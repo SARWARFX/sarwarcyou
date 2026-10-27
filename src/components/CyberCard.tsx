@@ -3,6 +3,7 @@ import { Play, Camera, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoThumbnails } from '../utils/thumbnailResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
 
 export interface CyberCardProps {
   item: StageMediaItem;
@@ -176,27 +177,32 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     photo: 'w-[160px] sm:w-[185px] md:w-[210px] aspect-[2/3]',
   }[effectiveVariant];
 
-  const fallbackUrl = activeItem.thumbnail || activeItem.poster || activeItem.url;
+  const rawFallback = isVideo
+    ? (activeItem.poster || activeItem.thumbnail || videoThumbs[0] || '')
+    : (activeItem.thumbnail || activeItem.url || '');
+  const safeFallbackUrl = isVideo && isVideoExtension(rawFallback) ? '' : rawFallback;
   const currentThumbUrl = hasThumbs
     ? (!failedFrames[frameIndex]
         ? videoThumbs[frameIndex]
-        : (!failedFrames[0] ? videoThumbs[0] : fallbackUrl))
-    : fallbackUrl;
+        : (!failedFrames[0] ? videoThumbs[0] : safeFallbackUrl))
+    : safeFallbackUrl;
+
+  const validThumbUrl = isVideo && isVideoExtension(currentThumbUrl) ? '' : currentThumbUrl;
 
   // Cross-dissolve image layer state
-  const [displayedThumbUrl, setDisplayedThumbUrl] = useState(currentThumbUrl);
+  const [displayedThumbUrl, setDisplayedThumbUrl] = useState(validThumbUrl);
   const [prevThumbUrl, setPrevThumbUrl] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    if (currentThumbUrl && currentThumbUrl !== displayedThumbUrl) {
+    if (validThumbUrl && validThumbUrl !== displayedThumbUrl) {
       setPrevThumbUrl(displayedThumbUrl);
-      setDisplayedThumbUrl(currentThumbUrl);
+      setDisplayedThumbUrl(validThumbUrl);
       setImageLoaded(false);
       setImageError(false);
     }
-  }, [currentThumbUrl, displayedThumbUrl]);
+  }, [validThumbUrl, displayedThumbUrl]);
 
   const handleImageLoaded = () => {
     setImageLoaded(true);
