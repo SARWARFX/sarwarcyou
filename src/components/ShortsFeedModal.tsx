@@ -28,6 +28,7 @@ import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 
 interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -318,15 +319,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [currentIndex, shorts, isDownloading]);
 
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     const item = shorts[currentIndex];
     if (!item) return;
-    const shareUrl = window.location.origin + window.location.pathname + '#shorts';
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        setCopiedLink(true);
-        setTimeout(() => setCopiedLink(false), 2000);
-      }).catch(() => {});
+    const shareUrl = createShareableMediaUrl(item, 'shorts');
+    const success = await copyToClipboard(shareUrl);
+    if (success) {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
     }
   }, [currentIndex, shorts]);
 

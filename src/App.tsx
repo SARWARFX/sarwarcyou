@@ -12,6 +12,7 @@ import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { SiteFooter } from './components/SiteFooter';
 import type { StageMediaItem } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
+import { parseUrlState, syncUrlState, findMatchingMediaItem, findMatchingFolder } from './utils/urlRouter';
 import { Film, Sparkles, Image as ImageIcon, Flame, ChevronUp } from 'lucide-react';
 
 function App() {
@@ -298,6 +299,128 @@ function App() {
     },
     [pushModalState]
   );
+
+  // Flag to ensure initial deep link from URL is processed once data is loaded
+  const initialRouteHandledRef = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || !data || initialRouteHandledRef.current) return;
+    initialRouteHandledRef.current = true;
+
+    const { albumQuery, mediaQuery } = parseUrlState();
+    if (!albumQuery && !mediaQuery) return;
+
+    // 1. If mediaQuery is present, find and open the exact media
+    if (mediaQuery) {
+      const allItems: StageMediaItem[] = [
+        ...(rawFeed.allMediaPool || []),
+        ...(rawFeed.shorts || []),
+        ...(rawFeed.latestReleases || []),
+        ...rawFeed.videoVaultFolders.flatMap((f) => f.items),
+        ...rawFeed.photoVaultFolders.flatMap((f) => f.items),
+      ];
+      const seen = new Set<string>();
+      const uniquePool = allItems.filter((item) => {
+        const key = item.id || item.url;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const match = findMatchingMediaItem(uniquePool, mediaQuery);
+      if (match) {
+        let contextList: StageMediaItem[] | undefined;
+        if (albumQuery) {
+          if (albumQuery.toLowerCase() === 'shorts') {
+            contextList = rawFeed.shorts;
+          } else {
+            const vFolder = findMatchingFolder(rawFeed.videoVaultFolders, albumQuery);
+            if (vFolder) contextList = vFolder.folder.items;
+            else {
+              const pFolder = findMatchingFolder(rawFeed.photoVaultFolders, albumQuery);
+              if (pFolder) contextList = pFolder.folder.items;
+            }
+          }
+        }
+        if (!contextList && match.item.category) {
+          const vFolder = findMatchingFolder(rawFeed.videoVaultFolders, match.item.category);
+          if (vFolder) contextList = vFolder.folder.items;
+          else {
+            const pFolder = findMatchingFolder(rawFeed.photoVaultFolders, match.item.category);
+            if (pFolder) contextList = pFolder.folder.items;
+          }
+        }
+        handleSelectItem(match.item, contextList);
+        return;
+      }
+    }
+
+    // 2. If only albumQuery is present (or media item not found), open album's View All screen
+    if (albumQuery) {
+      if (albumQuery.toLowerCase() === 'shorts') {
+        handleOpenViewAll('Shorts & Reels', rawFeed.shorts, 'shorts');
+      } else {
+        const vMatch = findMatchingFolder(rawFeed.videoVaultFolders, albumQuery);
+        if (vMatch) {
+          handleOpenViewAll(vMatch.folder.name, vMatch.folder.items, 'standard');
+        } else {
+          const pMatch = findMatchingFolder(rawFeed.photoVaultFolders, albumQuery);
+          if (pMatch) {
+            handleOpenViewAll(pMatch.folder.name, pMatch.folder.items, 'photo');
+          }
+        }
+      }
+    }
+  }, [isLoading, data, rawFeed, handleSelectItem, handleOpenViewAll]);
+
+  // Synchronize active view with browser URL search parameters (?album=, ?media=)
+  useEffect(() => {
+    // Only synchronize once initial route has been evaluated
+    if (!initialRouteHandledRef.current) return;
+
+    if (theaterState.isOpen && theaterState.item) {
+      syncUrlState({
+        album: theaterState.item.category || theaterState.item.parentAlbum,
+        mediaItem: theaterState.item,
+        replace: true,
+      });
+    } else if (lightboxState.isOpen && lightboxState.item) {
+      syncUrlState({
+        album: lightboxState.item.category || lightboxState.item.parentAlbum,
+        mediaItem: lightboxState.item,
+        replace: true,
+      });
+    } else if (shortsState.isOpen && shortsState.shorts[shortsState.initialIndex]) {
+      syncUrlState({
+        album: 'shorts',
+        mediaItem: shortsState.shorts[shortsState.initialIndex],
+        replace: true,
+      });
+    } else if (viewAllState.isOpen && viewAllState.title) {
+      syncUrlState({
+        album: viewAllState.title,
+        mediaItem: null,
+        replace: true,
+      });
+    } else {
+      // All modals closed - restore clean base URL
+      syncUrlState({
+        album: null,
+        mediaItem: null,
+        replace: true,
+      });
+    }
+  }, [
+    theaterState.isOpen,
+    theaterState.item,
+    lightboxState.isOpen,
+    lightboxState.item,
+    shortsState.isOpen,
+    shortsState.initialIndex,
+    shortsState.shorts,
+    viewAllState.isOpen,
+    viewAllState.title,
+  ]);
 
   const handleResetHome = () => {
     setSearchQuery('');
@@ -706,6 +829,12 @@ function App() {
         onClose={() => handleCloseModal('shorts')}
         shorts={shortsState.shorts}
         initialIndex={shortsState.initialIndex}
+        onIndexChange={(idx) => {
+          setShortsState((prev) => ({
+            ...prev,
+            initialIndex: idx,
+          }));
+        }}
       />
 
       {/* 6. High-Definition Image Lightbox */}

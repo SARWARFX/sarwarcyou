@@ -16,11 +16,13 @@ import {
   ChevronsLeft,
   ChevronsRight,
   X,
+  Share2,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 
 export type VideoRepeatMode = 'off' | 'all' | 'one';
@@ -73,6 +75,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   // Seek bar hover preview state
   const [seekHover, setSeekHover] = useState<{
@@ -600,6 +603,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   };
 
+  // Handle Share / Copy Direct Link
+  const handleShareMedia = async () => {
+    if (!item) return;
+    const albumName = item.category || item.parentAlbum || '';
+    const shareUrl = createShareableMediaUrl(item, albumName);
+    const success = await copyToClipboard(shareUrl);
+    if (success) {
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2200);
+    }
+  };
+
   // Handle A-B Loop Toggle (1st tap: Point A, 2nd tap: Point B & loop, 3rd tap: Clear)
   const handleToggleLoop = () => {
     const now = videoRef.current ? videoRef.current.currentTime : currentTime;
@@ -1114,6 +1129,25 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 <Loader2 className="w-4 h-4 animate-spin text-[#00E5FF]" />
               ) : (
                 <Download className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Share / Copy Direct Link */}
+            <button
+              type="button"
+              onClick={handleShareMedia}
+              className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
+                shareSuccess
+                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+              title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
+              aria-label="Share Video Link"
+            >
+              {shareSuccess ? (
+                <Check className="w-4 h-4 text-[#00E5FF]" />
+              ) : (
+                <Share2 className="w-4 h-4" />
               )}
             </button>
 

@@ -1,4 +1,4 @@
-import type { AlbumData, StageMediaItem } from '../types';
+import type { AlbumData, StageMediaItem, MediaFolderEntry } from '../types';
 
 export const STORAGE_LAST_ACTIVE_ALBUM = 'last_active_album';
 
@@ -11,7 +11,7 @@ export interface ParsedRouteState {
  * Derives a clean, URL-safe slug from an album or album name.
  * e.g., "Cinematic Stream" -> "cinematic-stream"
  */
-export function getAlbumSlug(nameOrAlbum: AlbumData | string): string {
+export function getAlbumSlug(nameOrAlbum: AlbumData | MediaFolderEntry | string): string {
   const name = typeof nameOrAlbum === 'string' ? nameOrAlbum : nameOrAlbum.name;
   return name
     .toLowerCase()
@@ -50,6 +50,12 @@ export function getMediaSlug(item: StageMediaItem | string): string {
 
 /**
  * Parses current URL search parameters and hash to extract deep-linked album and media.
+ * Supports:
+ * - ?album=:albumId
+ * - #/album/:albumId or #album/:albumId
+ * - ?media=:mediaId or ?view=:mediaId
+ * - #/view/:mediaId or #view/:mediaId
+ * - ?album=:albumId&media=:mediaId
  */
 export function parseUrlState(): ParsedRouteState {
   if (typeof window === 'undefined') {
@@ -58,13 +64,25 @@ export function parseUrlState(): ParsedRouteState {
 
   const searchParams = new URLSearchParams(window.location.search);
   let albumQuery = searchParams.get('album');
-  const mediaQuery = searchParams.get('media') || searchParams.get('item');
+  let mediaQuery = searchParams.get('media') || searchParams.get('item') || searchParams.get('view');
 
-  // If no album in search params, check window.location.hash as fallback (e.g. #shorts, #works)
-  if (!albumQuery && window.location.hash) {
-    const hashClean = window.location.hash.replace(/^#/, '').trim();
-    if (hashClean) {
-      albumQuery = hashClean;
+  // Check window.location.hash as fallback
+  if (window.location.hash) {
+    const hash = window.location.hash.replace(/^#\/?/, '').trim();
+    if (hash.startsWith('album/')) {
+      albumQuery = hash.replace(/^album\//, '');
+    } else if (hash.startsWith('view/')) {
+      mediaQuery = hash.replace(/^view\//, '');
+    } else if (hash.includes('=')) {
+      const hashParams = new URLSearchParams(hash);
+      if (!albumQuery) albumQuery = hashParams.get('album');
+      if (!mediaQuery) mediaQuery = hashParams.get('media') || hashParams.get('item') || hashParams.get('view');
+    } else if (hash) {
+      if (/\.(mp4|mov|mkv|webm|jpg|jpeg|png|webp|gif|avif)$/i.test(hash)) {
+        if (!mediaQuery) mediaQuery = hash;
+      } else if (!albumQuery) {
+        albumQuery = hash;
+      }
     }
   }
 
@@ -113,7 +131,32 @@ export function findMatchingAlbum(
 }
 
 /**
- * Finds a matching media item inside an album using ID, filename, stem, title, or index.
+ * Finds a matching folder entry from Video/Photo Vault folders using slug, name, or ID.
+ */
+export function findMatchingFolder(
+  folders: MediaFolderEntry[],
+  query: string | null
+): { folder: MediaFolderEntry; index: number } | null {
+  if (!query || !folders || folders.length === 0) return null;
+
+  const rawQuery = decodeURIComponent(query).trim().toLowerCase();
+  const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+  let idx = folders.findIndex((f) => {
+    const slug = getAlbumSlug(f.name);
+    const idSlug = getAlbumSlug(f.id);
+    return slug === slugQuery || idSlug === slugQuery;
+  });
+  if (idx !== -1) return { folder: folders[idx], index: idx };
+
+  idx = folders.findIndex((f) => f.name.toLowerCase() === rawQuery || f.id.toLowerCase() === rawQuery);
+  if (idx !== -1) return { folder: folders[idx], index: idx };
+
+  return null;
+}
+
+/**
+ * Finds a matching media item inside an album or full media pool using ID, filename, stem, title, or index.
  */
 export function findMatchingMediaItem(
   items: StageMediaItem[],
@@ -170,13 +213,13 @@ export function findMatchingMediaItem(
 }
 
 export interface SyncUrlStateOptions {
-  album?: AlbumData | null;
+  album?: AlbumData | MediaFolderEntry | string | null;
   mediaItem?: StageMediaItem | null;
   replace?: boolean;
 }
 
 /**
- * Synchronizes browser URL search parameters and hash without full page reload.
+ * Synchronizes browser URL search parameters without full page reload.
  */
 export function syncUrlState({ album, mediaItem, replace = true }: SyncUrlStateOptions): void {
   if (typeof window === 'undefined') return;
@@ -185,9 +228,8 @@ export function syncUrlState({ album, mediaItem, replace = true }: SyncUrlStateO
   const searchParams = url.searchParams;
 
   if (album) {
-    const albumSlug = getAlbumSlug(album.name);
+    const albumSlug = typeof album === 'string' ? getAlbumSlug(album) : getAlbumSlug(album.name);
     searchParams.set('album', albumSlug);
-    url.hash = `#${albumSlug}`;
     setStoredLastActiveAlbum(albumSlug);
 
     if (mediaItem) {
@@ -196,12 +238,18 @@ export function syncUrlState({ album, mediaItem, replace = true }: SyncUrlStateO
     } else {
       searchParams.delete('media');
       searchParams.delete('item');
+      searchParams.delete('view');
     }
+  } else if (mediaItem) {
+    searchParams.delete('album');
+    const mediaSlug = getMediaSlug(mediaItem);
+    searchParams.set('media', mediaSlug);
   } else {
     // Reset home
     searchParams.delete('album');
     searchParams.delete('media');
     searchParams.delete('item');
+    searchParams.delete('view');
     url.hash = '';
     removeStoredLastActiveAlbum();
   }
@@ -211,11 +259,68 @@ export function syncUrlState({ album, mediaItem, replace = true }: SyncUrlStateO
   const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
   if (newUrl !== currentFull) {
+    const stateObj = {
+      album: typeof album === 'string' ? album : album?.name,
+      media: mediaItem?.id,
+    };
     if (replace) {
-      window.history.replaceState({ album: album?.name, media: mediaItem?.id }, '', newUrl);
+      window.history.replaceState(stateObj, '', newUrl);
     } else {
-      window.history.pushState({ album: album?.name, media: mediaItem?.id }, '', newUrl);
+      window.history.pushState(stateObj, '', newUrl);
     }
+  }
+}
+
+/**
+ * Creates a clean, shareable deep-link for an album.
+ */
+export function createShareableAlbumUrl(albumNameOrSlug: string): string {
+  if (typeof window === 'undefined') return '';
+  const slug = getAlbumSlug(albumNameOrSlug);
+  return `${window.location.origin}${window.location.pathname}?album=${slug}`;
+}
+
+/**
+ * Creates a clean, shareable deep-link for an individual media item.
+ */
+export function createShareableMediaUrl(item: StageMediaItem | string, albumName?: string): string {
+  if (typeof window === 'undefined') return '';
+  const mediaSlug = getMediaSlug(item);
+  const url = new URL(window.location.origin + window.location.pathname);
+  if (albumName) {
+    url.searchParams.set('album', getAlbumSlug(albumName));
+  }
+  url.searchParams.set('media', mediaSlug);
+  return url.toString();
+}
+
+/**
+ * Copy text to clipboard with modern API and reliable execCommand fallback.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fallback
+  }
+  try {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    const successful = document.execCommand('copy');
+    textArea.remove();
+    return successful;
+  } catch {
+    return false;
   }
 }
 
@@ -261,3 +366,4 @@ export function anchorToAlbumSection(albumIndex: number): void {
     }
   });
 }
+

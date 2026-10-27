@@ -41,8 +41,9 @@ export function extractTimestampFromPath(str: string): number {
 
 /**
  * Returns the effective timestamp for any media item, prioritizing:
- * 1. item.date / item.lastCommit.date
- * 2. Filename/path numeric timestamp patterns (YYYYMMDD)
+ * 1. dateModified / modified / uploadDate / timestamp
+ * 2. item.date / item.lastCommit.date
+ * 3. Filename/path numeric timestamp patterns (YYYYMMDD)
  */
 export function getItemTimestamp(item: {
   date?: number;
@@ -52,7 +53,17 @@ export function getItemTimestamp(item: {
   title?: string;
   url?: string;
   id?: string;
+  dateModified?: string | number;
+  modified?: string | number;
+  uploadDate?: string | number;
+  timestamp?: string | number;
 }): number {
+  const dm = (item as any).dateModified || (item as any).modified || (item as any).uploadDate || (item as any).timestamp;
+  if (dm) {
+    if (typeof dm === 'number' && dm > 0) return dm;
+    const parsed = new Date(dm).getTime();
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
   if (item.date && item.date > 0) return item.date;
   if (item.lastCommit?.date) {
     const parsed = new Date(item.lastCommit.date).getTime();
@@ -64,8 +75,8 @@ export function getItemTimestamp(item: {
 
 /**
  * Sorts any list of StageMediaItem strictly in descending order (latest first):
- * Primary: Newest commit / upload timestamp first
- * Secondary Fallback: Natural descending order by title / filename (b.localeCompare(a))
+ * Primary: Newest dateModified / commit / upload timestamp first
+ * Secondary Fallback: Natural descending order by title / filename / index (b.localeCompare(a))
  */
 export function sortMediaItemsDescending(items: StageMediaItem[]): StageMediaItem[] {
   return [...items].sort((a, b) => {
@@ -77,9 +88,9 @@ export function sortMediaItemsDescending(items: StageMediaItem[]): StageMediaIte
       return timeB - timeA;
     }
 
-    // Secondary Fallback: Natural descending order by filename / title
-    const nameA = a.title || a.id || '';
-    const nameB = b.title || b.id || '';
+    // Secondary Fallback: Natural descending order by filename / title / numeric index
+    const nameA = a.name || a.title || a.id || '';
+    const nameB = b.name || b.title || b.id || '';
     return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
   });
 }

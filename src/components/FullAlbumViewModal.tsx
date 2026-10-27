@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, X, Image as ImageIcon, Film, Smartphone, Sparkles } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { ArrowLeft, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Check } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { CyberCard } from './CyberCard';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { sortMediaItemsDescending } from '../utils/albumExtractor';
+import { createShareableAlbumUrl, copyToClipboard } from '../utils/urlRouter';
 
 export type FullAlbumSubFilter = 'all' | 'photos' | 'clips' | 'shorts';
 
@@ -85,11 +87,26 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
 }) => {
   useLockBodyScroll(isOpen);
   const [subFilter, setSubFilter] = useState<FullAlbumSubFilter>('all');
+  const [copied, setCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleShareAlbum = useCallback(async () => {
+    const url = createShareableAlbumUrl(title);
+    const success = await copyToClipboard(url);
+    if (success) {
+      setCopied(true);
+      setToastMessage('Album link copied to clipboard!');
+      setTimeout(() => setCopied(false), 2200);
+      setTimeout(() => setToastMessage(null), 2500);
+    }
+  }, [title]);
 
   // Reset subfilter when opening a new album
   useEffect(() => {
     if (isOpen) {
       setSubFilter('all');
+      setCopied(false);
+      setToastMessage(null);
     }
   }, [isOpen, title]);
 
@@ -105,19 +122,24 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // 1. Sort items by latest (dateModified / upload timestamp descending)
+  const sortedItems = useMemo(() => {
+    return sortMediaItemsDescending(items);
+  }, [items]);
+
   // Compute breakdown counts
   const counts = useMemo(() => {
     if (typeCounts) return typeCounts;
     let photos = 0;
     let clips = 0;
     let shorts = 0;
-    for (const it of items) {
+    for (const it of sortedItems) {
       if (it.mediaType === 'short') shorts++;
       else if (it.mediaType === 'clip' || it.type === 'video') clips++;
       else photos++;
     }
     return { photos, clips, shorts };
-  }, [items, typeCounts]);
+  }, [sortedItems, typeCounts]);
 
   const showFilters =
     hasMultipleTypes ??
@@ -125,10 +147,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
       (counts.photos > 0 && counts.shorts > 0) ||
       (counts.clips > 0 && counts.shorts > 0));
 
-  // Filtered items based on active subfilter tab
+  // Filtered items based on active subfilter tab (from sortedItems)
   const filteredItems = useMemo(() => {
-    if (!showFilters || subFilter === 'all') return items;
-    return items.filter((it) => {
+    if (!showFilters || subFilter === 'all') return sortedItems;
+    return sortedItems.filter((it) => {
       const isShort = it.mediaType === 'short';
       const isClip = !isShort && (it.mediaType === 'clip' || it.type === 'video');
       const isPhoto = !isShort && !isClip;
@@ -138,7 +160,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
       if (subFilter === 'shorts') return isShort;
       return true;
     });
-  }, [items, showFilters, subFilter]);
+  }, [sortedItems, showFilters, subFilter]);
 
   if (!isOpen) return null;
 
@@ -146,12 +168,12 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
   const isImageMode =
     variant === 'photo' ||
     subFilter === 'photos' ||
-    (!showFilters && items.length > 0 && items.every((it) => it.type === 'image' || it.mediaType === 'photo'));
+    (!showFilters && sortedItems.length > 0 && sortedItems.every((it) => it.type === 'image' || it.mediaType === 'photo'));
 
   const isShortsMode =
     variant === 'shorts' ||
     subFilter === 'shorts' ||
-    (!showFilters && items.length > 0 && items.every((it) => it.mediaType === 'short'));
+    (!showFilters && sortedItems.length > 0 && sortedItems.every((it) => it.mediaType === 'short'));
 
   return (
     <div
@@ -162,12 +184,12 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
     >
       {/* 1. Header Bar */}
       <header className="sticky top-0 z-40 bg-[#030305]/95 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
-        {/* Left: Back button & Title */}
+        {/* Left: Back button & Title (Sole navigation button on screen) */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/15 transition-all duration-200 cursor-pointer text-xs font-mono font-medium hover:scale-105 active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/15 transition-all duration-200 cursor-pointer text-xs font-mono font-medium hover:scale-105 active:scale-95 flex-shrink-0"
             title="Back to Vault (Esc)"
           >
             <ArrowLeft className="w-4 h-4 text-[#00E5FF]" />
@@ -178,7 +200,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             <h1 className="text-base sm:text-xl font-bold font-sans tracking-wide text-white uppercase truncate">
               {title}
             </h1>
-            <span className="text-[10px] sm:text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/25 whitespace-nowrap">
+            <span className="text-[10px] sm:text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/25 whitespace-nowrap flex-shrink-0">
               {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
             </span>
             {subtitle && (
@@ -189,8 +211,8 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
           </div>
         </div>
 
-        {/* Right: Sub-filter tabs & Close button */}
-        <div className="flex items-center gap-3">
+        {/* Right: Sub-filter tabs & Subtle Share button (No redundant X close button) */}
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
           {showFilters && (
             <div className="hidden sm:flex items-center gap-1 bg-white/[0.05] p-1 rounded-full border border-white/10">
               <button
@@ -202,7 +224,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                All ({items.length})
+                All ({sortedItems.length})
               </button>
               {counts.photos > 0 && (
                 <button
@@ -249,14 +271,29 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             </div>
           )}
 
+          {/* Subtle Share / Copy Link Button */}
           <button
             type="button"
-            onClick={onClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/10 transition-all cursor-pointer hover:scale-105 active:scale-95"
-            title="Close View All (Esc)"
-            aria-label="Close"
+            onClick={handleShareAlbum}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer text-xs font-mono font-medium hover:scale-105 active:scale-95 ${
+              copied
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                : 'bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border-white/15'
+            }`}
+            title="Share / Copy Link to this Album"
+            aria-label="Share album direct link"
           >
-            <X className="w-5 h-5" />
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>COPIED</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5 text-[#00E5FF]" />
+                <span className="hidden xs:inline">SHARE</span>
+              </>
+            )}
           </button>
         </div>
       </header>
@@ -361,6 +398,14 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
           </div>
         )}
       </main>
+
+      {/* Floating Success Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-5 py-2.5 rounded-full bg-black/90 backdrop-blur-2xl border border-white/20 text-white text-xs font-mono shadow-[0_12px_40px_rgba(0,0,0,0.85),0_0_20px_rgba(0,229,255,0.2)] animate-fade-in pointer-events-none">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 };

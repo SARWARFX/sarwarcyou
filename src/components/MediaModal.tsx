@@ -9,11 +9,13 @@ import {
   ChevronRight,
   X,
   ListVideo,
+  Share2,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 
@@ -55,6 +57,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [showSidebar, setShowSidebar] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
   const [isLightboxFullscreen, setIsLightboxFullscreen] = useState(false);
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
   const isFullscreen = isNativeFullscreen || isLightboxFullscreen;
@@ -543,6 +546,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   }, [activeUrl, activeTitle, type, isDownloading]);
 
+  const handleSharePhoto = useCallback(async () => {
+    if (!currentItem) return;
+    const albumName = currentItem.category || currentItem.parentAlbum || '';
+    const shareUrl = createShareableMediaUrl(currentItem, albumName);
+    const success = await copyToClipboard(shareUrl);
+    if (success) {
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2200);
+    }
+  }, [currentItem]);
+
   if (!isOpen || !activeUrl) return null;
 
   const secureUrl = activeUrl.replace(/^http:\/\//i, 'https://');
@@ -684,6 +698,25 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 <Loader2 className="w-5 h-5 animate-spin text-[#00E5FF]" />
               ) : (
                 <Download className="w-5 h-5" />
+              )}
+            </button>
+
+            {/* Share / Copy Direct Link Button */}
+            <button
+              type="button"
+              onClick={handleSharePhoto}
+              className={`p-2 rounded-full transition-all cursor-pointer ${
+                shareSuccess
+                  ? 'text-[#00E5FF] bg-[#00E5FF]/20'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+              title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Image Link'}
+              aria-label="Share image"
+            >
+              {shareSuccess ? (
+                <Check className="w-5 h-5 text-[#00E5FF]" />
+              ) : (
+                <Share2 className="w-5 h-5" />
               )}
             </button>
 
