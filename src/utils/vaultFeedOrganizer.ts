@@ -5,17 +5,19 @@ import {
   isHiddenOrSystemFolder,
   isExcludedAlbum,
   isThumbnailFile,
-  parseMediaPath,
   isVideoExtension,
+  isPhotoExtension,
 } from './mediaTypeDetector';
 import { getItemTimestamp, sortMediaItems } from './albumExtractor';
 import { getVideoThumbnails } from './thumbnailResolver';
 import { sanitizeMediaTitle } from './titleSanitizer';
+import { getAlbumSlug } from './urlRouter';
 
 export interface VaultFeedData {
   latestReleases: StageMediaItem[];
   allMediaPool: StageMediaItem[];
   shorts: StageMediaItem[];
+  albums: MediaFolderEntry[];
   videoVaultFolders: MediaFolderEntry[];
   photoVaultFolders: MediaFolderEntry[];
 }
@@ -24,7 +26,7 @@ function cleanTitleFromPath(path: string, category?: string): string {
   return sanitizeMediaTitle(path, category);
 }
 
-function formatFolderName(raw: string, mediaTypeHint?: 'video' | 'image' | 'composite'): string {
+export function formatFolderName(raw: string, mediaTypeHint?: 'video' | 'image' | 'composite'): string {
   const decoded = decodeURIComponent(raw).trim();
   // Standard formatted names
   if (/^h2027\s*videos?$/i.test(decoded)) return 'H2027 Videos';
@@ -58,6 +60,44 @@ function formatFolderName(raw: string, mediaTypeHint?: 'video' | 'image' | 'comp
     .join(' ');
 }
 
+export function formatAlbumDisplayName(folderPath: string, mediaTypeHint?: 'video' | 'image' | 'composite'): string {
+  if (!folderPath || folderPath.toLowerCase() === 'featured' || folderPath.toLowerCase() === 'root') {
+    return 'Featured Vault';
+  }
+  const clean = folderPath.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  const segments = clean.split('/');
+
+  if (segments.length === 1) {
+    return formatFolderName(segments[0], mediaTypeHint);
+  }
+
+  const last = segments[segments.length - 1];
+  const root = segments[0].toLowerCase();
+
+  // If root is a generic namespace folder like Photographs, Video Clips, REALTube, Images, Clips
+  if (['photographs', 'video clips', 'realtube', 'images', 'clips'].includes(root)) {
+    if (root === 'clips') {
+      return formatFolderName(last, 'video');
+    }
+    if (root === 'images') {
+      return formatFolderName(last, 'image');
+    }
+    return formatFolderName(last, mediaTypeHint);
+  }
+
+  // If leaf is just a year (e.g. Travel/2026) -> Travel 2026
+  if (/^\d{4}$/.test(last.trim())) {
+    return `${formatFolderName(segments[0], mediaTypeHint)} ${last}`;
+  }
+
+  return formatFolderName(last, mediaTypeHint);
+}
+
+/**
+ * Dynamic Folder-to-Album Engine:
+ * Refactors media categorization so EVERY folder in the dataset
+ * (except thumbnails/Thumbnails) dynamically becomes its own separate Album.
+ */
 export function organizeVaultFeed(
   catalog: HfMediaCatalog | null | undefined,
   sortOrder: SortOrder = 'newest'
@@ -67,229 +107,180 @@ export function organizeVaultFeed(
       latestReleases: [],
       allMediaPool: [],
       shorts: [],
+      albums: [],
       videoVaultFolders: [],
       photoVaultFolders: [],
     };
   }
 
-  const clipsRaw = catalog.clips || [];
-  const shortsRaw = catalog.shorts || [];
-  const imagesRaw = catalog.images || [];
+  // 1. Gather all raw items across catalog (prefer allMedia if present)
+  const pool = catalog.allMedia && catalog.allMedia.length > 0
+    ? catalog.allMedia
+    : [...(catalog.clips || []), ...(catalog.shorts || []), ...(catalog.images || [])];
 
-  // Map to hold extra nested items (clips, shorts) grouped by parent album
-  const extraItemsByAlbum = new Map<string, StageMediaItem[]>();
+  // 2. Group all valid media items strictly by relative folder hierarchy
+  const folderMap = new Map<string, StageMediaItem[]>();
+  const seenPaths = new Set<string>();
 
-  // 1. Process Shorts
-  const rawShortsItems: StageMediaItem[] = shortsRaw
-    .filter((it) => {
-      const p = it.path || it.name || it.url;
-      return !isHiddenOrSystemPath(p) && !isExcludedAlbum(p);
-    })
-    .map((it) => {
-      const p = it.path || it.name || it.url;
-      const mediaUrl = getMediaUrl(it.url || p);
-      const title = cleanTitleFromPath(p);
-      const parsed = parseMediaPath(p);
-      const thumbs = getVideoThumbnails({ url: mediaUrl, path: p, thumbnails: it.thumbnails });
-      const defaultThumb = thumbs[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl);
-      const item: StageMediaItem = {
-        id: `short-${p.replace(/[/\\.]+/g, '-')}`,
-        title,
-        name: title,
-        url: mediaUrl,
-        thumbnail: defaultThumb,
-        poster: thumbs[0] || (it.poster ? getMediaUrl(it.poster) : undefined),
-        thumbnails: thumbs,
-        category: parsed.isNested ? formatFolderName(parsed.parentAlbum) : 'Shorts & Reels',
-        type: 'video' as const,
-        mediaType: 'short',
-        parentAlbum: parsed.parentAlbum,
-        innerFolder: parsed.innerFolder,
-        date: getItemTimestamp(it),
-        lastCommit: it.lastCommit,
-      };
+  for (const it of pool) {
+    const rawPath = it.path || it.name || it.url || '';
+    if (!rawPath) continue;
 
-      if (parsed.isNested && parsed.parentAlbum) {
-        const normAlbum = parsed.parentAlbum.trim().toLowerCase();
-        const list = extraItemsByAlbum.get(normAlbum) || [];
-        list.push(item);
-        extraItemsByAlbum.set(normAlbum, list);
-      }
+    const clean = rawPath.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    const filename = clean.split('/').pop() || clean;
 
-      return item;
-    });
+    // Strict exclusions: skip dotfiles, thumbnail directories, internal caches
+    if (filename.startsWith('.')) continue;
+    if (isThumbnailFile(clean)) continue;
+    if (/^(?:\.?thumbnails?|temp_thumbnails?)\//i.test(clean)) continue;
+    if (isHiddenOrSystemPath(clean) || isExcludedAlbum(clean)) continue;
 
-  const shortsItems = sortMediaItems(rawShortsItems, sortOrder);
+    const dedupeKey = clean.toLowerCase();
+    if (seenPaths.has(dedupeKey)) continue;
+    seenPaths.add(dedupeKey);
 
-  // 2. Process Clips into Dynamic Folders
-  const clipFolderMap = new Map<string, StageMediaItem[]>();
-  for (const it of clipsRaw) {
-    const p = it.path || it.name || it.url;
-    if (isHiddenOrSystemPath(p) || isExcludedAlbum(p)) continue;
-    const parsed = parseMediaPath(p);
-    const subfolder = parsed.parentAlbum || 'Featured Videos';
-    if (isHiddenOrSystemFolder(subfolder) || isExcludedAlbum(subfolder)) continue;
+    const segments = clean.split('/');
+    const folderPath = segments.length > 1 ? segments.slice(0, -1).join('/') : 'Featured';
 
-    const mediaUrl = getMediaUrl(it.url || p);
-    const title = cleanTitleFromPath(p);
-    const thumbs = getVideoThumbnails({ url: mediaUrl, path: p, thumbnails: it.thumbnails });
-    const defaultThumb = thumbs[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl);
+    if (isHiddenOrSystemFolder(folderPath) || isExcludedAlbum(folderPath)) continue;
+
+    const isVid = isVideoExtension(filename);
+    const isPhoto = isPhotoExtension(filename);
+    if (!isVid && !isPhoto) continue;
+
+    const hasShortsIndicator =
+      segments.some((s) => /^shorts?$/i.test(s.trim())) ||
+      clean.toLowerCase().includes('/shorts/') ||
+      folderPath.toLowerCase().includes('short');
+    const isShort = isVid && hasShortsIndicator;
+
+    const mediaUrl = getMediaUrl(it.url || clean);
+    const title = cleanTitleFromPath(clean);
+    const thumbs = isVid ? getVideoThumbnails({ url: mediaUrl, path: clean, thumbnails: it.thumbnails }) : undefined;
+    const defaultThumb = isVid ? (thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl)) : mediaUrl;
+
     const item: StageMediaItem = {
-      id: `clip-${p.replace(/[/\\.]+/g, '-')}`,
+      id: `media-${clean.replace(/[/\\.]+/g, '-')}`,
       title,
       name: title,
       url: mediaUrl,
       thumbnail: defaultThumb,
-      poster: thumbs[0] || (it.poster ? getMediaUrl(it.poster) : undefined),
+      poster: thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : undefined),
       thumbnails: thumbs,
-      category: formatFolderName(subfolder, 'video'),
-      type: 'video',
-      mediaType: 'clip',
-      parentAlbum: parsed.parentAlbum,
-      innerFolder: parsed.innerFolder,
-      date: getItemTimestamp(it),
-      lastCommit: it.lastCommit,
-    };
-
-    if (parsed.isNested && parsed.parentAlbum) {
-      const normAlbum = parsed.parentAlbum.trim().toLowerCase();
-      const list = extraItemsByAlbum.get(normAlbum) || [];
-      list.push(item);
-      extraItemsByAlbum.set(normAlbum, list);
-    }
-
-    const list = clipFolderMap.get(subfolder) || [];
-    list.push(item);
-    clipFolderMap.set(subfolder, list);
-  }
-
-  // Desired order for Video Vault folders
-  const videoOrder = ['h2027', 'h2026', 'h2025', 'favorite', 'bandhobis', 'others'];
-  const videoVaultFolders: MediaFolderEntry[] = Array.from(clipFolderMap.entries())
-    .map(([rawSubfolder, items]) => ({
-      id: `folder-video-${rawSubfolder.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      name: formatFolderName(rawSubfolder, 'video'),
-      type: 'video' as const,
-      count: items.length,
-      items: sortMediaItems(items, sortOrder),
-    }))
-    .sort((a, b) => {
-      const idxA = videoOrder.findIndex((k) => a.name.toLowerCase().includes(k));
-      const idxB = videoOrder.findIndex((k) => b.name.toLowerCase().includes(k));
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-  // 3. Process Images into Dynamic Folders
-  const imageFolderMap = new Map<string, StageMediaItem[]>();
-  for (const it of imagesRaw) {
-    const p = it.path || it.name || it.url;
-    if (isHiddenOrSystemPath(p) || isExcludedAlbum(p) || isThumbnailFile(p)) continue;
-    const parsed = parseMediaPath(p);
-    const subfolder = parsed.parentAlbum || 'Featured Photography';
-    if (isHiddenOrSystemFolder(subfolder) || isExcludedAlbum(subfolder)) continue;
-
-    const mediaUrl = getMediaUrl(it.url || p);
-    const title = cleanTitleFromPath(p);
-    const isVid = isVideoExtension(p);
-    const thumbs = isVid ? getVideoThumbnails({ url: mediaUrl, path: p, thumbnails: it.thumbnails }) : undefined;
-    const defaultThumb = thumbs ? (thumbs[0] || mediaUrl) : mediaUrl;
-    const item: StageMediaItem = {
-      id: `${isVid ? 'clip' : 'photo'}-${p.replace(/[/\\.]+/g, '-')}`,
-      title,
-      name: title,
-      url: mediaUrl,
-      thumbnail: defaultThumb,
-      poster: thumbs ? (thumbs[0] || undefined) : mediaUrl,
-      thumbnails: thumbs,
-      category: formatFolderName(subfolder, isVid ? 'video' : 'image'),
+      category: formatAlbumDisplayName(folderPath),
       type: isVid ? 'video' : 'image',
-      mediaType: isVid ? 'clip' : 'photo',
-      parentAlbum: parsed.parentAlbum,
-      innerFolder: parsed.innerFolder,
+      mediaType: isShort ? 'short' : isVid ? 'clip' : 'photo',
+      parentAlbum: folderPath,
+      innerFolder: segments.length > 2 ? segments.slice(1, -1).join(' / ') : undefined,
       date: getItemTimestamp(it),
       lastCommit: it.lastCommit,
     };
 
-    const list = imageFolderMap.get(subfolder) || [];
+    const list = folderMap.get(folderPath) || [];
     list.push(item);
-    imageFolderMap.set(subfolder, list);
+    folderMap.set(folderPath, list);
   }
 
-  // Desired order for Photo Vault / Composite folders
-  const photoOrder = ['works', 'bandhobis', 'h2027', 'h2026', 'h2025', 'classic'];
-  const photoVaultFolders: MediaFolderEntry[] = Array.from(imageFolderMap.entries())
-    .map(([rawSubfolder, items]) => {
-      const normAlbum = rawSubfolder.trim().toLowerCase();
-      const extraItems = extraItemsByAlbum.get(normAlbum) || [];
-      const combinedItems = [...items, ...extraItems];
+  // 3. Transform grouped folders into dynamic Album collections
+  const albums: MediaFolderEntry[] = Array.from(folderMap.entries())
+    .map(([folderPath, items]) => {
+      const sortedItems = sortMediaItems(items, sortOrder);
 
-      // Calculate media type breakdown
-      let photosCount = 0;
-      let clipsCount = 0;
-      let shortsCount = 0;
+      // Compute media type distribution within album
+      let photos = 0;
+      let clips = 0;
+      let shorts = 0;
 
-      for (const it of combinedItems) {
-        if (it.mediaType === 'short') shortsCount++;
-        else if (it.mediaType === 'clip' || it.type === 'video') clipsCount++;
-        else photosCount++;
+      for (const it of sortedItems) {
+        if (it.mediaType === 'short') shorts++;
+        else if (it.mediaType === 'clip' || it.type === 'video') clips++;
+        else photos++;
       }
 
       const hasMultipleTypes =
-        (photosCount > 0 && clipsCount > 0) ||
-        (photosCount > 0 && shortsCount > 0) ||
-        (clipsCount > 0 && shortsCount > 0);
+        (photos > 0 && clips > 0) ||
+        (photos > 0 && shorts > 0) ||
+        (clips > 0 && shorts > 0);
+
+      const type: 'image' | 'video' | 'composite' = hasMultipleTypes
+        ? 'composite'
+        : photos > 0
+        ? 'image'
+        : 'video';
+
+      const variant: 'standard' | 'shorts' | 'photo' =
+        shorts > 0 && clips === 0 && photos === 0
+          ? 'shorts'
+          : photos > 0 && clips === 0 && shorts === 0
+          ? 'photo'
+          : 'standard';
+
+      const name = formatAlbumDisplayName(folderPath, type);
+      const slug = getAlbumSlug(folderPath);
+      const id = `album-${slug}`;
+      const coverUrl = sortedItems[0]?.thumbnail || sortedItems[0]?.poster || sortedItems[0]?.url;
+
+      const segments = folderPath.split('/');
+      const subtitle = segments.length > 1 ? segments.slice(0, -1).join(' / ') : undefined;
 
       return {
-        id: `folder-photo-${rawSubfolder.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-        name: formatFolderName(rawSubfolder, hasMultipleTypes ? 'composite' : 'image'),
-        type: hasMultipleTypes ? ('composite' as const) : ('image' as const),
-        count: combinedItems.length,
+        id,
+        name,
+        slug,
+        folderPath,
+        type,
+        variant,
+        count: sortedItems.length,
+        coverUrl,
         hasMultipleTypes,
-        typeCounts: {
-          photos: photosCount,
-          clips: clipsCount,
-          shorts: shortsCount,
-        },
-        items: sortMediaItems(combinedItems, sortOrder),
+        typeCounts: { photos, clips, shorts },
+        subtitle,
+        items: sortedItems,
       };
     })
-    .sort((a, b) => {
-      const idxA = photoOrder.findIndex((k) => a.name.toLowerCase().includes(k));
-      const idxB = photoOrder.findIndex((k) => b.name.toLowerCase().includes(k));
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return a.name.localeCompare(b.name);
-    });
+    .filter((a) => a.count > 0);
 
-  // 4. Unified Latest Releases: Top 30 items aggregated from ALL folders and depths
-  const rawMediaPool: StageMediaItem[] = [];
-  const seenUrls = new Set<string>();
+  // 4. Sort Albums dynamically by latest upload timestamp so active folders surface first
+  albums.sort((a, b) => {
+    const timeA = a.items[0]?.date || 0;
+    const timeB = b.items[0]?.date || 0;
+    if (timeB !== timeA) return timeB - timeA;
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
 
-  const addToPool = (it: StageMediaItem) => {
-    if (!it.url || seenUrls.has(it.url)) return;
-    seenUrls.add(it.url);
-    rawMediaPool.push(it);
-  };
+  // 5. Aggregate global pools
+  const allMediaItems: StageMediaItem[] = [];
+  const seenMediaUrls = new Set<string>();
 
-  shortsItems.forEach(addToPool);
-  videoVaultFolders.forEach((f) => f.items.forEach(addToPool));
-  photoVaultFolders.forEach((f) => f.items.forEach(addToPool));
+  for (const album of albums) {
+    for (const it of album.items) {
+      if (!it.url || seenMediaUrls.has(it.url)) continue;
+      seenMediaUrls.add(it.url);
+      allMediaItems.push(it);
+    }
+  }
 
-  const allMediaPool = sortMediaItems(rawMediaPool, sortOrder);
+  const allMediaPool = sortMediaItems(allMediaItems, sortOrder);
 
-  // Latest Releases is strictly sorted by newest date first
-  const latestReleases = sortMediaItems(rawMediaPool, 'newest').slice(0, 30);
+  // Latest Releases: Top 30 newest items across all albums
+  const latestReleases = sortMediaItems(allMediaItems, 'newest').slice(0, 30);
+
+  // Global Shorts collection
+  const shorts = sortMediaItems(
+    allMediaItems.filter((it) => it.mediaType === 'short'),
+    sortOrder
+  );
+
+  // Backwards-compatible folder aliases for any legacy consumers
+  const videoVaultFolders = albums.filter((a) => a.type === 'video');
+  const photoVaultFolders = albums.filter((a) => a.type === 'image' || a.type === 'composite');
 
   return {
     latestReleases,
     allMediaPool,
-    shorts: shortsItems,
+    shorts,
+    albums,
     videoVaultFolders,
     photoVaultFolders,
   };
 }
-

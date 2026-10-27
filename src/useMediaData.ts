@@ -189,6 +189,7 @@ export function parseTreeToCatalog(
   const clips: HfMediaItem[] = [];
   const shorts: HfMediaItem[] = [];
   const images: HfMediaItem[] = [];
+  const allMedia: HfMediaItem[] = [];
 
   // Index all pre-rendered thumbnails and posters
   const thumbnailsByFolder = new Map<string, string[]>();
@@ -346,14 +347,20 @@ export function parseTreeToCatalog(
       const poster = directPoster || allThumbnails?.[0];
 
       if (parsedPath.mediaType === 'short') {
-        shorts.push({ name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate });
+        const itemObj = { name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate };
+        shorts.push(itemObj);
+        allMedia.push(itemObj);
       } else {
-        clips.push({ name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate });
+        const itemObj = { name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate };
+        clips.push(itemObj);
+        allMedia.push(itemObj);
       }
     } else if (isPhotoExtension(path)) {
       // NEVER include thumbnail files in images
       if (!isThumbnailFile(path) && !isExcludedAlbum(path)) {
-        images.push({ name, path, url, lastCommit, date: itemDate });
+        const itemObj = { name, path, url, lastCommit, date: itemDate };
+        images.push(itemObj);
+        allMedia.push(itemObj);
       }
     }
   }
@@ -369,8 +376,9 @@ export function parseTreeToCatalog(
   clips.sort(sortByNewest);
   shorts.sort(sortByNewest);
   images.sort(sortByNewest);
+  allMedia.sort(sortByNewest);
 
-  return { clips, shorts, images };
+  return { clips, shorts, images, allMedia };
 }
 
 /**
@@ -412,12 +420,12 @@ export async function fetchAllTreeItems(): Promise<HfTreeItem[]> {
   const allItems: HfTreeItem[] = [];
   let currentUrl: string | null = HF_TREE_API_URL;
   let pages = 0;
-  const MAX_PAGES = 3;
+  const MAX_PAGES = 5;
 
   while (currentUrl && pages < MAX_PAGES) {
     pages++;
     try {
-      const res = await fetchWithTimeout(currentUrl, {}, 3000);
+      const res = await fetchWithTimeout(currentUrl, {}, 4000);
       if (!res.ok) break;
 
       const data = await res.json();
@@ -438,7 +446,7 @@ export async function fetchAllTreeItems(): Promise<HfTreeItem[]> {
 /**
  * Multi-tier non-blocking catalog resolver:
  * 1. sessionStorage cache (< 60s)
- * 2. Parallel dynamic fetch (Tree API + Commits metadata + raw media.json)
+ * 2. Parallel dynamic fetch (Tree API with Link pagination + Commits metadata + raw media.json)
  * 3. Instant bundled fallback data (guaranteed zero hang)
  */
 export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfMediaCatalog> {
@@ -453,10 +461,7 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
   // 2. Parallel dynamic discovery with no-store caching
   try {
     const [treeResult, commitsResult, mediaJsonResult] = await Promise.allSettled([
-      fetchWithTimeout(HF_TREE_API_URL, {}, 4000).then(async (res) => {
-        if (!res.ok) throw new Error(`HF tree HTTP ${res.status}`);
-        return (await res.json()) as HfTreeItem[];
-      }),
+      fetchAllTreeItems(),
       fetchWithTimeout(HF_COMMITS_API_URL, {}, 4000).then(async (res) => {
         if (!res.ok) throw new Error(`HF commits HTTP ${res.status}`);
         return await res.json();
@@ -544,26 +549,32 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
             return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
           });
 
+        const clips = sortItems(
+          (rawData.clips || [])
+            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+            .map(enrichItem)
+        );
+        const shorts = sortItems(
+          (rawData.shorts || [])
+            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+            .map(enrichItem)
+        );
+        const images = sortItems(
+          (rawData.images || [])
+            .filter(
+              (x: HfMediaItem) =>
+                !isHiddenOrSystemPath(x.path || x.name || x.url) &&
+                !isThumbnailFile(x.path || x.name || x.url)
+            )
+            .map(enrichItem)
+        );
+        const allMedia = sortItems([...clips, ...shorts, ...images]);
+
         const catalog: HfMediaCatalog = {
-          clips: sortItems(
-            (rawData.clips || [])
-              .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-              .map(enrichItem)
-          ),
-          shorts: sortItems(
-            (rawData.shorts || [])
-              .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-              .map(enrichItem)
-          ),
-          images: sortItems(
-            (rawData.images || [])
-              .filter(
-                (x: HfMediaItem) =>
-                  !isHiddenOrSystemPath(x.path || x.name || x.url) &&
-                  !isThumbnailFile(x.path || x.name || x.url)
-              )
-              .map(enrichItem)
-          ),
+          clips,
+          shorts,
+          images,
+          allMedia,
         };
         setCachedCatalog(catalog);
         return catalog;
@@ -586,28 +597,34 @@ const getNormalizedFallbackCatalog = (): HfMediaCatalog => {
       return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
     });
 
+  const clips = sortItems(
+    (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
+      ...x,
+      date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+      url: getMediaUrl(x.url || x.path || x.name),
+    }))
+  );
+  const shorts = sortItems(
+    (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
+      ...x,
+      date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+      url: getMediaUrl(x.url || x.path || x.name),
+    }))
+  );
+  const images = sortItems(
+    (FALLBACK_HF_CATALOG.images || []).map((x) => ({
+      ...x,
+      date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+      url: getMediaUrl(x.url || x.path || x.name),
+    }))
+  );
+  const allMedia = sortItems([...clips, ...shorts, ...images]);
+
   return {
-    clips: sortItems(
-      (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
-        ...x,
-        date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
-        url: getMediaUrl(x.url || x.path || x.name),
-      }))
-    ),
-    shorts: sortItems(
-      (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
-        ...x,
-        date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
-        url: getMediaUrl(x.url || x.path || x.name),
-      }))
-    ),
-    images: sortItems(
-      (FALLBACK_HF_CATALOG.images || []).map((x) => ({
-        ...x,
-        date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
-        url: getMediaUrl(x.url || x.path || x.name),
-      }))
-    ),
+    clips,
+    shorts,
+    images,
+    allMedia,
   };
 };
 

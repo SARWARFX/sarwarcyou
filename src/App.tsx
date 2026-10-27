@@ -13,7 +13,7 @@ import { SiteFooter } from './components/SiteFooter';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import { parseUrlState, syncUrlState, findMatchingMediaItem, findMatchingFolder } from './utils/urlRouter';
-import { Film, Sparkles, Image as ImageIcon, Flame, ChevronUp, ArrowUpDown } from 'lucide-react';
+import { Film, Sparkles, Flame, ChevronUp, ArrowUpDown } from 'lucide-react';
 import { sortMediaItems } from './utils/albumExtractor';
 
 function App() {
@@ -187,38 +187,42 @@ function App() {
       ? sortMediaItems(rawFeed.shorts.filter(matchesQuery), sortOrder)
       : [];
 
-    // Filter Video Vault Folders
-    const videoFolders = (activeFilter === 'all' || activeFilter === 'clips')
-      ? rawFeed.videoVaultFolders
-          .map((f) => ({
-            ...f,
-            items: sortMediaItems(f.items.filter(matchesQuery), sortOrder),
-          }))
-          .filter((f) => f.items.length > 0)
-      : [];
-
-    // Filter Photo Vault Folders
-    const photoFolders = (activeFilter === 'all' || activeFilter === 'images')
-      ? rawFeed.photoVaultFolders
-          .map((f) => {
-            let items = f.items.filter(matchesQuery);
-            if (activeFilter === 'images') {
-              items = items.filter((it) => it.type === 'image' || it.mediaType === 'photo');
-            }
-            return {
-              ...f,
-              items: sortMediaItems(items, sortOrder),
-              count: items.length,
-            };
-          })
-          .filter((f) => f.items.length > 0)
-      : [];
+    // Filter Dynamic Vault Albums based on active navigation tab & search query
+    const albums = rawFeed.albums
+      .map((album) => {
+        let items = album.items.filter(matchesQuery);
+        if (activeFilter === 'clips') {
+          items = items.filter(
+            (it) =>
+              (it.type === 'video' || it.mediaType === 'clip') &&
+              it.mediaType !== 'short' &&
+              !it.category?.toLowerCase().includes('short') &&
+              !it.url?.toLowerCase().includes('/shorts/')
+          );
+        } else if (activeFilter === 'images') {
+          items = items.filter((it) => it.type === 'image' || it.mediaType === 'photo');
+        } else if (activeFilter === 'shorts') {
+          items = items.filter(
+            (it) =>
+              it.mediaType === 'short' ||
+              it.category?.toLowerCase().includes('short') ||
+              it.url?.toLowerCase().includes('/shorts/')
+          );
+        }
+        return {
+          ...album,
+          items: sortMediaItems(items, sortOrder),
+          count: items.length,
+        };
+      })
+      .filter((album) => album.count > 0);
 
     return {
       latestReleases: latest,
       shorts,
-      videoVaultFolders: videoFolders,
-      photoVaultFolders: photoFolders,
+      albums,
+      videoVaultFolders: albums.filter((a) => a.type === 'video'),
+      photoVaultFolders: albums.filter((a) => a.type === 'image' || a.type === 'composite'),
     };
   }, [rawFeed, searchQuery, activeFilter, sortOrder]);
 
@@ -319,8 +323,7 @@ function App() {
         ...(rawFeed.allMediaPool || []),
         ...(rawFeed.shorts || []),
         ...(rawFeed.latestReleases || []),
-        ...rawFeed.videoVaultFolders.flatMap((f) => f.items),
-        ...rawFeed.photoVaultFolders.flatMap((f) => f.items),
+        ...rawFeed.albums.flatMap((f) => f.items),
       ];
       const seen = new Set<string>();
       const uniquePool = allItems.filter((item) => {
@@ -337,21 +340,13 @@ function App() {
           if (albumQuery.toLowerCase() === 'shorts') {
             contextList = rawFeed.shorts;
           } else {
-            const vFolder = findMatchingFolder(rawFeed.videoVaultFolders, albumQuery);
-            if (vFolder) contextList = vFolder.folder.items;
-            else {
-              const pFolder = findMatchingFolder(rawFeed.photoVaultFolders, albumQuery);
-              if (pFolder) contextList = pFolder.folder.items;
-            }
+            const folderMatch = findMatchingFolder(rawFeed.albums, albumQuery);
+            if (folderMatch) contextList = folderMatch.folder.items;
           }
         }
         if (!contextList && match.item.category) {
-          const vFolder = findMatchingFolder(rawFeed.videoVaultFolders, match.item.category);
-          if (vFolder) contextList = vFolder.folder.items;
-          else {
-            const pFolder = findMatchingFolder(rawFeed.photoVaultFolders, match.item.category);
-            if (pFolder) contextList = pFolder.folder.items;
-          }
+          const folderMatch = findMatchingFolder(rawFeed.albums, match.item.category);
+          if (folderMatch) contextList = folderMatch.folder.items;
         }
         handleSelectItem(match.item, contextList);
         return;
@@ -359,20 +354,22 @@ function App() {
         // Fallback: check if mediaQuery was an album/folder name (e.g. from #/view/...)
         const folderTarget = albumQuery || mediaQuery;
         if (folderTarget.toLowerCase() === 'shorts') {
-          handleOpenViewAll('Shorts & Reels', rawFeed.shorts, 'shorts');
+          handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts', 'Dedicated 9:16 vertical reels');
           return;
         } else if (folderTarget.toLowerCase() === 'all' || folderTarget.toLowerCase() === 'latest') {
           handleOpenViewAll('Latest Releases', rawFeed.allMediaPool, 'standard');
           return;
         } else {
-          const vMatch = findMatchingFolder(rawFeed.videoVaultFolders, folderTarget);
-          if (vMatch) {
-            handleOpenViewAll(vMatch.folder.name, vMatch.folder.items, 'standard');
-            return;
-          }
-          const pMatch = findMatchingFolder(rawFeed.photoVaultFolders, folderTarget);
-          if (pMatch) {
-            handleOpenViewAll(pMatch.folder.name, pMatch.folder.items, 'photo');
+          const folderMatch = findMatchingFolder(rawFeed.albums, folderTarget);
+          if (folderMatch) {
+            handleOpenViewAll(
+              folderMatch.folder.name,
+              folderMatch.folder.items,
+              folderMatch.folder.variant,
+              folderMatch.folder.subtitle || `${folderMatch.folder.count} items`,
+              folderMatch.folder.hasMultipleTypes,
+              folderMatch.folder.typeCounts
+            );
             return;
           }
         }
@@ -382,18 +379,20 @@ function App() {
     // 2. If only albumQuery is present (or media item not found), open album's View All screen
     if (albumQuery) {
       if (albumQuery.toLowerCase() === 'shorts') {
-        handleOpenViewAll('Shorts & Reels', rawFeed.shorts, 'shorts');
+        handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts', 'Dedicated 9:16 vertical reels');
       } else if (albumQuery.toLowerCase() === 'all' || albumQuery.toLowerCase() === 'latest') {
         handleOpenViewAll('Latest Releases', rawFeed.allMediaPool, 'standard');
       } else {
-        const vMatch = findMatchingFolder(rawFeed.videoVaultFolders, albumQuery);
-        if (vMatch) {
-          handleOpenViewAll(vMatch.folder.name, vMatch.folder.items, 'standard');
-        } else {
-          const pMatch = findMatchingFolder(rawFeed.photoVaultFolders, albumQuery);
-          if (pMatch) {
-            handleOpenViewAll(pMatch.folder.name, pMatch.folder.items, 'photo');
-          }
+        const folderMatch = findMatchingFolder(rawFeed.albums, albumQuery);
+        if (folderMatch) {
+          handleOpenViewAll(
+            folderMatch.folder.name,
+            folderMatch.folder.items,
+            folderMatch.folder.variant,
+            folderMatch.folder.subtitle || `${folderMatch.folder.count} items`,
+            folderMatch.folder.hasMultipleTypes,
+            folderMatch.folder.typeCounts
+          );
         }
       }
     }
@@ -465,7 +464,7 @@ function App() {
    * On each page visit, visitors will see a different, newly randomized set of videos.
    */
   const spotlightVideos = useMemo(() => {
-    const folders = rawFeed.videoVaultFolders;
+    const folders = rawFeed.albums.filter((a) => a.type === 'video' || a.hasMultipleTypes);
     if (!folders || folders.length === 0) return [];
 
     // 1. Gather all strictly landscape video items per folder
@@ -531,7 +530,7 @@ function App() {
 
     // 4. Randomize the presentation order so the 10 videos play in a random sequence
     return selected.sort(() => Math.random() - 0.5);
-  }, [rawFeed.videoVaultFolders]);
+  }, [rawFeed.albums]);
 
   // Navigate/scroll directly to the album that contains the spotlight video
   const handleOpenAlbum = useCallback((item: StageMediaItem) => {
@@ -543,10 +542,11 @@ function App() {
       setSearchQuery('');
     }
 
-    // Locate the matching folder in videoVaultFolders
-    const targetFolder = rawFeed.videoVaultFolders.find((f) =>
+    // Locate the matching folder in dynamic albums
+    const targetFolder = rawFeed.albums.find((f) =>
       f.items.some((it) => it.id === item.id || it.url === item.url) ||
       f.name.toLowerCase() === item.category?.toLowerCase() ||
+      (item.parentAlbum && f.folderPath && f.folderPath.toLowerCase() === item.parentAlbum.toLowerCase()) ||
       (item.parentAlbum && f.id.toLowerCase().includes(item.parentAlbum.toLowerCase())) ||
       (item.parentAlbum && f.name.toLowerCase().includes(item.parentAlbum.toLowerCase()))
     );
@@ -565,12 +565,12 @@ function App() {
           return;
         }
       }
-      const vaultSec = document.getElementById('video-vault-section');
-      if (vaultSec) {
-        vaultSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const albumsSec = document.getElementById('albums-section');
+      if (albumsSec) {
+        albumsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
-  }, [activeFilter, searchQuery, rawFeed.videoVaultFolders]);
+  }, [activeFilter, searchQuery, rawFeed.albums]);
 
   // Surprise Me / Shuffle Handler
   const handleShuffle = useCallback(() => {
@@ -583,8 +583,7 @@ function App() {
   const hasAnyResults =
     feed.latestReleases.length > 0 ||
     feed.shorts.length > 0 ||
-    feed.videoVaultFolders.length > 0 ||
-    feed.photoVaultFolders.length > 0;
+    feed.albums.length > 0;
 
   const latestHeaderInfo = useMemo(() => {
     switch (activeFilter) {
@@ -759,83 +758,43 @@ function App() {
           </div>
         )}
 
-        {/* SECTION 3: VIDEO VAULT */}
-        {feed.videoVaultFolders.length > 0 && (
-          <section id="video-vault-section" className="flex flex-col gap-7 pt-4 border-t border-white/[0.05] scroll-mt-20">
+        {/* SECTION 3: DYNAMIC VAULT ALBUMS */}
+        {feed.albums.length > 0 && (
+          <section id="albums-section" className="flex flex-col gap-8 pt-4 border-t border-white/[0.05] scroll-mt-20">
+            <div id="video-vault-section" className="sr-only" />
+            <div id="photo-vault-section" className="sr-only" />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Film className="w-4 h-4 text-amber-400" />
+                <Sparkles className="w-4 h-4 text-[#00E5FF]" />
                 <h2 className="text-base sm:text-lg font-black font-sans tracking-wider text-white uppercase">
-                  Video Vault
+                  Vault Albums
                 </h2>
                 <span className="text-[10px] font-mono text-zinc-500 uppercase">
-                  ({feed.videoVaultFolders.length} Archive Folders)
+                  ({feed.albums.length} Dynamic {feed.albums.length === 1 ? 'Album' : 'Albums'})
                 </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-8">
-              {feed.videoVaultFolders.map((folder) => (
-                <div id={folder.id} key={folder.id} className="scroll-mt-24 transition-all duration-500">
+              {feed.albums.map((album) => (
+                <div id={album.id} key={album.id} className="scroll-mt-24 transition-all duration-500">
                   <CyberCarouselRow
-                    title={folder.name}
-                    badge={folder.count}
-                    items={folder.items}
-                    variant="standard"
-                    hasMultipleTypes={folder.hasMultipleTypes}
-                    typeCounts={folder.typeCounts}
-                    onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
+                    title={album.name}
+                    subtitle={album.subtitle}
+                    badge={album.count}
+                    items={album.items}
+                    variant={album.variant}
+                    hasMultipleTypes={album.hasMultipleTypes}
+                    typeCounts={album.typeCounts}
+                    onSelectItem={(item, currentList) => handleSelectItem(item, currentList || album.items)}
                     onViewAll={() =>
                       handleOpenViewAll(
-                        folder.name,
-                        folder.items,
-                        'standard',
-                        `${folder.count} video archive`,
-                        folder.hasMultipleTypes,
-                        folder.typeCounts
-                      )
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* SECTION 4: PHOTO VAULT */}
-        {feed.photoVaultFolders.length > 0 && (
-          <section id="photo-vault-section" className="flex flex-col gap-7 pt-4 border-t border-white/[0.05] scroll-mt-20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-base sm:text-lg font-black font-sans tracking-wider text-white uppercase">
-                  Photo Vault
-                </h2>
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">
-                  ({feed.photoVaultFolders.length} Gallery Folders)
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-8">
-              {feed.photoVaultFolders.map((folder) => (
-                <div id={folder.id} key={folder.id} className="scroll-mt-24 transition-all duration-500">
-                  <CyberCarouselRow
-                    title={folder.name}
-                    badge={folder.count}
-                    items={folder.items}
-                    variant={folder.hasMultipleTypes ? 'standard' : 'photo'}
-                    hasMultipleTypes={folder.hasMultipleTypes}
-                    typeCounts={folder.typeCounts}
-                    onSelectItem={(item, currentList) => handleSelectItem(item, currentList || folder.items)}
-                    onViewAll={() =>
-                      handleOpenViewAll(
-                        folder.name,
-                        folder.items,
-                        folder.hasMultipleTypes ? 'standard' : 'photo',
-                        `${folder.count} photo gallery`,
-                        folder.hasMultipleTypes,
-                        folder.typeCounts
+                        album.name,
+                        album.items,
+                        album.variant,
+                        album.subtitle || `${album.count} items`,
+                        album.hasMultipleTypes,
+                        album.typeCounts
                       )
                     }
                   />

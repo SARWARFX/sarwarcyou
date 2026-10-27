@@ -51,6 +51,8 @@ export interface HfMediaCatalog {
   clips: HfMediaItem[];
   shorts: HfMediaItem[];
   images: HfMediaItem[];
+  allMedia?: HfMediaItem[];
+  albums?: MediaFolderEntry[];
 }
 
 export interface ApiResponseData {
@@ -88,16 +90,23 @@ export interface StageMediaItem {
 export interface MediaFolderEntry {
   id: string;
   name: string;
+  slug?: string;
+  folderPath?: string;
   type: 'image' | 'video' | 'composite';
+  variant?: 'standard' | 'shorts' | 'photo';
   count: number;
   items: StageMediaItem[];
+  coverUrl?: string;
   hasMultipleTypes?: boolean;
   typeCounts?: {
     photos: number;
     clips: number;
     shorts: number;
   };
+  subtitle?: string;
 }
+
+export type DynamicAlbum = MediaFolderEntry;
 
 export type AlbumLayoutType =
   | 'weichie-curved'

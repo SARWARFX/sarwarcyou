@@ -339,6 +339,7 @@ export function isHiddenOrSystemFolder(folderOrName?: string | null): boolean {
 
 export interface ParsedMediaPath {
   parentAlbum: string;
+  folderPath?: string;
   innerFolder?: string;
   mediaType: 'clip' | 'short' | 'photo';
   isNested: boolean;
@@ -346,15 +347,15 @@ export interface ParsedMediaPath {
 
 /**
  * Universal recursive media path parser for Hugging Face stream vault.
- * Correctly classifies files by extension and inner folder type regardless of nesting:
+ * Dynamically classifies media by folder hierarchy and file extension:
+ * - Every folder in the dataset becomes its own distinct album identity.
  * - .mp4 inside any "Shorts/" folder -> 'short'
- * - .mp4 inside any "Video Clips/" or "Clips/" folder -> 'clip'
+ * - .mp4 inside standard video folders -> 'clip'
  * - Photo files (.jpg, .jpeg, .png, etc.) -> 'photo'
- * - Preserves the parent album name intact (e.g., Album: "Bandhobis")
  */
 export function parseMediaPath(rawPath: string): ParsedMediaPath {
   if (!rawPath) {
-    return { parentAlbum: 'Featured', mediaType: 'photo', isNested: false };
+    return { parentAlbum: 'Featured', folderPath: 'Featured', mediaType: 'photo', isNested: false };
   }
 
   const clean = rawPath.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
@@ -365,7 +366,9 @@ export function parseMediaPath(rawPath: string): ParsedMediaPath {
   const isPhoto = isPhotoExtension(filename);
 
   // Check if path or any segment indicates a short
-  const hasShortsSegment = segments.some((s) => /^shorts?$/i.test(s.trim())) || clean.toLowerCase().includes('/shorts/');
+  const hasShortsSegment =
+    segments.some((s) => /^shorts?$/i.test(s.trim())) ||
+    clean.toLowerCase().includes('/shorts/');
 
   let mediaType: 'clip' | 'short' | 'photo' = 'photo';
   if (isVideo) {
@@ -378,55 +381,20 @@ export function parseMediaPath(rawPath: string): ParsedMediaPath {
     mediaType = 'photo';
   }
 
+  let folderPath = 'Featured';
   let parentAlbum = 'Featured';
   let innerFolder: string | undefined;
   let isNested = false;
 
-  const root = (segments[0] || '').toLowerCase().trim();
-
-  if (root === 'shorts') {
-    parentAlbum = 'Shorts & Reels';
-    mediaType = 'short';
-    if (segments.length >= 3) {
+  if (segments.length >= 2) {
+    folderPath = segments.slice(0, -1).join('/');
+    parentAlbum = folderPath;
+    isNested = segments.length > 2;
+    if (isNested) {
       innerFolder = segments.slice(1, -1).join(' / ');
-      isNested = true;
-    }
-  } else if (root === 'clips') {
-    if (segments.length >= 3) {
-      parentAlbum = segments[1];
-      innerFolder = segments.slice(2, -1).join(' / ') || undefined;
-      isNested = segments.length > 3;
-    } else if (segments.length === 2) {
-      parentAlbum = segments[1];
-    }
-    if (!hasShortsSegment) {
-      mediaType = 'clip';
-    }
-  } else if (root === 'images') {
-    if (segments.length >= 4) {
-      // e.g. Images/Bandhobis/Video Clips/asha8.mp4
-      // or Images/Bandhobis/Shorts/Screen_Recording...mp4
-      // or Images/Bandhobis/Images/Asha1.jpg
-      parentAlbum = segments[1];
-      innerFolder = segments.slice(2, -1).join(' / ');
-      isNested = true;
-    } else if (segments.length === 3) {
-      // e.g. Images/works/photo.jpg or Images/Bandhobis/photo.jpg
-      parentAlbum = segments[1];
-    } else if (segments.length === 2) {
-      parentAlbum = 'Featured Photography';
-    }
-  } else {
-    // Non-standard root folder
-    if (segments.length >= 3) {
-      parentAlbum = segments[0];
-      innerFolder = segments.slice(1, -1).join(' / ');
-      isNested = true;
-    } else if (segments.length >= 2) {
-      parentAlbum = segments[0];
     }
   }
 
-  return { parentAlbum, innerFolder, mediaType, isNested };
+  return { parentAlbum, folderPath, innerFolder, mediaType, isNested };
 }
 

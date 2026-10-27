@@ -153,13 +153,28 @@ export function findMatchingFolder(
   const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
   let idx = folders.findIndex((f) => {
-    const slug = getAlbumSlug(f.name);
+    const slug = f.slug || getAlbumSlug(f.name);
     const idSlug = getAlbumSlug(f.id);
-    return slug === slugQuery || idSlug === slugQuery;
+    const pathSlug = f.folderPath ? getAlbumSlug(f.folderPath) : '';
+    const leafSlug = f.folderPath ? getAlbumSlug(f.folderPath.split('/').pop() || '') : '';
+    return slug === slugQuery || idSlug === slugQuery || pathSlug === slugQuery || leafSlug === slugQuery;
   });
   if (idx !== -1) return { folder: folders[idx], index: idx };
 
-  idx = folders.findIndex((f) => f.name.toLowerCase() === rawQuery || f.id.toLowerCase() === rawQuery);
+  idx = folders.findIndex((f) => {
+    const nameMatch = f.name.toLowerCase() === rawQuery;
+    const idMatch = f.id.toLowerCase() === rawQuery;
+    const pathMatch = f.folderPath ? f.folderPath.toLowerCase() === rawQuery : false;
+    const leafMatch = f.folderPath ? (f.folderPath.split('/').pop() || '').toLowerCase() === rawQuery : false;
+    return nameMatch || idMatch || pathMatch || leafMatch;
+  });
+  if (idx !== -1) return { folder: folders[idx], index: idx };
+
+  idx = folders.findIndex((f) => {
+    const nameSub = f.name.toLowerCase().includes(rawQuery);
+    const pathSub = f.folderPath ? f.folderPath.toLowerCase().includes(rawQuery) : false;
+    return nameSub || pathSub;
+  });
   if (idx !== -1) return { folder: folders[idx], index: idx };
 
   return null;
@@ -294,7 +309,7 @@ export function syncUrlState({ album, mediaItem, sort, replace = true }: SyncUrl
 export function createShareableAlbumUrl(albumNameOrSlug: string): string {
   if (typeof window === 'undefined') return '';
   const slug = getAlbumSlug(albumNameOrSlug);
-  return `${window.location.origin}${window.location.pathname}?album=${slug}`;
+  return `${window.location.origin}${window.location.pathname}#/album/${slug}`;
 }
 
 /**
