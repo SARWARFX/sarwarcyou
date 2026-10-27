@@ -11,6 +11,7 @@ export interface AlbumJumpItem {
 export interface ResponsiveNavProps {
   activeFilter: CyberFilterType;
   onFilterChange: (filter: CyberFilterType) => void;
+  onHomeClick?: () => void;
   imageAlbums: AlbumJumpItem[];
   videoAlbums: AlbumJumpItem[];
   shortAlbums: AlbumJumpItem[];
@@ -20,6 +21,7 @@ export interface ResponsiveNavProps {
 export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   activeFilter,
   onFilterChange,
+  onHomeClick,
   imageAlbums,
   videoAlbums,
   shortAlbums,
@@ -29,6 +31,16 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   const [openCategory, setOpenCategory] = useState<CyberFilterType | null>(null);
 
   const navRef = useRef<HTMLDivElement>(null);
+
+  const handleHomeClick = () => {
+    setOpenCategory(null);
+    onFilterChange('all');
+    if (onHomeClick) {
+      onHomeClick();
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -82,53 +94,43 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
     <div ref={navRef} className="w-full">
       {/* =========================================================================
           1. TOP BRAND HEADER: Prominent on both Mobile and Desktop
-             - Mobile (< 768px): Prominent top-middle header title
+             - Mobile (< 768px): Prominent top-middle header title (SARWARCYOU)
              - Desktop (>= 768px): Enlarged text-4xl / text-5xl bold futuristic styling
          ========================================================================= */}
       <header className="flex flex-col items-center justify-center w-full max-w-7xl mx-auto pt-5 md:pt-8 pb-3 md:pb-6 px-4 select-none">
         <h1
-          className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black uppercase text-center tracking-[0.2em] md:tracking-[0.25em] transition-colors duration-200"
+          onClick={handleHomeClick}
+          title="SARWARCYOU - Back to Top"
+          className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black uppercase text-center tracking-[0.2em] md:tracking-[0.25em] transition-colors duration-200 cursor-pointer hover:opacity-90 active:scale-98"
           style={{
             fontFamily: "'Orbitron', 'Syne', monospace, sans-serif",
             color: 'var(--text-primary)',
             textShadow: '0 0 25px rgba(0, 229, 255, 0.3)',
           }}
         >
-          SARWAR.CYOU
+          SARWARCYOU
         </h1>
       </header>
 
       {/* =========================================================================
           2. DESKTOP VIEWPORT (>= 768px): Vertical Floating Right-Docked Navigation
-             - Position: fixed; right: 1.5rem; top: 50%; transform: translateY(-50%);
-             - display: flex; flex-direction: column; gap: 1rem; z-index: 1000;
+             - Position: fixed on desktop only (strictly hidden on mobile)
              - Folder jump menus flyout to the left of the dock
          ========================================================================= */}
       <nav
         aria-label="Desktop Floating Navigation"
-        className="hidden md:flex flex-col items-stretch p-2 rounded-2xl shadow-2xl transition-colors duration-200 select-none"
+        className="hidden md:flex flex-col items-stretch p-2 rounded-2xl shadow-2xl transition-colors duration-200 select-none fixed right-6 top-1/2 -translate-y-1/2 z-[1000] min-w-[136px] gap-4"
         style={{
-          position: 'fixed',
-          right: '1.5rem',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem',
-          zIndex: 1000,
           backgroundColor: 'var(--nav-bg)',
           border: '1px solid var(--nav-border)',
           boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3)',
-          minWidth: '136px',
         }}
       >
         {/* Home */}
         <button
           type="button"
-          onClick={() => {
-            setOpenCategory(null);
-            onFilterChange('all');
-          }}
+          onClick={handleHomeClick}
+          title="Back to Top"
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
           style={{
             backgroundColor: activeFilter === 'all' ? 'var(--nav-active-bg)' : 'transparent',
@@ -368,10 +370,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
           {/* Home */}
           <button
             type="button"
-            onClick={() => {
-              setOpenCategory(null);
-              onFilterChange('all');
-            }}
+            onClick={handleHomeClick}
             className="flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer"
             style={{
               backgroundColor: activeFilter === 'all' ? 'var(--nav-active-bg)' : 'transparent',

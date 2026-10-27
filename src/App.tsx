@@ -505,10 +505,11 @@ function App() {
         color: 'var(--text-primary)',
       }}
     >
-      {/* 1. Responsive Navigation: Desktop Top Header + Mobile Fixed Bottom Dock */}
+      {/* 1. Responsive Navigation: Desktop Floating Nav + Mobile Fixed Bottom Dock */}
       <ResponsiveNav
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
+        onHomeClick={handleResetHome}
         imageAlbums={imageAlbums}
         videoAlbums={videoAlbums}
         shortAlbums={shortAlbums}
