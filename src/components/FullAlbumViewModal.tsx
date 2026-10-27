@@ -3,7 +3,7 @@ import { ArrowLeft, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Chec
 import type { StageMediaItem, SortOrder } from '../types';
 import { CyberCard } from './CyberCard';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { getMediaUrl, FALLBACK_THUMBNAIL_PLACEHOLDER } from '../utils/imageUrlResolver';
+import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { sortMediaItems } from '../utils/albumExtractor';
 import { createShareableAlbumUrl, copyToClipboard } from '../utils/urlRouter';
@@ -36,17 +36,12 @@ const MasonryImageCard: React.FC<{
   onClick: () => void;
 }> = ({ item, onClick }) => {
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
   const cleanTitle = useMemo(
     () => sanitizeMediaTitle(item.title || item.name, item.category),
     [item.title, item.name, item.category]
   );
-  const isVideo = item.type === 'video' || item.mediaType === 'clip' || item.mediaType === 'short';
   const imgUrl = getMediaUrl(item.url);
-  const rawThumb = item.thumbnail || item.poster || (isVideo ? FALLBACK_THUMBNAIL_PLACEHOLDER : imgUrl);
-  const thumbUrl = error || !rawThumb || /\.(mp4|mov|webm|mkv)(\?|#|$)/i.test(rawThumb)
-    ? FALLBACK_THUMBNAIL_PLACEHOLDER
-    : rawThumb;
+  const thumbUrl = item.thumbnail || imgUrl;
 
   return (
     <div
@@ -62,7 +57,6 @@ const MasonryImageCard: React.FC<{
         loading="lazy"
         decoding="async"
         onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
         className={`w-full h-auto block object-contain transition-all duration-500 group-hover:scale-[1.025] ${
           loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
         }`}
@@ -403,7 +397,6 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
                 key={item.id || idx}
                 item={item}
                 variant="shorts"
-                className="!w-full"
                 onClick={(it) => onSelectItem(it, filteredItems)}
               />
             ))}
@@ -416,7 +409,6 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
                 key={item.id || idx}
                 item={item}
                 variant="standard"
-                className="!w-full"
                 onClick={(it) => onSelectItem(it, filteredItems)}
               />
             ))}

@@ -3,7 +3,6 @@ import { Play, Camera, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoThumbnails } from '../utils/thumbnailResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
-import { FALLBACK_THUMBNAIL_PLACEHOLDER } from '../utils/imageUrlResolver';
 
 export interface CyberCardProps {
   item: StageMediaItem;
@@ -11,7 +10,6 @@ export interface CyberCardProps {
   onClick: (item: StageMediaItem) => void;
   albumItems?: StageMediaItem[];
   initialIndex?: number;
-  className?: string;
 }
 
 export const CyberCard: React.FC<CyberCardProps> = ({
@@ -20,7 +18,6 @@ export const CyberCard: React.FC<CyberCardProps> = ({
   onClick,
   albumItems,
   initialIndex,
-  className = '',
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isInViewport, setIsInViewport] = useState(false);
@@ -179,34 +176,27 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     photo: 'w-[160px] sm:w-[185px] md:w-[210px] aspect-[2/3]',
   }[effectiveVariant];
 
-  const fallbackUrl =
-    activeItem.thumbnail || activeItem.poster || (isVideo ? FALLBACK_THUMBNAIL_PLACEHOLDER : activeItem.url);
+  const fallbackUrl = activeItem.thumbnail || activeItem.poster || activeItem.url;
   const currentThumbUrl = hasThumbs
     ? (!failedFrames[frameIndex]
         ? videoThumbs[frameIndex]
         : (!failedFrames[0] ? videoThumbs[0] : fallbackUrl))
     : fallbackUrl;
 
-  // Filter out raw video URLs from being passed into img tags
-  const sanitizedThumbUrl =
-    currentThumbUrl && !/\.(mp4|mov|webm|mkv)(\?|#|$)/i.test(currentThumbUrl)
-      ? currentThumbUrl
-      : (isVideo ? FALLBACK_THUMBNAIL_PLACEHOLDER : null);
-
   // Cross-dissolve image layer state
-  const [displayedThumbUrl, setDisplayedThumbUrl] = useState<string | null>(sanitizedThumbUrl);
+  const [displayedThumbUrl, setDisplayedThumbUrl] = useState(currentThumbUrl);
   const [prevThumbUrl, setPrevThumbUrl] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    if (sanitizedThumbUrl && sanitizedThumbUrl !== displayedThumbUrl) {
+    if (currentThumbUrl && currentThumbUrl !== displayedThumbUrl) {
       setPrevThumbUrl(displayedThumbUrl);
-      setDisplayedThumbUrl(sanitizedThumbUrl);
+      setDisplayedThumbUrl(currentThumbUrl);
       setImageLoaded(false);
       setImageError(false);
     }
-  }, [sanitizedThumbUrl, displayedThumbUrl]);
+  }, [currentThumbUrl, displayedThumbUrl]);
 
   const handleImageLoaded = () => {
     setImageLoaded(true);
@@ -233,7 +223,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
           onClick(activeItem);
         }
       }}
-      className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-black/60 backdrop-blur-md border border-white/10 transition-all duration-300 ease-out hover:scale-[1.04] hover:border-[#00E5FF]/40 hover:shadow-[0_14px_35px_rgba(0,0,0,0.85)] hover:z-20 ${sizeClass} ${className}`}
+      className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-black/60 backdrop-blur-md border border-white/10 transition-all duration-300 ease-out hover:scale-[1.04] hover:border-[#00E5FF]/40 hover:shadow-[0_14px_35px_rgba(0,0,0,0.85)] hover:z-20 ${sizeClass}`}
     >
       {/* Background Poster / Fallback */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col justify-between p-3.5 z-0">
@@ -277,14 +267,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
           onLoad={handleImageLoaded}
           onError={() => {
             if (hasThumbs) {
-              setFailedFrames((prev) => {
-                const next = { ...prev, [frameIndex]: true };
-                // If primary frame 0 failed or all failed, mark as error to reveal sleek card fallback
-                if (next[0] && next[1] && next[2]) {
-                  setImageError(true);
-                }
-                return next;
-              });
+              setFailedFrames((prev) => ({ ...prev, [frameIndex]: true }));
             } else {
               setImageError(true);
             }

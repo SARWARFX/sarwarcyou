@@ -97,16 +97,12 @@ export function getAnticipatedThumbnailUrls(urlOrPath: string): string[] {
  * Format: Thumbnails/${basePathWithoutExtension}_thumb_${1..5}.jpg
  */
 export function getVideoThumbnails(
-  itemOrPath: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; poster?: string; type?: string }
+  itemOrPath: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
 ): string[] {
   if (!itemOrPath) return [];
 
-  if (typeof itemOrPath === 'object' && itemOrPath.thumbnails && itemOrPath.thumbnails.length > 0) {
+  if (typeof itemOrPath === 'object' && itemOrPath.thumbnails && itemOrPath.thumbnails.length >= 5) {
     return itemOrPath.thumbnails.map((t) => buildHfMediaUrl(t));
-  }
-
-  if (typeof itemOrPath === 'object' && itemOrPath.poster) {
-    return [buildHfMediaUrl(itemOrPath.poster)];
   }
 
   const raw = typeof itemOrPath === 'string'

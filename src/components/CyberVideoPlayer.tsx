@@ -17,7 +17,6 @@ import {
   ChevronsRight,
   X,
   Share2,
-  Film,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -77,11 +76,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [videoError, setVideoError] = useState(false);
-
-  useEffect(() => {
-    setVideoError(false);
-  }, [item?.id, item?.url]);
 
   // Seek bar hover preview state
   const [seekHover, setSeekHover] = useState<{
@@ -683,18 +677,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   }, [repeatMode, playlist, item, onSelectItem]);
 
-  const handleNextVideo = useCallback(() => {
-    if (!item || !playlist.length) return;
-    const currentIdx = playlist.findIndex((v) => v.id === item.id || v.url === item.url);
-    const hasNext = currentIdx >= 0 && currentIdx < playlist.length - 1;
-    if (hasNext) {
-      onSelectItem?.(playlist[currentIdx + 1]);
-    } else if (playlist.length > 0) {
-      onSelectItem?.(playlist[0]);
-    }
-    setIsPlaying(true);
-  }, [playlist, item, onSelectItem]);
-
   if (!isOpen || !item) return null;
 
   const streamUrl = getMediaUrl(item.url);
@@ -718,7 +700,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-[100] bg-black text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-50 bg-black text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
     >
       {/* 1. Ambient Blurred Glow reflecting active video colors */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
@@ -850,7 +832,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           autoPlay
           playsInline
           muted={isMuted}
-          onError={() => setVideoError(true)}
           className={`w-full h-full pointer-events-none transition-all duration-300 ${
             fitMode === 'cover' ? 'object-cover' : 'object-contain'
           }`}
@@ -889,47 +870,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           }}
           onEnded={handleVideoEnded}
         />
-
-        {/* Video Load / Error State Overlay */}
-        {videoError && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-6 text-center pointer-events-auto">
-            <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-3 border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-              <Film className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">Video Stream Unavailable</h3>
-            <p className="text-xs text-zinc-400 max-w-sm mb-4">
-              Unable to load the remote video stream. You can retry or skip to the next video in the queue.
-            </p>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setVideoError(false);
-                  if (videoRef.current) {
-                    videoRef.current.load();
-                    videoRef.current.play().catch(() => {});
-                  }
-                }}
-                className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-mono border border-white/20 transition-all cursor-pointer"
-              >
-                Retry
-              </button>
-              {playlist.length > 1 && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNextVideo();
-                  }}
-                  className="px-4 py-1.5 rounded-full bg-[#00E5FF] hover:bg-[#00E5FF]/90 text-black font-bold text-xs font-mono transition-all cursor-pointer shadow-[0_0_12px_rgba(0,229,255,0.3)]"
-                >
-                  Next Video
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 4. Floating HUD Controls (Bottom) */}

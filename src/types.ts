@@ -71,7 +71,6 @@ export interface ApiResponse {
 
 export interface StageMediaItem {
   id: string;
-  path?: string;
   title: string;
   name?: string;
   url: string;

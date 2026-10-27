@@ -15,9 +15,9 @@ export const HF_COMMITS_API_URL =
 export const HF_OPTIMIZED_MANIFEST_URL =
   'https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main/.optimized_manifest.json';
 export const HF_CLIPS_TREE_API_URL =
-  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Video%20Clips?recursive=true';
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Clips?recursive=true';
 export const HF_IMAGES_TREE_API_URL =
-  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Photographs?recursive=true';
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Images?recursive=true';
 export const HF_SHORTS_TREE_API_URL =
   'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Shorts?recursive=true';
 
@@ -191,8 +191,8 @@ export function parseTreeToCatalog(
   const images: HfMediaItem[] = [];
   const allMedia: HfMediaItem[] = [];
 
-  // Index all pre-rendered thumbnails and posters by normalized video path stems
-  const thumbnailsByVideoKey = new Map<string, string[]>();
+  // Index all pre-rendered thumbnails and posters
+  const thumbnailsByFolder = new Map<string, string[]>();
   const directPosterByVideoKey = new Map<string, string>();
 
   for (const item of tree) {
@@ -205,75 +205,95 @@ export function parseTreeToCatalog(
       lowerPath.endsWith('.png') ||
       lowerPath.endsWith('.avif');
 
-    if (
-      isImageFile &&
-      (lowerPath.startsWith('thumbnails/') ||
-        lowerPath.startsWith('.thumbnails/') ||
-        isThumbnailFile(item.path))
-    ) {
+    if (isImageFile && (isThumbnailFile(item.path) || item.path.startsWith('thumbnails/') || item.path.startsWith('.thumbnails/'))) {
       const url = buildHfMediaUrl(item.path);
 
-      // Strip Thumbnails/ or thumbnails/ or .thumbnails/
-      const cleanThumb = item.path.replace(/^(?:Thumbnails|thumbnails|\.thumbnails|temp_thumbnails)\//i, '');
-      const cleanStem = cleanThumb
-        .replace(/[-_]thumb(?:nail)?[-_]?\d*\.[^/.]+$/i, '')
+      // 1. Directory-level mapping (thumbnails/{videoName}/thumb_{1..5}.jpg)
+      const lastSlash = item.path.lastIndexOf('/');
+      if (lastSlash > 0) {
+        const folder = item.path.substring(0, lastSlash);
+        const keysToRegister = new Set<string>([folder, normalizeKey(folder)]);
+        for (const k of keysToRegister) {
+          const list = thumbnailsByFolder.get(k) || [];
+          list.push(url);
+          thumbnailsByFolder.set(k, list);
+        }
+      }
+
+      // 2. Direct video poster mapping (e.g. Clips/Favorite/video_thumb.jpg or temp_thumbnails/.../video_thumb.jpg)
+      const cleanStem = item.path
+        .replace(/^temp_thumbnails\//i, '')
+        .replace(/^thumbnails\//i, '')
+        .replace(/^\.thumbnails\//i, '')
+        .replace(/[-_]thumb(?:nail)?\.[^/.]+$/i, '')
         .replace(/[-_]preview\.[^/.]+$/i, '');
-
-      const fullKey = normalizeKey(cleanStem);
+      const stemKey = normalizeKey(cleanStem);
+      if (stemKey && !directPosterByVideoKey.has(stemKey)) {
+        directPosterByVideoKey.set(stemKey, url);
+      }
       const filenameOnly = normalizeKey(cleanStem.split('/').pop() || cleanStem);
-
-      if (fullKey) {
-        const list = thumbnailsByVideoKey.get(fullKey) || [];
-        list.push(url);
-        thumbnailsByVideoKey.set(fullKey, list);
-      }
-      if (filenameOnly && filenameOnly !== fullKey) {
-        const list = thumbnailsByVideoKey.get(filenameOnly) || [];
-        list.push(url);
-        thumbnailsByVideoKey.set(filenameOnly, list);
-      }
-
-      if (fullKey && !directPosterByVideoKey.has(fullKey)) {
-        directPosterByVideoKey.set(fullKey, url);
-      }
       if (filenameOnly && !directPosterByVideoKey.has(filenameOnly)) {
         directPosterByVideoKey.set(filenameOnly, url);
       }
     }
   }
 
-  // Sort multi-frame thumbnails numerically (thumb_1, thumb_2, thumb_3, thumb_4, thumb_5)
-  for (const [key, list] of thumbnailsByVideoKey.entries()) {
+  // Sort thumbnails within each folder to ensure thumb_1, thumb_2, thumb_3... order
+  for (const [folder, list] of thumbnailsByFolder.entries()) {
     list.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    thumbnailsByVideoKey.set(key, list);
+    thumbnailsByFolder.set(folder, list);
   }
 
-  // Helper to match pre-rendered 5-frame thumbnails for a video path
+  // Helper to match thumbnail folder for a video path
   const getThumbnailsForVideo = (videoPath: string): string[] | undefined => {
-    const cleanVideo = videoPath.replace(/\\/g, '/').replace(/^\/+/, '');
-    const stemPath = cleanVideo.replace(/\.[^/.]+$/, '');
-    const fileName = cleanVideo.split('/').pop() || cleanVideo;
-    const stemOnly = fileName.replace(/\.[^/.]+$/, '');
+    const lastSlash = videoPath.lastIndexOf('/');
+    const parentDir = lastSlash > 0 ? videoPath.substring(0, lastSlash) : '';
+    const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
+    const stem = fileName.replace(/\.[^/.]+$/, '');
 
-    const fullMatch =
-      thumbnailsByVideoKey.get(normalizeKey(stemPath)) ||
-      thumbnailsByVideoKey.get(normalizeKey(stemOnly));
+    // 1. Primary standard: thumbnails/{videoName} (thumbnails/<videoName>/<videoName>_thumb_<1..5>.jpg)
+    const primaryFolder = `thumbnails/${stem}`;
+    const primaryMatch =
+      thumbnailsByFolder.get(primaryFolder) ||
+      thumbnailsByFolder.get(normalizeKey(primaryFolder));
+    if (primaryMatch && primaryMatch.length > 0) return primaryMatch;
 
-    if (fullMatch && fullMatch.length > 0) return fullMatch;
+    // 2. Nested subfolder standard: thumbnails/{parentDir}/{stem}
+    if (parentDir) {
+      const nestedFolder = `thumbnails/${parentDir}/${stem}`;
+      const nestedMatch =
+        thumbnailsByFolder.get(nestedFolder) ||
+        thumbnailsByFolder.get(normalizeKey(nestedFolder));
+      if (nestedMatch && nestedMatch.length > 0) return nestedMatch;
+    }
+
+    // 3. Fallbacks (.thumbnails/Clips/.../video)
+    const stemFolder = parentDir ? `.thumbnails/${parentDir}/${stem}` : `.thumbnails/${stem}`;
+    const stemMatch =
+      thumbnailsByFolder.get(stemFolder) ||
+      thumbnailsByFolder.get(normalizeKey(stemFolder));
+    if (stemMatch && stemMatch.length > 0) return stemMatch;
+
+    // 4. Extension-inclusive variant (.thumbnails/Clips/.../video.mp4)
+    const extFolder = parentDir ? `.thumbnails/${parentDir}/${fileName}` : `.thumbnails/${fileName}`;
+    const extMatch =
+      thumbnailsByFolder.get(extFolder) ||
+      thumbnailsByFolder.get(normalizeKey(extFolder));
+    if (extMatch && extMatch.length > 0) return extMatch;
+
     return undefined;
   };
 
   // Helper to match direct poster for a video path
   const getDirectPosterForVideo = (videoPath: string): string | undefined => {
-    const cleanVideo = videoPath.replace(/\\/g, '/').replace(/^\/+/, '');
-    const stemPath = cleanVideo.replace(/\.[^/.]+$/, '');
-    const fileName = cleanVideo.split('/').pop() || cleanVideo;
-    const stemOnly = fileName.replace(/\.[^/.]+$/, '');
+    const lastSlash = videoPath.lastIndexOf('/');
+    const parentDir = lastSlash > 0 ? videoPath.substring(0, lastSlash) : '';
+    const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
+    const stem = fileName.replace(/\.[^/.]+$/, '');
 
-    return (
-      directPosterByVideoKey.get(normalizeKey(stemPath)) ||
-      directPosterByVideoKey.get(normalizeKey(stemOnly))
-    );
+    const fullKey = normalizeKey(parentDir ? `${parentDir}/${stem}` : stem);
+    const stemKey = normalizeKey(stem);
+    return directPosterByVideoKey.get(fullKey) || directPosterByVideoKey.get(stemKey);
   };
 
   for (const item of tree) {
