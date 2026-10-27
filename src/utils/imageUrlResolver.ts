@@ -44,14 +44,11 @@ export function normalizeRepoPath(path: string): string {
   if (/^Thumbnails\/Images\/Bandhobis\/asha8_thumb_/i.test(clean)) {
     return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/REALTube/REALTube Video Clips/');
   }
-  if (/^Images\/Bandhobis\/Asha/i.test(clean) || /^Images\/Bandhobis\/Anamika/i.test(clean)) {
+  if (/^Images\/Bandhobis\//i.test(clean)) {
     return clean.replace(/^Images\/Bandhobis\//i, 'REALTube/REALTube Images/');
   }
-  if (/^Images\/Bandhobis\//i.test(clean)) {
-    return clean.replace(/^Images\/Bandhobis\//i, 'Photographs/Classic Images/');
-  }
   if (/^Thumbnails\/Images\/Bandhobis\//i.test(clean)) {
-    return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/Photographs/Classic Images/');
+    return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/REALTube/REALTube Images/');
   }
 
   // 2. Folder mappings
@@ -66,9 +63,10 @@ export function normalizeRepoPath(path: string): string {
   clean = clean.replace(/^Images\/H2025\//i, 'Photographs/Images 2025/');
   clean = clean.replace(/^Images\/H2026\//i, 'Photographs/Images 2026/');
   clean = clean.replace(/^Images\/H2027\//i, 'Photographs/Images 2027/');
-  clean = clean.replace(/^Images\/works\//i, 'Photographs/Classic Images/');
+  clean = clean.replace(/^Images\/works\//i, 'Photographs/Favourite Images/');
   clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
   clean = clean.replace(/^Images\//i, 'Photographs/');
+  clean = clean.replace(/^Thumbnails\/Images\/works\//i, 'Thumbnails/Photographs/Favourite Images/');
   clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
 
   return clean;
