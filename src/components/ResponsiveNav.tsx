@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Camera, Film, Smartphone, ChevronUp, ChevronLeft, X, Folder } from 'lucide-react';
+import { Home, Camera, Film, Smartphone, ChevronUp, ChevronDown, X, Folder } from 'lucide-react';
 import type { CyberFilterType } from './CyberHeader';
 
 export interface AlbumJumpItem {
@@ -115,11 +115,11 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
       {/* =========================================================================
           2. DESKTOP VIEWPORT (>= 768px): Vertical Floating Right-Docked Navigation
              - Position: fixed on desktop only (strictly hidden on mobile)
-             - Folder jump menus flyout to the left of the dock
+             - Folder jump options show INSIDE the navbar accordion-style
          ========================================================================= */}
       <nav
         aria-label="Desktop Floating Navigation"
-        className="hidden md:flex flex-col items-stretch p-2 rounded-2xl shadow-2xl transition-colors duration-200 select-none fixed right-6 top-1/2 -translate-y-1/2 z-[1000] min-w-[136px] gap-4"
+        className="hidden md:flex flex-col items-stretch p-2 rounded-2xl shadow-2xl transition-all duration-200 select-none fixed right-6 top-1/2 -translate-y-1/2 z-[1000] w-[190px] max-h-[82vh] overflow-y-auto no-scrollbar gap-2"
         style={{
           backgroundColor: 'var(--nav-bg)',
           border: '1px solid var(--nav-border)',
@@ -141,67 +141,59 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
           <span>Home</span>
         </button>
 
-        {/* Images Split Button with Left Flyout Menu */}
-        <div className="relative flex items-center rounded-xl overflow-visible">
-          <button
-            type="button"
-            onClick={() => {
-              setOpenCategory(null);
-              onFilterChange('images');
-            }}
-            className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+        {/* Images with Inline Options INSIDE Navbar */}
+        <div className="flex flex-col rounded-xl overflow-hidden transition-all">
+          <div
+            className="flex items-center justify-between rounded-xl overflow-hidden transition-all"
             style={{
               backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
             }}
           >
-            <Camera className="w-4 h-4" />
-            <span>Images</span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => toggleCategoryMenu('images', e)}
-            aria-label="Jump to Image Albums"
-            aria-expanded={openCategory === 'images'}
-            className="p-2 pr-2.5 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
-            style={{
-              backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-            }}
-          >
-            <ChevronLeft
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                openCategory === 'images' ? '-rotate-90 text-[#00E5FF]' : ''
-              }`}
-            />
-          </button>
-
-          {/* Desktop Flyout Menu to Left of Vertical Dock */}
-          {openCategory === 'images' && (
-            <div
-              className="absolute right-full top-0 mr-3 min-w-[260px] max-h-[380px] overflow-y-auto rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1 border transition-all animate-in fade-in slide-in-from-right-2"
+            <button
+              type="button"
+              onClick={() => onFilterChange('images')}
+              className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
               style={{
-                backgroundColor: 'var(--card-bg)',
-                borderColor: 'var(--nav-border)',
-                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.45)',
+                color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
               }}
             >
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
-                <span>Image Folders</span>
-                <span>{imageAlbums.length}</span>
-              </div>
+              <Camera className="w-4 h-4" />
+              <span>Images</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => toggleCategoryMenu('images', e)}
+              aria-label="Toggle Image Folders"
+              aria-expanded={openCategory === 'images'}
+              className="p-2 pr-2.5 transition-all cursor-pointer hover:opacity-80"
+              style={{
+                color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+              }}
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  openCategory === 'images' ? 'rotate-180 text-[#00E5FF]' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Options INSIDE the Navbar: Inline Folders List */}
+          {openCategory === 'images' && (
+            <div className="flex flex-col gap-1 py-1.5 px-1 pl-2 max-h-[200px] overflow-y-auto no-scrollbar border-t border-white/10 mt-1">
               {imageAlbums.map((album) => (
                 <button
                   key={album.id}
                   type="button"
                   onClick={() => {
                     onJumpToAlbum(album.id, 'images');
-                    setOpenCategory(null);
                   }}
-                  className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                  className="w-full text-left flex items-center justify-between px-2 py-1 rounded-lg text-[11px] font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
                 >
-                  <span className="truncate pr-2">{album.name}</span>
-                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  <span className="truncate pr-1.5 text-zinc-400 group-hover:text-white transition-colors">
+                    {album.name}
+                  </span>
+                  <span className="text-[9px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {album.count}
                   </span>
                 </button>
@@ -210,67 +202,59 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
           )}
         </div>
 
-        {/* Videos Split Button with Left Flyout Menu */}
-        <div className="relative flex items-center rounded-xl overflow-visible">
-          <button
-            type="button"
-            onClick={() => {
-              setOpenCategory(null);
-              onFilterChange('clips');
-            }}
-            className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+        {/* Videos with Inline Options INSIDE Navbar */}
+        <div className="flex flex-col rounded-xl overflow-hidden transition-all">
+          <div
+            className="flex items-center justify-between rounded-xl overflow-hidden transition-all"
             style={{
               backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
             }}
           >
-            <Film className="w-4 h-4" />
-            <span>Videos</span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => toggleCategoryMenu('clips', e)}
-            aria-label="Jump to Video Albums"
-            aria-expanded={openCategory === 'clips'}
-            className="p-2 pr-2.5 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
-            style={{
-              backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-            }}
-          >
-            <ChevronLeft
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                openCategory === 'clips' ? '-rotate-90 text-[#00E5FF]' : ''
-              }`}
-            />
-          </button>
-
-          {/* Desktop Flyout Menu to Left of Vertical Dock */}
-          {openCategory === 'clips' && (
-            <div
-              className="absolute right-full top-0 mr-3 min-w-[260px] max-h-[380px] overflow-y-auto rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1 border transition-all animate-in fade-in slide-in-from-right-2"
+            <button
+              type="button"
+              onClick={() => onFilterChange('clips')}
+              className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
               style={{
-                backgroundColor: 'var(--card-bg)',
-                borderColor: 'var(--nav-border)',
-                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.45)',
+                color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
               }}
             >
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
-                <span>Video Folders</span>
-                <span>{videoAlbums.length}</span>
-              </div>
+              <Film className="w-4 h-4" />
+              <span>Videos</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => toggleCategoryMenu('clips', e)}
+              aria-label="Toggle Video Folders"
+              aria-expanded={openCategory === 'clips'}
+              className="p-2 pr-2.5 transition-all cursor-pointer hover:opacity-80"
+              style={{
+                color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+              }}
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  openCategory === 'clips' ? 'rotate-180 text-[#00E5FF]' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Options INSIDE the Navbar: Inline Folders List */}
+          {openCategory === 'clips' && (
+            <div className="flex flex-col gap-1 py-1.5 px-1 pl-2 max-h-[200px] overflow-y-auto no-scrollbar border-t border-white/10 mt-1">
               {videoAlbums.map((album) => (
                 <button
                   key={album.id}
                   type="button"
                   onClick={() => {
                     onJumpToAlbum(album.id, 'clips');
-                    setOpenCategory(null);
                   }}
-                  className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                  className="w-full text-left flex items-center justify-between px-2 py-1 rounded-lg text-[11px] font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
                 >
-                  <span className="truncate pr-2">{album.name}</span>
-                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  <span className="truncate pr-1.5 text-zinc-400 group-hover:text-white transition-colors">
+                    {album.name}
+                  </span>
+                  <span className="text-[9px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {album.count}
                   </span>
                 </button>
@@ -279,67 +263,59 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
           )}
         </div>
 
-        {/* Shorts Split Button with Left Flyout Menu */}
-        <div className="relative flex items-center rounded-xl overflow-visible">
-          <button
-            type="button"
-            onClick={() => {
-              setOpenCategory(null);
-              onFilterChange('shorts');
-            }}
-            className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+        {/* Shorts with Inline Options INSIDE Navbar */}
+        <div className="flex flex-col rounded-xl overflow-hidden transition-all">
+          <div
+            className="flex items-center justify-between rounded-xl overflow-hidden transition-all"
             style={{
               backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
             }}
           >
-            <Smartphone className="w-4 h-4" />
-            <span>Shorts</span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => toggleCategoryMenu('shorts', e)}
-            aria-label="Jump to Shorts Albums"
-            aria-expanded={openCategory === 'shorts'}
-            className="p-2 pr-2.5 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
-            style={{
-              backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-            }}
-          >
-            <ChevronLeft
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                openCategory === 'shorts' ? '-rotate-90 text-[#00E5FF]' : ''
-              }`}
-            />
-          </button>
-
-          {/* Desktop Flyout Menu to Left of Vertical Dock */}
-          {openCategory === 'shorts' && (
-            <div
-              className="absolute right-full top-0 mr-3 min-w-[260px] max-h-[380px] overflow-y-auto rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1 border transition-all animate-in fade-in slide-in-from-right-2"
+            <button
+              type="button"
+              onClick={() => onFilterChange('shorts')}
+              className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
               style={{
-                backgroundColor: 'var(--card-bg)',
-                borderColor: 'var(--nav-border)',
-                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.45)',
+                color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
               }}
             >
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
-                <span>Shorts Folders</span>
-                <span>{shortAlbums.length}</span>
-              </div>
+              <Smartphone className="w-4 h-4" />
+              <span>Shorts</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => toggleCategoryMenu('shorts', e)}
+              aria-label="Toggle Shorts Folders"
+              aria-expanded={openCategory === 'shorts'}
+              className="p-2 pr-2.5 transition-all cursor-pointer hover:opacity-80"
+              style={{
+                color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+              }}
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  openCategory === 'shorts' ? 'rotate-180 text-[#00E5FF]' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Options INSIDE the Navbar: Inline Folders List */}
+          {openCategory === 'shorts' && (
+            <div className="flex flex-col gap-1 py-1.5 px-1 pl-2 max-h-[200px] overflow-y-auto no-scrollbar border-t border-white/10 mt-1">
               {shortAlbums.map((album) => (
                 <button
                   key={album.id}
                   type="button"
                   onClick={() => {
                     onJumpToAlbum(album.id, 'shorts');
-                    setOpenCategory(null);
                   }}
-                  className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                  className="w-full text-left flex items-center justify-between px-2 py-1 rounded-lg text-[11px] font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
                 >
-                  <span className="truncate pr-2">{album.name}</span>
-                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  <span className="truncate pr-1.5 text-zinc-400 group-hover:text-white transition-colors">
+                    {album.name}
+                  </span>
+                  <span className="text-[9px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {album.count}
                   </span>
                 </button>
