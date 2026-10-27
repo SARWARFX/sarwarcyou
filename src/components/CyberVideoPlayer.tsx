@@ -17,7 +17,6 @@ import {
   ChevronsRight,
   X,
   Share2,
-  ArrowLeft,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -1196,23 +1195,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       </div>
 
-      {/* 4.5 Mobile Ergonomic Bottom Back Button (Thumb Reach) */}
-      <div
-        className={`fixed bottom-20 left-4 z-40 md:hidden transition-all duration-300 pointer-events-auto ${
-          showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={handleClose}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/85 hover:bg-black text-white text-xs font-mono uppercase tracking-wider border border-white/20 shadow-2xl backdrop-blur-xl active:scale-95 transition-all cursor-pointer"
-          title="Back to Vault (Esc)"
-          aria-label="Back to Vault"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back</span>
-        </button>
-      </div>
 
       {/* 5. Slide-out Queue & Suggestions Drawer (Responsive Bottom Sheet on Mobile, Right Drawer on Desktop) */}
       {showSidebar && (
