@@ -11,8 +11,40 @@ import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { SiteFooter } from './components/SiteFooter';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
-import { parseUrlState, syncUrlState, findMatchingMediaItem, findMatchingFolder } from './utils/urlRouter';
+import {
+  parseUrlState,
+  syncUrlState,
+  findMatchingMediaItem,
+  findMatchingFolder,
+  getAlbumSlug,
+  getMediaSlug,
+} from './utils/urlRouter';
 import { ChevronUp } from 'lucide-react';
+
+function buildMediaUrl(item: StageMediaItem, albumContext?: string): string {
+  if (typeof window === 'undefined') return '';
+  const url = new URL(window.location.href);
+  const searchParams = url.searchParams;
+  const albumTarget = albumContext || item.category || item.parentAlbum;
+  if (albumTarget) {
+    searchParams.set('album', getAlbumSlug(albumTarget));
+  }
+  searchParams.set('media', getMediaSlug(item));
+  const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
+  return `${url.pathname}${queryPart}${url.hash}`;
+}
+
+function buildAlbumUrl(albumNameOrSlug: string): string {
+  if (typeof window === 'undefined') return '';
+  const url = new URL(window.location.href);
+  const searchParams = url.searchParams;
+  searchParams.set('album', getAlbumSlug(albumNameOrSlug));
+  searchParams.delete('media');
+  searchParams.delete('item');
+  searchParams.delete('view');
+  const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
+  return `${url.pathname}${queryPart}${url.hash}`;
+}
 
 function App() {
   const { data, isLoading } = useMediaData();
@@ -80,9 +112,14 @@ function App() {
   // Active modal history stack tracker for smart browser back navigation
   const modalStackRef = useRef<string[]>([]);
 
-  const pushModalState = useCallback((viewName: string) => {
+  const pushModalState = useCallback((viewName: string, targetUrl?: string) => {
     modalStackRef.current.push(viewName);
-    window.history.pushState({ modalOpen: true, view: viewName }, '');
+    const stateObj = { modalOpen: true, view: viewName };
+    if (targetUrl) {
+      window.history.pushState(stateObj, '', targetUrl);
+    } else {
+      window.history.pushState(stateObj, '');
+    }
   }, []);
 
   const handleCloseModal = useCallback((type: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
@@ -114,6 +151,12 @@ function App() {
         } else if (topModal === 'viewAll') {
           setViewAllState((prev) => ({ ...prev, isOpen: false }));
         }
+      } else {
+        // If stack was empty (e.g. entered via direct deep link), close all active modals
+        setTheaterState((prev) => ({ ...prev, isOpen: false }));
+        setShortsState((prev) => ({ ...prev, isOpen: false }));
+        setLightboxState((prev) => ({ ...prev, isOpen: false }));
+        setViewAllState((prev) => ({ ...prev, isOpen: false }));
       }
     };
 
@@ -169,7 +212,9 @@ function App() {
           (s) => s.id === item.id || s.url === item.url
         );
 
-        pushModalState('shorts');
+        const targetItem = fullShortsList[targetIdx !== -1 ? targetIdx : 0] || item;
+        const targetUrl = buildMediaUrl(targetItem, 'shorts');
+        pushModalState('shorts', targetUrl);
         setShortsState({
           isOpen: true,
           shorts: fullShortsList,
@@ -179,7 +224,9 @@ function App() {
       }
 
       if (isVid) {
-        pushModalState('theater');
+        const albumTarget = item.category || item.parentAlbum || playlistContext?.[0]?.category;
+        const targetUrl = buildMediaUrl(item, albumTarget);
+        pushModalState('theater', targetUrl);
         setTheaterState({
           isOpen: true,
           item,
@@ -198,7 +245,11 @@ function App() {
         (p) => p.id === item.id || p.url === item.url
       );
 
-      pushModalState('lightbox');
+      const targetItem = photoPlaylist[photoIdx !== -1 ? photoIdx : 0] || item;
+      const albumTarget = targetItem.category || targetItem.parentAlbum;
+      const targetUrl = buildMediaUrl(targetItem, albumTarget);
+
+      pushModalState('lightbox', targetUrl);
       setLightboxState({
         isOpen: true,
         item,
@@ -219,7 +270,8 @@ function App() {
       hasMultipleTypes?: boolean,
       typeCounts?: { photos: number; clips: number; shorts: number }
     ) => {
-      pushModalState('viewAll');
+      const targetUrl = buildAlbumUrl(albumTitle);
+      pushModalState('viewAll', targetUrl);
       setViewAllState({
         isOpen: true,
         title: albumTitle,
@@ -500,13 +552,19 @@ function App() {
         item={theaterState.item}
         playlist={theaterState.playlist}
         allFolders={rawFeed.videoVaultFolders}
-        onSelectItem={(item) => setTheaterState((prev) => ({ ...prev, item }))}
+        onSelectItem={(item) => {
+          setTheaterState((prev) => ({ ...prev, item }));
+          const targetUrl = buildMediaUrl(item, item.category || item.parentAlbum);
+          window.history.replaceState({ modalOpen: true, view: 'theater', id: item.id }, '', targetUrl);
+        }}
         onSelectFolder={(folder) => {
           if (folder.items.length > 0) {
-            pushModalState('theater');
+            const firstItem = folder.items[0];
+            const targetUrl = buildMediaUrl(firstItem, folder.name);
+            pushModalState('theater', targetUrl);
             setTheaterState({
               isOpen: true,
-              item: folder.items[0],
+              item: firstItem,
               playlist: folder.items,
             });
           }
@@ -524,6 +582,11 @@ function App() {
             ...prev,
             initialIndex: idx,
           }));
+          const currentShort = shortsState.shorts[idx];
+          if (currentShort) {
+            const targetUrl = buildMediaUrl(currentShort, 'shorts');
+            window.history.replaceState({ modalOpen: true, view: 'shorts', id: currentShort.id }, '', targetUrl);
+          }
         }}
       />
 
@@ -539,21 +602,30 @@ function App() {
         allFolders={rawFeed.photoVaultFolders}
         onSelectFolder={(folder) => {
           if (folder.items.length > 0) {
-            pushModalState('lightbox');
+            const firstItem = folder.items[0];
+            const targetUrl = buildMediaUrl(firstItem, folder.name);
+            pushModalState('lightbox', targetUrl);
             setLightboxState({
               isOpen: true,
-              item: folder.items[0],
+              item: firstItem,
               items: folder.items,
               initialIndex: 0,
             });
           }
         }}
         onIndexChange={(idx) => {
-          setLightboxState((prev) => ({
-            ...prev,
-            initialIndex: idx,
-            item: prev.items[idx] || prev.item,
-          }));
+          setLightboxState((prev) => {
+            const nextItem = prev.items[idx] || prev.item;
+            if (nextItem) {
+              const targetUrl = buildMediaUrl(nextItem, nextItem.category || nextItem.parentAlbum);
+              window.history.replaceState({ modalOpen: true, view: 'lightbox', id: nextItem.id }, '', targetUrl);
+            }
+            return {
+              ...prev,
+              initialIndex: idx,
+              item: nextItem,
+            };
+          });
         }}
       />
 

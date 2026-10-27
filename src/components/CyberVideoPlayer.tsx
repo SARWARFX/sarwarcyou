@@ -700,7 +700,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-50 bg-black text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-[9999] bg-black text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
     >
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.08)_0%,_rgba(0,0,0,0.95)_70%)]" />
@@ -817,14 +817,22 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       >
         <video
           ref={videoRef}
-          key={streamUrl}
           src={streamUrl}
           autoPlay
+          preload="auto"
           playsInline
+          crossOrigin="anonymous"
           muted={isMuted}
           className={`w-full h-full pointer-events-none transition-all duration-300 ${
             fitMode === 'cover' ? 'object-cover' : 'object-contain'
           }`}
+          onCanPlay={(e) => {
+            const v = e.currentTarget;
+            const playPromise = v.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => setIsPlaying(true)).catch(() => {});
+            }
+          }}
           onTimeUpdate={() => {
             if (videoRef.current) {
               const now = videoRef.current.currentTime;
@@ -1191,7 +1199,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* 5. Slide-out Queue & Suggestions Drawer (Responsive Bottom Sheet on Mobile, Right Drawer on Desktop) */}
       {showSidebar && (
         <div
-          className="fixed inset-0 z-50 flex flex-col md:flex-row justify-end items-end md:items-stretch bg-black/75 backdrop-blur-sm animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
+          className="fixed inset-0 z-[10000] flex flex-col md:flex-row justify-end items-end md:items-stretch bg-black/75 backdrop-blur-sm animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
           onClick={(e) => {
             e.stopPropagation();
             setShowSidebar(false);

@@ -235,7 +235,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={`${title} Full Album View`}
-      className="fixed inset-0 z-50 bg-[#030305]/98 text-white flex flex-col overflow-hidden animate-fade-in"
+      className="fixed inset-0 z-[500] bg-[#030305]/98 text-white flex flex-col overflow-hidden animate-fade-in"
     >
       {/* 1. Header Bar */}
       <header className="sticky top-0 z-40 bg-[#030305]/95 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">

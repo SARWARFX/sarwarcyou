@@ -570,7 +570,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[150] bg-black select-none touch-none touch-action-none flex items-center justify-center animate-fade-in cursor-pointer"
+        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] bg-black select-none touch-none touch-action-none flex items-center justify-center animate-fade-in cursor-pointer"
         onClick={handleStageClick}
         onDoubleClick={handleStageDoubleClick}
         onMouseMove={wakeFullscreenClose}
@@ -628,7 +628,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[120] flex flex-col md:flex-row bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in touch-none touch-action-none overscroll-contain"
+      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in touch-none touch-action-none overscroll-contain"
       onClick={(e) => {
         if (showSidebar) {
           setShowSidebar(false);
