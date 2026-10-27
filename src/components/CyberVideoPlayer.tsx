@@ -723,8 +723,30 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           )}
         </div>
 
-        {/* Top Right: Queue and Close Button */}
+        {/* Top Right: Share, Queue and Close Button */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Mobile View: Share Button beside Queue Button */}
+          <button
+            type="button"
+            onClick={() => {
+              handleShareMedia();
+              resetHudTimer();
+            }}
+            className={`md:hidden flex items-center justify-center p-2 rounded-full backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
+              shareSuccess
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
+            }`}
+            title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
+            aria-label="Share Video Link"
+          >
+            {shareSuccess ? (
+              <Check className="w-3.5 h-3.5 text-[#00E5FF]" />
+            ) : (
+              <Share2 className="w-3.5 h-3.5" />
+            )}
+          </button>
+
           {/* Queue Toggle Button */}
           <button
             type="button"
@@ -1101,11 +1123,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </button>
 
-            {/* Share / Copy Direct Link */}
+            {/* Share / Copy Direct Link (Desktop only; on mobile it is placed beside Queue button) */}
             <button
               type="button"
               onClick={handleShareMedia}
-              className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
+              className={`hidden md:inline-flex p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
                 shareSuccess
                   ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
                   : 'text-white/80 hover:text-white hover:bg-white/10'
