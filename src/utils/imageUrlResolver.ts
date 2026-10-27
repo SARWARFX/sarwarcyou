@@ -29,7 +29,11 @@ import { isVideoExtension } from './mediaTypeDetector';
  */
 export function normalizeRepoPath(path: string): string {
   if (!path) return '';
-  let clean = path.replace(/\\/g, '/').replace(/^\/+/, '');
+  let clean = path.replace(/\\/g, '/').replace(/^\/+/, '').split('?')[0].split('#')[0];
+  clean = clean.replace(/^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i, '');
+  if (/_thumb_[1-5]\.[a-zA-Z0-9]+$/i.test(clean)) {
+    clean = clean.replace(/_thumb_[1-5]\.[a-zA-Z0-9]+$/i, '.mp4');
+  }
 
   // 1. Specific legacy remappings (e.g., stale media.json or manifest references)
   if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean)) {
@@ -53,7 +57,7 @@ export function normalizeRepoPath(path: string): string {
 
   // 2. Folder namespace renames (Images -> Photographs, Clips -> Video Clips)
   if (/^Images\//i.test(clean)) {
-    return clean.replace(/^Images\//i, 'Photographs/');
+    return isVideoExtension(clean) ? clean.replace(/^Images\//i, '') : clean.replace(/^Images\//i, 'Photographs/');
   }
   if (/^Thumbnails\/Images\//i.test(clean)) {
     return clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
@@ -102,7 +106,7 @@ export const MEDIA_CDN_BASE = 'https://media.sarwar.cyou';
  */
 export function getMediaUrl(relativePath?: string | null): string {
   if (!relativePath) return '';
-  let path = relativePath.trim();
+  let path = relativePath.trim().split('#')[0].split('?')[0];
 
   // If blob or data URL, return as-is
   if (path.startsWith('blob:') || path.startsWith('data:')) {

@@ -1,9 +1,8 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Search, X, Play, Camera, Film } from 'lucide-react';
-import { getDirectImageUrl } from '../utils/imageUrlResolver';
+import { getMediaUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension, isExcludedAlbum, isThumbnailFile } from '../utils/mediaTypeDetector';
-import { resolveMultiFrameThumbnails } from '../utils/thumbnailResolver';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface UniversalSearchBarProps {
@@ -36,7 +35,6 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
@@ -78,8 +76,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
           .replace(/\b(smartselect|videocapture|screenshot)\b/gi, '')
           .trim() || (isShort ? 'Short Reel' : isVideo ? 'Cinema Clip' : 'Photograph');
 
-        const companionFrames = resolveMultiFrameThumbnails(item);
-        const thumb = companionFrames.length > 0 ? companionFrames[0] : getDirectImageUrl(item);
+        const thumb = getMediaUrl(item.url || item.thumbnail);
 
         entries.push({
           item,
@@ -89,7 +86,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
           isShort,
           isVideo,
           thumbnailUrl: thumb,
-          companionFrames,
+          companionFrames: [],
         });
       }
     }
@@ -319,13 +316,23 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                   className="flex items-center gap-3 p-2 rounded-xl bg-zinc-950 border border-white/10 active:bg-zinc-800"
                 >
                   <div className="relative w-20 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
-                    <img
-                      src={entry.thumbnailUrl}
-                      alt={entry.cleanTitle}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    {entry.isVideo ? (
+                      <video
+                        src={`${getMediaUrl(entry.item.url)}#t=1.0`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={getMediaUrl(entry.item.url || entry.thumbnailUrl)}
+                        alt={entry.cleanTitle}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-xs text-zinc-200 font-medium truncate block">
@@ -400,29 +407,32 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
               </div>
             ) : (
               filteredResults.map((entry, idx) => {
-                const isHovered = hoveredIdx === idx;
-                const activeThumb =
-                  isHovered && entry.companionFrames.length > 0
-                    ? entry.companionFrames[1] || entry.thumbnailUrl
-                    : entry.thumbnailUrl;
-
                 return (
                   <div
                     key={entry.item.id || `${entry.item.url}-${idx}`}
                     onClick={() => handleSelectResult(entry)}
-                    onMouseEnter={() => setHoveredIdx(idx)}
-                    onMouseLeave={() => setHoveredIdx(null)}
+
                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-900/90 transition-all duration-150 cursor-pointer group"
                   >
                     {/* Thumbnail */}
                     <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
-                      <img
-                        src={activeThumb}
-                        alt={entry.cleanTitle}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
+                      {entry.isVideo ? (
+                        <video
+                          src={`${getMediaUrl(entry.item.url)}#t=1.0`}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <img
+                          src={getMediaUrl(entry.item.url || entry.thumbnailUrl)}
+                          alt={entry.cleanTitle}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      )}
                       {entry.isVideo && (
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <Play className="w-3.5 h-3.5 text-white fill-current" />

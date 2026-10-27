@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Check, ArrowUpDown } from 'lucide-react';
 import type { StageMediaItem, SortOrder } from '../types';
 import { CyberCard } from './CyberCard';
@@ -6,7 +6,6 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
-import { getVideoThumbnails } from '../utils/thumbnailResolver';
 import { sortMediaItems } from '../utils/albumExtractor';
 import { createShareableAlbumUrl, copyToClipboard } from '../utils/urlRouter';
 
@@ -37,35 +36,66 @@ const MasonryImageCard: React.FC<{
   item: StageMediaItem;
   onClick: () => void;
 }> = ({ item, onClick }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [loaded, setLoaded] = useState(false);
   const cleanTitle = useMemo(
     () => sanitizeMediaTitle(item.title || item.name, item.category),
     [item.title, item.name, item.category]
   );
-  const isVideo = item.type === 'video' || item.mediaType === 'clip' || item.mediaType === 'short' || isVideoExtension(item.url || item.id);
-  const videoThumb = isVideo ? (item.thumbnail && !isVideoExtension(item.thumbnail) ? item.thumbnail : (item.poster || getVideoThumbnails(item)[0])) : null;
-  const rawUrl = isVideo ? (videoThumb || '') : (item.thumbnail || getMediaUrl(item.url));
-  const thumbUrl = isVideoExtension(rawUrl) ? '' : rawUrl;
-
+  const isVideo =
+    item.type === 'video' ||
+    item.mediaType === 'clip' ||
+    item.mediaType === 'short' ||
+    isVideoExtension(item.url || item.id || item.path);
+  const cleanMediaUrl = getMediaUrl(item.url || item.path || item.id);
 
   return (
     <div
       onClick={onClick}
+      onMouseEnter={() => {
+        if (isVideo && videoRef.current) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play().catch(() => {});
+        }
+      }}
+      onMouseLeave={() => {
+        if (isVideo && videoRef.current) {
+          videoRef.current.pause();
+          try {
+            videoRef.current.currentTime = 1.0;
+          } catch {}
+        }
+      }}
       className="break-inside-avoid mb-3 relative group rounded-xl overflow-hidden bg-zinc-900 border border-white/10 hover:border-[#00E5FF]/60 transition-all duration-300 shadow-md hover:shadow-[0_8px_30px_rgba(0,229,255,0.25)] cursor-pointer select-none"
     >
       {!loaded && (
         <div className="w-full aspect-[4/3] bg-zinc-800 animate-pulse rounded-xl" />
       )}
-      <img
-        src={thumbUrl}
-        alt={cleanTitle}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        className={`w-full h-auto block object-contain transition-all duration-500 group-hover:scale-[1.025] ${
-          loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
-        }`}
-      />
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          src={`${cleanMediaUrl}#t=1.0`}
+          preload="metadata"
+          muted
+          playsInline
+          loop
+          onLoadedMetadata={() => setLoaded(true)}
+          className={`w-full h-auto block object-contain transition-all duration-500 group-hover:scale-[1.025] ${
+            loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
+          }`}
+        />
+      ) : (
+        <img
+          src={cleanMediaUrl}
+          alt={cleanTitle}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          className={`w-full h-auto block object-contain transition-all duration-500 group-hover:scale-[1.025] ${
+            loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
+          }`}
+        />
+      )}
       {/* Sleek Gradient Overlay on Hover */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3 pointer-events-none">
         <span className="text-xs font-bold font-sans text-white line-clamp-1 drop-shadow">

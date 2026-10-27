@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Play, Camera, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
-import { getVideoThumbnails } from '../utils/thumbnailResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
+import { getMediaUrl } from '../utils/imageUrlResolver';
 
 export interface CyberCardProps {
   item: StageMediaItem;
@@ -21,7 +21,10 @@ export const CyberCard: React.FC<CyberCardProps> = ({
   initialIndex,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [isInViewport, setIsInViewport] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
 
   // Viewport observer to only run timers when card is visible
   useEffect(() => {
@@ -38,11 +41,6 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-
-  // Multi-frame thumbnail scrubbing state (5 frames: thumb 1 to thumb 5)
-  const [frameIndex, setFrameIndex] = useState(0); // 0 corresponds to _thumb_1.jpg
-  const [isHovered, setIsHovered] = useState(false);
-  const [failedFrames, setFailedFrames] = useState<Record<number, boolean>>({});
 
   // 10-Second Auto-Cycling for Album / Multi-Item Media
   const totalAlbumItems = albumItems && albumItems.length > 0 ? albumItems.length : 0;
@@ -74,12 +72,6 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     return item;
   }, [albumItems, currentPreviewIndex, item]);
 
-  // Reset frame scrubbing when item cycles
-  useEffect(() => {
-    setFailedFrames({});
-    setFrameIndex(0);
-  }, [activeItem.id, activeItem.url]);
-
   const isShort =
     variant === 'shorts' ||
     Boolean(
@@ -90,7 +82,16 @@ export const CyberCard: React.FC<CyberCardProps> = ({
       activeItem.id?.toLowerCase().includes('shorts')
     );
 
-  const isVideo = isShort || activeItem.type === 'video' || activeItem.mediaType === 'clip' || /\.(mp4|mov|webm|mkv)$/i.test(activeItem.url);
+  const isVideo =
+    isShort ||
+    activeItem.type === 'video' ||
+    activeItem.mediaType === 'clip' ||
+    isVideoExtension(activeItem.url || activeItem.id || activeItem.path);
+
+  // Clean media URL via Cloudflare Edge proxy
+  const cleanMediaUrl = useMemo(() => {
+    return getMediaUrl(activeItem.url || activeItem.path || activeItem.id);
+  }, [activeItem.url, activeItem.path, activeItem.id]);
 
   const cleanTitle = useMemo(() => {
     return sanitizeMediaTitle(activeItem.title || activeItem.name, activeItem.category);
@@ -103,69 +104,44 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     return isVideo ? 'Cinema' : 'Photography';
   }, [activeItem.category, isVideo]);
 
-  // 5-Frame pre-rendered thumbnails
-  const videoThumbs = useMemo(() => {
-    if (!isVideo) return [];
-    if (activeItem.thumbnails && activeItem.thumbnails.length === 5) return activeItem.thumbnails;
-    return getVideoThumbnails(activeItem);
-  }, [isVideo, activeItem]);
-
-  const hasThumbs = isVideo && videoThumbs.length === 5;
-
-  // Preload frames 2-5 when cursor enters card for instant flicker-free scrubbing
-  useEffect(() => {
-    if (isHovered && hasThumbs) {
-      videoThumbs.forEach((url, i) => {
-        if (i !== 0) {
-          const img = new Image();
-          img.src = url;
-        }
-      });
-    }
-  }, [isHovered, hasThumbs, videoThumbs]);
-
-  // Handle horizontal cursor movement for interactive frame scrubbing (0-20%, 20-40%, etc.)
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!hasThumbs) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const x = Math.max(0, Math.min(rect.width - 1, e.clientX - rect.left));
-    const pct = x / rect.width;
-    const idx = Math.min(4, Math.floor(pct * 5));
-    if (idx !== frameIndex) {
-      setFrameIndex(idx);
-    }
-  };
-
+  // Live hover-to-preview: play video on enter (start at 0s), pause and reset to 1.0s on leave
   const handlePointerEnter = () => {
     setIsHovered(true);
+    if (isVideo && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
   };
 
   const handlePointerLeave = () => {
     setIsHovered(false);
-    setFrameIndex(0); // Reset to default static display: _thumb_1.jpg
+    if (isVideo && videoRef.current) {
+      videoRef.current.pause();
+      try {
+        videoRef.current.currentTime = 1.0;
+      } catch {
+        // Video metadata may still be buffering
+      }
+    }
   };
 
-  // Mobile touch scrub support
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!hasThumbs) return;
-    const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const x = Math.max(0, Math.min(rect.width - 1, touch.clientX - rect.left));
-    const pct = x / rect.width;
-    const idx = Math.min(4, Math.floor(pct * 5));
-    if (idx !== frameIndex) {
-      setFrameIndex(idx);
-      setIsHovered(true);
+  // Mobile touch scrub/preview support
+  const handleTouchStart = () => {
+    if (isVideo && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
     }
   };
 
   const handleTouchEnd = () => {
     setTimeout(() => {
-      setIsHovered(false);
-      setFrameIndex(0);
-    }, 1200);
+      if (isVideo && videoRef.current) {
+        videoRef.current.pause();
+        try {
+          videoRef.current.currentTime = 1.0;
+        } catch {}
+      }
+    }, 1500);
   };
 
   // Aspect Ratio & Sizing: adapt to item's actual nature even within composite rows
@@ -177,49 +153,13 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     photo: 'w-[160px] sm:w-[185px] md:w-[210px] aspect-[2/3]',
   }[effectiveVariant];
 
-  const rawFallback = isVideo
-    ? (activeItem.poster || activeItem.thumbnail || videoThumbs[0] || '')
-    : (activeItem.thumbnail || activeItem.url || '');
-  const safeFallbackUrl = isVideo && isVideoExtension(rawFallback) ? '' : rawFallback;
-  const currentThumbUrl = hasThumbs
-    ? (!failedFrames[frameIndex]
-        ? videoThumbs[frameIndex]
-        : (!failedFrames[0] ? videoThumbs[0] : safeFallbackUrl))
-    : safeFallbackUrl;
-
-  const validThumbUrl = isVideo && isVideoExtension(currentThumbUrl) ? '' : currentThumbUrl;
-
-  // Cross-dissolve image layer state
-  const [displayedThumbUrl, setDisplayedThumbUrl] = useState(validThumbUrl);
-  const [prevThumbUrl, setPrevThumbUrl] = useState<string | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    if (validThumbUrl && validThumbUrl !== displayedThumbUrl) {
-      setPrevThumbUrl(displayedThumbUrl);
-      setDisplayedThumbUrl(validThumbUrl);
-      setImageLoaded(false);
-      setImageError(false);
-    }
-  }, [validThumbUrl, displayedThumbUrl]);
-
-  const handleImageLoaded = () => {
-    setImageLoaded(true);
-    const timer = setTimeout(() => {
-      setPrevThumbUrl(null);
-    }, 700);
-    return () => clearTimeout(timer);
-  };
-
   return (
     <div
       ref={cardRef}
       onClick={() => onClick(activeItem)}
       onPointerEnter={handlePointerEnter}
-      onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      onTouchMove={handleTouchMove}
+      onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       role="button"
       tabIndex={0}
@@ -231,7 +171,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
       }}
       className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-black/60 backdrop-blur-md border border-white/10 transition-all duration-300 ease-out hover:scale-[1.04] hover:border-[#00E5FF]/40 hover:shadow-[0_14px_35px_rgba(0,0,0,0.85)] hover:z-20 ${sizeClass}`}
     >
-      {/* Background Poster / Fallback */}
+      {/* Background Poster / Fallback Card */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col justify-between p-3.5 z-0">
         <div className="flex items-center justify-between">
           <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
@@ -252,52 +192,33 @@ export const CyberCard: React.FC<CyberCardProps> = ({
         )}
       </div>
 
-      {/* Cross-Dissolve: Previous Image Layer */}
-      {prevThumbUrl && (
-        <img
-          src={prevThumbUrl}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover z-10 opacity-100 pointer-events-none"
-        />
-      )}
-
-      {/* Active Image Layer with Cross-Dissolve Fade */}
-      {!imageError && displayedThumbUrl && (
-        <img
-          key={displayedThumbUrl}
-          src={displayedThumbUrl}
-          alt={activeItem.title}
-          loading="lazy"
-          decoding="async"
-          onLoad={handleImageLoaded}
-          onError={() => {
-            if (hasThumbs) {
-              setFailedFrames((prev) => ({ ...prev, [frameIndex]: true }));
-            } else {
-              setImageError(true);
-            }
-          }}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:scale-105 z-10 ${
-            imageLoaded ? 'opacity-100' : 'opacity-0'
+      {/* Active Media Layer: Native Video Poster & Live Preview for Videos; Image for Photos */}
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          key={cleanMediaUrl}
+          src={`${cleanMediaUrl}#t=1.0`}
+          preload="metadata"
+          muted
+          playsInline
+          loop
+          onLoadedMetadata={() => setMediaLoaded(true)}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105 z-10 ${
+            mediaLoaded ? 'opacity-100' : 'opacity-90'
           }`}
         />
-      )}
-
-      {/* 5-Segment Multi-Frame Hover Scrub Bar for Videos & Shorts */}
-      {hasThumbs && isHovered && (
-        <div className="absolute top-0 inset-x-0 z-30 p-1.5 flex items-center gap-1 bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none transition-opacity duration-200">
-          {[0, 1, 2, 3, 4].map((idx) => (
-            <div
-              key={idx}
-              className={`flex-1 h-0.5 sm:h-1 rounded-full transition-all duration-150 ${
-                idx === frameIndex
-                  ? 'bg-[#00E5FF] shadow-[0_0_8px_#00E5FF]'
-                  : 'bg-white/25'
-              }`}
-            />
-          ))}
-        </div>
+      ) : (
+        <img
+          key={cleanMediaUrl}
+          src={cleanMediaUrl}
+          alt={cleanTitle}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setMediaLoaded(true)}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105 z-10 ${
+            mediaLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
       )}
 
       {/* Category Corner Badge */}
@@ -331,7 +252,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
 
       {/* Play Icon Centered on Hover for Videos */}
       {isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30 backdrop-blur-[1px] pointer-events-none z-20">
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/20 backdrop-blur-[0.5px] pointer-events-none z-20">
           <div className="w-11 h-11 rounded-full bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,229,255,0.3)]">
             <Play className="w-4 h-4 fill-current ml-0.5 text-cyan-300" />
           </div>

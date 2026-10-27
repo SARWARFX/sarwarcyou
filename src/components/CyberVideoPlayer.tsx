@@ -680,7 +680,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   if (!isOpen || !item) return null;
 
-  const streamUrl = getMediaUrl(item.url);
+  const streamUrl = getMediaUrl(item.url || item.path || item.id);
   const albumName = item.category || item.parentAlbum || 'Cinema Vault';
   const activeIdx = playlist.findIndex((v) => v.id === item.id || v.url === item.url);
   const currentItemIndex = activeIdx >= 0 ? activeIdx + 1 : 1;
@@ -828,7 +828,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       >
         <video
           ref={videoRef}
-          key={item.id}
+          key={streamUrl}
           src={streamUrl}
           autoPlay
           playsInline

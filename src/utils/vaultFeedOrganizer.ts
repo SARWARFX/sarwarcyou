@@ -9,7 +9,7 @@ import {
   isPhotoExtension,
 } from './mediaTypeDetector';
 import { getItemTimestamp, sortMediaItems } from './albumExtractor';
-import { getVideoThumbnails } from './thumbnailResolver';
+// Native browser video posters used instead of static thumbnails
 import { sanitizeMediaTitle } from './titleSanitizer';
 import { getAlbumSlug } from './urlRouter';
 
@@ -156,7 +156,7 @@ export function organizeVaultFeed(
 
     const mediaUrl = getMediaUrl(it.url || clean);
     const title = cleanTitleFromPath(clean);
-    const thumbs = isVid ? getVideoThumbnails({ url: mediaUrl, path: clean, thumbnails: it.thumbnails }) : undefined;
+    const thumbs: string[] | undefined = undefined;
     const defaultThumb = isVid ? (thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl)) : mediaUrl;
 
     const item: StageMediaItem = {

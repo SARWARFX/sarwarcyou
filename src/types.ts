@@ -74,6 +74,7 @@ export interface StageMediaItem {
   title: string;
   name?: string;
   url: string;
+  path?: string;
   thumbnail: string;
   category: string;
   type: 'video' | 'image';

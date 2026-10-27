@@ -3,6 +3,7 @@ import { Camera, Film, Sparkles, Folder, ChevronRight, X } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
 
 export interface CyberMediaSidebarProps {
   items: StageMediaItem[];
@@ -132,7 +133,15 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                 >
                   {/* Thumbnail Badge */}
                   <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
-                    {thumbUrl && (
+                    {mediaType === 'video' || isVideoExtension(it.url || it.id) ? (
+                      <video
+                        src={`${getMediaUrl(it.url || it.id)}#t=1.0`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
                       <img
                         src={getMediaUrl(thumbUrl)}
                         alt={cleanTitle}

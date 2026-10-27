@@ -12,6 +12,7 @@ import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { SiteFooter } from './components/SiteFooter';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
+import { getMediaUrl } from './utils/imageUrlResolver';
 import { parseUrlState, syncUrlState, findMatchingMediaItem, findMatchingFolder } from './utils/urlRouter';
 import { Film, Sparkles, Flame, ChevronUp, ArrowUpDown } from 'lucide-react';
 import { sortMediaItems } from './utils/albumExtractor';
@@ -240,25 +241,39 @@ function App() {
       const isVid = isShort || item.type === 'video' || item.mediaType === 'clip' || isVideoExtension(item.url || item.id);
       const isPhoto = !isShort && (!isVid || item.type === 'image' || item.mediaType === 'photo');
 
+      const cleanItemUrl = getMediaUrl(item.url || item.path || item.id);
+      const cleanItem: StageMediaItem = {
+        ...item,
+        url: cleanItemUrl,
+      };
+
       if (isShort) {
-        const fullShorts = rawFeed.shorts.length > 0 ? rawFeed.shorts : [item];
-        const idx = fullShorts.findIndex((s) => s.id === item.id || s.url === item.url);
+        const fullShorts = rawFeed.shorts.length > 0 ? rawFeed.shorts : [cleanItem];
+        const idx = fullShorts.findIndex((s) => s.id === item.id || s.url === item.url || s.url === cleanItemUrl);
+        const cleanShorts = fullShorts.map((s) => ({
+          ...s,
+          url: getMediaUrl(s.url || s.path || s.id),
+        }));
         pushModalState('shorts');
         setShortsState({
           isOpen: true,
-          shorts: fullShorts,
+          shorts: cleanShorts,
           initialIndex: Math.max(0, idx),
         });
       } else if (isPhoto) {
         const fullPhotos = playlistContext && playlistContext.length > 0
           ? playlistContext.filter((p) => p.type === 'image' || p.mediaType === 'photo')
-          : [item];
-        const idx = fullPhotos.findIndex((p) => p.id === item.id || p.url === item.url);
+          : [cleanItem];
+        const idx = fullPhotos.findIndex((p) => p.id === item.id || p.url === item.url || p.url === cleanItemUrl);
+        const cleanPhotos = fullPhotos.map((p) => ({
+          ...p,
+          url: getMediaUrl(p.url || p.path || p.id),
+        }));
         pushModalState('lightbox');
         setLightboxState({
           isOpen: true,
-          item,
-          items: fullPhotos.length > 0 ? fullPhotos : [item],
+          item: cleanItem,
+          items: cleanPhotos.length > 0 ? cleanPhotos : [cleanItem],
           initialIndex: Math.max(0, idx),
         });
       } else {
@@ -271,12 +286,17 @@ function App() {
                 !v.category?.toLowerCase().includes('short') &&
                 !v.url?.toLowerCase().includes('/shorts/')
             )
-          : [item];
+          : [cleanItem];
+
+        const cleanVideos = fullVideos.map((v) => ({
+          ...v,
+          url: getMediaUrl(v.url || v.path || v.id),
+        }));
         pushModalState('theater');
         setTheaterState({
           isOpen: true,
-          item,
-          playlist: fullVideos.length > 0 ? fullVideos : [item],
+          item: cleanItem,
+          playlist: cleanVideos.length > 0 ? cleanVideos : [cleanItem],
         });
       }
     },

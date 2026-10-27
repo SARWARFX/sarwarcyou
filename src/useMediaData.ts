@@ -50,7 +50,7 @@ import {
 } from './utils/mediaTypeDetector';
 import { extractTimestampFromPath } from './utils/albumExtractor';
 import { MEDIA_CDN_BASE, getMediaUrl, normalizeRepoPath } from './utils/imageUrlResolver';
-import { getVideoThumbnails } from './utils/thumbnailResolver';
+
 
 export { MEDIA_CDN_BASE, getMediaUrl, normalizeRepoPath };
 
@@ -110,7 +110,7 @@ export function setCachedCatalog(catalog: HfMediaCatalog): void {
 /**
  * Helper to normalize directory keys for resilient lookup (supports decoded and raw).
  */
-function normalizeKey(str: string): string {
+export function normalizeKey(str: string): string {
   let res = str.replace(/^\/+/, '');
   try {
     res = decodeURIComponent(res);
@@ -192,133 +192,6 @@ export function parseTreeToCatalog(
   const images: HfMediaItem[] = [];
   const allMedia: HfMediaItem[] = [];
 
-  // Index all pre-rendered thumbnails and posters
-  const thumbnailsByVideoKey = new Map<string, string[]>();
-  const thumbnailsByFolder = new Map<string, string[]>();
-  const directPosterByVideoKey = new Map<string, string>();
-
-  for (const item of tree) {
-    if (item.type !== 'file' || !item.path) continue;
-    const lowerPath = item.path.toLowerCase();
-    const isImageFile =
-      lowerPath.endsWith('.jpg') ||
-      lowerPath.endsWith('.jpeg') ||
-      lowerPath.endsWith('.webp') ||
-      lowerPath.endsWith('.png') ||
-      lowerPath.endsWith('.avif');
-
-    if (isImageFile && (isThumbnailFile(item.path) || item.path.startsWith('thumbnails/') || item.path.startsWith('.thumbnails/'))) {
-      const url = buildHfMediaUrl(item.path);
-
-      // Direct mirror mapping: Thumbnails/${basePathWithoutExtension}_thumb_${1..5}.jpg
-      const mirrorMatch = item.path.match(/^Thumbnails\/(.+?)_thumb_([1-5])\.jpg$/i);
-      if (mirrorMatch) {
-        const videoKey = mirrorMatch[1];
-        const frameIdx = parseInt(mirrorMatch[2], 10) - 1;
-        const list = thumbnailsByVideoKey.get(videoKey) || ['', '', '', '', ''];
-        list[frameIdx] = url;
-        thumbnailsByVideoKey.set(videoKey, list);
-        thumbnailsByVideoKey.set(videoKey.toLowerCase(), list);
-        thumbnailsByVideoKey.set(videoKey.trim(), list);
-        thumbnailsByVideoKey.set(videoKey.trim().toLowerCase(), list);
-      }
-
-      // 1. Directory-level mapping (thumbnails/{videoName}/thumb_{1..5}.jpg)
-      const lastSlash = item.path.lastIndexOf('/');
-      if (lastSlash > 0) {
-        const folder = item.path.substring(0, lastSlash);
-        const keysToRegister = new Set<string>([folder, normalizeKey(folder)]);
-        for (const k of keysToRegister) {
-          const list = thumbnailsByFolder.get(k) || [];
-          list.push(url);
-          thumbnailsByFolder.set(k, list);
-        }
-      }
-
-      // 2. Direct video poster mapping (e.g. Clips/Favorite/video_thumb.jpg or temp_thumbnails/.../video_thumb.jpg)
-      const cleanStem = item.path
-        .replace(/^temp_thumbnails\//i, '')
-        .replace(/^thumbnails\//i, '')
-        .replace(/^\.thumbnails\//i, '')
-        .replace(/[-_]thumb(?:nail)?\.[^/.]+$/i, '')
-        .replace(/[-_]preview\.[^/.]+$/i, '');
-      const stemKey = normalizeKey(cleanStem);
-      if (stemKey && !directPosterByVideoKey.has(stemKey)) {
-        directPosterByVideoKey.set(stemKey, url);
-      }
-      const filenameOnly = normalizeKey(cleanStem.split('/').pop() || cleanStem);
-      if (filenameOnly && !directPosterByVideoKey.has(filenameOnly)) {
-        directPosterByVideoKey.set(filenameOnly, url);
-      }
-    }
-  }
-
-  // Sort thumbnails within each folder to ensure thumb_1, thumb_2, thumb_3... order
-  for (const [folder, list] of thumbnailsByFolder.entries()) {
-    list.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    thumbnailsByFolder.set(folder, list);
-  }
-
-  // Helper to match thumbnail folder for a video path
-  const getThumbnailsForVideo = (videoPath: string): string[] | undefined => {
-    const lastSlash = videoPath.lastIndexOf('/');
-    const parentDir = lastSlash > 0 ? videoPath.substring(0, lastSlash) : '';
-    const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
-    const stem = fileName.replace(/\.[^/.]+$/, '');
-
-    const basePath = videoPath.replace(/\.[^/.]+$/, '');
-    const directThumbs =
-      thumbnailsByVideoKey.get(basePath) ||
-      thumbnailsByVideoKey.get(basePath.trim()) ||
-      thumbnailsByVideoKey.get(basePath.toLowerCase()) ||
-      thumbnailsByVideoKey.get(basePath.trim().toLowerCase());
-    if (directThumbs && directThumbs.filter(Boolean).length >= 1) {
-      return directThumbs.filter(Boolean) as string[];
-    }
-    const primaryFolder = `thumbnails/${stem}`;
-    const primaryMatch =
-      thumbnailsByFolder.get(primaryFolder) ||
-      thumbnailsByFolder.get(normalizeKey(primaryFolder));
-    if (primaryMatch && primaryMatch.length > 0) return primaryMatch;
-
-    // 2. Nested subfolder standard: thumbnails/{parentDir}/{stem}
-    if (parentDir) {
-      const nestedFolder = `thumbnails/${parentDir}/${stem}`;
-      const nestedMatch =
-        thumbnailsByFolder.get(nestedFolder) ||
-        thumbnailsByFolder.get(normalizeKey(nestedFolder));
-      if (nestedMatch && nestedMatch.length > 0) return nestedMatch;
-    }
-
-    // 3. Fallbacks (.thumbnails/Clips/.../video)
-    const stemFolder = parentDir ? `.thumbnails/${parentDir}/${stem}` : `.thumbnails/${stem}`;
-    const stemMatch =
-      thumbnailsByFolder.get(stemFolder) ||
-      thumbnailsByFolder.get(normalizeKey(stemFolder));
-    if (stemMatch && stemMatch.length > 0) return stemMatch;
-
-    // 4. Extension-inclusive variant (.thumbnails/Clips/.../video.mp4)
-    const extFolder = parentDir ? `.thumbnails/${parentDir}/${fileName}` : `.thumbnails/${fileName}`;
-    const extMatch =
-      thumbnailsByFolder.get(extFolder) ||
-      thumbnailsByFolder.get(normalizeKey(extFolder));
-    if (extMatch && extMatch.length > 0) return extMatch;
-
-    return getVideoThumbnails(videoPath);
-  };
-
-  // Helper to match direct poster for a video path
-  const getDirectPosterForVideo = (videoPath: string): string | undefined => {
-    const lastSlash = videoPath.lastIndexOf('/');
-    const parentDir = lastSlash > 0 ? videoPath.substring(0, lastSlash) : '';
-    const fileName = lastSlash >= 0 ? videoPath.substring(lastSlash + 1) : videoPath;
-    const stem = fileName.replace(/\.[^/.]+$/, '');
-
-    const fullKey = normalizeKey(parentDir ? `${parentDir}/${stem}` : stem);
-    const stemKey = normalizeKey(stem);
-    return directPosterByVideoKey.get(fullKey) || directPosterByVideoKey.get(stemKey);
-  };
-
   for (const item of tree) {
     if (item.type !== 'file' || !item.path) continue;
     const path = item.path;
@@ -362,19 +235,11 @@ export function parseTreeToCatalog(
     const parsedPath = parseMediaPath(path);
 
     if (isVideoExtension(path)) {
-      const thumbnails = getThumbnailsForVideo(path);
-      const directPoster = getDirectPosterForVideo(path);
-      const allThumbnails = thumbnails && thumbnails.length > 0
-        ? thumbnails
-        : directPoster ? [directPoster] : undefined;
-      const poster = directPoster || allThumbnails?.[0];
-
+      const itemObj = { name, path, url, lastCommit, date: itemDate };
       if (parsedPath.mediaType === 'short') {
-        const itemObj = { name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate };
         shorts.push(itemObj);
         allMedia.push(itemObj);
       } else {
-        const itemObj = { name, path, url, poster, thumbnails: allThumbnails, lastCommit, date: itemDate };
         clips.push(itemObj);
         allMedia.push(itemObj);
       }
