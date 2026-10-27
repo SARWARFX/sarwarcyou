@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Camera, Film, Smartphone, ChevronUp, ChevronDown, X, Folder } from 'lucide-react';
+import { Home, Camera, Film, Smartphone, ChevronUp, ChevronLeft, X, Folder } from 'lucide-react';
 import type { CyberFilterType } from './CyberHeader';
 
 export interface AlbumJumpItem {
@@ -81,256 +81,274 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   return (
     <div ref={navRef} className="w-full">
       {/* =========================================================================
-          1. DESKTOP VIEWPORT (>= 768px): Top Brand Title + Horizontal Nav Bar
+          1. TOP BRAND HEADER: Prominent on both Mobile and Desktop
+             - Mobile (< 768px): Prominent top-middle header title
+             - Desktop (>= 768px): Enlarged text-4xl / text-5xl bold futuristic styling
          ========================================================================= */}
-      <header className="hidden md:flex flex-col items-center justify-center w-full max-w-7xl mx-auto pt-6 pb-4 px-4 select-none">
-        {/* Brand Title: Futuristic modern cyber/tech typography */}
+      <header className="flex flex-col items-center justify-center w-full max-w-7xl mx-auto pt-5 md:pt-8 pb-3 md:pb-6 px-4 select-none">
         <h1
-          className="text-2xl lg:text-3xl font-black uppercase text-center tracking-[0.25em] transition-colors duration-200"
+          className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black uppercase text-center tracking-[0.2em] md:tracking-[0.25em] transition-colors duration-200"
           style={{
             fontFamily: "'Orbitron', 'Syne', monospace, sans-serif",
-            letterSpacing: '0.25em',
             color: 'var(--text-primary)',
             textShadow: '0 0 25px rgba(0, 229, 255, 0.3)',
           }}
         >
           SARWAR.CYOU
         </h1>
+      </header>
 
-        {/* Horizontal Navigation Bar with Down Arrows (▼) */}
-        <nav
-          aria-label="Desktop Navigation"
-          className="mt-4 flex items-center gap-1.5 p-1.5 rounded-2xl shadow-xl transition-colors duration-200"
+      {/* =========================================================================
+          2. DESKTOP VIEWPORT (>= 768px): Vertical Floating Right-Docked Navigation
+             - Position: fixed; right: 1.5rem; top: 50%; transform: translateY(-50%);
+             - display: flex; flex-direction: column; gap: 1rem; z-index: 1000;
+             - Folder jump menus flyout to the left of the dock
+         ========================================================================= */}
+      <nav
+        aria-label="Desktop Floating Navigation"
+        className="hidden md:flex flex-col items-stretch p-2 rounded-2xl shadow-2xl transition-colors duration-200 select-none"
+        style={{
+          position: 'fixed',
+          right: '1.5rem',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          zIndex: 1000,
+          backgroundColor: 'var(--nav-bg)',
+          border: '1px solid var(--nav-border)',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3)',
+          minWidth: '136px',
+        }}
+      >
+        {/* Home */}
+        <button
+          type="button"
+          onClick={() => {
+            setOpenCategory(null);
+            onFilterChange('all');
+          }}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
           style={{
-            backgroundColor: 'var(--nav-bg)',
-            border: '1px solid var(--nav-border)',
+            backgroundColor: activeFilter === 'all' ? 'var(--nav-active-bg)' : 'transparent',
+            color: activeFilter === 'all' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
           }}
         >
-          {/* Home */}
+          <Home className="w-4 h-4" />
+          <span>Home</span>
+        </button>
+
+        {/* Images Split Button with Left Flyout Menu */}
+        <div className="relative flex items-center rounded-xl overflow-visible">
           <button
             type="button"
             onClick={() => {
               setOpenCategory(null);
-              onFilterChange('all');
+              onFilterChange('images');
             }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+            className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
             style={{
-              backgroundColor: activeFilter === 'all' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'all' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+              backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
+              color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
             }}
           >
-            <Home className="w-3.5 h-3.5" />
-            <span>Home</span>
+            <Camera className="w-4 h-4" />
+            <span>Images</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => toggleCategoryMenu('images', e)}
+            aria-label="Jump to Image Albums"
+            aria-expanded={openCategory === 'images'}
+            className="p-2 pr-2.5 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
+            style={{
+              backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
+              color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+            }}
+          >
+            <ChevronLeft
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                openCategory === 'images' ? '-rotate-90 text-[#00E5FF]' : ''
+              }`}
+            />
           </button>
 
-          {/* Images Split Button with Down Arrow (▼) */}
-          <div className="relative flex items-center rounded-xl overflow-visible">
-            <button
-              type="button"
-              onClick={() => {
-                setOpenCategory(null);
-                onFilterChange('images');
-              }}
-              className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+          {/* Desktop Flyout Menu to Left of Vertical Dock */}
+          {openCategory === 'images' && (
+            <div
+              className="absolute right-full top-0 mr-3 min-w-[260px] max-h-[380px] overflow-y-auto rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1 border transition-all animate-in fade-in slide-in-from-right-2"
               style={{
-                backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
-                color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+                backgroundColor: 'var(--card-bg)',
+                borderColor: 'var(--nav-border)',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.45)',
               }}
             >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Images</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('images', e)}
-              aria-label="Jump to Image Albums"
-              aria-expanded={openCategory === 'images'}
-              className="p-1.5 pr-2 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
-              style={{
-                backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
-                color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'images' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-
-            {/* Desktop Down Dropdown Menu */}
-            {openCategory === 'images' && (
-              <div
-                className="absolute top-full left-0 mt-2 min-w-[240px] max-h-[360px] overflow-y-auto rounded-xl p-1.5 shadow-2xl z-50 flex flex-col gap-1 border transition-all"
-                style={{
-                  backgroundColor: 'var(--card-bg)',
-                  borderColor: 'var(--nav-border)',
-                }}
-              >
-                <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
-                  <span>Image Folders</span>
-                  <span>{imageAlbums.length}</span>
-                </div>
-                {imageAlbums.map((album) => (
-                  <button
-                    key={album.id}
-                    type="button"
-                    onClick={() => {
-                      onJumpToAlbum(album.id, 'images');
-                      setOpenCategory(null);
-                    }}
-                    className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
-                  >
-                    <span className="truncate pr-2">{album.name}</span>
-                    <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                      {album.count}
-                    </span>
-                  </button>
-                ))}
+              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
+                <span>Image Folders</span>
+                <span>{imageAlbums.length}</span>
               </div>
-            )}
-          </div>
+              {imageAlbums.map((album) => (
+                <button
+                  key={album.id}
+                  type="button"
+                  onClick={() => {
+                    onJumpToAlbum(album.id, 'images');
+                    setOpenCategory(null);
+                  }}
+                  className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <span className="truncate pr-2">{album.name}</span>
+                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    {album.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-          {/* Videos Split Button with Down Arrow (▼) */}
-          <div className="relative flex items-center rounded-xl overflow-visible">
-            <button
-              type="button"
-              onClick={() => {
-                setOpenCategory(null);
-                onFilterChange('clips');
-              }}
-              className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+        {/* Videos Split Button with Left Flyout Menu */}
+        <div className="relative flex items-center rounded-xl overflow-visible">
+          <button
+            type="button"
+            onClick={() => {
+              setOpenCategory(null);
+              onFilterChange('clips');
+            }}
+            className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+            style={{
+              backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
+              color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+            }}
+          >
+            <Film className="w-4 h-4" />
+            <span>Videos</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => toggleCategoryMenu('clips', e)}
+            aria-label="Jump to Video Albums"
+            aria-expanded={openCategory === 'clips'}
+            className="p-2 pr-2.5 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
+            style={{
+              backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
+              color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+            }}
+          >
+            <ChevronLeft
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                openCategory === 'clips' ? '-rotate-90 text-[#00E5FF]' : ''
+              }`}
+            />
+          </button>
+
+          {/* Desktop Flyout Menu to Left of Vertical Dock */}
+          {openCategory === 'clips' && (
+            <div
+              className="absolute right-full top-0 mr-3 min-w-[260px] max-h-[380px] overflow-y-auto rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1 border transition-all animate-in fade-in slide-in-from-right-2"
               style={{
-                backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
-                color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+                backgroundColor: 'var(--card-bg)',
+                borderColor: 'var(--nav-border)',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.45)',
               }}
             >
-              <Film className="w-3.5 h-3.5" />
-              <span>Videos</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('clips', e)}
-              aria-label="Jump to Video Albums"
-              aria-expanded={openCategory === 'clips'}
-              className="p-1.5 pr-2 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
-              style={{
-                backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
-                color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'clips' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-
-            {/* Desktop Down Dropdown Menu */}
-            {openCategory === 'clips' && (
-              <div
-                className="absolute top-full left-0 mt-2 min-w-[240px] max-h-[360px] overflow-y-auto rounded-xl p-1.5 shadow-2xl z-50 flex flex-col gap-1 border transition-all"
-                style={{
-                  backgroundColor: 'var(--card-bg)',
-                  borderColor: 'var(--nav-border)',
-                }}
-              >
-                <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
-                  <span>Video Folders</span>
-                  <span>{videoAlbums.length}</span>
-                </div>
-                {videoAlbums.map((album) => (
-                  <button
-                    key={album.id}
-                    type="button"
-                    onClick={() => {
-                      onJumpToAlbum(album.id, 'clips');
-                      setOpenCategory(null);
-                    }}
-                    className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
-                  >
-                    <span className="truncate pr-2">{album.name}</span>
-                    <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                      {album.count}
-                    </span>
-                  </button>
-                ))}
+              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
+                <span>Video Folders</span>
+                <span>{videoAlbums.length}</span>
               </div>
-            )}
-          </div>
+              {videoAlbums.map((album) => (
+                <button
+                  key={album.id}
+                  type="button"
+                  onClick={() => {
+                    onJumpToAlbum(album.id, 'clips');
+                    setOpenCategory(null);
+                  }}
+                  className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <span className="truncate pr-2">{album.name}</span>
+                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    {album.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-          {/* Shorts Split Button with Down Arrow (▼) */}
-          <div className="relative flex items-center rounded-xl overflow-visible">
-            <button
-              type="button"
-              onClick={() => {
-                setOpenCategory(null);
-                onFilterChange('shorts');
-              }}
-              className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+        {/* Shorts Split Button with Left Flyout Menu */}
+        <div className="relative flex items-center rounded-xl overflow-visible">
+          <button
+            type="button"
+            onClick={() => {
+              setOpenCategory(null);
+              onFilterChange('shorts');
+            }}
+            className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 rounded-l-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
+            style={{
+              backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
+              color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+            }}
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>Shorts</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => toggleCategoryMenu('shorts', e)}
+            aria-label="Jump to Shorts Albums"
+            aria-expanded={openCategory === 'shorts'}
+            className="p-2 pr-2.5 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
+            style={{
+              backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
+              color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+            }}
+          >
+            <ChevronLeft
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                openCategory === 'shorts' ? '-rotate-90 text-[#00E5FF]' : ''
+              }`}
+            />
+          </button>
+
+          {/* Desktop Flyout Menu to Left of Vertical Dock */}
+          {openCategory === 'shorts' && (
+            <div
+              className="absolute right-full top-0 mr-3 min-w-[260px] max-h-[380px] overflow-y-auto rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1 border transition-all animate-in fade-in slide-in-from-right-2"
               style={{
-                backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
-                color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+                backgroundColor: 'var(--card-bg)',
+                borderColor: 'var(--nav-border)',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.45)',
               }}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Shorts</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('shorts', e)}
-              aria-label="Jump to Shorts Albums"
-              aria-expanded={openCategory === 'shorts'}
-              className="p-1.5 pr-2 rounded-r-xl transition-all cursor-pointer hover:opacity-80"
-              style={{
-                backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
-                color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'shorts' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-
-            {/* Desktop Down Dropdown Menu */}
-            {openCategory === 'shorts' && (
-              <div
-                className="absolute top-full left-0 mt-2 min-w-[240px] max-h-[360px] overflow-y-auto rounded-xl p-1.5 shadow-2xl z-50 flex flex-col gap-1 border transition-all"
-                style={{
-                  backgroundColor: 'var(--card-bg)',
-                  borderColor: 'var(--nav-border)',
-                }}
-              >
-                <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
-                  <span>Shorts Folders</span>
-                  <span>{shortAlbums.length}</span>
-                </div>
-                {shortAlbums.map((album) => (
-                  <button
-                    key={album.id}
-                    type="button"
-                    onClick={() => {
-                      onJumpToAlbum(album.id, 'shorts');
-                      setOpenCategory(null);
-                    }}
-                    className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
-                  >
-                    <span className="truncate pr-2">{album.name}</span>
-                    <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                      {album.count}
-                    </span>
-                  </button>
-                ))}
+              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
+                <span>Shorts Folders</span>
+                <span>{shortAlbums.length}</span>
               </div>
-            )}
-          </div>
-        </nav>
-      </header>
+              {shortAlbums.map((album) => (
+                <button
+                  key={album.id}
+                  type="button"
+                  onClick={() => {
+                    onJumpToAlbum(album.id, 'shorts');
+                    setOpenCategory(null);
+                  }}
+                  className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <span className="truncate pr-2">{album.name}</span>
+                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    {album.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </nav>
 
       {/* =========================================================================
-          2. MOBILE VIEWPORT (< 768px): Fixed Bottom Dock with Up Arrows (▲)
+          3. MOBILE VIEWPORT (< 768px): Fixed Bottom Dock with Up Arrows (▲)
          ========================================================================= */}
       <nav
         aria-label="Mobile Bottom Navigation"
@@ -466,7 +484,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
       </nav>
 
       {/* =========================================================================
-          3. MOBILE BOTTOM SHEET / POPOVER FOR QUICK ALBUM JUMP
+          4. MOBILE BOTTOM SHEET / POPOVER FOR QUICK ALBUM JUMP
          ========================================================================= */}
       {openCategory && (
         <div className="md:hidden fixed inset-0 z-[1001] select-none">

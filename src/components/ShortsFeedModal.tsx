@@ -13,6 +13,7 @@ import {
   Loader2,
   X,
   ArrowLeft,
+  Folder,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -140,6 +141,125 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [currentIndex]);
 
+  // Category / Album Switch State & Pill Notification
+  const [categoryNotice, setCategoryNotice] = useState<string | null>(null);
+  const categoryTimerRef = useRef<number | null>(null);
+
+  const showCategoryPill = useCallback((name: string) => {
+    if (categoryTimerRef.current) {
+      window.clearTimeout(categoryTimerRef.current);
+    }
+    setCategoryNotice(name);
+    categoryTimerRef.current = window.setTimeout(() => {
+      setCategoryNotice(null);
+    }, 1800);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (categoryTimerRef.current) {
+        window.clearTimeout(categoryTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Dual-Direction Navigation: Left-Right Swipe / Arrow to switch between categories or related reels
+  const handleNextCategory = useCallback(() => {
+    if (shorts.length <= 1) return;
+    const current = shorts[currentIndex];
+    const currentCat = (current?.category || current?.parentAlbum || '').toLowerCase();
+
+    // 1. Search ahead for next short with a different category/album
+    let targetIdx = -1;
+    for (let i = currentIndex + 1; i < shorts.length; i++) {
+      const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
+      if (cat && cat !== currentCat) {
+        targetIdx = i;
+        break;
+      }
+    }
+
+    // 2. Wrap around from start if needed
+    if (targetIdx === -1) {
+      for (let i = 0; i < currentIndex; i++) {
+        const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
+        if (cat && cat !== currentCat) {
+          targetIdx = i;
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback: Skip chunk of 5 reels
+    if (targetIdx === -1) {
+      targetIdx = Math.min(shorts.length - 1, currentIndex + 5);
+      if (targetIdx === currentIndex && shorts.length > 1) {
+        targetIdx = (currentIndex + 1) % shorts.length;
+      }
+    }
+
+    if (targetIdx !== -1 && targetIdx !== currentIndex) {
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+      setCurrentIndex(targetIdx);
+      setIsPlaying(true);
+      setDismissOffsetY(0);
+      setIsLandscape(false);
+      setCurrentTime(0);
+      const targetItem = shorts[targetIdx];
+      showCategoryPill(targetItem?.category || targetItem?.parentAlbum || 'Related Reels');
+    }
+  }, [currentIndex, shorts, showCategoryPill]);
+
+  const handlePrevCategory = useCallback(() => {
+    if (shorts.length <= 1) return;
+    const current = shorts[currentIndex];
+    const currentCat = (current?.category || current?.parentAlbum || '').toLowerCase();
+
+    // 1. Search backward for previous short with a different category/album
+    let targetIdx = -1;
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
+      if (cat && cat !== currentCat) {
+        targetIdx = i;
+        break;
+      }
+    }
+
+    // 2. Wrap around from end if needed
+    if (targetIdx === -1) {
+      for (let i = shorts.length - 1; i > currentIndex; i--) {
+        const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
+        if (cat && cat !== currentCat) {
+          targetIdx = i;
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback: Skip chunk of 5 reels backward
+    if (targetIdx === -1) {
+      targetIdx = Math.max(0, currentIndex - 5);
+      if (targetIdx === currentIndex && shorts.length > 1) {
+        targetIdx = (currentIndex - 1 + shorts.length) % shorts.length;
+      }
+    }
+
+    if (targetIdx !== -1 && targetIdx !== currentIndex) {
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+      setCurrentIndex(targetIdx);
+      setIsPlaying(true);
+      setDismissOffsetY(0);
+      setIsLandscape(false);
+      setCurrentTime(0);
+      const targetItem = shorts[targetIdx];
+      showCategoryPill(targetItem?.category || targetItem?.parentAlbum || 'Related Reels');
+    }
+  }, [currentIndex, shorts, showCategoryPill]);
+
   // Aggressive instant playback trigger and one-ahead pre-warming
   useEffect(() => {
     if (!isOpen) {
@@ -219,12 +339,18 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         handleClose();
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+      } else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
         handleNext();
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
         handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNextCategory();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevCategory();
       } else if (e.key === ' ') {
         e.preventDefault();
         togglePlay();
@@ -240,9 +366,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose, handleNext, handlePrev]);
+  }, [isOpen, onClose, handleNext, handlePrev, handleNextCategory, handlePrevCategory]);
 
-  // Touch Swipe & Gesture Engine
+  // Touch Swipe & Dual-Direction Gesture Engine
   const handleTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     touchStartRef.current = {
@@ -255,8 +381,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!touchStartRef.current) return;
     const dy = e.touches[0].clientY - touchStartRef.current.y;
-    // If pulling down when near start, track dismiss offset
-    if (dy > 0 && Math.abs(e.touches[0].clientX - touchStartRef.current.x) < 50) {
+    const dx = e.touches[0].clientX - touchStartRef.current.x;
+    // If pulling down when near start and not horizontal swiping, track dismiss offset
+    if (dy > 0 && Math.abs(dx) < 40 && Math.abs(dy) > 10) {
       setDismissOffsetY(dy * 0.7);
     }
   };
@@ -265,18 +392,30 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (!touchStartRef.current) return;
     const t = e.changedTouches[0];
     const dy = touchStartRef.current.y - t.clientY;
+    const dx = touchStartRef.current.x - t.clientX;
     const pullDown = t.clientY - touchStartRef.current.y;
     const dt = performance.now() - touchStartRef.current.time;
 
-    // Swipe down to dismiss
-    if ((pullDown > 110 && dt < 400) || pullDown > 180) {
+    // Pull down to dismiss
+    if ((pullDown > 110 && dt < 400 && Math.abs(dx) < 50) || pullDown > 190) {
       handleClose();
       return;
     }
     setDismissOffsetY(0);
 
-    // Vertical swipe between reels (Swipe Up = Next, Swipe Down = Prev)
-    if (Math.abs(dy) > 45) {
+    // 1. Dual-Direction: Horizontal Swipe (Left/Right to switch category/album/related reels)
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 35) {
+      if (dx > 0) {
+        handleNextCategory();
+      } else {
+        handlePrevCategory();
+      }
+      touchStartRef.current = null;
+      return;
+    }
+
+    // 2. Dual-Direction: Vertical Swipe (Up/Down to switch sequential reels)
+    if (Math.abs(dy) > 35) {
       if (dy > 0) {
         handleNext();
       } else {
@@ -298,12 +437,28 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     triggerProgressVisible();
   };
 
+  // Dual-Direction Wheel: Vertical for next/prev sequential, Horizontal for category/album switch
   const handleWheel = (e: React.WheelEvent) => {
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (Math.abs(delta) > 25) {
-      if (isNavigatingRef.current) return;
+    if (isNavigatingRef.current) return;
+
+    // Horizontal wheel / trackpad swipe
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 20) {
       isNavigatingRef.current = true;
-      if (delta > 0) {
+      if (e.deltaX > 0) {
+        handleNextCategory();
+      } else {
+        handlePrevCategory();
+      }
+      setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 550);
+      return;
+    }
+
+    // Vertical wheel / scroll
+    if (Math.abs(e.deltaY) > 20) {
+      isNavigatingRef.current = true;
+      if (e.deltaY > 0) {
         handleNext();
       } else {
         handlePrev();
@@ -477,6 +632,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
       }}
     >
+      {/* Category / Album Switch Banner */}
+      {categoryNotice && (
+        <div className="fixed top-5 inset-x-0 mx-auto w-fit z-[180] px-4 py-2 rounded-full bg-black/85 border border-[#00E5FF]/40 text-[#00E5FF] text-xs font-mono tracking-wider shadow-[0_4px_25px_rgba(0,229,255,0.4)] backdrop-blur-xl animate-in fade-in slide-in-from-top-3 duration-200 flex items-center gap-2 pointer-events-none">
+          <Folder className="w-3.5 h-3.5 text-[#00E5FF]" />
+          <span>{categoryNotice}</span>
+        </div>
+      )}
+
       {/* Prominent High-Contrast Close Button */}
       <button
         type="button"

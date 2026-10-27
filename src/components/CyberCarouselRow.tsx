@@ -56,8 +56,11 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
       {/* Lightweight Horizontal Track */}
       <div
         ref={trackRef}
-        className="flex gap-3 overflow-x-auto no-scrollbar scrollbar-none scroll-smooth py-1 select-none touch-scroll-container"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="flex gap-3 overflow-x-auto no-scrollbar scrollbar-none py-1 select-none touch-scroll-container"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'auto',
+        }}
       >
         {items.map((item, idx) => (
           <CyberCard

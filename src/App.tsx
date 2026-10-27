@@ -518,7 +518,7 @@ function App() {
       {/* Main Content Stage */}
       <div className="w-full pt-2 sm:pt-4 pb-28 md:pb-16 flex flex-col min-h-screen">
         {/* 2. Structured Discovery Feed: Tagged Album Sections with Instant In-Place Filtering */}
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 flex flex-col gap-6 sm:gap-8">
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:pr-44 xl:pr-36 flex flex-col gap-6 sm:gap-8">
           {/* Loading State Skeleton */}
           {isLoading && !data && (
             <div className="w-full py-20 flex flex-col items-center justify-center gap-3">

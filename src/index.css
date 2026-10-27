@@ -225,10 +225,14 @@ html, body, #root {
 }
 
 .touch-scroll-container,
-.overflow-y-auto,
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: auto !important;
+  overscroll-behavior-x: contain;
+}
+
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Touchscreens: Disable heavy backdrop-filters, blurs, and hover scale repaints */
