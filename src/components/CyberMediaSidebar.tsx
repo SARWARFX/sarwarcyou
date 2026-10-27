@@ -116,7 +116,9 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                 idx === activeIdx ||
                 it.id === activeItem?.id ||
                 it.url === activeItem?.url;
-              const thumbUrl = it.thumbnail || it.poster || it.url;
+              const isVidItem = it.type === 'video' || it.mediaType === 'clip' || it.mediaType === 'short';
+              const rawThumb = it.thumbnail || it.poster || (isVidItem ? '' : it.url);
+              const thumbUrl = rawThumb && !/\.(mp4|mov|webm|mkv)(\?|#|$)/i.test(rawThumb) ? rawThumb : '';
               const cleanTitle = sanitizeMediaTitle(it.title, it.category);
 
               return (
@@ -132,13 +134,24 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                 >
                   {/* Thumbnail Badge */}
                   <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
-                    {thumbUrl && (
+                    {thumbUrl ? (
                       <img
                         src={getMediaUrl(thumbUrl)}
                         alt={cleanTitle}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500">
+                        {mediaType === 'video' ? (
+                          <Film className="w-4 h-4 text-amber-400/70" />
+                        ) : (
+                          <Camera className="w-4 h-4 text-cyan-400/70" />
+                        )}
+                      </div>
                     )}
                     {isActive && (
                       <div className="absolute inset-0 bg-[#00E5FF]/20 flex items-center justify-center">

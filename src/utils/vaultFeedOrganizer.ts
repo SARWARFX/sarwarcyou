@@ -156,16 +156,22 @@ export function organizeVaultFeed(
 
     const mediaUrl = getMediaUrl(it.url || clean);
     const title = cleanTitleFromPath(clean);
-    const thumbs = isVid ? getVideoThumbnails({ url: mediaUrl, path: clean, thumbnails: it.thumbnails }) : undefined;
-    const defaultThumb = isVid ? (thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl)) : mediaUrl;
+    const thumbs = isVid
+      ? (it.thumbnails && it.thumbnails.length > 0
+          ? it.thumbnails.map((t) => getMediaUrl(t))
+          : getVideoThumbnails({ url: mediaUrl, path: clean, thumbnails: it.thumbnails, poster: it.poster }))
+      : undefined;
+    const posterUrl = thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : undefined);
+    const defaultThumb = isVid ? (posterUrl || '') : mediaUrl;
 
     const item: StageMediaItem = {
-      id: `media-${clean.replace(/[/\\.]+/g, '-')}`,
+      id: clean,
+      path: clean,
       title,
       name: title,
       url: mediaUrl,
       thumbnail: defaultThumb,
-      poster: thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : undefined),
+      poster: posterUrl,
       thumbnails: thumbs,
       category: formatAlbumDisplayName(folderPath),
       type: isVid ? 'video' : 'image',

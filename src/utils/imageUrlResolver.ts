@@ -29,6 +29,41 @@ import { isVideoExtension } from './mediaTypeDetector';
 export const MEDIA_CDN_BASE = 'https://media.sarwar.cyou';
 
 /**
+ * Safely encodes path segments for Hugging Face and Cloudflare Workers,
+ * converting raw spaces to %20 and special characters to URL-safe codes
+ * while strictly avoiding double-encoding (%2520).
+ */
+export function encodeMediaPathSegments(path: string): string {
+  if (!path) return '';
+  return path
+    .split('/')
+    .map((segment) => {
+      try {
+        return encodeURIComponent(decodeURIComponent(segment))
+          .replace(/\(/g, '%28')
+          .replace(/\)/g, '%29');
+      } catch {
+        return encodeURIComponent(segment);
+      }
+    })
+    .join('/');
+}
+
+/**
+ * Safe dark SVG placeholder for media cards when remote thumbnail is unavailable or loading.
+ */
+export const FALLBACK_THUMBNAIL_PLACEHOLDER =
+  'data:image/svg+xml;charset=utf-8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+      <rect width="640" height="360" fill="#0d0e12"/>
+      <circle cx="320" cy="180" r="40" fill="#181a20" stroke="#00E5FF" stroke-width="2" stroke-opacity="0.3"/>
+      <polygon points="314,166 332,180 314,194" fill="#00E5FF" fill-opacity="0.8"/>
+      <text x="320" y="244" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#71717a" text-anchor="middle" letter-spacing="2">SARWARCYOU MEDIA</text>
+    </svg>`
+  );
+
+/**
  * Universal media URL builder: routes all repository videos, photos, and generated thumbnails
  * through the Cloudflare Worker edge proxy at https://media.sarwar.cyou.
  *
@@ -63,10 +98,16 @@ export function getMediaUrl(relativePath?: string | null): string {
   // Strip media.sarwar.cyou base URL if already prefixed
   path = path.replace(/^https?:\/\/media\.sarwar\.cyou\//i, '');
 
-  const cleanPath = path.replace(/^\/+/, '');
+  let cleanPath = path.replace(/^\/+/, '');
   if (!cleanPath) return '';
 
-  return `${MEDIA_CDN_BASE}/${cleanPath}`;
+  // Transparent case normalization: ensure Thumbnails/ uses uppercase 'T' matching Git repository tree
+  if (cleanPath.toLowerCase().startsWith('thumbnails/')) {
+    cleanPath = 'Thumbnails/' + cleanPath.slice('thumbnails/'.length);
+  }
+
+  const encodedPath = encodeMediaPathSegments(cleanPath);
+  return `${MEDIA_CDN_BASE}/${encodedPath}`;
 }
 
 export function getDirectImageUrl(
