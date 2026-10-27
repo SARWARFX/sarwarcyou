@@ -10,17 +10,22 @@ import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { SiteFooter } from './components/SiteFooter';
-import type { StageMediaItem } from './types';
+import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import { parseUrlState, syncUrlState, findMatchingMediaItem, findMatchingFolder } from './utils/urlRouter';
-import { Film, Sparkles, Image as ImageIcon, Flame, ChevronUp } from 'lucide-react';
+import { Film, Sparkles, Image as ImageIcon, Flame, ChevronUp, ArrowUpDown } from 'lucide-react';
+import { sortMediaItems } from './utils/albumExtractor';
 
 function App() {
   const { data, isLoading } = useMediaData();
 
-  // Search & Filter State
+  // Search, Filter & Sort State
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<CyberFilterType>('all');
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const { sortQuery } = parseUrlState();
+    return (sortQuery === 'oldest' || sortQuery === 'name-asc') ? sortQuery : 'newest';
+  });
 
   // Modal / Player States
   const [theaterState, setTheaterState] = useState<{
@@ -135,7 +140,7 @@ function App() {
   };
 
   // Organize raw catalog data into structured multi-row discovery feed
-  const rawFeed = useMemo(() => organizeVaultFeed(data), [data]);
+  const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
 
   // Live Real-Time Filtering based on Omnisearch input and category chips
   const feed = useMemo(() => {
@@ -175,13 +180,11 @@ function App() {
       );
     }
 
-    const latest = latestPool
-      .sort((a, b) => (b.date || 0) - (a.date || 0))
-      .slice(0, 30);
+    const latest = sortMediaItems(latestPool, sortOrder).slice(0, 30);
 
     // Filter Shorts
     const shorts = (activeFilter === 'all' || activeFilter === 'shorts')
-      ? rawFeed.shorts.filter(matchesQuery)
+      ? sortMediaItems(rawFeed.shorts.filter(matchesQuery), sortOrder)
       : [];
 
     // Filter Video Vault Folders
@@ -189,7 +192,7 @@ function App() {
       ? rawFeed.videoVaultFolders
           .map((f) => ({
             ...f,
-            items: f.items.filter(matchesQuery),
+            items: sortMediaItems(f.items.filter(matchesQuery), sortOrder),
           }))
           .filter((f) => f.items.length > 0)
       : [];
@@ -204,7 +207,7 @@ function App() {
             }
             return {
               ...f,
-              items,
+              items: sortMediaItems(items, sortOrder),
               count: items.length,
             };
           })
@@ -217,7 +220,7 @@ function App() {
       videoVaultFolders: videoFolders,
       photoVaultFolders: photoFolders,
     };
-  }, [rawFeed, searchQuery, activeFilter]);
+  }, [rawFeed, searchQuery, activeFilter, sortOrder]);
 
   // Universal Media Click Dispatcher
   const handleSelectItem = useCallback(
@@ -352,6 +355,27 @@ function App() {
         }
         handleSelectItem(match.item, contextList);
         return;
+      } else {
+        // Fallback: check if mediaQuery was an album/folder name (e.g. from #/view/...)
+        const folderTarget = albumQuery || mediaQuery;
+        if (folderTarget.toLowerCase() === 'shorts') {
+          handleOpenViewAll('Shorts & Reels', rawFeed.shorts, 'shorts');
+          return;
+        } else if (folderTarget.toLowerCase() === 'all' || folderTarget.toLowerCase() === 'latest') {
+          handleOpenViewAll('Latest Releases', rawFeed.allMediaPool, 'standard');
+          return;
+        } else {
+          const vMatch = findMatchingFolder(rawFeed.videoVaultFolders, folderTarget);
+          if (vMatch) {
+            handleOpenViewAll(vMatch.folder.name, vMatch.folder.items, 'standard');
+            return;
+          }
+          const pMatch = findMatchingFolder(rawFeed.photoVaultFolders, folderTarget);
+          if (pMatch) {
+            handleOpenViewAll(pMatch.folder.name, pMatch.folder.items, 'photo');
+            return;
+          }
+        }
       }
     }
 
@@ -359,6 +383,8 @@ function App() {
     if (albumQuery) {
       if (albumQuery.toLowerCase() === 'shorts') {
         handleOpenViewAll('Shorts & Reels', rawFeed.shorts, 'shorts');
+      } else if (albumQuery.toLowerCase() === 'all' || albumQuery.toLowerCase() === 'latest') {
+        handleOpenViewAll('Latest Releases', rawFeed.allMediaPool, 'standard');
       } else {
         const vMatch = findMatchingFolder(rawFeed.videoVaultFolders, albumQuery);
         if (vMatch) {
@@ -373,7 +399,7 @@ function App() {
     }
   }, [isLoading, data, rawFeed, handleSelectItem, handleOpenViewAll]);
 
-  // Synchronize active view with browser URL search parameters (?album=, ?media=)
+  // Synchronize active view with browser URL search parameters (?album=, ?media=, ?sort=)
   useEffect(() => {
     // Only synchronize once initial route has been evaluated
     if (!initialRouteHandledRef.current) return;
@@ -382,24 +408,28 @@ function App() {
       syncUrlState({
         album: theaterState.item.category || theaterState.item.parentAlbum,
         mediaItem: theaterState.item,
+        sort: sortOrder,
         replace: true,
       });
     } else if (lightboxState.isOpen && lightboxState.item) {
       syncUrlState({
         album: lightboxState.item.category || lightboxState.item.parentAlbum,
         mediaItem: lightboxState.item,
+        sort: sortOrder,
         replace: true,
       });
     } else if (shortsState.isOpen && shortsState.shorts[shortsState.initialIndex]) {
       syncUrlState({
         album: 'shorts',
         mediaItem: shortsState.shorts[shortsState.initialIndex],
+        sort: sortOrder,
         replace: true,
       });
     } else if (viewAllState.isOpen && viewAllState.title) {
       syncUrlState({
         album: viewAllState.title,
         mediaItem: null,
+        sort: sortOrder,
         replace: true,
       });
     } else {
@@ -407,6 +437,7 @@ function App() {
       syncUrlState({
         album: null,
         mediaItem: null,
+        sort: sortOrder,
         replace: true,
       });
     }
@@ -420,6 +451,7 @@ function App() {
     shortsState.shorts,
     viewAllState.isOpen,
     viewAllState.title,
+    sortOrder,
   ]);
 
   const handleResetHome = () => {
@@ -638,6 +670,36 @@ function App() {
             >
               RESET SEARCH
             </button>
+          </div>
+        )}
+
+        {/* Global Sort & Order Toolbar */}
+        {hasAnyResults && (
+          <div className="w-full flex items-center justify-between pb-2 border-b border-white/[0.08] text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold">
+                {searchQuery ? `Search Results (${feed.latestReleases.length + feed.shorts.length})` : 'Catalog Order:'}
+              </span>
+              <span className="text-[10px] text-[#00E5FF] px-2 py-0.5 rounded-full bg-[#00E5FF]/10 border border-[#00E5FF]/20 font-bold">
+                {sortOrder === 'newest' ? 'Newest First' : sortOrder === 'oldest' ? 'Oldest First' : 'Name (A–Z)'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.08] px-2.5 py-1 rounded-full border border-white/10 transition-colors">
+              <ArrowUpDown className="w-3.5 h-3.5 text-[#00E5FF] flex-shrink-0" />
+              <label htmlFor="feedSortSelect" className="text-zinc-400 text-[11px] hidden sm:inline sr-only">Sort by:</label>
+              <select
+                id="feedSortSelect"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                className="bg-transparent text-zinc-200 hover:text-white font-medium text-[11px] focus:outline-none cursor-pointer pr-1"
+                aria-label="Sort catalog media items"
+              >
+                <option value="newest" className="bg-[#0b0c10] text-white">Newest First</option>
+                <option value="oldest" className="bg-[#0b0c10] text-white">Oldest First</option>
+                <option value="name-asc" className="bg-[#0b0c10] text-white">Name (A–Z)</option>
+              </select>
+            </div>
           </div>
         )}
 

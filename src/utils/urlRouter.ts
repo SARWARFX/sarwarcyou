@@ -1,10 +1,11 @@
-import type { AlbumData, StageMediaItem, MediaFolderEntry } from '../types';
+import type { AlbumData, StageMediaItem, MediaFolderEntry, SortOrder } from '../types';
 
 export const STORAGE_LAST_ACTIVE_ALBUM = 'last_active_album';
 
 export interface ParsedRouteState {
   albumQuery: string | null;
   mediaQuery: string | null;
+  sortQuery: string | null;
 }
 
 /**
@@ -59,12 +60,13 @@ export function getMediaSlug(item: StageMediaItem | string): string {
  */
 export function parseUrlState(): ParsedRouteState {
   if (typeof window === 'undefined') {
-    return { albumQuery: null, mediaQuery: null };
+    return { albumQuery: null, mediaQuery: null, sortQuery: null };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
   let albumQuery = searchParams.get('album');
   let mediaQuery = searchParams.get('media') || searchParams.get('item') || searchParams.get('view');
+  let sortQuery = searchParams.get('sort');
 
   // Check window.location.hash as fallback
   if (window.location.hash) {
@@ -72,11 +74,18 @@ export function parseUrlState(): ParsedRouteState {
     if (hash.startsWith('album/')) {
       albumQuery = hash.replace(/^album\//, '');
     } else if (hash.startsWith('view/')) {
-      mediaQuery = hash.replace(/^view\//, '');
+      const val = hash.replace(/^view\//, '');
+      if (/\.(mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|gif|avif)$/i.test(val)) {
+        mediaQuery = val;
+      } else {
+        albumQuery = val;
+        mediaQuery = val;
+      }
     } else if (hash.includes('=')) {
       const hashParams = new URLSearchParams(hash);
       if (!albumQuery) albumQuery = hashParams.get('album');
       if (!mediaQuery) mediaQuery = hashParams.get('media') || hashParams.get('item') || hashParams.get('view');
+      if (!sortQuery) sortQuery = hashParams.get('sort');
     } else if (hash) {
       if (/\.(mp4|mov|mkv|webm|jpg|jpeg|png|webp|gif|avif)$/i.test(hash)) {
         if (!mediaQuery) mediaQuery = hash;
@@ -89,6 +98,7 @@ export function parseUrlState(): ParsedRouteState {
   return {
     albumQuery: albumQuery ? decodeURIComponent(albumQuery) : null,
     mediaQuery: mediaQuery ? decodeURIComponent(mediaQuery) : null,
+    sortQuery: sortQuery ? decodeURIComponent(sortQuery) : null,
   };
 }
 
@@ -215,17 +225,24 @@ export function findMatchingMediaItem(
 export interface SyncUrlStateOptions {
   album?: AlbumData | MediaFolderEntry | string | null;
   mediaItem?: StageMediaItem | null;
+  sort?: SortOrder;
   replace?: boolean;
 }
 
 /**
  * Synchronizes browser URL search parameters without full page reload.
  */
-export function syncUrlState({ album, mediaItem, replace = true }: SyncUrlStateOptions): void {
+export function syncUrlState({ album, mediaItem, sort, replace = true }: SyncUrlStateOptions): void {
   if (typeof window === 'undefined') return;
 
   const url = new URL(window.location.href);
   const searchParams = url.searchParams;
+
+  if (sort && sort !== 'newest') {
+    searchParams.set('sort', sort);
+  } else {
+    searchParams.delete('sort');
+  }
 
   if (album) {
     const albumSlug = typeof album === 'string' ? getAlbumSlug(album) : getAlbumSlug(album.name);

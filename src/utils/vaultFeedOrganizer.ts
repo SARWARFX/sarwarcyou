@@ -1,4 +1,4 @@
-import type { HfMediaCatalog, StageMediaItem, MediaFolderEntry } from '../types';
+import type { HfMediaCatalog, StageMediaItem, MediaFolderEntry, SortOrder } from '../types';
 import { getMediaUrl } from './imageUrlResolver';
 import {
   isHiddenOrSystemPath,
@@ -8,7 +8,7 @@ import {
   parseMediaPath,
   isVideoExtension,
 } from './mediaTypeDetector';
-import { getItemTimestamp } from './albumExtractor';
+import { getItemTimestamp, sortMediaItems } from './albumExtractor';
 import { getVideoThumbnails } from './thumbnailResolver';
 import { sanitizeMediaTitle } from './titleSanitizer';
 
@@ -58,7 +58,10 @@ function formatFolderName(raw: string, mediaTypeHint?: 'video' | 'image' | 'comp
     .join(' ');
 }
 
-export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): VaultFeedData {
+export function organizeVaultFeed(
+  catalog: HfMediaCatalog | null | undefined,
+  sortOrder: SortOrder = 'newest'
+): VaultFeedData {
   if (!catalog) {
     return {
       latestReleases: [],
@@ -77,7 +80,7 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
   const extraItemsByAlbum = new Map<string, StageMediaItem[]>();
 
   // 1. Process Shorts
-  const shortsItems: StageMediaItem[] = shortsRaw
+  const rawShortsItems: StageMediaItem[] = shortsRaw
     .filter((it) => {
       const p = it.path || it.name || it.url;
       return !isHiddenOrSystemPath(p) && !isExcludedAlbum(p);
@@ -114,8 +117,9 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       }
 
       return item;
-    })
-    .sort((a, b) => (b.date || 0) - (a.date || 0));
+    });
+
+  const shortsItems = sortMediaItems(rawShortsItems, sortOrder);
 
   // 2. Process Clips into Dynamic Folders
   const clipFolderMap = new Map<string, StageMediaItem[]>();
@@ -167,7 +171,7 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       name: formatFolderName(rawSubfolder, 'video'),
       type: 'video' as const,
       count: items.length,
-      items: items.sort((a, b) => (b.date || 0) - (a.date || 0)),
+      items: sortMediaItems(items, sortOrder),
     }))
     .sort((a, b) => {
       const idxA = videoOrder.findIndex((k) => a.name.toLowerCase().includes(k));
@@ -249,7 +253,7 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
           clips: clipsCount,
           shorts: shortsCount,
         },
-        items: combinedItems.sort((a, b) => (b.date || 0) - (a.date || 0)),
+        items: sortMediaItems(combinedItems, sortOrder),
       };
     })
     .sort((a, b) => {
@@ -261,23 +265,24 @@ export function organizeVaultFeed(catalog: HfMediaCatalog | null | undefined): V
       return a.name.localeCompare(b.name);
     });
 
-  // 4. Unified Latest Releases: Top 30 newest items aggregated from ALL folders and depths
-  const allMediaPool: StageMediaItem[] = [];
+  // 4. Unified Latest Releases: Top 30 items aggregated from ALL folders and depths
+  const rawMediaPool: StageMediaItem[] = [];
   const seenUrls = new Set<string>();
 
   const addToPool = (it: StageMediaItem) => {
     if (!it.url || seenUrls.has(it.url)) return;
     seenUrls.add(it.url);
-    allMediaPool.push(it);
+    rawMediaPool.push(it);
   };
 
   shortsItems.forEach(addToPool);
   videoVaultFolders.forEach((f) => f.items.forEach(addToPool));
   photoVaultFolders.forEach((f) => f.items.forEach(addToPool));
 
-  const latestReleases = allMediaPool
-    .sort((a, b) => (b.date || 0) - (a.date || 0))
-    .slice(0, 30);
+  const allMediaPool = sortMediaItems(rawMediaPool, sortOrder);
+
+  // Latest Releases is strictly sorted by newest date first
+  const latestReleases = sortMediaItems(rawMediaPool, 'newest').slice(0, 30);
 
   return {
     latestReleases,

@@ -48,6 +48,7 @@ import {
   isThumbnailFile,
   parseMediaPath,
 } from './utils/mediaTypeDetector';
+import { extractTimestampFromPath } from './utils/albumExtractor';
 import { MEDIA_CDN_BASE, getMediaUrl } from './utils/imageUrlResolver';
 
 export { MEDIA_CDN_BASE, getMediaUrl };
@@ -331,11 +332,7 @@ export function parseTreeToCatalog(
     }
 
     if (!itemDate) {
-      const match = path.match(/(202[4-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
-      if (match) {
-        const parsed = new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10)).getTime();
-        if (!isNaN(parsed)) itemDate = parsed;
-      }
+      itemDate = extractTimestampFromPath(path);
     }
 
     const parsedPath = parseMediaPath(path);
@@ -360,6 +357,18 @@ export function parseTreeToCatalog(
       }
     }
   }
+
+  // Sort all catalog items strictly chronologically (newest uploads first)
+  const sortByNewest = (a: HfMediaItem, b: HfMediaItem) => {
+    const timeA = a.date || (a.lastCommit?.date ? new Date(a.lastCommit.date).getTime() : 0) || extractTimestampFromPath(a.path || a.name);
+    const timeB = b.date || (b.lastCommit?.date ? new Date(b.lastCommit.date).getTime() : 0) || extractTimestampFromPath(b.path || b.name);
+    if (timeB !== timeA) return timeB - timeA;
+    return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
+  };
+
+  clips.sort(sortByNewest);
+  shorts.sort(sortByNewest);
+  images.sort(sortByNewest);
 
   return { clips, shorts, images };
 }
@@ -512,7 +521,10 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
           const cInfo =
             commitMetadata.get(path.toLowerCase()) ||
             commitMetadata.get(name.toLowerCase());
-          const date = cInfo ? cInfo.date : x.date;
+          let date = cInfo ? cInfo.date : x.date;
+          if (!date) {
+            date = extractTimestampFromPath(path || name);
+          }
           const lastCommit = cInfo
             ? { date: new Date(cInfo.date).toISOString(), title: cInfo.title, id: cInfo.id }
             : x.lastCommit;
@@ -524,20 +536,34 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
           };
         };
 
+        const sortItems = (arr: HfMediaItem[]) =>
+          [...arr].sort((a, b) => {
+            const timeA = a.date || (a.lastCommit?.date ? new Date(a.lastCommit.date).getTime() : 0) || extractTimestampFromPath(a.path || a.name);
+            const timeB = b.date || (b.lastCommit?.date ? new Date(b.lastCommit.date).getTime() : 0) || extractTimestampFromPath(b.path || b.name);
+            if (timeB !== timeA) return timeB - timeA;
+            return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
+          });
+
         const catalog: HfMediaCatalog = {
-          clips: (rawData.clips || [])
-            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-            .map(enrichItem),
-          shorts: (rawData.shorts || [])
-            .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
-            .map(enrichItem),
-          images: (rawData.images || [])
-            .filter(
-              (x: HfMediaItem) =>
-                !isHiddenOrSystemPath(x.path || x.name || x.url) &&
-                !isThumbnailFile(x.path || x.name || x.url)
-            )
-            .map(enrichItem),
+          clips: sortItems(
+            (rawData.clips || [])
+              .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+              .map(enrichItem)
+          ),
+          shorts: sortItems(
+            (rawData.shorts || [])
+              .filter((x: HfMediaItem) => !isHiddenOrSystemPath(x.path || x.name || x.url))
+              .map(enrichItem)
+          ),
+          images: sortItems(
+            (rawData.images || [])
+              .filter(
+                (x: HfMediaItem) =>
+                  !isHiddenOrSystemPath(x.path || x.name || x.url) &&
+                  !isThumbnailFile(x.path || x.name || x.url)
+              )
+              .map(enrichItem)
+          ),
         };
         setCachedCatalog(catalog);
         return catalog;
@@ -551,20 +577,39 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
   return getNormalizedFallbackCatalog();
 }
 
-const getNormalizedFallbackCatalog = (): HfMediaCatalog => ({
-  clips: (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
-    ...x,
-    url: getMediaUrl(x.url || x.path || x.name),
-  })),
-  shorts: (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
-    ...x,
-    url: getMediaUrl(x.url || x.path || x.name),
-  })),
-  images: (FALLBACK_HF_CATALOG.images || []).map((x) => ({
-    ...x,
-    url: getMediaUrl(x.url || x.path || x.name),
-  })),
-});
+const getNormalizedFallbackCatalog = (): HfMediaCatalog => {
+  const sortItems = (arr: HfMediaItem[]) =>
+    [...arr].sort((a, b) => {
+      const timeA = a.date || (a.lastCommit?.date ? new Date(a.lastCommit.date).getTime() : 0) || extractTimestampFromPath(a.path || a.name);
+      const timeB = b.date || (b.lastCommit?.date ? new Date(b.lastCommit.date).getTime() : 0) || extractTimestampFromPath(b.path || b.name);
+      if (timeB !== timeA) return timeB - timeA;
+      return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
+    });
+
+  return {
+    clips: sortItems(
+      (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
+        ...x,
+        date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+        url: getMediaUrl(x.url || x.path || x.name),
+      }))
+    ),
+    shorts: sortItems(
+      (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
+        ...x,
+        date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+        url: getMediaUrl(x.url || x.path || x.name),
+      }))
+    ),
+    images: sortItems(
+      (FALLBACK_HF_CATALOG.images || []).map((x) => ({
+        ...x,
+        date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+        url: getMediaUrl(x.url || x.path || x.name),
+      }))
+    ),
+  };
+};
 
 export const useMediaData = () => {
   const initialData =

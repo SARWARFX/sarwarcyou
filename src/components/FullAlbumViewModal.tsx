@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ArrowLeft, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Check } from 'lucide-react';
-import type { StageMediaItem } from '../types';
+import { ArrowLeft, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Check, ArrowUpDown } from 'lucide-react';
+import type { StageMediaItem, SortOrder } from '../types';
 import { CyberCard } from './CyberCard';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
-import { sortMediaItemsDescending } from '../utils/albumExtractor';
+import { sortMediaItems } from '../utils/albumExtractor';
 import { createShareableAlbumUrl, copyToClipboard } from '../utils/urlRouter';
 
 export type FullAlbumSubFilter = 'all' | 'photos' | 'clips' | 'shorts';
@@ -87,6 +87,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
 }) => {
   useLockBodyScroll(isOpen);
   const [subFilter, setSubFilter] = useState<FullAlbumSubFilter>('all');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [copied, setCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -101,10 +102,11 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
     }
   }, [title]);
 
-  // Reset subfilter when opening a new album
+  // Reset subfilter & sort when opening a new album
   useEffect(() => {
     if (isOpen) {
       setSubFilter('all');
+      setSortOrder('newest');
       setCopied(false);
       setToastMessage(null);
     }
@@ -122,10 +124,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // 1. Sort items by latest (dateModified / upload timestamp descending)
+  // 1. Sort items by active sort order (Newest First by default)
   const sortedItems = useMemo(() => {
-    return sortMediaItemsDescending(items);
-  }, [items]);
+    return sortMediaItems(items, sortOrder);
+  }, [items, sortOrder]);
 
   // Compute breakdown counts
   const counts = useMemo(() => {
@@ -270,6 +272,21 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
               )}
             </div>
           )}
+
+          {/* Sort Dropdown Control */}
+          <div className="flex items-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.08] px-2.5 py-1 rounded-full border border-white/10 transition-colors text-xs font-mono">
+            <ArrowUpDown className="w-3.5 h-3.5 text-[#00E5FF] flex-shrink-0" />
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+              className="bg-transparent text-zinc-300 hover:text-white font-medium text-[11px] focus:outline-none cursor-pointer pr-1"
+              aria-label="Sort album media"
+            >
+              <option value="newest" className="bg-[#0b0c10] text-white">Newest First</option>
+              <option value="oldest" className="bg-[#0b0c10] text-white">Oldest First</option>
+              <option value="name-asc" className="bg-[#0b0c10] text-white">Name (A–Z)</option>
+            </select>
+          </div>
 
           {/* Subtle Share / Copy Link Button */}
           <button

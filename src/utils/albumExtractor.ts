@@ -1,4 +1,4 @@
-import type { ApiResponseData, HfMediaCatalog, HfMediaItem, AlbumData, StageMediaItem } from '../types';
+import type { ApiResponseData, HfMediaCatalog, HfMediaItem, AlbumData, StageMediaItem, SortOrder } from '../types';
 import { FALLBACK_HF_CATALOG, FALLBACK_MEDIA_DATA } from '../data/fallbackData';
 import { getDirectImageUrl, getMediaUrl } from './imageUrlResolver';
 import {
@@ -19,23 +19,62 @@ function isHfCatalog(data: unknown): data is HfMediaCatalog {
 }
 
 /**
- * Extracts a numeric timestamp from filename or path string (e.g. 20260930, 2025-08-14, 2024).
+ * Extracts a numeric timestamp from filename or path string.
+ * Supports:
+ * - 13-digit Unix millisecond epoch (e.g. FB_IMG_1753219228097.jpg)
+ * - 10-digit Unix second epoch (e.g. 1753219228)
+ * - Date-time stamps: YYYYMMDD_HHMMSS or YYYY-MM-DD-HH-MM-SS or ISO
+ * - Standard date patterns: YYYYMMDD, YYYY-MM-DD, VID_YYYYMMDD_..., IMG_YYYYMMDD_...
+ * - Folder/filename year patterns (H2027, H2026, H2025, 2024...)
  */
 export function extractTimestampFromPath(str: string): number {
   if (!str) return 0;
-  const match = str.match(/(202[4-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
-  if (match) {
-    const parsed = new Date(
-      parseInt(match[1], 10),
-      parseInt(match[2], 10) - 1,
-      parseInt(match[3], 10)
-    ).getTime();
-    if (!isNaN(parsed)) return parsed;
+
+  // 1. Millisecond Unix timestamp (13 digits: ~1600000000000 to ~1899999999999)
+  const msMatch = str.match(/(?:^|[^0-9])(1[6-8][0-9]{11})(?:[^0-9]|$)/);
+  if (msMatch) {
+    const val = parseInt(msMatch[1], 10);
+    if (!isNaN(val) && val > 0) return val;
   }
-  const yearMatch = str.match(/(202[0-9])/);
+
+  // 2. Second Unix timestamp (10 digits: ~1600000000 to ~1899999999)
+  const secMatch = str.match(/(?:^|[^0-9])(1[6-8][0-9]{8})(?:[^0-9]|$)/);
+  if (secMatch) {
+    const val = parseInt(secMatch[1], 10) * 1000;
+    if (!isNaN(val) && val > 0) return val;
+  }
+
+  // 3. Date with optional time (YYYYMMDD_HHMMSS or YYYY-MM-DD-HH-MM-SS or ISO)
+  const dateTimeMatch = str.match(
+    /(202[0-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])[-_T ]?([0-2][0-9])[-_:]?([0-5][0-9])(?:[-_:]?([0-5][0-9]))?/
+  );
+  if (dateTimeMatch) {
+    const y = parseInt(dateTimeMatch[1], 10);
+    const m = parseInt(dateTimeMatch[2], 10) - 1;
+    const d = parseInt(dateTimeMatch[3], 10);
+    const hh = dateTimeMatch[4] ? parseInt(dateTimeMatch[4], 10) : 12;
+    const mm = dateTimeMatch[5] ? parseInt(dateTimeMatch[5], 10) : 0;
+    const ss = dateTimeMatch[6] ? parseInt(dateTimeMatch[6], 10) : 0;
+    const dt = new Date(y, m, d, hh, mm, ss).getTime();
+    if (!isNaN(dt) && dt > 0) return dt;
+  }
+
+  // 4. Date only (YYYYMMDD or YYYY-MM-DD)
+  const dateMatch = str.match(/(202[0-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
+  if (dateMatch) {
+    const y = parseInt(dateMatch[1], 10);
+    const m = parseInt(dateMatch[2], 10) - 1;
+    const d = parseInt(dateMatch[3], 10);
+    const dt = new Date(y, m, d, 12, 0, 0).getTime();
+    if (!isNaN(dt) && dt > 0) return dt;
+  }
+
+  // 5. Year in path or filename (e.g. H2027 -> 2027, 2026 -> 2026, 2025 -> 2025)
+  const yearMatch = str.match(/(?:H|Year)?(202[0-9])/i);
   if (yearMatch) {
     return new Date(parseInt(yearMatch[1], 10), 0, 1).getTime();
   }
+
   return 0;
 }
 
@@ -43,7 +82,7 @@ export function extractTimestampFromPath(str: string): number {
  * Returns the effective timestamp for any media item, prioritizing:
  * 1. dateModified / modified / uploadDate / timestamp
  * 2. item.date / item.lastCommit.date
- * 3. Filename/path numeric timestamp patterns (YYYYMMDD)
+ * 3. Filename/path numeric timestamp patterns (YYYYMMDD, Unix epochs, etc.)
  */
 export function getItemTimestamp(item: {
   date?: number;
@@ -58,7 +97,11 @@ export function getItemTimestamp(item: {
   uploadDate?: string | number;
   timestamp?: string | number;
 }): number {
-  const dm = (item as any).dateModified || (item as any).modified || (item as any).uploadDate || (item as any).timestamp;
+  const dm =
+    (item as any).dateModified ||
+    (item as any).modified ||
+    (item as any).uploadDate ||
+    (item as any).timestamp;
   if (dm) {
     if (typeof dm === 'number' && dm > 0) return dm;
     const parsed = new Date(dm).getTime();
@@ -74,25 +117,41 @@ export function getItemTimestamp(item: {
 }
 
 /**
- * Sorts any list of StageMediaItem strictly in descending order (latest first):
- * Primary: Newest dateModified / commit / upload timestamp first
- * Secondary Fallback: Natural descending order by title / filename / index (b.localeCompare(a))
+ * Universal sort function for StageMediaItem collections:
+ * - 'newest' (Default): Newest dateModified / commit / upload timestamp first
+ * - 'oldest': Oldest dateModified / commit / upload timestamp first
+ * - 'name-asc': Alphabetical order by title / filename (A–Z)
  */
-export function sortMediaItemsDescending(items: StageMediaItem[]): StageMediaItem[] {
+export function sortMediaItems(items: StageMediaItem[], order: SortOrder = 'newest'): StageMediaItem[] {
   return [...items].sort((a, b) => {
+    if (order === 'name-asc') {
+      const nameA = a.title || a.name || a.id || '';
+      const nameB = b.title || b.name || b.id || '';
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    }
     const timeA = getItemTimestamp(a);
     const timeB = getItemTimestamp(b);
-
-    // Primary: Newest commit / upload timestamp first
-    if (timeB !== timeA) {
-      return timeB - timeA;
+    if (order === 'oldest') {
+      if (timeA !== timeB) return timeA - timeB;
+      const nameA = a.title || a.name || a.id || '';
+      const nameB = b.title || b.name || b.id || '';
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
     }
-
-    // Secondary Fallback: Natural descending order by filename / title / numeric index
+    // Default: 'newest'
+    if (timeB !== timeA) return timeB - timeA;
     const nameA = a.name || a.title || a.id || '';
     const nameB = b.name || b.title || b.id || '';
     return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
   });
+}
+
+/**
+ * Sorts any list of StageMediaItem strictly in descending order (latest first):
+ * Primary: Newest dateModified / commit / upload timestamp first
+ * Secondary Fallback: Natural descending order by title / filename / index
+ */
+export function sortMediaItemsDescending(items: StageMediaItem[]): StageMediaItem[] {
+  return sortMediaItems(items, 'newest');
 }
 
 /**

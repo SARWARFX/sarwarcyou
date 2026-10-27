@@ -126,3 +126,5 @@ export interface AlbumData {
   subtitle?: string;
 }
 
+export type SortOrder = 'newest' | 'oldest' | 'name-asc';
+
