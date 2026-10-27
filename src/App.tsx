@@ -400,27 +400,23 @@ function App() {
   }, [rawFeed.albums, searchQuery]);
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden relative bg-[#030305] text-white min-h-screen selection:bg-[#00E5FF] selection:text-black">
+    <div
+      className="w-full max-w-full overflow-x-hidden relative min-h-screen transition-colors duration-200"
+      style={{
+        backgroundColor: 'var(--bg-page)',
+        color: 'var(--text-primary)',
+      }}
+    >
       {/* 1. Compact Right-Docked Vertical Navigation Bar (Fixed at right: 0, top: 50%) */}
       <RightDockedNav
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
       />
 
-      {/* Main Content Stage with padding on right to avoid navigation occlusion */}
-      <div className="w-full pr-14 sm:pr-18 pb-12 flex flex-col min-h-screen">
-        {/* Clean Website Brand Header (Plain wordmark without play button or fluff) */}
-        <header className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-5 pb-2 flex items-center justify-between select-none">
-          <span
-            onClick={handleResetHome}
-            className="text-base sm:text-lg font-black font-sans tracking-widest text-zinc-200 hover:text-white uppercase cursor-pointer"
-          >
-            SARWARCYOU
-          </span>
-        </header>
-
+      {/* Main Content Stage: Starts directly with content / first album row */}
+      <div className="w-full pr-14 sm:pr-18 pt-5 sm:pt-7 pb-12 flex flex-col min-h-screen">
         {/* 2. Structured Discovery Feed: Tagged Album Sections with Instant In-Place Filtering */}
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-2 flex flex-col gap-7 sm:gap-9">
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 flex flex-col gap-6 sm:gap-8">
           {/* Loading State Skeleton */}
           {isLoading && !data && (
             <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
@@ -483,11 +479,16 @@ function App() {
         onClick={handleScrollToTop}
         aria-label="Scroll back to top"
         title="Back to top"
-        className={`fixed bottom-6 right-4 sm:right-6 z-40 p-2.5 rounded-full bg-black/80 hover:bg-black text-zinc-400 hover:text-white border border-white/10 shadow-lg transition-all duration-200 cursor-pointer ${
+        className={`fixed bottom-6 right-4 sm:right-6 z-40 p-2.5 rounded-full shadow-lg transition-all duration-200 cursor-pointer ${
           showBackToTop
             ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
             : 'opacity-0 translate-y-4 pointer-events-none scale-90'
         }`}
+        style={{
+          backgroundColor: 'var(--nav-bg)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--nav-border)',
+        }}
       >
         <ChevronUp className="w-4 h-4" />
       </button>

@@ -36,7 +36,15 @@ export const RightDockedNav: React.FC<RightDockedNavProps> = ({
         zIndex: 1000,
       }}
     >
-      <div className="bg-[#000000] border-l border-y border-white/20 rounded-l-2xl shadow-[0_8px_30px_rgba(0,0,0,0.95)] py-2 px-1 sm:px-1.5 flex flex-col items-center gap-1.5">
+      <div
+        className="rounded-l-2xl py-2 px-1 sm:px-1.5 flex flex-col items-center gap-1.5 shadow-2xl transition-colors duration-200"
+        style={{
+          backgroundColor: 'var(--nav-bg)',
+          borderLeft: '1px solid var(--nav-border)',
+          borderTop: '1px solid var(--nav-border)',
+          borderBottom: '1px solid var(--nav-border)',
+        }}
+      >
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = activeFilter === item.id;
@@ -45,16 +53,16 @@ export const RightDockedNav: React.FC<RightDockedNavProps> = ({
               key={item.id}
               type="button"
               onClick={() => onFilterChange(item.id)}
-              className={`flex flex-col items-center justify-center w-13 sm:w-15 py-2 px-1 rounded-xl transition-all duration-150 cursor-pointer ${
-                isActive
-                  ? 'bg-white text-black font-bold shadow-md'
-                  : 'text-zinc-300 hover:text-white hover:bg-white/10'
-              }`}
+              className="flex flex-col items-center justify-center w-13 sm:w-15 py-2 px-1 rounded-xl transition-all duration-150 cursor-pointer"
+              style={{
+                backgroundColor: isActive ? 'var(--nav-active-bg)' : 'transparent',
+                color: isActive ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+              }}
               title={item.label}
               aria-label={item.label}
               aria-pressed={isActive}
             >
-              <Icon className={`w-4 h-4 mb-0.5 ${isActive ? 'text-black' : 'text-white'}`} />
+              <Icon className="w-4 h-4 mb-0.5" />
               <span className="text-[9px] font-sans font-medium tracking-tight leading-tight text-center">
                 {item.label}
               </span>

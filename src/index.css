@@ -11,7 +11,40 @@
   --color-cyber-violet: #8B5CF6;
 }
 
-/* Zero default outline & tap highlights */
+:root {
+  --bg-page: #ffffff;
+  --text-primary: #000000;
+  --text-secondary: #52525b;
+  --card-bg: #f4f4f5;
+  --nav-bg: #ffffff;
+  --nav-border: rgba(0, 0, 0, 0.15);
+  --nav-btn-text: #27272a;
+  --nav-btn-hover: rgba(0, 0, 0, 0.06);
+  --nav-active-bg: #000000;
+  --nav-active-text: #ffffff;
+  --footer-border: rgba(0, 0, 0, 0.08);
+  --footer-text: #71717a;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-page: #000000;
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+    --card-bg: #0c0d12;
+    --nav-bg: #000000;
+    --nav-border: rgba(255, 255, 255, 0.2);
+    --nav-btn-text: #d4d4d8;
+    --nav-btn-hover: rgba(255, 255, 255, 0.1);
+    --nav-active-bg: #ffffff;
+    --nav-active-text: #000000;
+    --footer-border: rgba(255, 255, 255, 0.08);
+    --footer-text: #71717a;
+  }
+}
+
+/* Zero default outline & tap highlights & borderless media cards */
 *, *::before, *::after {
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
@@ -19,6 +52,14 @@
 
 *, *:focus, *:focus-visible {
   outline: none !important;
+}
+
+/* Media Cards: Strictly zero border, zero outline, zero box-shadow */
+.media-card,
+[data-media-card="true"] {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 html, body {
@@ -29,13 +70,14 @@ html, body {
   min-height: 100%;
   overflow-x: hidden;
   position: relative;
-  background-color: #030305;
-  color: #FFFFFF;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
   font-family: 'Rajdhani', sans-serif;
   letter-spacing: 0.025em;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
@@ -44,7 +86,8 @@ html, body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
-  background-color: #030305;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 /* Style 3: Smoked Frosted Glass UI */

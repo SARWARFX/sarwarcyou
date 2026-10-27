@@ -59,12 +59,19 @@ const MasonryImageCard: React.FC<{
   return (
     <div
       onClick={onClick}
-      className="break-inside-avoid mb-3 relative group rounded-xl overflow-hidden bg-[#0c0d12] border border-white/10 hover:border-[#00E5FF]/60 transition-all duration-200 shadow-sm cursor-pointer select-none"
-      style={{ contain: 'paint', transform: 'translateZ(0)' }}
+      data-media-card="true"
+      className="media-card break-inside-avoid mb-3 relative group rounded-lg overflow-hidden bg-[var(--card-bg)] transition-transform duration-150 active:scale-95 cursor-pointer select-none"
+      style={{
+        border: 'none',
+        outline: 'none',
+        boxShadow: 'none',
+        contain: 'paint',
+        transform: 'translateZ(0)',
+      }}
     >
       {isVideo ? (
-        <div className="w-full aspect-video bg-gradient-to-br from-[#13141c] via-[#0b0c10] to-[#050608] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-          {posterImage && (
+        <div className="w-full aspect-video bg-[var(--card-bg)] flex flex-col items-center justify-center relative overflow-hidden">
+          {posterImage ? (
             <img
               src={posterImage}
               alt={cleanTitle}
@@ -72,9 +79,17 @@ const MasonryImageCard: React.FC<{
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
+          ) : (
+            <video
+              src={cleanMediaUrl.includes('#') ? cleanMediaUrl : `${cleanMediaUrl}#t=1.0`}
+              preload="metadata"
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            />
           )}
-          <div className="relative z-10 w-11 h-11 rounded-full bg-white/15 group-hover:bg-[#00E5FF]/25 border border-white/20 group-hover:border-[#00E5FF]/60 flex items-center justify-center text-white group-hover:text-[#00E5FF] transition-all duration-200 shadow-md group-hover:scale-110">
-            <Play className="w-4 h-4 fill-current ml-0.5" />
+          <div className="relative z-10 w-9 h-9 rounded-full bg-black/60 flex items-center justify-center text-white shadow-sm">
+            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
           </div>
         </div>
       ) : (

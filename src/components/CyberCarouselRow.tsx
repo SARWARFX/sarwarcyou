@@ -35,7 +35,7 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
     <section className="w-full flex flex-col gap-2.5 select-none">
       {/* Clean Album Header: Only Album Name + View All */}
       <div className="flex items-center justify-between gap-2 px-1">
-        <h2 className="text-sm sm:text-base md:text-lg font-bold font-sans tracking-wide text-zinc-100 uppercase truncate">
+        <h2 className="text-sm sm:text-base md:text-lg font-bold font-sans tracking-wide uppercase truncate" style={{ color: 'var(--text-primary)' }}>
           {title}
         </h2>
 
@@ -43,7 +43,8 @@ export const CyberCarouselRow: React.FC<CyberCarouselRowProps> = ({
           <button
             type="button"
             onClick={onViewAll}
-            className="flex items-center gap-1 text-xs font-mono text-zinc-400 hover:text-white transition-colors cursor-pointer flex-shrink-0"
+            className="flex items-center gap-1 text-xs font-mono transition-colors cursor-pointer flex-shrink-0"
+            style={{ color: 'var(--text-secondary)' }}
             aria-label={`View all items in ${title}`}
           >
             <span>View All</span>

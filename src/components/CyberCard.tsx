@@ -4,6 +4,7 @@ import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import { generateVideoThumbnail, getCachedVideoThumbnail } from '../utils/videoThumbnailGenerator';
 
 export interface CyberCardProps {
   item: StageMediaItem;
@@ -24,7 +25,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
   const [isInViewport, setIsInViewport] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Viewport observer to pause cycling when card is offscreen
+  // Viewport observer to pause cycling & control offscreen media
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
@@ -108,6 +109,33 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     return null;
   }, [isVideo, cleanMediaUrl, activeItem.poster, activeItem.posterUrl, activeItem.thumbnail]);
 
+  // Visual thumbnail state for video files without static poster image
+  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
+    return isVideo && !posterImage ? getCachedVideoThumbnail(cleanMediaUrl) : null;
+  });
+
+  useEffect(() => {
+    if (!isVideo || posterImage) return;
+
+    const cached = getCachedVideoThumbnail(cleanMediaUrl);
+    if (cached) {
+      setVideoThumb(cached);
+      return;
+    }
+
+    if (isInViewport) {
+      let isSubscribed = true;
+      generateVideoThumbnail(cleanMediaUrl, isShort ? '9/16' : '16/9').then((dataUrl) => {
+        if (isSubscribed && dataUrl) {
+          setVideoThumb(dataUrl);
+        }
+      });
+      return () => {
+        isSubscribed = false;
+      };
+    }
+  }, [isVideo, posterImage, cleanMediaUrl, isInViewport, isShort]);
+
   const effectiveVariant = isShort ? 'shorts' : (isVideo && variant === 'photo' ? 'standard' : variant);
 
   const sizeClass = {
@@ -116,38 +144,35 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     photo: 'w-[140px] sm:w-[160px] aspect-[3/4]',
   }[effectiveVariant];
 
+  const displayImageSrc = posterImage || videoThumb;
+
   return (
     <div
       ref={cardRef}
       onClick={() => onClick(activeItem)}
       role="button"
       tabIndex={0}
+      data-media-card="true"
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onClick(activeItem);
         }
       }}
-      className={`group relative flex-shrink-0 cursor-pointer select-none rounded-xl overflow-hidden bg-[#0c0d12] border border-white/10 hover:border-white/40 transition-transform duration-150 active:scale-95 ${sizeClass}`}
+      className={`media-card group relative flex-shrink-0 cursor-pointer select-none rounded-lg overflow-hidden bg-[var(--card-bg)] transition-transform duration-150 active:scale-95 ${sizeClass}`}
       style={{
+        border: 'none',
+        outline: 'none',
+        boxShadow: 'none',
         contain: 'paint',
         transform: 'translateZ(0)',
       }}
     >
-      {/* 1. Minimal Card Base / Fallback */}
-      <div className="absolute inset-0 bg-[#0e0f14] flex flex-col items-center justify-center p-2 z-0">
-        {isVideo && (
-          <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-sm">
-            <Play className="w-4 h-4 fill-current ml-0.5" />
-          </div>
-        )}
-      </div>
-
-      {/* 2. Lazy Poster / Thumbnail Layer */}
-      {posterImage && (
+      {/* 1. Visual Thumbnail Layer (Captured canvas frame or photo image) */}
+      {displayImageSrc ? (
         <img
-          key={posterImage}
-          src={posterImage}
+          key={displayImageSrc}
+          src={displayImageSrc}
           alt={cleanTitle}
           loading="lazy"
           decoding="async"
@@ -156,22 +181,31 @@ export const CyberCard: React.FC<CyberCardProps> = ({
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
-      )}
+      ) : isVideo && isInViewport ? (
+        /* 2. Direct Hardware-Accelerated Poster Fallback (Seeked to 1.0s, only while visible) */
+        <video
+          src={cleanMediaUrl.includes('#') ? cleanMediaUrl : `${cleanMediaUrl}#t=1.0`}
+          preload="metadata"
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none z-10"
+        />
+      ) : null}
 
-      {/* 3. Center Play Icon Overlay for Videos with Poster */}
-      {isVideo && posterImage && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none z-20">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 border border-white/30 flex items-center justify-center text-white shadow-md">
-            <Play className="w-4 h-4 fill-current ml-0.5" />
+      {/* 3. Center Play Icon Overlay for Videos */}
+      {isVideo && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-20">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/60 flex items-center justify-center text-white shadow-sm">
+            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
           </div>
         </div>
       )}
 
       {/* 4. Clean File Name Bar (Single-Line CSS Ellipsis Truncation, max-width: 120px) */}
-      <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent z-20 pointer-events-none flex items-center">
+      <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/85 via-black/45 to-transparent z-20 pointer-events-none flex items-center">
         <span
           title={cleanTitle}
-          className="text-[11px] font-sans font-medium text-zinc-100 block truncate"
+          className="text-[11px] font-sans font-medium text-white block truncate drop-shadow-sm"
           style={{
             whiteSpace: 'nowrap',
             overflow: 'hidden',
