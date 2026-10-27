@@ -106,6 +106,24 @@ html, body {
   border-radius: 9999px !important;
 }
 
+/* Dynamic Album Jump Highlight Effect */
+@keyframes albumJumpPulse {
+  0% {
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.9), 0 0 30px rgba(0, 229, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.6), 0 0 18px rgba(0, 229, 255, 0.2);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+.album-jump-highlight {
+  animation: albumJumpPulse 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  border-radius: 0.75rem;
+}
+
 /* Dynamic Animated Brand Gradient */
 @keyframes gradientShift {
   0% {

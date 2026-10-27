@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
 import { type CyberFilterType } from './components/CyberHeader';
-import { RightDockedNav } from './components/RightDockedNav';
+import { ResponsiveNav } from './components/ResponsiveNav';
 import { CyberCarouselRow } from './components/CyberCarouselRow';
 import { CyberVideoPlayer } from './components/CyberVideoPlayer';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
@@ -451,6 +451,52 @@ function App() {
     });
   }, [rawFeed.albums, searchQuery]);
 
+  // Category-specific album items for quick jump menus
+  const imageAlbums = useMemo(
+    () =>
+      albumList
+        .filter((a) => a.isImage && a.items.length > 0)
+        .map((a) => ({ id: a.id, name: a.name, count: a.items.length })),
+    [albumList]
+  );
+
+  const videoAlbums = useMemo(
+    () =>
+      albumList
+        .filter((a) => a.isVideo && a.items.length > 0)
+        .map((a) => ({ id: a.id, name: a.name, count: a.items.length })),
+    [albumList]
+  );
+
+  const shortAlbums = useMemo(
+    () =>
+      albumList
+        .filter((a) => a.isShort && a.items.length > 0)
+        .map((a) => ({ id: a.id, name: a.name, count: a.items.length })),
+    [albumList]
+  );
+
+  // Smooth scrolling & highlight dispatcher for quick jump menus
+  const handleJumpToAlbum = useCallback(
+    (albumId: string, category: CyberFilterType) => {
+      if (activeFilter !== 'all' && activeFilter !== category) {
+        setActiveFilter(category);
+      }
+
+      setTimeout(() => {
+        const el = document.getElementById(albumId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('album-jump-highlight');
+          setTimeout(() => {
+            el.classList.remove('album-jump-highlight');
+          }, 2000);
+        }
+      }, 60);
+    },
+    [activeFilter]
+  );
+
   return (
     <div
       className="w-full max-w-full overflow-x-hidden relative min-h-screen transition-colors duration-200"
@@ -459,14 +505,18 @@ function App() {
         color: 'var(--text-primary)',
       }}
     >
-      {/* 1. Compact Right-Docked Vertical Navigation Bar (Fixed at right: 0, top: 50%) */}
-      <RightDockedNav
+      {/* 1. Responsive Navigation: Desktop Top Header + Mobile Fixed Bottom Dock */}
+      <ResponsiveNav
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
+        imageAlbums={imageAlbums}
+        videoAlbums={videoAlbums}
+        shortAlbums={shortAlbums}
+        onJumpToAlbum={handleJumpToAlbum}
       />
 
-      {/* Main Content Stage: Starts directly with content / first album row */}
-      <div className="w-full pr-14 sm:pr-18 pt-5 sm:pt-7 pb-12 flex flex-col min-h-screen">
+      {/* Main Content Stage */}
+      <div className="w-full pt-2 sm:pt-4 pb-28 md:pb-16 flex flex-col min-h-screen">
         {/* 2. Structured Discovery Feed: Tagged Album Sections with Instant In-Place Filtering */}
         <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 flex flex-col gap-6 sm:gap-8">
           {/* Loading State Skeleton */}
@@ -498,7 +548,7 @@ function App() {
                 id={album.id}
                 data-type={album.dataType}
                 style={{ display: isVisible ? undefined : 'none' }}
-                className="scroll-mt-20 transition-all duration-150"
+                className="scroll-mt-24 transition-all duration-150"
               >
                 <CyberCarouselRow
                   title={album.name}
@@ -525,13 +575,13 @@ function App() {
         <SiteFooter onBackToTop={handleResetHome} className="mt-14" />
       </div>
 
-      {/* Floating Global Back-To-Top Button */}
+      {/* Floating Global Back-To-Top Button (Elevated on mobile above bottom dock) */}
       <button
         type="button"
         onClick={handleScrollToTop}
         aria-label="Scroll back to top"
         title="Back to top"
-        className={`fixed bottom-6 right-4 sm:right-6 z-40 p-2.5 rounded-full shadow-lg transition-all duration-200 cursor-pointer ${
+        className={`fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 p-2.5 rounded-full shadow-lg transition-all duration-200 cursor-pointer ${
           showBackToTop
             ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
             : 'opacity-0 translate-y-4 pointer-events-none scale-90'

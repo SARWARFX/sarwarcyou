@@ -12,6 +12,7 @@ import {
   Pause,
   Loader2,
   X,
+  ArrowLeft,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -493,6 +494,26 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       >
         <X className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
+
+      {/* Mobile Ergonomic Bottom Back Button (Thumb Reach) */}
+      <div className="fixed bottom-4 left-4 z-[170] md:hidden pointer-events-auto">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (videoRef.current) {
+              videoRef.current.pause();
+            }
+            setIsPlaying(false);
+            handleClose();
+          }}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-black/85 hover:bg-black text-white text-xs font-mono uppercase tracking-wider border border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.9)] backdrop-blur-xl active:scale-95 transition-all cursor-pointer"
+          aria-label="Back to Vault"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back</span>
+        </button>
+      </div>
 
       {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
       <div className="relative flex items-center justify-center max-h-[92vh] max-w-[98vw] px-2 sm:px-4 md:px-6 gap-3 sm:gap-4 md:gap-6 overflow-hidden">
