@@ -528,7 +528,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       try {
         videoRef.current.pause();
         videoRef.current.removeAttribute('src');
-        videoRef.current.src = '';
         videoRef.current.load();
       } catch {
         // ignore

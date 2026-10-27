@@ -55,7 +55,7 @@ export async function extractVideoThumbnail(
         video.onloadeddata = null;
         video.onseeked = null;
         video.onerror = null;
-        video.src = '';
+        video.removeAttribute('src');
       };
 
       const fallbackTimer = setTimeout(() => {
@@ -189,7 +189,7 @@ export function prewarmVideoStream(videoUrl: string): void {
         prewarmVideo.onloadedmetadata = null;
         prewarmVideo.onerror = null;
         setTimeout(() => {
-          prewarmVideo.src = '';
+          prewarmVideo.removeAttribute('src');
           prewarmedMediaElements.delete(safeUrl);
         }, 30000);
       };

@@ -15,11 +15,13 @@ export const HF_COMMITS_API_URL =
 export const HF_OPTIMIZED_MANIFEST_URL =
   'https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main/.optimized_manifest.json';
 export const HF_CLIPS_TREE_API_URL =
-  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Clips?recursive=true';
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Video%20Clips?recursive=true';
 export const HF_IMAGES_TREE_API_URL =
-  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Images?recursive=true';
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Photographs?recursive=true';
 export const HF_SHORTS_TREE_API_URL =
   'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Shorts?recursive=true';
+export const HF_REALTUBE_TREE_API_URL =
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/REALTube?recursive=true';
 
 // Backwards-compatibility alias
 export const HUGGINGFACE_CATALOG_URL = HF_RAW_MEDIA_JSON_URL;
@@ -375,13 +377,14 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
     // Safety fallback: if root tree was truncated (< 500 items), fetch subtrees in parallel
     if (treeItems.length > 0 && treeItems.length < 500) {
       try {
-        const [clipsSub, imagesSub, shortsSub] = await Promise.allSettled([
+        const [clipsSub, imagesSub, shortsSub, realtubeSub] = await Promise.allSettled([
           fetchWithTimeout(HF_CLIPS_TREE_API_URL, {}, 3000).then((r) => (r.ok ? r.json() : [])),
           fetchWithTimeout(HF_IMAGES_TREE_API_URL, {}, 3000).then((r) => (r.ok ? r.json() : [])),
           fetchWithTimeout(HF_SHORTS_TREE_API_URL, {}, 3000).then((r) => (r.ok ? r.json() : [])),
+          fetchWithTimeout(HF_REALTUBE_TREE_API_URL, {}, 3000).then((r) => (r.ok ? r.json() : [])),
         ]);
         const seen = new Set(treeItems.map((x) => x.path));
-        for (const sub of [clipsSub, imagesSub, shortsSub]) {
+        for (const sub of [clipsSub, imagesSub, shortsSub, realtubeSub]) {
           if (sub.status === 'fulfilled' && Array.isArray(sub.value)) {
             for (const it of sub.value) {
               if (it && it.path && !seen.has(it.path)) {

@@ -80,13 +80,7 @@ const MasonryImageCard: React.FC<{
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <video
-              src={cleanMediaUrl.includes('#') ? cleanMediaUrl : `${cleanMediaUrl}#t=1.0`}
-              preload="metadata"
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            />
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950" />
           )}
           <div className="relative z-10 w-9 h-9 rounded-full bg-black/60 flex items-center justify-center text-white shadow-sm">
             <Play className="w-3.5 h-3.5 fill-current ml-0.5" />

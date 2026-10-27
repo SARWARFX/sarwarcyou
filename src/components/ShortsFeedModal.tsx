@@ -16,14 +16,10 @@ import {
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import {
-  formatVideoPosterUrl,
   prewarmVideoStream,
   getCachedVideoPoster,
 } from '../utils/videoPosterGenerator';
-import {
-  resolveMultiFrameThumbnails,
-  resolveMultiFrameThumbnailsExt,
-} from '../utils/thumbnailResolver';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -192,7 +188,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       try {
         videoRef.current.pause();
         videoRef.current.removeAttribute('src');
-        videoRef.current.src = '';
         videoRef.current.load();
       } catch {
         // ignore
@@ -418,56 +413,44 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const shortPoster = useMemo(() => {
     if (!currentShort) return '';
-    const multiThumbs = resolveMultiFrameThumbnails(currentShort);
-    const multiThumbsExt = resolveMultiFrameThumbnailsExt(currentShort);
     const raw = (
       currentShort.thumbnails?.[0] ||
-      multiThumbs[0] ||
-      multiThumbsExt[0] ||
       getCachedThumbnailSync(currentShort.url) ||
       getCachedVideoPoster(currentShort.url) ||
       currentShort.thumbnail ||
-      formatVideoPosterUrl(streamUrl, 0.5) ||
       ''
     );
-    return raw ? getMediaUrl(raw) : '';
-  }, [currentShort, streamUrl]);
+    if (!raw || isVideoExtension(raw)) return '';
+    return getMediaUrl(raw);
+  }, [currentShort]);
 
   const prevShort = currentIndex > 0 ? shorts[currentIndex - 1] : null;
   const nextShort = currentIndex < shorts.length - 1 ? shorts[currentIndex + 1] : null;
 
-
-
   const prevPoster = useMemo(() => {
     if (!prevShort) return '';
-    const multiThumbs = resolveMultiFrameThumbnails(prevShort);
-    const multiThumbsExt = resolveMultiFrameThumbnailsExt(prevShort);
     const raw = (
       prevShort.thumbnails?.[0] ||
-      multiThumbs[0] ||
-      multiThumbsExt[0] ||
       getCachedThumbnailSync(prevShort.url) ||
       getCachedVideoPoster(prevShort.url) ||
       prevShort.thumbnail ||
       ''
     );
-    return raw ? getMediaUrl(raw) : '';
+    if (!raw || isVideoExtension(raw)) return '';
+    return getMediaUrl(raw);
   }, [prevShort]);
 
   const nextPoster = useMemo(() => {
     if (!nextShort) return '';
-    const multiThumbs = resolveMultiFrameThumbnails(nextShort);
-    const multiThumbsExt = resolveMultiFrameThumbnailsExt(nextShort);
     const raw = (
       nextShort.thumbnails?.[0] ||
-      multiThumbs[0] ||
-      multiThumbsExt[0] ||
       getCachedThumbnailSync(nextShort.url) ||
       getCachedVideoPoster(nextShort.url) ||
       nextShort.thumbnail ||
       ''
     );
-    return raw ? getMediaUrl(raw) : '';
+    if (!raw || isVideoExtension(raw)) return '';
+    return getMediaUrl(raw);
   }, [nextShort]);
 
   if (!isOpen || !shorts.length) return null;

@@ -174,7 +174,7 @@ function extractFrameFromVideo(cleanUrl: string, isShort: boolean): Promise<stri
       video.onseeked = null;
       video.onerror = null;
       try {
-        video.src = '';
+        video.removeAttribute('src');
         video.load();
       } catch {
         // ignore

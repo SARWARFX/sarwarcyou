@@ -4,6 +4,8 @@
  * Strict zero-mock-photo policy: NO Unsplash or external stock placeholder URLs.
  */
 
+import { isVideoExtension } from './mediaTypeDetector';
+
 export function ensureHttps(url?: string): string {
   if (!url) return '';
   return url.replace(/^http:\/\//i, 'https://');
@@ -21,31 +23,28 @@ export function extractDriveFileId(id?: string, url?: string, thumbnail?: string
   return match ? match[1] : null;
 }
 
-import { isVideoExtension } from './mediaTypeDetector';
-
 /**
  * Normalizes legacy, relocated, or mismatched dataset paths to their canonical locations
  * in the SARWARFX/stream-vault Hugging Face repository.
  */
 export function normalizeRepoPath(path: string): string {
   if (!path) return '';
-  let clean = path.replace(/\\/g, '/').replace(/^\/+/, '').split('?')[0].split('#')[0];
+  let clean = path.replace(/\\/g, '/').replace(/^\/+/, '').trim();
+  // Strip trailing media playback fragment like #t=1.0 or query strings
+  clean = clean.replace(/#t=[\d.,]+$/i, '').split('?')[0];
   clean = clean.replace(/^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i, '');
   if (/_thumb_[1-5]\.[a-zA-Z0-9]+$/i.test(clean)) {
     clean = clean.replace(/_thumb_[1-5]\.[a-zA-Z0-9]+$/i, '.mp4');
   }
 
-  // 1. Specific legacy remappings (e.g., stale media.json or manifest references)
+  // 1. Specific legacy files
   if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean)) {
     return 'REALTube/REALTube Video Clips/asha8.mp4';
   }
   if (/^Thumbnails\/Images\/Bandhobis\/asha8_thumb_/i.test(clean)) {
     return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/REALTube/REALTube Video Clips/');
   }
-  if (/^Images\/Bandhobis\/Asha/i.test(clean)) {
-    return clean.replace(/^Images\/Bandhobis\//i, 'REALTube/REALTube Images/');
-  }
-  if (/^Images\/Bandhobis\/Anamika/i.test(clean)) {
+  if (/^Images\/Bandhobis\/Asha/i.test(clean) || /^Images\/Bandhobis\/Anamika/i.test(clean)) {
     return clean.replace(/^Images\/Bandhobis\//i, 'REALTube/REALTube Images/');
   }
   if (/^Images\/Bandhobis\//i.test(clean)) {
@@ -55,26 +54,29 @@ export function normalizeRepoPath(path: string): string {
     return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/Photographs/Classic Images/');
   }
 
-  // 2. Folder namespace renames (Images -> Photographs, Clips -> Video Clips)
-  if (/^Images\//i.test(clean)) {
-    return isVideoExtension(clean) ? clean.replace(/^Images\//i, '') : clean.replace(/^Images\//i, 'Photographs/');
-  }
-  if (/^Thumbnails\/Images\//i.test(clean)) {
-    return clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
-  }
-  if (/^Clips\//i.test(clean)) {
-    return clean.replace(/^Clips\//i, 'Video Clips/');
-  }
-  if (/^Thumbnails\/Clips\//i.test(clean)) {
-    return clean.replace(/^Thumbnails\/Clips\//i, 'Thumbnails/Video Clips/');
-  }
+  // 2. Folder mappings
+  clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
+  clean = clean.replace(/^Clips\/H2026\//i, 'Video Clips/Clips 2026/');
+  clean = clean.replace(/^Clips\/H2027\//i, 'Video Clips/Clips 2027/');
+  clean = clean.replace(/^Clips\/Favorite\//i, 'Video Clips/Favorite Video Clips/');
+  clean = clean.replace(/^Clips\/Others(?:\s*)\//i, 'Video Clips/Classic Video Clips/');
+  clean = clean.replace(/^Clips\//i, 'Video Clips/');
+  clean = clean.replace(/^Thumbnails\/Clips\//i, 'Thumbnails/Video Clips/');
+
+  clean = clean.replace(/^Images\/H2025\//i, 'Photographs/Images 2025/');
+  clean = clean.replace(/^Images\/H2026\//i, 'Photographs/Images 2026/');
+  clean = clean.replace(/^Images\/H2027\//i, 'Photographs/Images 2027/');
+  clean = clean.replace(/^Images\/works\//i, 'Photographs/Classic Images/');
+  clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
+  clean = clean.replace(/^Images\//i, 'Photographs/');
+  clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
 
   return clean;
 }
 
 /**
  * Safely encodes individual path segments for URLs.
- * Idempotent: calls decodeURIComponent first to prevent double-encoding (%20 -> %2520).
+ * Idempotent with try/catch to protect against malformed percent encodings.
  */
 export function encodeMediaPathSegments(path: string): string {
   if (!path) return '';
@@ -82,7 +84,12 @@ export function encodeMediaPathSegments(path: string): string {
     .split('/')
     .filter(Boolean)
     .map((seg) => {
-      const decoded = decodeURIComponent(seg);
+      let decoded = seg;
+      try {
+        decoded = decodeURIComponent(seg);
+      } catch {
+        decoded = seg;
+      }
       return encodeURIComponent(decoded)
         .replace(/\(/g, '%28')
         .replace(/\)/g, '%29')
@@ -97,16 +104,24 @@ export function encodeMediaPathSegments(path: string): string {
  * Global Edge Proxy origin for SARWARCYOU Media Vault (Cloudflare Worker).
  */
 export const MEDIA_CDN_BASE = 'https://media.sarwar.cyou';
+export const HF_RESOLVE_BASE = 'https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main';
 
 /**
  * Universal media URL builder: routes all repository videos, photos, and generated thumbnails
  * through the Cloudflare Worker edge proxy at https://media.sarwar.cyou with safe URL encoding.
+ * For rare files whose names contain '#' (which Cloudflare router truncates), routes cleanly
+ * to Hugging Face direct resolve URL.
+ *
+ * Guaranteed to ALWAYS return an absolute URL (never relative).
  *
  * @param relativePath Relative file path or full Hugging Face resolve URL
  */
 export function getMediaUrl(relativePath?: string | null): string {
   if (!relativePath) return '';
-  let path = relativePath.trim().split('#')[0].split('?')[0];
+  let path = relativePath.trim();
+
+  // Strip trailing media fragment like #t=1.0 or query parameters
+  path = path.replace(/#t=[\d.,]+$/i, '').split('?')[0];
 
   // If blob or data URL, return as-is
   if (path.startsWith('blob:') || path.startsWith('data:')) {
@@ -137,7 +152,15 @@ export function getMediaUrl(relativePath?: string | null): string {
   const cleanPath = normalized.replace(/^\/+/, '');
   if (!cleanPath) return '';
 
-  return `${MEDIA_CDN_BASE}/${encodeMediaPathSegments(cleanPath)}`;
+  const encodedPath = encodeMediaPathSegments(cleanPath);
+
+  // Files containing '#' in their name are routed directly to Hugging Face
+  // because Cloudflare Worker pathname router truncates at '#'
+  if (cleanPath.includes('#')) {
+    return `${HF_RESOLVE_BASE}/${encodedPath}`;
+  }
+
+  return `${MEDIA_CDN_BASE}/${encodedPath}`;
 }
 
 export function getDirectImageUrl(

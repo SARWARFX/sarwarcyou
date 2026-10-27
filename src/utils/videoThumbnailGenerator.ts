@@ -7,8 +7,8 @@
 const thumbnailCache = new Map<string, string>();
 const pendingPromises = new Map<string, Promise<string | null>>();
 
-// Maximum concurrent offscreen video decoders to protect mobile GPU RAM
-const MAX_CONCURRENT = 2;
+// Strictly 1 concurrent offscreen video decoder to prevent 403 rate-limiting and protect mobile GPU RAM
+const MAX_CONCURRENT = 1;
 let activeCount = 0;
 const queue: (() => void)[] = [];
 
@@ -16,7 +16,12 @@ function runNext() {
   if (activeCount < MAX_CONCURRENT && queue.length > 0) {
     activeCount++;
     const next = queue.shift();
-    if (next) next();
+    if (next) {
+      // Gentle pacing to avoid rapid-fire HTTP Range requests
+      setTimeout(() => {
+        next();
+      }, 150);
+    }
   }
 }
 
@@ -36,7 +41,7 @@ export function generateVideoThumbnail(
   videoUrl: string,
   aspectRatio: '16/9' | '9/16' = '16/9'
 ): Promise<string | null> {
-  if (!videoUrl || typeof window === 'undefined') {
+  if (!videoUrl || typeof window === 'undefined' || !videoUrl.startsWith('http')) {
     return Promise.resolve(null);
   }
 
@@ -55,7 +60,7 @@ export function generateVideoThumbnail(
       let resolved = false;
       const timeoutId = window.setTimeout(() => {
         cleanup(null);
-      }, 4000);
+      }, 3500);
 
       const video = document.createElement('video');
       video.crossOrigin = 'anonymous';
@@ -71,7 +76,6 @@ export function generateVideoThumbnail(
         try {
           video.pause();
           video.removeAttribute('src');
-          video.src = '';
           video.load();
           video.remove();
         } catch {
@@ -132,7 +136,8 @@ export function generateVideoThumbnail(
 
       // Start loading with media fragment hint
       try {
-        video.src = videoUrl.includes('#') ? videoUrl : `${videoUrl}#t=1.0`;
+        const targetSrc = videoUrl.includes('#') ? videoUrl : `${videoUrl}#t=1.0`;
+        video.src = targetSrc;
         video.load();
       } catch {
         cleanup(null);

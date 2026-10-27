@@ -181,16 +181,10 @@ export const CyberCard: React.FC<CyberCardProps> = ({
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
-      ) : isVideo && isInViewport ? (
-        /* 2. Direct Hardware-Accelerated Poster Fallback (Seeked to 1.0s, only while visible) */
-        <video
-          src={cleanMediaUrl.includes('#') ? cleanMediaUrl : `${cleanMediaUrl}#t=1.0`}
-          preload="metadata"
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none z-10"
-        />
-      ) : null}
+      ) : (
+        /* 2. Clean Fallback Placeholder (Zero video elements mounted to eliminate 403 rate-limiting) */
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 pointer-events-none z-10" />
+      )}
 
       {/* 3. Center Play Icon Overlay for Videos */}
       {isVideo && (
