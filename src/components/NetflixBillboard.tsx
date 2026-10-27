@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, Folder, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Play, Folder, Sparkles } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
 
 export interface NetflixBillboardProps {
   items?: StageMediaItem[];
@@ -18,7 +19,6 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
   onOpenAlbum,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
 
   // Determine playlist: prioritize 10-video rotating playlist, fallback to single item
   const playlist = useMemo(() => {
@@ -36,7 +36,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
     if (playlist.length <= 1) return;
 
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % playlist.length);
+      handleNext();
     }, 10000);
 
     return () => clearInterval(timer);
@@ -66,26 +66,21 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
   return (
     <div className="relative w-full h-[62vh] sm:h-[70vh] lg:h-[82vh] max-h-[760px] overflow-hidden select-none bg-black">
-      {/* 1. Background Cinematic Visual: Video loop or High-Res Backdrop */}
-      <div className="absolute inset-0 z-0">
-        {isVideo ? (
-          <video
-            key={currentItem.id || currentItem.url}
-            src={mediaSrc}
-            autoPlay
-            playsInline
-            muted={isMuted}
-            poster={posterSrc}
-            onEnded={handleNext}
-            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in transition-opacity duration-700"
-          />
-        ) : (
+      {/* 1. Background Cinematic Visual: High-Res Backdrop / Poster */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#121420] via-[#090a0f] to-[#020204]">
+        {posterSrc && !isVideoExtension(posterSrc) ? (
           <img
             key={currentItem.id || currentItem.url}
             src={posterSrc}
             alt={cleanTitle}
-            className="w-full h-full object-cover object-center scale-105 filter brightness-90 animate-fade-in"
+            loading="eager"
+            className="w-full h-full object-cover object-center scale-105 filter brightness-80 animate-fade-in"
           />
+        ) : (
+          <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
+            <div className="absolute w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute w-[350px] h-[350px] bg-blue-600/10 rounded-full blur-[80px] pointer-events-none translate-x-28 -translate-y-16" />
+          </div>
         )}
       </div>
 
@@ -186,19 +181,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
         </div>
       </div>
 
-      {/* 4. Bottom-Right Controls: Mute/Unmute for background video */}
-      {isVideo && (
-        <div className="absolute right-4 sm:right-8 md:right-12 bottom-14 sm:bottom-18 z-20">
-          <button
-            type="button"
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 transition-all hover:scale-110 cursor-pointer shadow-[0_8px_25px_rgba(0,0,0,0.7)]"
-            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-zinc-300" /> : <Volume2 className="w-4 h-4 text-[#00E5FF]" />}
-          </button>
-        </div>
-      )}
+
     </div>
   );
 };

@@ -317,13 +317,9 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                 >
                   <div className="relative w-20 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
                     {entry.isVideo ? (
-                      <video
-                        src={`${getMediaUrl(entry.item.url)}#t=1.0`}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="w-full h-full bg-gradient-to-br from-[#13141c] to-black flex items-center justify-center">
+                        <Play className="w-4 h-4 text-[#00E5FF] fill-current ml-0.5" />
+                      </div>
                     ) : (
                       <img
                         src={getMediaUrl(entry.item.url || entry.thumbnailUrl)}
@@ -417,13 +413,9 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                     {/* Thumbnail */}
                     <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
                       {entry.isVideo ? (
-                        <video
-                          src={`${getMediaUrl(entry.item.url)}#t=1.0`}
-                          preload="metadata"
-                          muted
-                          playsInline
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
+                        <div className="w-full h-full bg-gradient-to-br from-[#13141c] to-black flex items-center justify-center">
+                          <Play className="w-4 h-4 text-[#00E5FF] fill-current ml-0.5" />
+                        </div>
                       ) : (
                         <img
                           src={getMediaUrl(entry.item.url || entry.thumbnailUrl)}

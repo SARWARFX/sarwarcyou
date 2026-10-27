@@ -186,12 +186,43 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);
 
+  // Instantly release mobile GPU RAM and video decoders
+  const releaseVideoResources = useCallback(() => {
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute('src');
+        videoRef.current.src = '';
+        videoRef.current.load();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  const handleClose = useCallback(() => {
+    releaseVideoResources();
+    onClose();
+  }, [onClose, releaseVideoResources]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      releaseVideoResources();
+    }
+  }, [isOpen, releaseVideoResources]);
+
+  useEffect(() => {
+    return () => {
+      releaseVideoResources();
+    };
+  }, [releaseVideoResources]);
+
   // Keyboard navigation & Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
         handleNext();
@@ -243,7 +274,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
     // Swipe down to dismiss
     if ((pullDown > 110 && dt < 400) || pullDown > 180) {
-      onClose();
+      handleClose();
       return;
     }
     setDismissOffsetY(0);
@@ -405,20 +436,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const prevShort = currentIndex > 0 ? shorts[currentIndex - 1] : null;
   const nextShort = currentIndex < shorts.length - 1 ? shorts[currentIndex + 1] : null;
 
-  const nextRawUrl = (nextShort?.url || '').replace(/^http:\/\//i, 'https://');
-  let nextStreamUrl = nextRawUrl;
-  if (nextStreamUrl.includes('drive.google.com') && !nextStreamUrl.includes('/preview')) {
-    nextStreamUrl = nextStreamUrl.replace(/\/view(\?.*)?$/, '/preview');
-  } else if (!nextStreamUrl.includes('drive.google.com') && nextStreamUrl) {
-    nextStreamUrl = getMediaUrl(nextStreamUrl);
-  }
-  const isNextVideo = Boolean(
-    nextStreamUrl &&
-      (nextStreamUrl.includes('media.sarwar.cyou') ||
-        nextStreamUrl.includes('huggingface.co') ||
-        nextStreamUrl.endsWith('.mp4') ||
-        nextStreamUrl.includes('.mp4?'))
-  );
+
 
   const prevPoster = useMemo(() => {
     if (!prevShort) return '';
@@ -465,7 +483,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       aria-modal="true"
       aria-label="Shorts and Reels Player"
       className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[120] flex items-center justify-center bg-black/97 backdrop-blur-2xl select-none touch-none touch-action-none overscroll-contain"
-      onClick={onClose}
+      onClick={handleClose}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -484,7 +502,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             videoRef.current.pause();
           }
           setIsPlaying(false);
-          onClose();
+          handleClose();
         }}
         aria-label="Close shorts reel (Esc)"
         title="Close (Esc)"
@@ -568,20 +586,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               )}
             </div>
 
-            {/* Ultra-blurred ambient video backdrop for landscape clips */}
+            {/* Ambient CSS backdrop for landscape clips */}
             {isLandscape && (
-              <video
-                key="shorts-ambient-video"
-                src={streamUrl}
-                autoPlay
-                loop
-                muted
-                preload="none"
-                playsInline
-                {...{ 'webkit-playsinline': 'true' }}
-                disablePictureInPicture
+              <div
                 aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover filter blur-3xl opacity-40 scale-125 pointer-events-none z-0"
+                className="absolute inset-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_rgba(232,121,249,0.15)_0%,_rgba(0,0,0,0.95)_75%)] pointer-events-none z-0"
               />
             )}
 
@@ -635,20 +644,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               />
             )}
 
-            {/* One-Ahead Hidden Video Preloader for Next Short (currentIndex + 1) */}
-            {nextShort && nextStreamUrl && isNextVideo && (
-              <video
-                key={`preload-${nextShort.id || currentIndex + 1}`}
-                src={nextStreamUrl}
-                preload="auto"
-                muted
-                playsInline
-                {...{ 'webkit-playsinline': 'true' }}
-                disablePictureInPicture
-                style={{ display: 'none' }}
-                aria-hidden="true"
-              />
-            )}
+
           </div>
 
           {/* Paused overlay indicator */}

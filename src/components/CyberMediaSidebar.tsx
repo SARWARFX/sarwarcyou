@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { Camera, Film, Sparkles, Folder, ChevronRight, X } from 'lucide-react';
+import { Camera, Film, Sparkles, Folder, ChevronRight, X, Play } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -134,13 +134,9 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   {/* Thumbnail Badge */}
                   <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
                     {mediaType === 'video' || isVideoExtension(it.url || it.id) ? (
-                      <video
-                        src={`${getMediaUrl(it.url || it.id)}#t=1.0`}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-black flex items-center justify-center">
+                        <Play className="w-3.5 h-3.5 text-[#00E5FF] fill-current ml-0.5" />
+                      </div>
                     ) : (
                       <img
                         src={getMediaUrl(thumbUrl)}

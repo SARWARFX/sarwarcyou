@@ -22,7 +22,6 @@ import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 
@@ -129,12 +128,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const gestureFadeTimeoutRef = useRef<number | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const previewVideoRef = useRef<HTMLVideoElement>(null);
+
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const speedMenuRef = useRef<HTMLDivElement>(null);
   const speedBtnRef = useRef<HTMLButtonElement>(null);
-  const seekDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDraggingProgress = useRef(false);
 
   // Outside click & ESC key handler for Playback Speed menu
@@ -166,35 +164,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     };
   }, [showSpeedMenu]);
 
-  // Debounced 250ms seeking for secondary preview video
-  useEffect(() => {
-    if (!seekHover.isHovering) return;
-
-    if (seekDebounceTimerRef.current) {
-      clearTimeout(seekDebounceTimerRef.current);
-    }
-
-    seekDebounceTimerRef.current = setTimeout(() => {
-      if (
-        previewVideoRef.current &&
-        !isNaN(seekHover.hoverTime) &&
-        previewVideoRef.current.readyState >= 1
-      ) {
-        try {
-          previewVideoRef.current.currentTime = seekHover.hoverTime;
-        } catch {
-          // Seeking ignored if element not ready
-        }
-      }
-    }, 250);
-
-    return () => {
-      if (seekDebounceTimerRef.current) {
-        clearTimeout(seekDebounceTimerRef.current);
-      }
-    };
-  }, [seekHover.hoverTime, seekHover.isHovering]);
-
   // Ensure playbackSpeed persistence across video changes
   useEffect(() => {
     if (videoRef.current) {
@@ -218,7 +187,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return () => {
       if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
       if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
-      if (seekDebounceTimerRef.current) clearTimeout(seekDebounceTimerRef.current);
     };
   }, []);
 
@@ -554,6 +522,37 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);
 
+  // Instantly release GPU RAM and video decoders on mobile
+  const releaseVideoResources = useCallback(() => {
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute('src');
+        videoRef.current.src = '';
+        videoRef.current.load();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  const handleClose = useCallback(() => {
+    releaseVideoResources();
+    onClose();
+  }, [onClose, releaseVideoResources]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      releaseVideoResources();
+    }
+  }, [isOpen, releaseVideoResources]);
+
+  useEffect(() => {
+    return () => {
+      releaseVideoResources();
+    };
+  }, [releaseVideoResources]);
+
   // Keyboard Shortcuts
   useEffect(() => {
     if (!isOpen) return;
@@ -565,7 +564,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         } else if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {});
         } else {
-          onClose();
+          handleClose();
         }
       } else if (e.key === ' ') {
         e.preventDefault();
@@ -703,18 +702,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       onClick={resetHudTimer}
       className="fixed inset-0 z-50 bg-black text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
     >
-      {/* 1. Ambient Blurred Glow reflecting active video colors */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
-        <video
-          src={streamUrl}
-          autoPlay
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
-          className="w-full h-full object-cover filter blur-[90px] opacity-35 scale-125"
-        />
-      </div>
+      {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.08)_0%,_rgba(0,0,0,0.95)_70%)]" />
 
       {/* 2. Top Bar Overlay (Top Left: Album Name with File Count; Top Right: Queue & Close) */}
       <div
@@ -764,7 +753,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           {/* Close Button */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 hover:border-white/30 transition-all cursor-pointer active:scale-95"
             title="Close Player (Esc)"
             aria-label="Close Player"
@@ -896,41 +885,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               className="absolute bottom-6 -translate-x-1/2 pointer-events-none transition-transform duration-75 ease-out z-40"
               style={{ left: `${clampedX}px` }}
             >
-              <div className="w-40 h-24 rounded-lg overflow-hidden border border-white/20 bg-neutral-900/90 shadow-2xl backdrop-blur-md flex flex-col items-center justify-between relative group/preview">
-                {/* Secondary Preview Video */}
-                <video
-                  ref={previewVideoRef}
-                  src={streamUrl}
-                  muted
-                  playsInline
-                  preload="auto"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onLoadedMetadata={() => {
-                    if (previewVideoRef.current && seekHover.isHovering) {
-                      previewVideoRef.current.currentTime = seekHover.hoverTime;
-                    }
-                  }}
-                />
-
-                {/* Fallback Poster if preview video hasn't rendered yet */}
-                {((item.thumbnail && !isVideoExtension(item.thumbnail)) || (item.poster && !isVideoExtension(item.poster))) && (
-                  <img
-                    src={(!isVideoExtension(item.thumbnail || '') ? item.thumbnail : '') || (!isVideoExtension(item.poster || '') ? item.poster : '')}
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute inset-0 w-full h-full object-cover -z-10 opacity-35"
-                  />
-                )}
-
-                {/* Dark gradient overlay at bottom */}
-                <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/85 via-black/45 to-transparent pointer-events-none z-10" />
-
-                {/* Overlaid Time Pill */}
-                <div className="absolute bottom-1.5 inset-x-0 flex items-center justify-center z-20 pointer-events-none">
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium text-white bg-black/70 border border-white/10 shadow-md">
-                    {formatTime(seekHover.hoverTime)}
-                  </span>
-                </div>
+              <div className="px-3 py-1.5 rounded-lg border border-white/20 bg-neutral-900/95 shadow-2xl flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-[#00E5FF]">
+                  {formatTime(seekHover.hoverTime)}
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400">
+                  ({formatDelta(seekHover.hoverTime - currentTime)})
+                </span>
               </div>
             </div>
           )}

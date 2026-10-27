@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Check, ArrowUpDown } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { ArrowLeft, Play, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Check, ArrowUpDown } from 'lucide-react';
 import type { StageMediaItem, SortOrder } from '../types';
 import { CyberCard } from './CyberCard';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -36,7 +36,6 @@ const MasonryImageCard: React.FC<{
   item: StageMediaItem;
   onClick: () => void;
 }> = ({ item, onClick }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [loaded, setLoaded] = useState(false);
   const cleanTitle = useMemo(
     () => sanitizeMediaTitle(item.title || item.name, item.category),
@@ -49,55 +48,57 @@ const MasonryImageCard: React.FC<{
     isVideoExtension(item.url || item.id || item.path);
   const cleanMediaUrl = getMediaUrl(item.url || item.path || item.id);
 
+  const posterImage = useMemo(() => {
+    if (!isVideo) return cleanMediaUrl;
+    if (item.poster && !isVideoExtension(item.poster)) return getMediaUrl(item.poster);
+    if (item.posterUrl && !isVideoExtension(item.posterUrl)) return getMediaUrl(item.posterUrl);
+    if (item.thumbnail && !isVideoExtension(item.thumbnail)) return getMediaUrl(item.thumbnail);
+    return null;
+  }, [isVideo, cleanMediaUrl, item.poster, item.posterUrl, item.thumbnail]);
+
   return (
     <div
       onClick={onClick}
-      onMouseEnter={() => {
-        if (isVideo && videoRef.current) {
-          videoRef.current.currentTime = 0;
-          videoRef.current.play().catch(() => {});
-        }
-      }}
-      onMouseLeave={() => {
-        if (isVideo && videoRef.current) {
-          videoRef.current.pause();
-          try {
-            videoRef.current.currentTime = 1.0;
-          } catch {}
-        }
-      }}
-      className="break-inside-avoid mb-3 relative group rounded-xl overflow-hidden bg-zinc-900 border border-white/10 hover:border-[#00E5FF]/60 transition-all duration-300 shadow-md hover:shadow-[0_8px_30px_rgba(0,229,255,0.25)] cursor-pointer select-none"
+      className="break-inside-avoid mb-3 relative group rounded-xl overflow-hidden bg-[#0c0d12] border border-white/10 hover:border-[#00E5FF]/60 transition-all duration-200 shadow-sm cursor-pointer select-none"
+      style={{ contain: 'paint', transform: 'translateZ(0)' }}
     >
-      {!loaded && (
-        <div className="w-full aspect-[4/3] bg-zinc-800 animate-pulse rounded-xl" />
-      )}
       {isVideo ? (
-        <video
-          ref={videoRef}
-          src={`${cleanMediaUrl}#t=1.0`}
-          preload="metadata"
-          muted
-          playsInline
-          loop
-          onLoadedMetadata={() => setLoaded(true)}
-          className={`w-full h-auto block object-contain transition-all duration-500 group-hover:scale-[1.025] ${
-            loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
-          }`}
-        />
+        <div className="w-full aspect-video bg-gradient-to-br from-[#13141c] via-[#0b0c10] to-[#050608] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+          {posterImage && (
+            <img
+              src={posterImage}
+              alt={cleanTitle}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
+          <div className="relative z-10 w-11 h-11 rounded-full bg-white/15 group-hover:bg-[#00E5FF]/25 border border-white/20 group-hover:border-[#00E5FF]/60 flex items-center justify-center text-white group-hover:text-[#00E5FF] transition-all duration-200 shadow-md group-hover:scale-110">
+            <Play className="w-4 h-4 fill-current ml-0.5" />
+          </div>
+          <span className="relative z-10 text-[10px] font-mono text-zinc-300 mt-2 font-semibold tracking-wider uppercase">
+            Stream Video
+          </span>
+        </div>
       ) : (
-        <img
-          src={cleanMediaUrl}
-          alt={cleanTitle}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          className={`w-full h-auto block object-contain transition-all duration-500 group-hover:scale-[1.025] ${
-            loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
-          }`}
-        />
+        <>
+          {!loaded && (
+            <div className="w-full aspect-[4/3] bg-zinc-900 animate-pulse rounded-xl" />
+          )}
+          <img
+            src={cleanMediaUrl}
+            alt={cleanTitle}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            className={`w-full h-auto block object-contain transition-all duration-300 group-hover:scale-[1.02] ${
+              loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
+            }`}
+          />
+        </>
       )}
       {/* Sleek Gradient Overlay on Hover */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3 pointer-events-none">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3 pointer-events-none">
         <span className="text-xs font-bold font-sans text-white line-clamp-1 drop-shadow">
           {cleanTitle}
         </span>
@@ -407,7 +408,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
       )}
 
       {/* 2. Scrollable Album Content Grid */}
-      <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full touch-scroll-container" style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain" }}>
         {filteredItems.length === 0 ? (
           <div className="w-full py-32 flex flex-col items-center justify-center gap-3 text-center">
             <Sparkles className="w-10 h-10 text-zinc-600" />

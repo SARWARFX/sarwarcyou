@@ -156,3 +156,39 @@ html, body {
   text-decoration-color: #00e5ff !important;
   text-shadow: 0 0 12px rgba(0, 229, 255, 0.6) !important;
 }
+
+
+/* 60fps Mobile Scrolling Hardware Acceleration */
+html, body, #root {
+  -webkit-overflow-scrolling: touch;
+}
+
+.touch-scroll-container,
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Touchscreens: Disable heavy backdrop-filters, blurs, and hover scale repaints */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  
+  .cyber-glass,
+  .cyber-pill {
+    background: rgba(15, 15, 20, 0.95) !important;
+  }
+
+  .hover\:scale-105:hover,
+  .hover\:scale-\[1\.04\]:hover,
+  .hover\:scale-\[1\.03\]:hover,
+  .hover\:scale-\[1\.025\]:hover,
+  .hover\:scale-\[1\.02\]:hover,
+  .group-hover\:scale-105,
+  .group-hover\:scale-110 {
+    transform: none !important;
+  }
+}
