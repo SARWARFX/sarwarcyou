@@ -189,52 +189,108 @@ export function findMatchingMediaItem(
 ): { item: StageMediaItem; index: number } | null {
   if (!query || !items || items.length === 0) return null;
 
-  const rawQuery = decodeURIComponent(query).trim().toLowerCase();
+  let rawQuery = query.trim().toLowerCase();
+  try {
+    rawQuery = decodeURIComponent(rawQuery).trim().toLowerCase();
+  } catch {
+    // keep rawQuery
+  }
   const queryStem = rawQuery.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim();
   const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+  const getCandidateFilenamesAndStems = (it: StageMediaItem) => {
+    const rawNames: string[] = [];
+    if (it.name) rawNames.push(it.name);
+    if (it.path) rawNames.push(it.path.split('/').pop() || it.path);
+    if (it.url) {
+      const u = it.url.split('?')[0].split('#')[0].split('/').pop() || '';
+      rawNames.push(u);
+      try {
+        rawNames.push(decodeURIComponent(u));
+      } catch {
+        // ignore
+      }
+    }
+    if (it.id) {
+      rawNames.push(it.id);
+      rawNames.push(it.id.split('/').pop() || '');
+    }
+
+    const filenames: string[] = [];
+    const stems: string[] = [];
+
+    for (const name of rawNames) {
+      if (!name) continue;
+      const lower = name.toLowerCase().trim();
+      filenames.push(lower);
+      const stem = lower.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim();
+      if (stem) stems.push(stem);
+    }
+
+    return { filenames, stems };
+  };
+
   // 1. Match by exact ID or URL
-  let idx = items.findIndex((it) => it.id && it.id.toLowerCase() === rawQuery);
+  let idx = items.findIndex((it) => {
+    if (!it) return false;
+    const idLower = (it.id || '').toLowerCase().trim();
+    const urlLower = (it.url || '').toLowerCase().trim();
+    const pathLower = (it.path || '').toLowerCase().trim();
+    return idLower === rawQuery || urlLower === rawQuery || pathLower === rawQuery;
+  });
   if (idx !== -1) return { item: items[idx], index: idx };
 
-  // 2. Match by filename in ID or URL
+  // 2. Match by exact filename with extension
   idx = items.findIndex((it) => {
-    const fn = (it.id || it.url || '').split('/').pop()?.split('?')[0]?.toLowerCase();
-    return fn === rawQuery;
+    const { filenames } = getCandidateFilenamesAndStems(it);
+    return filenames.some((fn) => fn === rawQuery || fn.replace(/\s+/g, '') === rawQuery.replace(/\s+/g, ''));
   });
   if (idx !== -1) return { item: items[idx], index: idx };
 
   // 3. Match by filename stem without extension
   idx = items.findIndex((it) => {
-    const fn = (it.id || it.url || '').split('/').pop()?.split('?')[0]?.toLowerCase() || '';
-    const stem = fn.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim();
-    return stem && stem === queryStem;
+    const { stems } = getCandidateFilenamesAndStems(it);
+    return stems.some((st) => st === queryStem || st.replace(/\s+/g, '') === queryStem.replace(/\s+/g, ''));
   });
   if (idx !== -1) return { item: items[idx], index: idx };
 
   // 4. Match by title
   idx = items.findIndex((it) => {
     const t = (it.title || '').toLowerCase().replace(/[-_]+/g, ' ').trim();
-    return t && (t === queryStem || t === rawQuery);
+    return t && (t === queryStem || t === rawQuery || t.replace(/\s+/g, '') === queryStem.replace(/\s+/g, ''));
   });
   if (idx !== -1) return { item: items[idx], index: idx };
 
   // 5. Match by title/filename slug
   idx = items.findIndex((it) => {
-    const s = (it.title || it.id || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const s = (it.title || it.name || it.id || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     return s && s === slugQuery;
   });
   if (idx !== -1) return { item: items[idx], index: idx };
 
   // 6. Match by computed media slug
   idx = items.findIndex((it) => {
-    const mediaSlug = decodeURIComponent(getMediaSlug(it)).toLowerCase();
+    let mediaSlug = '';
+    try {
+      mediaSlug = decodeURIComponent(getMediaSlug(it)).toLowerCase();
+    } catch {
+      mediaSlug = getMediaSlug(it).toLowerCase();
+    }
     const mediaSlugClean = mediaSlug.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     return mediaSlug === rawQuery || mediaSlugClean === slugQuery;
   });
   if (idx !== -1) return { item: items[idx], index: idx };
 
-  // 7. Numeric index fallback (e.g. ?media=0)
+  // 7. Substring / word boundary title match (e.g., queryStem matches word in title)
+  idx = items.findIndex((it) => {
+    const t = (it.title || '').toLowerCase().trim();
+    if (!t || !queryStem || queryStem.length < 3) return false;
+    const words = t.split(/\s+/);
+    return words.includes(queryStem);
+  });
+  if (idx !== -1) return { item: items[idx], index: idx };
+
+  // 8. Numeric index fallback (e.g. ?media=0)
   if (/^\d+$/.test(rawQuery)) {
     const num = parseInt(rawQuery, 10);
     if (num >= 0 && num < items.length) {

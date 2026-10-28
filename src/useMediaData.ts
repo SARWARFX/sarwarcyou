@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import useSWR from 'swr';
 import type { HfMediaCatalog, HfMediaItem } from './types';
 import { FALLBACK_HF_CATALOG } from './data/fallbackData';
@@ -533,19 +534,34 @@ const getNormalizedFallbackCatalog = (): HfMediaCatalog => {
 };
 
 export const useMediaData = () => {
+  const [isDynamicReady, setIsDynamicReady] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && Boolean(getCachedCatalog());
+  });
+
   const initialData =
     typeof window !== 'undefined'
       ? getCachedCatalog() || getNormalizedFallbackCatalog()
       : getNormalizedFallbackCatalog();
 
-  const { data, error, isLoading, mutate } = useSWR<HfMediaCatalog>(
+  const { data, error, isLoading, isValidating, mutate } = useSWR<HfMediaCatalog>(
     'hf-dynamic-catalog',
-    () => fetchDynamicCatalog(false),
+    async () => {
+      try {
+        const res = await fetchDynamicCatalog(false);
+        setIsDynamicReady(true);
+        return res;
+      } catch (err) {
+        setIsDynamicReady(true);
+        throw err;
+      }
+    },
     {
       fallbackData: initialData,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: CACHE_TTL_MS,
+      onSuccess: () => setIsDynamicReady(true),
+      onError: () => setIsDynamicReady(true),
     }
   );
 
@@ -553,6 +569,7 @@ export const useMediaData = () => {
     try {
       const refreshed = await fetchDynamicCatalog(bypassCache);
       await mutate(refreshed, false);
+      setIsDynamicReady(true);
       return refreshed;
     } catch (err) {
       console.error('Error refreshing dynamic media catalog from Hugging Face CDN:', err);
@@ -561,7 +578,9 @@ export const useMediaData = () => {
 
   return {
     data: data || initialData,
-    isLoading: isLoading && !data,
+    isLoading: (isLoading && !data) || (!isDynamicReady && !error),
+    isDynamicReady,
+    isValidating,
     isError: error,
     syncMedia,
   };

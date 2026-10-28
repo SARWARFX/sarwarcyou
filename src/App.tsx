@@ -47,7 +47,7 @@ function buildAlbumUrl(albumNameOrSlug: string): string {
 }
 
 function App() {
-  const { data, isLoading } = useMediaData();
+  const { data, isLoading, isDynamicReady } = useMediaData();
 
   // Search, Filter & Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +62,7 @@ function App() {
     isOpen: boolean;
     item: StageMediaItem | null;
     playlist: StageMediaItem[];
+    albumContext?: string;
   }>({
     isOpen: false,
     item: null,
@@ -83,6 +84,7 @@ function App() {
     item: StageMediaItem | null;
     items: StageMediaItem[];
     initialIndex: number;
+    albumContext?: string;
   }>({
     isOpen: false,
     item: null,
@@ -231,6 +233,7 @@ function App() {
           isOpen: true,
           item,
           playlist: playlistContext || [item],
+          albumContext: albumTarget,
         });
         return;
       }
@@ -255,6 +258,7 @@ function App() {
         item,
         items: photoPlaylist,
         initialIndex: photoIdx !== -1 ? photoIdx : 0,
+        albumContext: albumTarget,
       });
     },
     [rawFeed.shorts, pushModalState]
@@ -289,11 +293,15 @@ function App() {
   const hasInitializedUrlRef = useRef(false);
 
   useEffect(() => {
-    if (isLoading || !data || hasInitializedUrlRef.current) return;
-    hasInitializedUrlRef.current = true;
+    // If mediaData or rawFeed is still loading/empty, DO NOT execute a fallback lookup or update URL history
+    if (isLoading || !data || !rawFeed || rawFeed.allMediaPool.length === 0 || !isDynamicReady) return;
+    if (hasInitializedUrlRef.current) return;
 
     const { albumQuery, mediaQuery } = parseUrlState();
-    if (!albumQuery && !mediaQuery) return;
+    if (!albumQuery && !mediaQuery) {
+      hasInitializedUrlRef.current = true;
+      return;
+    }
 
     // 1. Resolve album context if albumQuery is provided
     let scopedPool: StageMediaItem[] | undefined;
@@ -317,19 +325,20 @@ function App() {
       let matchedItem: StageMediaItem | null = null;
       let matchedContext: StageMediaItem[] | undefined;
 
-      // Primary check: If album parameter is present, strictly search within that album/category first
-      if (scopedPool && scopedPool.length > 0) {
-        const scopedMatch = findMatchingMediaItem(scopedPool, mediaQuery);
-        if (scopedMatch) {
-          matchedItem = scopedMatch.item;
-          matchedContext = scopedPool;
+      // Primary check: When albumQuery is explicitly specified, strictly restrict media resolution to that album
+      if (albumQuery) {
+        if (scopedPool && scopedPool.length > 0) {
+          const scopedMatch = findMatchingMediaItem(scopedPool, mediaQuery);
+          if (scopedMatch) {
+            matchedItem = scopedMatch.item;
+            matchedContext = scopedPool;
+          }
         }
-      }
-
-      // Secondary check: Fall back to global search ONLY if not found in the scoped album (or no album specified)
-      if (!matchedItem) {
+        // CRITICAL: When albumQuery is specified, NEVER fall back to global search!
+        // Strictly prevent cross-album redirection.
+      } else {
+        // Fall back to global search ONLY when NO albumQuery was specified
         const allItems: StageMediaItem[] = [
-          ...(scopedPool || []),
           ...(rawFeed.shorts || []),
           ...(rawFeed.latestReleases || []),
           ...rawFeed.albums.flatMap((f) => f.items),
@@ -346,8 +355,6 @@ function App() {
         const fallbackMatch = findMatchingMediaItem(uniquePool, mediaQuery);
         if (fallbackMatch) {
           matchedItem = fallbackMatch.item;
-
-          // For fallback matches, determine the most relevant context list
           if (matchedItem.mediaType === 'short') {
             matchedContext = rawFeed.shorts;
           } else if (matchedItem.category) {
@@ -361,16 +368,16 @@ function App() {
 
       // Dispatch media selection if an item was found
       if (matchedItem) {
-        const preferredAlbum = scopedPool && matchedContext === scopedPool && albumQuery
-          ? albumQuery
-          : undefined;
+        hasInitializedUrlRef.current = true;
+        const preferredAlbum = albumQuery || (matchedItem.category ? getAlbumSlug(matchedItem.category) : undefined);
         handleSelectItem(matchedItem, matchedContext, preferredAlbum);
         return;
       }
     }
 
-    // 4. If media was not found (or only album was specified), open the album view
+    // 4. If media was not found or only album was specified, open the album view strictly within requested album
     if (albumQuery) {
+      hasInitializedUrlRef.current = true;
       if (isShortsAlbum) {
         handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts');
       } else {
@@ -386,8 +393,11 @@ function App() {
           );
         }
       }
+      return;
     }
-  }, [isLoading, data, rawFeed, handleSelectItem, handleOpenViewAll]);
+
+    hasInitializedUrlRef.current = true;
+  }, [isLoading, isDynamicReady, data, rawFeed, handleSelectItem, handleOpenViewAll]);
 
   // URL state synchronizer: Keeps browser URL bar aligned with open modals
   useEffect(() => {
@@ -395,14 +405,14 @@ function App() {
 
     if (theaterState.isOpen && theaterState.item) {
       syncUrlState({
-        album: theaterState.item.category || theaterState.item.parentAlbum,
+        album: theaterState.albumContext || theaterState.item.category || theaterState.item.parentAlbum,
         mediaItem: theaterState.item,
         sort: sortOrder,
         replace: true,
       });
     } else if (lightboxState.isOpen && lightboxState.item) {
       syncUrlState({
-        album: lightboxState.item.category || lightboxState.item.parentAlbum,
+        album: lightboxState.albumContext || lightboxState.item.category || lightboxState.item.parentAlbum,
         mediaItem: lightboxState.item,
         sort: sortOrder,
         replace: true,
@@ -432,8 +442,10 @@ function App() {
   }, [
     theaterState.isOpen,
     theaterState.item,
+    theaterState.albumContext,
     lightboxState.isOpen,
     lightboxState.item,
+    lightboxState.albumContext,
     shortsState.isOpen,
     shortsState.initialIndex,
     shortsState.shorts,
