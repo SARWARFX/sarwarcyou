@@ -6,6 +6,7 @@ export interface ParsedRouteState {
   albumQuery: string | null;
   mediaQuery: string | null;
   sortQuery: string | null;
+  tabQuery: 'all' | 'clips' | 'images' | 'shorts' | null;
 }
 
 /**
@@ -60,13 +61,14 @@ export function getMediaSlug(item: StageMediaItem | string): string {
  */
 export function parseUrlState(): ParsedRouteState {
   if (typeof window === 'undefined') {
-    return { albumQuery: null, mediaQuery: null, sortQuery: null };
+    return { albumQuery: null, mediaQuery: null, sortQuery: null, tabQuery: null };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
   let albumQuery = searchParams.get('album');
   let mediaQuery = searchParams.get('media') || searchParams.get('item') || searchParams.get('view');
   let sortQuery = searchParams.get('sort');
+  let rawTab = searchParams.get('tab') || searchParams.get('filter');
 
   // Check window.location.hash as fallback
   if (window.location.hash) {
@@ -86,6 +88,7 @@ export function parseUrlState(): ParsedRouteState {
       if (!albumQuery) albumQuery = hashParams.get('album');
       if (!mediaQuery) mediaQuery = hashParams.get('media') || hashParams.get('item') || hashParams.get('view');
       if (!sortQuery) sortQuery = hashParams.get('sort');
+      if (!rawTab) rawTab = hashParams.get('tab') || hashParams.get('filter');
     } else if (hash) {
       if (/\.(mp4|mov|mkv|webm|jpg|jpeg|png|webp|gif|avif)$/i.test(hash)) {
         if (!mediaQuery) mediaQuery = hash;
@@ -95,10 +98,25 @@ export function parseUrlState(): ParsedRouteState {
     }
   }
 
+  let tabQuery: 'all' | 'clips' | 'images' | 'shorts' | null = null;
+  if (rawTab) {
+    const lower = rawTab.toLowerCase().trim();
+    if (lower === 'videos' || lower === 'clips' || lower === 'video') {
+      tabQuery = 'clips';
+    } else if (lower === 'photos' || lower === 'images' || lower === 'image' || lower === 'photographs') {
+      tabQuery = 'images';
+    } else if (lower === 'shorts' || lower === 'reels' || lower === 'short') {
+      tabQuery = 'shorts';
+    } else if (lower === 'all' || lower === 'home') {
+      tabQuery = 'all';
+    }
+  }
+
   return {
     albumQuery: albumQuery ? decodeURIComponent(albumQuery) : null,
     mediaQuery: mediaQuery ? decodeURIComponent(mediaQuery) : null,
     sortQuery: sortQuery ? decodeURIComponent(sortQuery) : null,
+    tabQuery,
   };
 }
 

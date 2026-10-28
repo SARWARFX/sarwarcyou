@@ -455,19 +455,6 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
         )}
       </main>
 
-      {/* Mobile Ergonomic Bottom Back Button (Thumb Reach) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] md:hidden pointer-events-auto">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-black/90 hover:bg-black text-white text-xs font-mono uppercase tracking-wider border border-white/20 shadow-2xl backdrop-blur-xl active:scale-95 transition-all cursor-pointer"
-          aria-label="Back to Vault"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Vault</span>
-        </button>
-      </div>
-
       {/* Floating Success Toast */}
       {toastMessage && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-5 py-2.5 rounded-full bg-black/90 backdrop-blur-2xl border border-white/20 text-white text-xs font-mono shadow-[0_12px_40px_rgba(0,0,0,0.85),0_0_20px_rgba(0,229,255,0.2)] animate-fade-in pointer-events-none">

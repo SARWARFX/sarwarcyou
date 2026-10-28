@@ -10,7 +10,6 @@ import {
   X,
   ListVideo,
   Share2,
-  ArrowLeft,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -827,19 +826,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Mobile Ergonomic Bottom Back Button (Thumb Reach) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] md:hidden pointer-events-auto">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-black/85 hover:bg-black text-white text-xs font-mono uppercase tracking-wider border border-white/20 shadow-2xl backdrop-blur-xl active:scale-95 transition-all cursor-pointer"
-          aria-label="Back to Vault"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Vault</span>
-        </button>
       </div>
 
       {/* 2. Slide-out Queue & Suggestions Drawer (Responsive Bottom Sheet on Mobile, Right Drawer on Desktop) */}

@@ -28,6 +28,33 @@ import {
 } from './utils/urlRouter';
 import { ChevronUp } from 'lucide-react';
 
+function buildTabUrl(tab: CyberFilterType): string {
+  if (typeof window === 'undefined') return '/';
+  const url = new URL(window.location.href);
+  const searchParams = url.searchParams;
+  searchParams.delete('album');
+  searchParams.delete('media');
+  searchParams.delete('item');
+  searchParams.delete('view');
+  if (tab === 'clips') {
+    searchParams.set('tab', 'videos');
+  } else if (tab === 'images') {
+    searchParams.set('tab', 'photos');
+  } else if (tab === 'shorts') {
+    searchParams.set('tab', 'shorts');
+  } else {
+    searchParams.delete('tab');
+    searchParams.delete('filter');
+  }
+  const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
+  return `${url.pathname}${queryPart}`;
+}
+
+function buildHomeUrl(): string {
+  if (typeof window === 'undefined') return '/';
+  return window.location.pathname || '/';
+}
+
 function buildMediaUrl(item: StageMediaItem, albumContext?: string): string {
   if (typeof window === 'undefined') return '';
   const url = new URL(window.location.href);
@@ -37,6 +64,8 @@ function buildMediaUrl(item: StageMediaItem, albumContext?: string): string {
     searchParams.set('album', getAlbumSlug(albumTarget));
   }
   searchParams.set('media', getMediaSlug(item));
+  searchParams.delete('tab');
+  searchParams.delete('filter');
   const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
   return `${url.pathname}${queryPart}${url.hash}`;
 }
@@ -49,6 +78,8 @@ function buildAlbumUrl(albumNameOrSlug: string): string {
   searchParams.delete('media');
   searchParams.delete('item');
   searchParams.delete('view');
+  searchParams.delete('tab');
+  searchParams.delete('filter');
   const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
   return `${url.pathname}${queryPart}${url.hash}`;
 }
@@ -58,7 +89,13 @@ function App() {
 
   // Search, Filter & Sort State
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<CyberFilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<CyberFilterType>(() => {
+    const { tabQuery } = parseUrlState();
+    if (tabQuery === 'clips' || tabQuery === 'images' || tabQuery === 'shorts') {
+      return tabQuery;
+    }
+    return 'all';
+  });
   const [sortOrder] = useState<SortOrder>(() => {
     const { sortQuery } = parseUrlState();
     return (sortQuery === 'oldest' || sortQuery === 'name-asc') ? sortQuery : 'newest';
@@ -118,11 +155,12 @@ function App() {
     items: [],
   });
 
-  // Active modal history stack tracker for smart browser back navigation
-  const modalStackRef = useRef<string[]>([]);
+  // Active modal history depth tracker for smart browser back navigation
+  const historyDepthRef = useRef<number>(0);
+  const isPopStateRef = useRef<boolean>(false);
 
   const pushModalState = useCallback((viewName: string, targetUrl?: string) => {
-    modalStackRef.current.push(viewName);
+    historyDepthRef.current++;
     const stateObj = { modalOpen: true, view: viewName };
     if (targetUrl) {
       window.history.pushState(stateObj, '', targetUrl);
@@ -131,46 +169,36 @@ function App() {
     }
   }, []);
 
-  const handleCloseModal = useCallback((type: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
-    const idx = modalStackRef.current.lastIndexOf(type);
-    if (idx !== -1) {
-      if (idx === modalStackRef.current.length - 1) {
-        window.history.back();
-        return;
+  const handleFilterChange = useCallback((newFilter: CyberFilterType, pushHistory = true) => {
+    setActiveFilter(newFilter);
+    if (pushHistory && typeof window !== 'undefined') {
+      const targetUrl = buildTabUrl(newFilter);
+      const currentFull = `${window.location.pathname}${window.location.search}`;
+      if (targetUrl !== currentFull) {
+        historyDepthRef.current++;
+        window.history.pushState({ tab: newFilter }, '', targetUrl);
       }
-      modalStackRef.current.splice(idx, 1);
     }
-    if (type === 'lightbox') setLightboxState((prev) => ({ ...prev, isOpen: false }));
-    else if (type === 'theater') setTheaterState((prev) => ({ ...prev, isOpen: false }));
-    else if (type === 'shorts') setShortsState((prev) => ({ ...prev, isOpen: false }));
-    else if (type === 'viewAll') setViewAllState((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  // Intercept hardware/browser Back button to close modals instead of exiting site
-  useEffect(() => {
-    const handlePopState = () => {
-      if (modalStackRef.current.length > 0) {
-        const topModal = modalStackRef.current.pop();
-        if (topModal === 'lightbox') {
-          setLightboxState((prev) => ({ ...prev, isOpen: false }));
-        } else if (topModal === 'theater') {
-          setTheaterState((prev) => ({ ...prev, isOpen: false }));
-        } else if (topModal === 'shorts') {
-          setShortsState((prev) => ({ ...prev, isOpen: false }));
-        } else if (topModal === 'viewAll') {
-          setViewAllState((prev) => ({ ...prev, isOpen: false }));
-        }
-      } else {
-        // If stack was empty (e.g. entered via direct deep link), close all active modals
-        setTheaterState((prev) => ({ ...prev, isOpen: false }));
-        setShortsState((prev) => ({ ...prev, isOpen: false }));
-        setLightboxState((prev) => ({ ...prev, isOpen: false }));
-        setViewAllState((prev) => ({ ...prev, isOpen: false }));
-      }
-    };
+  const handleCloseModal = useCallback((type: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
+    if (historyDepthRef.current > 0) {
+      window.history.back();
+    } else {
+      if (type === 'lightbox') setLightboxState((prev) => ({ ...prev, isOpen: false }));
+      else if (type === 'theater') setTheaterState((prev) => ({ ...prev, isOpen: false }));
+      else if (type === 'shorts') setShortsState((prev) => ({ ...prev, isOpen: false }));
+      else if (type === 'viewAll') setViewAllState((prev) => ({ ...prev, isOpen: false }));
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+      const { albumQuery } = parseUrlState();
+      if ((type === 'lightbox' || type === 'theater' || type === 'shorts') && albumQuery && albumQuery.toLowerCase() !== 'shorts') {
+        const targetUrl = buildAlbumUrl(albumQuery);
+        window.history.replaceState({ album: albumQuery }, '', targetUrl);
+      } else {
+        const targetUrl = buildHomeUrl();
+        window.history.replaceState({ tab: 'all' }, '', targetUrl);
+      }
+    }
   }, []);
 
   // Global Back-To-Top Button state (> 300px scroll)
@@ -192,9 +220,9 @@ function App() {
   // Organize raw catalog data into structured multi-row discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
 
-  // Universal Media Click Dispatcher
-  const handleSelectItem = useCallback(
-    (item: StageMediaItem, playlistContext?: StageMediaItem[], preferredAlbum?: string) => {
+  // Universal Media Player / Lightbox Dispatcher
+  const openMediaItem = useCallback(
+    (item: StageMediaItem, playlistContext?: StageMediaItem[], preferredAlbum?: string, pushHistory = true) => {
       const isShort = Boolean(
         item.mediaType === 'short' ||
         item.category?.toLowerCase().includes('short') ||
@@ -223,7 +251,9 @@ function App() {
 
         const targetItem = fullShortsList[targetIdx !== -1 ? targetIdx : 0] || item;
         const targetUrl = buildMediaUrl(targetItem, preferredAlbum || 'shorts');
-        pushModalState('shorts', targetUrl);
+        if (pushHistory) {
+          pushModalState('shorts', targetUrl);
+        }
         setShortsState({
           isOpen: true,
           shorts: fullShortsList,
@@ -235,7 +265,9 @@ function App() {
       if (isVid) {
         const albumTarget = preferredAlbum || item.category || item.parentAlbum || playlistContext?.[0]?.category;
         const targetUrl = buildMediaUrl(item, albumTarget);
-        pushModalState('theater', targetUrl);
+        if (pushHistory) {
+          pushModalState('theater', targetUrl);
+        }
         setTheaterState({
           isOpen: true,
           item,
@@ -259,7 +291,9 @@ function App() {
       const albumTarget = preferredAlbum || targetItem.category || targetItem.parentAlbum;
       const targetUrl = buildMediaUrl(targetItem, albumTarget);
 
-      pushModalState('lightbox', targetUrl);
+      if (pushHistory) {
+        pushModalState('lightbox', targetUrl);
+      }
       setLightboxState({
         isOpen: true,
         item,
@@ -271,6 +305,13 @@ function App() {
     [rawFeed.shorts, pushModalState]
   );
 
+  const handleSelectItem = useCallback(
+    (item: StageMediaItem, playlistContext?: StageMediaItem[], preferredAlbum?: string) => {
+      openMediaItem(item, playlistContext, preferredAlbum, true);
+    },
+    [openMediaItem]
+  );
+
   // Dedicated "View All" Album Navigator
   const handleOpenViewAll = useCallback(
     (
@@ -279,10 +320,13 @@ function App() {
       variant: 'standard' | 'shorts' | 'photo' = 'standard',
       subtitle?: string,
       hasMultipleTypes?: boolean,
-      typeCounts?: { photos: number; clips: number; shorts: number }
+      typeCounts?: { photos: number; clips: number; shorts: number },
+      pushHistory = true
     ) => {
       const targetUrl = buildAlbumUrl(albumTitle);
-      pushModalState('viewAll', targetUrl);
+      if (pushHistory) {
+        pushModalState('viewAll', targetUrl);
+      }
       setViewAllState({
         isOpen: true,
         title: albumTitle,
@@ -296,6 +340,89 @@ function App() {
     [pushModalState]
   );
 
+  // Intercept hardware/browser Back & Forward buttons across the entire website
+  useEffect(() => {
+    const handlePopState = () => {
+      isPopStateRef.current = true;
+      if (historyDepthRef.current > 0) {
+        historyDepthRef.current--;
+      }
+
+      const { albumQuery, mediaQuery, tabQuery } = parseUrlState();
+
+      // 1. If mediaQuery is present, open or switch to that media item directly
+      if (mediaQuery) {
+        const isShortsAlbum = albumQuery
+          ? albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts'
+          : false;
+
+        let scopedPool: StageMediaItem[] | undefined;
+        if (albumQuery) {
+          if (isShortsAlbum) {
+            scopedPool = rawFeed.shorts;
+          } else {
+            const folderMatch = findMatchingFolder(rawFeed.albums, albumQuery);
+            if (folderMatch) {
+              scopedPool = folderMatch.folder.items;
+            }
+          }
+        }
+
+        const pool = scopedPool || rawFeed.allMediaPool;
+        const matched = findMatchingMediaItem(pool, mediaQuery);
+        if (matched) {
+          openMediaItem(matched.item, pool, albumQuery || undefined, false);
+          return;
+        }
+      }
+
+      // 2. No mediaQuery: ensure all media viewer modals are CLOSED!
+      setTheaterState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+      setLightboxState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+      setShortsState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+
+      // 3. If albumQuery is present (and no mediaQuery), ensure the album modal is OPEN
+      if (albumQuery) {
+        const isShortsAlbum = albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts';
+        if (isShortsAlbum) {
+          setViewAllState({
+            isOpen: true,
+            title: 'Shorts',
+            items: rawFeed.shorts,
+            variant: 'shorts',
+          });
+        } else {
+          const folderToOpen = findMatchingFolder(rawFeed.albums, albumQuery);
+          if (folderToOpen) {
+            setViewAllState({
+              isOpen: true,
+              title: folderToOpen.folder.name,
+              subtitle: undefined,
+              items: folderToOpen.folder.items,
+              variant: folderToOpen.folder.variant,
+              hasMultipleTypes: folderToOpen.folder.hasMultipleTypes,
+              typeCounts: folderToOpen.folder.typeCounts,
+            });
+          }
+        }
+        return;
+      }
+
+      // 4. No albumQuery: ensure album modal is CLOSED!
+      setViewAllState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+
+      // 5. Restore activeFilter according to tabQuery (or default to 'all')
+      if (tabQuery === 'clips' || tabQuery === 'images' || tabQuery === 'shorts') {
+        setActiveFilter(tabQuery);
+      } else {
+        setActiveFilter('all');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [rawFeed, openMediaItem]);
+
   // Deep Link Synchronizer: Parse Initial URL on load
   const hasInitializedUrlRef = useRef(false);
 
@@ -304,8 +431,11 @@ function App() {
     if (isLoading || !data || !rawFeed || rawFeed.allMediaPool.length === 0 || !isDynamicReady) return;
     if (hasInitializedUrlRef.current) return;
 
-    const { albumQuery, mediaQuery } = parseUrlState();
+    const { albumQuery, mediaQuery, tabQuery } = parseUrlState();
     if (!albumQuery && !mediaQuery) {
+      if (tabQuery && (tabQuery === 'clips' || tabQuery === 'images' || tabQuery === 'shorts')) {
+        setActiveFilter(tabQuery);
+      }
       hasInitializedUrlRef.current = true;
       return;
     }
@@ -377,7 +507,38 @@ function App() {
       if (matchedItem) {
         hasInitializedUrlRef.current = true;
         const preferredAlbum = albumQuery || (matchedItem.category ? getAlbumSlug(matchedItem.category) : undefined);
-        handleSelectItem(matchedItem, matchedContext, preferredAlbum);
+        const mediaUrl = buildMediaUrl(matchedItem, preferredAlbum);
+
+        // Synthetic history hierarchy on cold load:
+        // Entry 0: Home ('/')
+        window.history.replaceState({ tab: 'all' }, '', buildHomeUrl());
+
+        // Entry 1: Album (if applicable and not generic shorts)
+        if (preferredAlbum && preferredAlbum.toLowerCase() !== 'shorts') {
+          const albumUrl = buildAlbumUrl(preferredAlbum);
+          window.history.pushState({ album: preferredAlbum }, '', albumUrl);
+          historyDepthRef.current++;
+
+          // Preload viewAllState underneath so closing media reveals album!
+          const folder = resolvedFolder || findMatchingFolder(rawFeed.albums, preferredAlbum);
+          if (folder) {
+            setViewAllState({
+              isOpen: true,
+              title: folder.folder.name,
+              items: folder.folder.items,
+              variant: folder.folder.variant,
+              hasMultipleTypes: folder.folder.hasMultipleTypes,
+              typeCounts: folder.folder.typeCounts,
+            });
+          }
+        }
+
+        // Entry 2: Media item
+        window.history.pushState({ media: matchedItem.id, album: preferredAlbum }, '', mediaUrl);
+        historyDepthRef.current++;
+
+        // Open media without pushing an additional duplicate history entry
+        openMediaItem(matchedItem, matchedContext, preferredAlbum, false);
         return;
       }
     }
@@ -385,8 +546,16 @@ function App() {
     // 4. If media was not found or only album was specified, open the album view strictly within requested album
     if (albumQuery) {
       hasInitializedUrlRef.current = true;
+      const albumUrl = buildAlbumUrl(albumQuery);
+      // Synthetic history hierarchy:
+      // Entry 0: Home ('/')
+      window.history.replaceState({ tab: 'all' }, '', buildHomeUrl());
+      // Entry 1: Album
+      window.history.pushState({ album: albumQuery }, '', albumUrl);
+      historyDepthRef.current++;
+
       if (isShortsAlbum) {
-        handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts');
+        handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts', undefined, undefined, undefined, false);
       } else {
         const folderToOpen = resolvedFolder || findMatchingFolder(rawFeed.albums, albumQuery);
         if (folderToOpen) {
@@ -396,19 +565,32 @@ function App() {
             folderToOpen.folder.variant,
             undefined,
             folderToOpen.folder.hasMultipleTypes,
-            folderToOpen.folder.typeCounts
+            folderToOpen.folder.typeCounts,
+            false
           );
         }
       }
       return;
     }
 
+    // Cold-load with tab query
+    if (tabQuery && tabQuery !== 'all') {
+      window.history.replaceState({ tab: 'all' }, '', buildHomeUrl());
+      window.history.pushState({ tab: tabQuery }, '', buildTabUrl(tabQuery));
+      historyDepthRef.current++;
+      setActiveFilter(tabQuery);
+    }
+
     hasInitializedUrlRef.current = true;
-  }, [isLoading, isDynamicReady, data, rawFeed, handleSelectItem, handleOpenViewAll]);
+  }, [isLoading, isDynamicReady, data, rawFeed, openMediaItem, handleOpenViewAll]);
 
   // URL state synchronizer: Keeps browser URL bar aligned with open modals
   useEffect(() => {
     if (!hasInitializedUrlRef.current) return;
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
+    }
 
     if (theaterState.isOpen && theaterState.item) {
       syncUrlState({
@@ -462,10 +644,31 @@ function App() {
   ]);
 
   const handleResetHome = useCallback(() => {
-    setActiveFilter('all');
+    if (theaterState.isOpen || lightboxState.isOpen || shortsState.isOpen || viewAllState.isOpen) {
+      setTheaterState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+      setLightboxState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+      setShortsState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+      setViewAllState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+    }
+    if (activeFilter !== 'all') {
+      handleFilterChange('all', true);
+    } else {
+      const homeUrl = buildHomeUrl();
+      if (window.location.search || window.location.hash) {
+        historyDepthRef.current++;
+        window.history.pushState({ tab: 'all' }, '', homeUrl);
+      }
+    }
     setSearchQuery('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [
+    theaterState.isOpen,
+    lightboxState.isOpen,
+    shortsState.isOpen,
+    viewAllState.isOpen,
+    activeFilter,
+    handleFilterChange,
+  ]);
 
   // Prepare full dynamic album list with precise data-type tags for in-place filtering
   const albumList = useMemo(() => {
@@ -539,7 +742,7 @@ function App() {
   const handleJumpToAlbum = useCallback(
     (albumId: string, category: CyberFilterType) => {
       if (activeFilter !== 'all' && activeFilter !== category) {
-        setActiveFilter(category);
+        handleFilterChange(category, true);
       }
 
       setTimeout(() => {
@@ -553,7 +756,7 @@ function App() {
         }
       }, 60);
     },
-    [activeFilter]
+    [activeFilter, handleFilterChange]
   );
 
   // Helper to check if an item is a vertical short / reel
@@ -683,7 +886,7 @@ function App() {
       {/* 1. Responsive Navigation: Desktop Floating Nav + Mobile Fixed Bottom Dock */}
       <ResponsiveNav
         activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
+        onFilterChange={(filter) => handleFilterChange(filter, true)}
         onHomeClick={handleResetHome}
         imageAlbums={imageAlbums}
         videoAlbums={videoAlbums}
@@ -719,7 +922,7 @@ function App() {
           {!isLoading && (
             <HomeFilterChips
               activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
+              onFilterChange={(filter) => handleFilterChange(filter, true)}
               counts={filterCounts}
             />
           )}
@@ -937,7 +1140,7 @@ function App() {
         hasMultipleTypes={viewAllState.hasMultipleTypes}
         typeCounts={viewAllState.typeCounts}
         onClose={() => handleCloseModal('viewAll')}
-        onSelectItem={(item, currentList) => handleSelectItem(item, currentList)}
+        onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
       />
     </div>
   );
