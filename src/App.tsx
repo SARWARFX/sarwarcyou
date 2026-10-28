@@ -15,6 +15,7 @@ import { HomeFilterChips } from './components/HomeFilterChips';
 import { ShortsReelsRibbon } from './components/ShortsReelsRibbon';
 import { DynamicVideoGrid } from './components/DynamicVideoGrid';
 import { PhotoShowcaseRow } from './components/PhotoShowcaseRow';
+import { VideoAlbumShowcase } from './components/VideoAlbumShowcase';
 import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -704,13 +705,30 @@ function App() {
             />
           )}
 
-          {/* LAYER 4: Dynamic Video Grid with 600ms Intent Previews */}
-          {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && featuredVideos.length > 0 && (
+          {/* When filter is 'clips': Show Video Album Collections instead of an endless list of all individual videos */}
+          {!searchQuery && activeFilter === 'clips' && rawFeed.videoVaultFolders.length > 0 && (
+            <VideoAlbumShowcase
+              videoAlbums={rawFeed.videoVaultFolders}
+              onSelectAlbum={(folder) =>
+                handleOpenViewAll(
+                  folder.name,
+                  folder.items,
+                  folder.variant || 'standard',
+                  undefined,
+                  folder.hasMultipleTypes,
+                  folder.typeCounts
+                )
+              }
+            />
+          )}
+
+          {/* LAYER 4: Featured Video Clips Preview (Only on 'all' view with strict limit) */}
+          {!searchQuery && activeFilter === 'all' && featuredVideos.length > 0 && (
             <DynamicVideoGrid
               videos={featuredVideos}
               onPlayVideo={(item, playlist) => handleSelectItem(item, playlist)}
-              title={activeFilter === 'clips' ? 'All Videos & Clips' : 'Featured Clips'}
-              limit={activeFilter === 'all' ? 8 : undefined}
+              title="Featured Clips"
+              limit={8}
             />
           )}
 
