@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Camera, Film, Smartphone, ChevronUp, ChevronDown, X, Folder } from 'lucide-react';
+import { Home, Camera, Film, Smartphone, X, Folder } from 'lucide-react';
 import type { CyberFilterType } from './CyberHeader';
 
 export interface AlbumJumpItem {
@@ -69,11 +69,6 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
     };
   }, [openCategory]);
 
-  const toggleCategoryMenu = (category: CyberFilterType, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpenCategory((prev) => (prev === category ? null : category));
-  };
-
   const getCategoryAlbums = (cat: CyberFilterType): AlbumJumpItem[] => {
     if (cat === 'images') return imageAlbums;
     if (cat === 'clips') return videoAlbums;
@@ -93,368 +88,283 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   return (
     <div ref={navRef} className="w-full">
       {/* =========================================================================
-          1. TOP BRAND HEADER: Prominent on both Mobile and Desktop
-             - Mobile (< 768px): Prominent top-middle header title (SARWARCYOU)
-             - Desktop (>= 768px): Enlarged text-4xl / text-5xl bold futuristic styling
+          1. TOP-LEFT WEBSITE BRAND TITLE (No black bar, smaller refined size)
          ========================================================================= */}
-      <header className="flex flex-col items-center justify-center w-full max-w-7xl mx-auto pt-5 md:pt-8 pb-3 md:pb-6 px-4 select-none">
-        <h1
+      <div className="fixed top-3.5 sm:top-5 left-3 sm:left-6 z-50 select-none">
+        <button
+          type="button"
           onClick={handleHomeClick}
           title="SARWARCYOU - Back to Top"
-          className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black uppercase text-center tracking-[0.2em] md:tracking-[0.25em] transition-colors duration-200 cursor-pointer hover:opacity-90 active:scale-98"
-          style={{
-            fontFamily: "'Orbitron', 'Syne', monospace, sans-serif",
-            color: 'var(--text-primary)',
-            textShadow: '0 0 25px rgba(0, 229, 255, 0.3)',
-          }}
+          className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-black/40 hover:bg-black/75 backdrop-blur-xl border border-white/10 hover:border-[#00E5FF]/50 shadow-lg hover:shadow-[0_0_20px_rgba(0,229,255,0.25)] transition-all duration-200 cursor-pointer group active:scale-95"
         >
-          SARWARCYOU
-        </h1>
-      </header>
+          <div className="w-2 h-2 rounded-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] group-hover:scale-125 transition-transform" />
+          <span
+            className="text-xs sm:text-sm md:text-base font-black uppercase tracking-[0.18em] text-white group-hover:text-[#00E5FF] transition-colors"
+            style={{
+              fontFamily: "'Orbitron', 'Syne', monospace, sans-serif",
+            }}
+          >
+            SARWARCYOU
+          </span>
+        </button>
+      </div>
 
       {/* =========================================================================
-          2. DESKTOP VIEWPORT (>= 768px): Vertical Floating Right-Docked Navigation
-             - Position: fixed on desktop only (strictly hidden on mobile)
-             - Folder jump options show INSIDE the navbar accordion-style
+          2. DESKTOP VIEWPORT (>= 768px): Vertical Floating Icon-Only Dock
+             - Fixed right-4 sm:right-6 top-1/2 -translate-y-1/2
+             - Icon-only: Home, Images, Videos, Shorts
+             - Album jump flyout to the left of the dock
          ========================================================================= */}
       <nav
         aria-label="Desktop Floating Navigation"
-        className="hidden md:flex flex-col items-stretch p-2 rounded-2xl shadow-2xl transition-all duration-200 select-none fixed right-6 top-1/2 -translate-y-1/2 z-[1000] w-[190px] max-h-[82vh] overflow-y-auto no-scrollbar gap-2"
+        className="hidden md:flex flex-col items-center p-2 rounded-2xl shadow-2xl transition-all duration-200 select-none fixed right-4 sm:right-6 top-1/2 -translate-y-1/2 z-[1000] w-auto max-h-[82vh] gap-2 backdrop-blur-2xl border"
         style={{
           backgroundColor: 'var(--nav-bg)',
-          border: '1px solid var(--nav-border)',
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3)',
+          borderColor: 'var(--nav-border)',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)',
         }}
       >
         {/* Home */}
         <button
           type="button"
           onClick={handleHomeClick}
-          title="Back to Top"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
-          style={{
-            backgroundColor: activeFilter === 'all' ? 'var(--nav-active-bg)' : 'transparent',
-            color: activeFilter === 'all' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-          }}
+          title="Home"
+          aria-label="Home"
+          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+            activeFilter === 'all'
+              ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
+          }`}
         >
-          <Home className="w-4 h-4" />
-          <span>Home</span>
+          <Home className="w-5 h-5" />
         </button>
 
-        {/* Images with Inline Options INSIDE Navbar */}
-        <div className="flex flex-col rounded-xl overflow-hidden transition-all">
+        {/* Images */}
+        <button
+          type="button"
+          onClick={() => {
+            if (activeFilter === 'images' && imageAlbums.length > 0) {
+              setOpenCategory((prev) => (prev === 'images' ? null : 'images'));
+            } else {
+              onFilterChange('images');
+              if (imageAlbums.length > 0) setOpenCategory('images');
+            }
+          }}
+          title="Photographs"
+          aria-label="Photographs"
+          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer relative active:scale-95 ${
+            activeFilter === 'images'
+              ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
+          }`}
+        >
+          <Camera className="w-5 h-5" />
+          {imageAlbums.length > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+          )}
+        </button>
+
+        {/* Videos */}
+        <button
+          type="button"
+          onClick={() => {
+            if (activeFilter === 'clips' && videoAlbums.length > 0) {
+              setOpenCategory((prev) => (prev === 'clips' ? null : 'clips'));
+            } else {
+              onFilterChange('clips');
+              if (videoAlbums.length > 0) setOpenCategory('clips');
+            }
+          }}
+          title="Videos"
+          aria-label="Videos"
+          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer relative active:scale-95 ${
+            activeFilter === 'clips'
+              ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
+          }`}
+        >
+          <Film className="w-5 h-5" />
+          {videoAlbums.length > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+          )}
+        </button>
+
+        {/* Shorts */}
+        <button
+          type="button"
+          onClick={() => {
+            if (activeFilter === 'shorts' && shortAlbums.length > 0) {
+              setOpenCategory((prev) => (prev === 'shorts' ? null : 'shorts'));
+            } else {
+              onFilterChange('shorts');
+              if (shortAlbums.length > 0) setOpenCategory('shorts');
+            }
+          }}
+          title="Shorts"
+          aria-label="Shorts"
+          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer relative active:scale-95 ${
+            activeFilter === 'shorts'
+              ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
+          }`}
+        >
+          <Smartphone className="w-5 h-5" />
+          {shortAlbums.length > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+          )}
+        </button>
+
+        {/* Desktop Album Jump Flyout (Opens to the left of the dock) */}
+        {openCategory && (
           <div
-            className="flex items-center justify-between rounded-xl overflow-hidden transition-all"
+            className="hidden md:flex flex-col absolute right-full mr-3 top-1/2 -translate-y-1/2 w-64 max-h-[60vh] rounded-2xl p-3.5 shadow-[0_16px_50px_rgba(0,0,0,0.9)] border backdrop-blur-2xl z-[1001] animate-in fade-in slide-in-from-right-3 duration-200"
             style={{
-              backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
+              backgroundColor: 'var(--card-bg)',
+              borderColor: 'var(--nav-border)',
             }}
           >
-            <button
-              type="button"
-              onClick={() => onFilterChange('images')}
-              className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
-              style={{
-                color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <Camera className="w-4 h-4" />
-              <span>Images</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('images', e)}
-              aria-label="Toggle Image Folders"
-              aria-expanded={openCategory === 'images'}
-              className="p-2 pr-2.5 transition-all cursor-pointer hover:opacity-80"
-              style={{
-                color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'images' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-          </div>
+            {/* Flyout Header */}
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#00E5FF] uppercase">
+                <Folder className="w-3.5 h-3.5" />
+                <span>{getCategoryLabel(openCategory)} Albums</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenCategory(null)}
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-          {/* Options INSIDE the Navbar: Inline Folders List */}
-          {openCategory === 'images' && (
-            <div className="flex flex-col gap-1 py-1.5 px-1 pl-2 max-h-[200px] overflow-y-auto no-scrollbar border-t border-white/10 mt-1">
-              {imageAlbums.map((album) => (
+            {/* Flyout Album List */}
+            <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-1 max-h-[45vh]">
+              {activeAlbums.map((album) => (
                 <button
                   key={album.id}
                   type="button"
                   onClick={() => {
-                    onJumpToAlbum(album.id, 'images');
+                    onJumpToAlbum(album.id, openCategory);
+                    setOpenCategory(null);
                   }}
-                  className="w-full text-left flex items-center justify-between px-2 py-1 rounded-lg text-[11px] font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
+                  className="w-full text-left flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
                 >
-                  <span className="truncate pr-1.5 text-zinc-400 group-hover:text-white transition-colors">
+                  <span className="truncate pr-2 text-zinc-300 group-hover:text-white transition-colors">
                     {album.name}
                   </span>
-                  <span className="text-[9px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {album.count}
                   </span>
                 </button>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Videos with Inline Options INSIDE Navbar */}
-        <div className="flex flex-col rounded-xl overflow-hidden transition-all">
-          <div
-            className="flex items-center justify-between rounded-xl overflow-hidden transition-all"
-            style={{
-              backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => onFilterChange('clips')}
-              className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
-              style={{
-                color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <Film className="w-4 h-4" />
-              <span>Videos</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('clips', e)}
-              aria-label="Toggle Video Folders"
-              aria-expanded={openCategory === 'clips'}
-              className="p-2 pr-2.5 transition-all cursor-pointer hover:opacity-80"
-              style={{
-                color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'clips' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
           </div>
-
-          {/* Options INSIDE the Navbar: Inline Folders List */}
-          {openCategory === 'clips' && (
-            <div className="flex flex-col gap-1 py-1.5 px-1 pl-2 max-h-[200px] overflow-y-auto no-scrollbar border-t border-white/10 mt-1">
-              {videoAlbums.map((album) => (
-                <button
-                  key={album.id}
-                  type="button"
-                  onClick={() => {
-                    onJumpToAlbum(album.id, 'clips');
-                  }}
-                  className="w-full text-left flex items-center justify-between px-2 py-1 rounded-lg text-[11px] font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
-                >
-                  <span className="truncate pr-1.5 text-zinc-400 group-hover:text-white transition-colors">
-                    {album.name}
-                  </span>
-                  <span className="text-[9px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                    {album.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Shorts with Inline Options INSIDE Navbar */}
-        <div className="flex flex-col rounded-xl overflow-hidden transition-all">
-          <div
-            className="flex items-center justify-between rounded-xl overflow-hidden transition-all"
-            style={{
-              backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => onFilterChange('shorts')}
-              className="flex-1 flex items-center gap-2.5 pl-3 pr-1 py-2 text-xs font-sans font-semibold tracking-wide transition-all cursor-pointer"
-              style={{
-                color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <Smartphone className="w-4 h-4" />
-              <span>Shorts</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('shorts', e)}
-              aria-label="Toggle Shorts Folders"
-              aria-expanded={openCategory === 'shorts'}
-              className="p-2 pr-2.5 transition-all cursor-pointer hover:opacity-80"
-              style={{
-                color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-              }}
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'shorts' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Options INSIDE the Navbar: Inline Folders List */}
-          {openCategory === 'shorts' && (
-            <div className="flex flex-col gap-1 py-1.5 px-1 pl-2 max-h-[200px] overflow-y-auto no-scrollbar border-t border-white/10 mt-1">
-              {shortAlbums.map((album) => (
-                <button
-                  key={album.id}
-                  type="button"
-                  onClick={() => {
-                    onJumpToAlbum(album.id, 'shorts');
-                  }}
-                  className="w-full text-left flex items-center justify-between px-2 py-1 rounded-lg text-[11px] font-sans font-medium hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
-                >
-                  <span className="truncate pr-1.5 text-zinc-400 group-hover:text-white transition-colors">
-                    {album.name}
-                  </span>
-                  <span className="text-[9px] font-mono text-zinc-400 bg-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                    {album.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </nav>
 
       {/* =========================================================================
-          3. MOBILE VIEWPORT (< 768px): Fixed Bottom Dock with Up Arrows (▲)
+          3. MOBILE VIEWPORT (< 768px): Slim Bottom Dock (Icon Only)
          ========================================================================= */}
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-[1000] select-none shadow-[0_-4px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-colors duration-200"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-[1000] select-none shadow-[0_-4px_24px_rgba(0,0,0,0.7)] backdrop-blur-2xl transition-colors duration-200"
         style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
           backgroundColor: 'var(--nav-bg)',
           borderTop: '1px solid var(--nav-border)',
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
         }}
       >
-        <div className="w-full max-w-lg mx-auto px-2 py-1.5 flex items-center justify-between gap-1">
+        <div className="w-full max-w-sm mx-auto px-4 py-2 flex items-center justify-around gap-2">
           {/* Home */}
           <button
             type="button"
             onClick={handleHomeClick}
-            className="flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer"
-            style={{
-              backgroundColor: activeFilter === 'all' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'all' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-            }}
+            title="Home"
+            aria-label="Home"
+            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+              activeFilter === 'all'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                : 'text-zinc-400 hover:text-white border border-transparent'
+            }`}
           >
-            <Home className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px] font-sans font-semibold leading-none">Home</span>
+            <Home className="w-5 h-5" />
           </button>
 
-          {/* Images + Up Arrow (▲) */}
-          <div
-            className="flex-1 flex items-center justify-center rounded-xl p-0.5 transition-all"
-            style={{
-              backgroundColor: activeFilter === 'images' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'images' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => {
+          {/* Images */}
+          <button
+            type="button"
+            onClick={() => {
+              if (activeFilter === 'images' && imageAlbums.length > 0) {
+                setOpenCategory((prev) => (prev === 'images' ? null : 'images'));
+              } else {
                 setOpenCategory(null);
                 onFilterChange('images');
-              }}
-              className="flex-1 flex flex-col items-center justify-center py-1 cursor-pointer"
-            >
-              <Camera className="w-4 h-4 mb-0.5" />
-              <span className="text-[10px] font-sans font-semibold leading-none">Images</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('images', e)}
-              aria-label="Open Images Album Menu"
-              className="px-1.5 py-1.5 hover:opacity-80 active:scale-90 transition-transform cursor-pointer"
-            >
-              <ChevronUp
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'images' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Videos + Up Arrow (▲) */}
-          <div
-            className="flex-1 flex items-center justify-center rounded-xl p-0.5 transition-all"
-            style={{
-              backgroundColor: activeFilter === 'clips' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'clips' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+              }
             }}
+            title="Photographs"
+            aria-label="Images"
+            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
+              activeFilter === 'images'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                : 'text-zinc-400 hover:text-white border border-transparent'
+            }`}
           >
-            <button
-              type="button"
-              onClick={() => {
+            <Camera className="w-5 h-5" />
+            {imageAlbums.length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+            )}
+          </button>
+
+          {/* Videos */}
+          <button
+            type="button"
+            onClick={() => {
+              if (activeFilter === 'clips' && videoAlbums.length > 0) {
+                setOpenCategory((prev) => (prev === 'clips' ? null : 'clips'));
+              } else {
                 setOpenCategory(null);
                 onFilterChange('clips');
-              }}
-              className="flex-1 flex flex-col items-center justify-center py-1 cursor-pointer"
-            >
-              <Film className="w-4 h-4 mb-0.5" />
-              <span className="text-[10px] font-sans font-semibold leading-none">Videos</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('clips', e)}
-              aria-label="Open Videos Album Menu"
-              className="px-1.5 py-1.5 hover:opacity-80 active:scale-90 transition-transform cursor-pointer"
-            >
-              <ChevronUp
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'clips' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Shorts + Up Arrow (▲) */}
-          <div
-            className="flex-1 flex items-center justify-center rounded-xl p-0.5 transition-all"
-            style={{
-              backgroundColor: activeFilter === 'shorts' ? 'var(--nav-active-bg)' : 'transparent',
-              color: activeFilter === 'shorts' ? 'var(--nav-active-text)' : 'var(--nav-btn-text)',
+              }
             }}
+            title="Videos"
+            aria-label="Videos"
+            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
+              activeFilter === 'clips'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                : 'text-zinc-400 hover:text-white border border-transparent'
+            }`}
           >
-            <button
-              type="button"
-              onClick={() => {
+            <Film className="w-5 h-5" />
+            {videoAlbums.length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+            )}
+          </button>
+
+          {/* Shorts */}
+          <button
+            type="button"
+            onClick={() => {
+              if (activeFilter === 'shorts' && shortAlbums.length > 0) {
+                setOpenCategory((prev) => (prev === 'shorts' ? null : 'shorts'));
+              } else {
                 setOpenCategory(null);
                 onFilterChange('shorts');
-              }}
-              className="flex-1 flex flex-col items-center justify-center py-1 cursor-pointer"
-            >
-              <Smartphone className="w-4 h-4 mb-0.5" />
-              <span className="text-[10px] font-sans font-semibold leading-none">Shorts</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => toggleCategoryMenu('shorts', e)}
-              aria-label="Open Shorts Album Menu"
-              className="px-1.5 py-1.5 hover:opacity-80 active:scale-90 transition-transform cursor-pointer"
-            >
-              <ChevronUp
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  openCategory === 'shorts' ? 'rotate-180 text-[#00E5FF]' : ''
-                }`}
-              />
-            </button>
-          </div>
+              }
+            }}
+            title="Shorts"
+            aria-label="Shorts"
+            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
+              activeFilter === 'shorts'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                : 'text-zinc-400 hover:text-white border border-transparent'
+            }`}
+          >
+            <Smartphone className="w-5 h-5" />
+            {shortAlbums.length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+            )}
+          </button>
         </div>
       </nav>
 

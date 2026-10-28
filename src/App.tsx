@@ -675,7 +675,7 @@ function App() {
         )}
 
         {/* 2. Structured Discovery Feed: Tagged Album Sections with Instant In-Place Filtering */}
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:pr-44 xl:pr-36 flex flex-col gap-6 sm:gap-8 pt-4">
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:pr-20 xl:pr-20 flex flex-col gap-6 sm:gap-8 pt-4">
           {/* Loading State Skeleton */}
           {isLoading && !data && (
             <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
