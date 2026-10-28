@@ -556,62 +556,90 @@ function App() {
     [activeFilter]
   );
 
-  // Featured spotlight video for Layer 1 hero banner
-  const spotlightVideo = useMemo(() => {
-    const isCandidateVideo = (item: StageMediaItem) => {
-      const isShort = Boolean(
-        item.mediaType === 'short' ||
-        item.category?.toLowerCase().includes('short') ||
-        item.category?.toLowerCase().includes('reel') ||
-        item.url?.toLowerCase().includes('/shorts/') ||
-        item.id?.toLowerCase().includes('shorts')
-      );
-      return !isShort && (item.type === 'video' || isVideoExtension(item.url || item.path || item.id));
-    };
+  // Helper to check if an item is a vertical short / reel
+  const isShortItem = useCallback((item: StageMediaItem): boolean => {
+    return Boolean(
+      item.mediaType === 'short' ||
+      item.category?.toLowerCase().includes('short') ||
+      item.category?.toLowerCase().includes('reel') ||
+      item.parentAlbum?.toLowerCase().includes('short') ||
+      item.url?.toLowerCase().includes('/shorts/') ||
+      item.id?.toLowerCase().includes('shorts') ||
+      item.path?.toLowerCase().includes('shorts')
+    );
+  }, []);
 
-    const fromReleases = rawFeed.latestReleases.find(isCandidateVideo);
-    if (fromReleases) return fromReleases;
+  // Helper to check if an item is a video
+  const isVideoItem = useCallback((item: StageMediaItem): boolean => {
+    return Boolean(
+      item.type === 'video' ||
+      item.mediaType === 'clip' ||
+      isVideoExtension(item.url || item.path || item.id || item.name || '')
+    );
+  }, []);
 
-    const fromFolders = rawFeed.videoVaultFolders.flatMap((f) => f.items).find(isCandidateVideo);
-    if (fromFolders) return fromFolders;
-
-    return rawFeed.allMediaPool.find(isCandidateVideo) || null;
-  }, [rawFeed.latestReleases, rawFeed.videoVaultFolders, rawFeed.allMediaPool]);
-
-  // Featured videos collection for Layer 4 dynamic video grid
-  const featuredVideos = useMemo(() => {
-    const allClips: StageMediaItem[] = [];
+  // Full pool of landscape (non-short) video clips from across the entire directory
+  const landscapeVideos = useMemo(() => {
+    const pool: StageMediaItem[] = [];
     const seen = new Set<string>();
 
+    // 1. Gather all clips from video vault folders (these are landscape video albums)
     rawFeed.videoVaultFolders.forEach((folder) => {
       folder.items.forEach((item) => {
         const key = item.id || item.url;
         if (key && seen.has(key)) return;
-        const isShort = Boolean(
-          item.mediaType === 'short' ||
-          item.category?.toLowerCase().includes('short') ||
-          item.category?.toLowerCase().includes('reel') ||
-          item.url?.toLowerCase().includes('/shorts/') ||
-          item.id?.toLowerCase().includes('shorts')
-        );
-        if (!isShort && (item.type === 'video' || isVideoExtension(item.url || item.path || item.id))) {
+        if (!isShortItem(item) && isVideoItem(item)) {
           if (key) seen.add(key);
-          allClips.push(item);
+          pool.push(item);
         }
       });
     });
 
-    if (allClips.length > 0) return allClips;
-
-    return rawFeed.latestReleases.filter((item) => {
-      const isShort = Boolean(
-        item.mediaType === 'short' ||
-        item.category?.toLowerCase().includes('short') ||
-        item.category?.toLowerCase().includes('reel')
-      );
-      return !isShort && (item.type === 'video' || isVideoExtension(item.url || item.path || item.id));
+    // 2. Also check any other non-short videos in allMediaPool
+    rawFeed.allMediaPool.forEach((item) => {
+      const key = item.id || item.url;
+      if (key && seen.has(key)) return;
+      if (!isShortItem(item) && isVideoItem(item)) {
+        if (key) seen.add(key);
+        pool.push(item);
+      }
     });
-  }, [rawFeed.videoVaultFolders, rawFeed.latestReleases]);
+
+    return pool;
+  }, [rawFeed.videoVaultFolders, rawFeed.allMediaPool, isShortItem, isVideoItem]);
+
+  // Featured spotlight video for Layer 1 hero banner (Picks a random landscape video on each visit)
+  const [spotlightVideo, setSpotlightVideo] = useState<StageMediaItem | null>(null);
+
+  useEffect(() => {
+    if (spotlightVideo) return;
+
+    if (landscapeVideos.length > 0) {
+      const randomIndex = Math.floor(Math.random() * landscapeVideos.length);
+      setSpotlightVideo(landscapeVideos[randomIndex]);
+    } else if (rawFeed.allMediaPool.length > 0) {
+      const fallbackVideos = rawFeed.allMediaPool.filter((item) => isVideoItem(item) && !isShortItem(item));
+      if (fallbackVideos.length > 0) {
+        const randomIndex = Math.floor(Math.random() * fallbackVideos.length);
+        setSpotlightVideo(fallbackVideos[randomIndex]);
+      }
+    }
+  }, [landscapeVideos, rawFeed.allMediaPool, spotlightVideo, isVideoItem, isShortItem]);
+
+  // Context playlist for the active spotlight video
+  const spotlightPlaylist = useMemo(() => {
+    if (!spotlightVideo) return landscapeVideos.length > 0 ? landscapeVideos : rawFeed.allMediaPool;
+    if (spotlightVideo.category) {
+      const folder = findMatchingFolder(rawFeed.albums, spotlightVideo.category);
+      if (folder && folder.folder.items.length > 0) {
+        return folder.folder.items;
+      }
+    }
+    return landscapeVideos.length > 0 ? landscapeVideos : rawFeed.allMediaPool;
+  }, [spotlightVideo, landscapeVideos, rawFeed.albums, rawFeed.allMediaPool]);
+
+  // Featured videos collection for Layer 4 dynamic video grid
+  const featuredVideos = landscapeVideos;
 
   // Category counts for Layer 2 glass filter navigation chips
   const filterCounts = useMemo(() => {
@@ -669,7 +697,7 @@ function App() {
         {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && spotlightVideo && (
           <AmbientSpotlightHero
             item={spotlightVideo}
-            playlistContext={rawFeed.latestReleases.length > 0 ? rawFeed.latestReleases : rawFeed.allMediaPool}
+            playlistContext={spotlightPlaylist}
             onPlay={(item, playlist) => handleSelectItem(item, playlist)}
             onExploreAlbum={handleHeroExplore}
           />
