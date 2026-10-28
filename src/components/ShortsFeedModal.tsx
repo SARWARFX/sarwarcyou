@@ -176,10 +176,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           }
         });
 
+        const targetVideo = videoRefs.current[targetIndex];
+        if (targetVideo) {
+          activeVideoRef.current = targetVideo;
+          setCurrentTime(targetVideo.currentTime);
+          setDuration(
+            targetVideo.duration && isFinite(targetVideo.duration) ? targetVideo.duration : 0
+          );
+        } else {
+          setCurrentTime(0);
+          setDuration(0);
+        }
+
         setActiveIndex(targetIndex);
         setIsPlaying(true);
-        setCurrentTime(0);
-        setDuration(0);
         resetControlsTimer();
 
         // Prewarm next reel stream
@@ -203,17 +213,17 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           video.pause();
           video.muted = true;
         } else {
+          activeVideoRef.current = video;
           video.muted = isMuted;
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
               .catch(() => {
-                if (!video.muted) {
-                  video.muted = true;
-                  setIsMuted(true);
-                  video.play().then(() => setIsPlaying(true)).catch(() => {});
-                }
+                // Fallback to muted playback if blocked by browser policy
+                video.muted = true;
+                setIsMuted(true);
+                video.play().then(() => setIsPlaying(true)).catch(console.error);
               });
           }
         }
@@ -223,13 +233,23 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   // Single-tap play/pause toggle with center pulse icon
   const togglePlay = useCallback(() => {
-    const video = activeVideoRef.current;
+    const video = videoRefs.current[activeIndex] || activeVideoRef.current;
     if (!video) return;
 
     if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
 
     if (video.paused) {
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            // Fallback to muted playback if blocked by browser policy
+            video.muted = true;
+            setIsMuted(true);
+            video.play().then(() => setIsPlaying(true)).catch(console.error);
+          });
+      }
       setCenterPulse('play');
     } else {
       video.pause();
@@ -240,7 +260,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     pulseTimerRef.current = window.setTimeout(() => {
       setCenterPulse(null);
     }, 550);
-  }, []);
+  }, [activeIndex]);
 
   // Screen click/tap handler:
   // On mobile (< 768px): if controls are hidden, first tap reveals controls for access without pausing!
@@ -268,13 +288,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
       const next = !prev;
-      if (activeVideoRef.current) {
-        activeVideoRef.current.muted = next;
+      const video = videoRefs.current[activeIndex] || activeVideoRef.current;
+      if (video) {
+        video.muted = next;
       }
       return next;
     });
     resetControlsTimer();
-  }, [resetControlsTimer]);
+  }, [activeIndex, resetControlsTimer]);
 
   // Sequential Navigation: Scroll Up / Down
   const handleScrollNext = useCallback(() => {
@@ -361,7 +382,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation();
       resetControlsTimer();
-      const video = activeVideoRef.current;
+      const video = videoRefs.current[activeIndex] || activeVideoRef.current;
       if (!video || !duration) return;
       const rect = e.currentTarget.getBoundingClientRect();
       const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -369,7 +390,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       video.currentTime = newTime;
       setCurrentTime(newTime);
     },
-    [duration, resetControlsTimer]
+    [activeIndex, duration, resetControlsTimer]
   );
 
   if (!isOpen || !shorts.length) return null;
@@ -490,7 +511,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       <video
                         ref={(el) => {
                           videoRefs.current[idx] = el;
-                          if (isSnapped) {
+                          if (idx === activeIndex) {
                             activeVideoRef.current = el;
                           }
                         }}
@@ -499,6 +520,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         autoPlay={isSnapped}
                         preload={isSnapped ? 'auto' : 'metadata'}
                         playsInline
+                        {...({ 'webkit-playsinline': 'true' } as any)}
                         loop
                         muted={!isSnapped ? true : isMuted}
                         crossOrigin="anonymous"
@@ -512,17 +534,48 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                             setIsPlaying(true);
                           }
                         }}
-                        onPause={() => {
-                          if (isSnapped) setIsPlaying(false);
+                        onPlaying={(e) => {
+                          if (idx === activeIndex) {
+                            setIsPlaying(true);
+                            const v = e.currentTarget;
+                            setCurrentTime(v.currentTime);
+                            if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
+                              setDuration(v.duration);
+                            }
+                          }
                         }}
-                        onTimeUpdate={() => {
-                          if (isSnapped && activeVideoRef.current) {
-                            setCurrentTime(activeVideoRef.current.currentTime);
+                        onPause={() => {
+                          if (idx === activeIndex) {
+                            setIsPlaying(false);
+                          }
+                        }}
+                        onWaiting={() => {
+                          // Buffer state: video waits for packets, slider naturally freezes as timeupdate stops firing
+                        }}
+                        onTimeUpdate={(e) => {
+                          if (idx === activeIndex) {
+                            const v = e.currentTarget;
+                            setCurrentTime(v.currentTime);
+                            if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
+                              setDuration(v.duration);
+                            }
                           }
                         }}
                         onLoadedMetadata={(e) => {
-                          if (isSnapped) {
-                            setDuration(e.currentTarget.duration || 0);
+                          if (idx === activeIndex) {
+                            const v = e.currentTarget;
+                            if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
+                              setDuration(v.duration);
+                            }
+                            setCurrentTime(v.currentTime);
+                          }
+                        }}
+                        onDurationChange={(e) => {
+                          if (idx === activeIndex) {
+                            const v = e.currentTarget;
+                            if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
+                              setDuration(v.duration);
+                            }
                           }
                         }}
                         className="w-full h-full object-cover select-none cursor-pointer"
@@ -681,7 +734,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                           title="Seek Reel Time"
                         >
                           <div
-                            className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] transition-all duration-100"
+                            className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF]"
                             style={{
                               width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
                             }}
@@ -699,7 +752,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       title="Seek Reel Time"
                     >
                       <div
-                        className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] transition-all duration-100"
+                        className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF]"
                         style={{
                           width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
                         }}
