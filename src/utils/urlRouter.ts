@@ -226,7 +226,15 @@ export function findMatchingMediaItem(
   });
   if (idx !== -1) return { item: items[idx], index: idx };
 
-  // 6. Numeric index fallback (e.g. ?media=0)
+  // 6. Match by computed media slug
+  idx = items.findIndex((it) => {
+    const mediaSlug = decodeURIComponent(getMediaSlug(it)).toLowerCase();
+    const mediaSlugClean = mediaSlug.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return mediaSlug === rawQuery || mediaSlugClean === slugQuery;
+  });
+  if (idx !== -1) return { item: items[idx], index: idx };
+
+  // 7. Numeric index fallback (e.g. ?media=0)
   if (/^\d+$/.test(rawQuery)) {
     const num = parseInt(rawQuery, 10);
     if (num >= 0 && num < items.length) {

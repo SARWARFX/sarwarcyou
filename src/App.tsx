@@ -9,7 +9,7 @@ import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { SiteFooter } from './components/SiteFooter';
-import type { StageMediaItem, SortOrder } from './types';
+import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
   parseUrlState,
@@ -185,7 +185,7 @@ function App() {
 
   // Universal Media Click Dispatcher
   const handleSelectItem = useCallback(
-    (item: StageMediaItem, playlistContext?: StageMediaItem[]) => {
+    (item: StageMediaItem, playlistContext?: StageMediaItem[], preferredAlbum?: string) => {
       const isShort = Boolean(
         item.mediaType === 'short' ||
         item.category?.toLowerCase().includes('short') ||
@@ -213,7 +213,7 @@ function App() {
         );
 
         const targetItem = fullShortsList[targetIdx !== -1 ? targetIdx : 0] || item;
-        const targetUrl = buildMediaUrl(targetItem, 'shorts');
+        const targetUrl = buildMediaUrl(targetItem, preferredAlbum || 'shorts');
         pushModalState('shorts', targetUrl);
         setShortsState({
           isOpen: true,
@@ -224,7 +224,7 @@ function App() {
       }
 
       if (isVid) {
-        const albumTarget = item.category || item.parentAlbum || playlistContext?.[0]?.category;
+        const albumTarget = preferredAlbum || item.category || item.parentAlbum || playlistContext?.[0]?.category;
         const targetUrl = buildMediaUrl(item, albumTarget);
         pushModalState('theater', targetUrl);
         setTheaterState({
@@ -246,7 +246,7 @@ function App() {
       );
 
       const targetItem = photoPlaylist[photoIdx !== -1 ? photoIdx : 0] || item;
-      const albumTarget = targetItem.category || targetItem.parentAlbum;
+      const albumTarget = preferredAlbum || targetItem.category || targetItem.parentAlbum;
       const targetUrl = buildMediaUrl(targetItem, albumTarget);
 
       pushModalState('lightbox', targetUrl);
@@ -295,54 +295,94 @@ function App() {
     const { albumQuery, mediaQuery } = parseUrlState();
     if (!albumQuery && !mediaQuery) return;
 
-    if (mediaQuery) {
-      const allItems: StageMediaItem[] = [
-        ...(rawFeed.allMediaPool || []),
-        ...(rawFeed.shorts || []),
-        ...(rawFeed.latestReleases || []),
-        ...rawFeed.albums.flatMap((f) => f.items),
-      ];
-      const seen = new Set<string>();
-      const uniquePool = allItems.filter((item) => {
-        const key = item.id || item.url;
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+    // 1. Resolve album context if albumQuery is provided
+    let scopedPool: StageMediaItem[] | undefined;
+    let resolvedFolder: { folder: MediaFolderEntry; index: number } | null = null;
+    const isShortsAlbum = albumQuery
+      ? albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts'
+      : false;
 
-      const match = findMatchingMediaItem(uniquePool, mediaQuery);
-      if (match) {
-        let contextList: StageMediaItem[] | undefined;
-        if (albumQuery) {
-          if (albumQuery.toLowerCase() === 'shorts') {
-            contextList = rawFeed.shorts;
-          } else {
-            const folderMatch = findMatchingFolder(rawFeed.albums, albumQuery);
-            if (folderMatch) contextList = folderMatch.folder.items;
+    if (albumQuery) {
+      if (isShortsAlbum) {
+        scopedPool = rawFeed.shorts;
+      } else {
+        resolvedFolder = findMatchingFolder(rawFeed.albums, albumQuery);
+        if (resolvedFolder) {
+          scopedPool = resolvedFolder.folder.items;
+        }
+      }
+    }
+
+    if (mediaQuery) {
+      let matchedItem: StageMediaItem | null = null;
+      let matchedContext: StageMediaItem[] | undefined;
+
+      // Primary check: If album parameter is present, strictly search within that album/category first
+      if (scopedPool && scopedPool.length > 0) {
+        const scopedMatch = findMatchingMediaItem(scopedPool, mediaQuery);
+        if (scopedMatch) {
+          matchedItem = scopedMatch.item;
+          matchedContext = scopedPool;
+        }
+      }
+
+      // Secondary check: Fall back to global search ONLY if not found in the scoped album (or no album specified)
+      if (!matchedItem) {
+        const allItems: StageMediaItem[] = [
+          ...(scopedPool || []),
+          ...(rawFeed.shorts || []),
+          ...(rawFeed.latestReleases || []),
+          ...rawFeed.albums.flatMap((f) => f.items),
+          ...(rawFeed.allMediaPool || []),
+        ];
+        const seen = new Set<string>();
+        const uniquePool = allItems.filter((item) => {
+          const key = item.id || item.url;
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        const fallbackMatch = findMatchingMediaItem(uniquePool, mediaQuery);
+        if (fallbackMatch) {
+          matchedItem = fallbackMatch.item;
+
+          // For fallback matches, determine the most relevant context list
+          if (matchedItem.mediaType === 'short') {
+            matchedContext = rawFeed.shorts;
+          } else if (matchedItem.category) {
+            const folderMatch = findMatchingFolder(rawFeed.albums, matchedItem.category);
+            if (folderMatch) {
+              matchedContext = folderMatch.folder.items;
+            }
           }
         }
-        if (!contextList && match.item.category) {
-          const folderMatch = findMatchingFolder(rawFeed.albums, match.item.category);
-          if (folderMatch) contextList = folderMatch.folder.items;
-        }
-        handleSelectItem(match.item, contextList);
+      }
+
+      // Dispatch media selection if an item was found
+      if (matchedItem) {
+        const preferredAlbum = scopedPool && matchedContext === scopedPool && albumQuery
+          ? albumQuery
+          : undefined;
+        handleSelectItem(matchedItem, matchedContext, preferredAlbum);
         return;
       }
     }
 
+    // 4. If media was not found (or only album was specified), open the album view
     if (albumQuery) {
-      if (albumQuery.toLowerCase() === 'shorts') {
+      if (isShortsAlbum) {
         handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts');
       } else {
-        const folderMatch = findMatchingFolder(rawFeed.albums, albumQuery);
-        if (folderMatch) {
+        const folderToOpen = resolvedFolder || findMatchingFolder(rawFeed.albums, albumQuery);
+        if (folderToOpen) {
           handleOpenViewAll(
-            folderMatch.folder.name,
-            folderMatch.folder.items,
-            folderMatch.folder.variant,
+            folderToOpen.folder.name,
+            folderToOpen.folder.items,
+            folderToOpen.folder.variant,
             undefined,
-            folderMatch.folder.hasMultipleTypes,
-            folderMatch.folder.typeCounts
+            folderToOpen.folder.hasMultipleTypes,
+            folderToOpen.folder.typeCounts
           );
         }
       }
