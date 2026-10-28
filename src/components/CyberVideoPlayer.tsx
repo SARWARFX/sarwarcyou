@@ -128,6 +128,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const gestureFadeTimeoutRef = useRef<number | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const sliderPreviewVideoRef = useRef<HTMLVideoElement>(null);
+  const gesturePreviewVideoRef = useRef<HTMLVideoElement>(null);
+  const wasPlayingBeforeGesture = useRef(false);
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -245,6 +248,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
 
     const currentVidTime = videoRef.current ? videoRef.current.currentTime : currentTime;
+    wasPlayingBeforeGesture.current = !videoRef.current?.paused;
 
     gestureDragRef.current = {
       pointerId: e.pointerId,
@@ -275,6 +279,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       if (Math.abs(dx) > 10 && Math.abs(dx) >= Math.abs(dy)) {
         drag.isLockedHorizontal = true;
         drag.hasMovedPastThreshold = true;
+        // Pause playback during horizontal drag so seeking is instantaneous and audio doesn't stutter
+        if (videoRef.current && !videoRef.current.paused) {
+          videoRef.current.pause();
+        }
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch (_) {}
@@ -285,7 +293,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
     // Dynamic scrubbing sensitivity: ~10s per 100px dragged, gently scaled for longer videos
     const vidDuration = videoRef.current?.duration || duration || 60;
-    const secPerPx = Math.max(0.1, Math.min(0.5, vidDuration / 600));
+    const secPerPx = Math.max(0.1, Math.min(0.5, vidDuration / 500));
     const deltaSeconds = Math.round(dx * secPerPx);
     const targetTime = Math.max(0, Math.min(vidDuration, drag.startTime + deltaSeconds));
     const actualDelta = Math.round(targetTime - drag.startTime);
@@ -301,10 +309,17 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       icon: actualDelta >= 0 ? 'forward' : 'rewind',
     });
 
+    // Update main video element so entire player shows frames in real time
     if (videoRef.current) {
       videoRef.current.currentTime = targetTime;
       setCurrentTime(targetTime);
     }
+
+    // Also update gesture preview video frame
+    if (gesturePreviewVideoRef.current && Math.abs(gesturePreviewVideoRef.current.currentTime - targetTime) > 0.15) {
+      gesturePreviewVideoRef.current.currentTime = targetTime;
+    }
+
     resetHudTimer();
   };
 
@@ -328,6 +343,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             setCurrentTime(loopA);
           }
         }
+        // Smoothly resume playback if video was playing prior to scrubbing
+        if (wasPlayingBeforeGesture.current) {
+          videoRef.current.play().catch(() => {});
+          setIsPlaying(true);
+        }
       }
 
       setGestureSeek((prev) => ({ ...prev, isActive: false }));
@@ -348,6 +368,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
     } catch (_) {}
+
+    if (wasPlayingBeforeGesture.current && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+      setIsPlaying(true);
+    }
 
     setGestureSeek((prev) => ({ ...prev, isActive: false }));
     if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
@@ -370,6 +395,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       gestureFadeTimeoutRef.current = null;
     }
     const currentVidTime = videoRef.current ? videoRef.current.currentTime : currentTime;
+    wasPlayingBeforeGesture.current = !videoRef.current?.paused;
+
     gestureDragRef.current = {
       pointerId: -1,
       startX: t.clientX,
@@ -398,13 +425,16 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       if (Math.abs(dx) > 10 && Math.abs(dx) >= Math.abs(dy)) {
         drag.isLockedHorizontal = true;
         drag.hasMovedPastThreshold = true;
+        if (videoRef.current && !videoRef.current.paused) {
+          videoRef.current.pause();
+        }
       }
     }
 
     if (drag.isLockedVertical || !drag.isLockedHorizontal) return;
 
     const vidDuration = videoRef.current?.duration || duration || 60;
-    const secPerPx = Math.max(0.1, Math.min(0.5, vidDuration / 600));
+    const secPerPx = Math.max(0.1, Math.min(0.5, vidDuration / 500));
     const deltaSeconds = Math.round(dx * secPerPx);
     const targetTime = Math.max(0, Math.min(vidDuration, drag.startTime + deltaSeconds));
     const actualDelta = Math.round(targetTime - drag.startTime);
@@ -424,6 +454,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       videoRef.current.currentTime = targetTime;
       setCurrentTime(targetTime);
     }
+
+    if (gesturePreviewVideoRef.current && Math.abs(gesturePreviewVideoRef.current.currentTime - targetTime) > 0.15) {
+      gesturePreviewVideoRef.current.currentTime = targetTime;
+    }
+
     resetHudTimer();
   };
 
@@ -440,6 +475,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             videoRef.current.currentTime = loopA;
             setCurrentTime(loopA);
           }
+        }
+        if (wasPlayingBeforeGesture.current) {
+          videoRef.current.play().catch(() => {});
+          setIsPlaying(true);
         }
       }
 
@@ -487,6 +526,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       hoverPct: pct,
       hoverTime: time,
     });
+
+    // Update timeslider hover preview video frame
+    if (sliderPreviewVideoRef.current && Math.abs(sliderPreviewVideoRef.current.currentTime - time) > 0.15) {
+      sliderPreviewVideoRef.current.currentTime = time;
+    }
   };
 
   const handleSeekMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -529,6 +573,24 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         videoRef.current.pause();
         videoRef.current.removeAttribute('src');
         videoRef.current.load();
+      } catch {
+        // ignore
+      }
+    }
+    if (sliderPreviewVideoRef.current) {
+      try {
+        sliderPreviewVideoRef.current.pause();
+        sliderPreviewVideoRef.current.removeAttribute('src');
+        sliderPreviewVideoRef.current.load();
+      } catch {
+        // ignore
+      }
+    }
+    if (gesturePreviewVideoRef.current) {
+      try {
+        gesturePreviewVideoRef.current.pause();
+        gesturePreviewVideoRef.current.removeAttribute('src');
+        gesturePreviewVideoRef.current.load();
       } catch {
         // ignore
       }
@@ -688,7 +750,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // Clamped position for Seek Hover Tooltip
   const barWidth = progressBarRef.current?.getBoundingClientRect().width || 300;
-  const tooltipWidth = 160;
+  const tooltipWidth = 192;
   const halfTooltip = tooltipWidth / 2;
   const clampedX = barWidth > tooltipWidth + 16
     ? Math.max(halfTooltip + 8, Math.min(barWidth - halfTooltip - 8, seekHover.hoverX))
@@ -784,36 +846,51 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2.5 Samsung One UI Style Horizontal Gesture Scrubbing Overlay */}
+      {/* 2.5 Swipe Left-Right Gesture Scrubbing Overlay with Frame Preview */}
       {gestureSeek.isVisible && (
         <div
           className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none transition-all duration-300 transform ${
             gestureSeek.isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
           }`}
         >
-          <div className="flex flex-col items-center gap-2.5 px-6 py-4 rounded-3xl bg-black/85 backdrop-blur-2xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(0,229,255,0.25)] min-w-[210px]">
-            {/* Top Row: Icon + Delta */}
-            <div className="flex items-center gap-2">
-              {gestureSeek.icon === 'forward' ? (
-                <ChevronsRight className="w-6 h-6 text-[#00E5FF] animate-pulse" />
-              ) : (
-                <ChevronsLeft className="w-6 h-6 text-[#00E5FF] animate-pulse" />
-              )}
-              <span className="text-2xl font-mono font-black tracking-wider text-white">
-                {formatDelta(gestureSeek.deltaSeconds)}
-              </span>
+          <div className="flex flex-col items-center gap-3 p-3 sm:p-4 rounded-3xl bg-black/90 backdrop-blur-2xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(0,229,255,0.3)] w-[240px] sm:w-[280px]">
+            {/* Video Frame Preview Box */}
+            <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/15 bg-black relative shadow-lg">
+              <video
+                ref={gesturePreviewVideoRef}
+                src={streamUrl}
+                preload="auto"
+                muted
+                playsInline
+                crossOrigin="anonymous"
+                className="w-full h-full object-cover pointer-events-none bg-black"
+              />
+
+              {/* Direction Pulse Badge */}
+              <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[11px] font-mono text-[#00E5FF]">
+                {gestureSeek.icon === 'forward' ? (
+                  <ChevronsRight className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse" />
+                ) : (
+                  <ChevronsLeft className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse" />
+                )}
+                <span className="font-bold tracking-wider">{gestureSeek.icon === 'forward' ? 'FORWARD' : 'REWIND'}</span>
+              </div>
+
+              {/* Live Delta Pill */}
+              <div className="absolute bottom-2 right-2 z-10 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/10 text-xs font-mono font-bold text-white shadow">
+                <span className="text-[#00E5FF]">{formatDelta(gestureSeek.deltaSeconds)}</span>
+              </div>
             </div>
 
             {/* Target Timestamp / Total Duration */}
-            <div className="text-xs font-mono font-bold tracking-wider text-zinc-300">
-              <span className="text-[#00E5FF]">{formatTime(gestureSeek.targetTime)}</span>
-              <span className="text-zinc-500 mx-1.5">/</span>
-              <span>{formatTime(duration)}</span>
+            <div className="flex items-center justify-between w-full px-1 text-xs font-mono font-bold tracking-wider text-zinc-300">
+              <span className="text-[#00E5FF] text-sm">{formatTime(gestureSeek.targetTime)}</span>
+              <span className="text-zinc-500 font-normal">/ {formatTime(duration)}</span>
             </div>
 
             {/* Mini Progress Bar in Overlay */}
             {duration > 0 && (
-              <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden mt-1">
+              <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#00E5FF] shadow-[0_0_10px_#00E5FF] transition-all duration-75"
                   style={{ width: `${Math.max(0, Math.min(100, (gestureSeek.targetTime / duration) * 100))}%` }}
@@ -908,22 +985,39 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           onMouseLeave={handleSeekMouseLeave}
           className="group/seek relative w-full py-2 cursor-pointer select-none overflow-visible"
         >
-          {/* Floating Hover Preview Tooltip Card */}
-          {seekHover.isHovering && duration > 0 && (
-            <div
-              className="absolute bottom-6 -translate-x-1/2 pointer-events-none transition-transform duration-75 ease-out z-40"
-              style={{ left: `${clampedX}px` }}
-            >
-              <div className="px-3 py-1.5 rounded-lg border border-white/20 bg-neutral-900/95 shadow-2xl flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-[#00E5FF]">
-                  {formatTime(seekHover.hoverTime)}
-                </span>
-                <span className="text-[10px] font-mono text-zinc-400">
+          {/* Floating Hover Preview Tooltip Card (YouTube Style with Live Frame) */}
+          <div
+            className={`absolute bottom-6 -translate-x-1/2 pointer-events-none transition-all duration-150 ease-out z-40 flex flex-col items-center ${
+              seekHover.isHovering && duration > 0
+                ? 'opacity-100 scale-100'
+                : 'opacity-0 scale-90 pointer-events-none'
+            }`}
+            style={{ left: `${clampedX}px` }}
+          >
+            <div className="w-40 sm:w-48 aspect-video rounded-xl overflow-hidden border border-white/20 bg-black/95 shadow-[0_12px_40px_rgba(0,0,0,0.95),0_0_20px_rgba(0,229,255,0.25)] flex flex-col items-center relative">
+              {/* Live Video Frame Preview */}
+              <video
+                ref={sliderPreviewVideoRef}
+                src={streamUrl}
+                preload="auto"
+                muted
+                playsInline
+                crossOrigin="anonymous"
+                className="w-full h-full object-cover pointer-events-none bg-black"
+              />
+
+              {/* Bottom Timestamp Badge Overlay */}
+              <div className="absolute bottom-1.5 px-2 py-0.5 rounded-md bg-black/85 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold text-white shadow flex items-center gap-1.5">
+                <span className="text-[#00E5FF]">{formatTime(seekHover.hoverTime)}</span>
+                <span className="text-zinc-400 text-[10px]">
                   ({formatDelta(seekHover.hoverTime - currentTime)})
                 </span>
               </div>
             </div>
-          )}
+
+            {/* Pointer Arrow */}
+            <div className="w-2.5 h-2.5 bg-black border-r border-b border-white/20 transform rotate-45 -mt-1 shadow-lg" />
+          </div>
 
           {/* Visual Track */}
           <div className="relative w-full h-2 group-hover/seek:h-2.5 bg-white/10 rounded-full transition-all flex items-center overflow-hidden">
