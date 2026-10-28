@@ -892,6 +892,8 @@ function App() {
         videoAlbums={videoAlbums}
         shortAlbums={shortAlbums}
         onJumpToAlbum={handleJumpToAlbum}
+        showBackToTop={showBackToTop}
+        onScrollToTop={handleScrollToTop}
       />
 
       {/* Main Content Stage */}
@@ -907,7 +909,7 @@ function App() {
         )}
 
         {/* 2. Structured Discovery Feed: Tagged Album Sections with Instant In-Place Filtering */}
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:pr-20 xl:pr-20 flex flex-col gap-6 sm:gap-8 pt-4">
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-20 xl:px-20 flex flex-col gap-6 sm:gap-8 pt-4">
           {/* Loading State Skeleton */}
           {isLoading && !data && (
             <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
@@ -1026,13 +1028,13 @@ function App() {
         <SiteFooter onBackToTop={handleResetHome} className="mt-14" />
       </div>
 
-      {/* Floating Global Back-To-Top Button (Elevated on mobile above bottom dock) */}
+      {/* Floating Global Back-To-Top Button (Desktop only; mobile is integrated into bottom dock) */}
       <button
         type="button"
         onClick={handleScrollToTop}
         aria-label="Scroll back to top"
         title="Back to top"
-        className={`fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 p-2.5 rounded-full shadow-lg transition-all duration-200 cursor-pointer ${
+        className={`hidden md:flex fixed bottom-6 right-4 sm:right-6 z-40 p-2.5 rounded-full shadow-lg transition-all duration-200 cursor-pointer items-center justify-center ${
           showBackToTop
             ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
             : 'opacity-0 translate-y-4 pointer-events-none scale-90'

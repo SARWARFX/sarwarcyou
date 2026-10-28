@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Camera, Film, Smartphone, X, Folder } from 'lucide-react';
+import { Home, Camera, Film, Smartphone, X, Folder, ChevronUp } from 'lucide-react';
 import type { CyberFilterType } from './CyberHeader';
 
 export interface AlbumJumpItem {
@@ -16,6 +16,8 @@ export interface ResponsiveNavProps {
   videoAlbums: AlbumJumpItem[];
   shortAlbums: AlbumJumpItem[];
   onJumpToAlbum: (albumId: string, category: CyberFilterType) => void;
+  showBackToTop?: boolean;
+  onScrollToTop?: () => void;
 }
 
 export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
@@ -26,6 +28,8 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   videoAlbums,
   shortAlbums,
   onJumpToAlbum,
+  showBackToTop,
+  onScrollToTop,
 }) => {
   // Currently open album jump menu category ('images' | 'clips' | 'shorts' | null)
   const [openCategory, setOpenCategory] = useState<CyberFilterType | null>(null);
@@ -88,18 +92,57 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   return (
     <div ref={navRef} className="w-full">
       {/* =========================================================================
-          1. TOP-LEFT WEBSITE BRAND TITLE (No black bar, smaller refined size)
+          1. DESKTOP VIEWPORT (>= 768px): Vertical Website Brand Spine on Left Side
+             - Fixed left-4 sm:left-6 top-1/2 -translate-y-1/2
+             - Uses the empty space on the left to display the website name vertically
+             - Upright futuristic cyberpunk typography with glowing status pip
          ========================================================================= */}
-      <div className="fixed top-3.5 sm:top-5 left-3 sm:left-6 z-50 select-none">
+      <div className="hidden md:flex fixed left-4 sm:left-6 top-1/2 -translate-y-1/2 z-[1000] select-none">
         <button
           type="button"
           onClick={handleHomeClick}
-          title="SARWARCYOU - Back to Top"
-          className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-black/40 hover:bg-black/75 backdrop-blur-xl border border-white/10 hover:border-[#00E5FF]/50 shadow-lg hover:shadow-[0_0_20px_rgba(0,229,255,0.25)] transition-all duration-200 cursor-pointer group active:scale-95"
+          title="SARWARCYOU - Back to Home"
+          aria-label="SARWARCYOU Home"
+          className="flex flex-col items-center py-5 px-2.5 rounded-2xl bg-black/50 hover:bg-black/85 backdrop-blur-2xl border border-white/10 hover:border-[#00E5FF]/60 shadow-[0_12px_40px_rgba(0,0,0,0.7)] hover:shadow-[0_0_30px_rgba(0,229,255,0.35)] transition-all duration-300 cursor-pointer group active:scale-95 gap-3.5"
+          style={{
+            borderColor: 'var(--nav-border)',
+          }}
         >
-          <div className="w-2 h-2 rounded-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] group-hover:scale-125 transition-transform" />
+          {/* Top glowing cyan status pip */}
+          <div className="w-2 h-2 rounded-full bg-[#00E5FF] shadow-[0_0_10px_#00E5FF] group-hover:scale-125 transition-transform" />
+
+          {/* Vertical brand text */}
           <span
-            className="text-xs sm:text-sm md:text-base font-black uppercase tracking-[0.18em] text-white group-hover:text-[#00E5FF] transition-colors"
+            className="text-[11px] lg:text-xs font-black uppercase text-zinc-300 group-hover:text-[#00E5FF] transition-colors select-none"
+            style={{
+              fontFamily: "'Orbitron', 'Syne', monospace, sans-serif",
+              writingMode: 'vertical-rl',
+              textOrientation: 'upright',
+              letterSpacing: '0.28em',
+            }}
+          >
+            SARWARCYOU
+          </span>
+
+          {/* Bottom subtle cyber terminal bar */}
+          <div className="w-1.5 h-3 rounded-full bg-white/20 group-hover:bg-[#00E5FF] shadow-[0_0_6px_transparent] group-hover:shadow-[0_0_8px_#00E5FF] transition-all" />
+        </button>
+      </div>
+
+      {/* =========================================================================
+          2. MOBILE VIEWPORT (< 768px): Compact Top-Left Brand Mark
+         ========================================================================= */}
+      <div className="md:hidden fixed top-3 left-3 z-50 select-none">
+        <button
+          type="button"
+          onClick={handleHomeClick}
+          title="SARWARCYOU - Back to Home"
+          aria-label="SARWARCYOU Home"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-black/50 hover:bg-black/75 backdrop-blur-xl border border-white/15 text-white shadow-lg active:scale-95 transition-all cursor-pointer"
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] shadow-[0_0_6px_#00E5FF]" />
+          <span
+            className="text-xs font-black uppercase tracking-[0.16em] text-white"
             style={{
               fontFamily: "'Orbitron', 'Syne', monospace, sans-serif",
             }}
@@ -264,34 +307,40 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
       </nav>
 
       {/* =========================================================================
-          3. MOBILE VIEWPORT (< 768px): Slim Bottom Dock (Icon Only)
+          3. MOBILE VIEWPORT (< 768px): Sleek Floating Cyberpunk Dock (Icon Only)
+             - Centered compact floating pill
+             - Integrated Back-to-Top quick action
+             - Cyberpunk border with glowing cyan accents
          ========================================================================= */}
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-[1000] select-none shadow-[0_-4px_24px_rgba(0,0,0,0.7)] backdrop-blur-2xl transition-colors duration-200"
+        className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-[1000] select-none pointer-events-auto"
         style={{
-          backgroundColor: 'var(--nav-bg)',
-          borderTop: '1px solid var(--nav-border)',
-          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        <div className="w-full max-w-sm mx-auto px-4 py-2 flex items-center justify-around gap-2">
+        <div
+          className="flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 rounded-2xl bg-black/85 backdrop-blur-2xl border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.85),0_0_15px_rgba(0,229,255,0.18)]"
+          style={{
+            borderColor: 'var(--nav-border)',
+          }}
+        >
           {/* Home */}
           <button
             type="button"
             onClick={handleHomeClick}
             title="Home"
             aria-label="Home"
-            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+            className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-90 ${
               activeFilter === 'all'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
-            <Home className="w-5 h-5" />
+            <Home className="w-4 h-4" />
           </button>
 
-          {/* Images */}
+          {/* Photographs */}
           <button
             type="button"
             onClick={() => {
@@ -304,15 +353,15 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             }}
             title="Photographs"
             aria-label="Images"
-            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
+            className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center relative active:scale-90 ${
               activeFilter === 'images'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
-            <Camera className="w-5 h-5" />
+            <Camera className="w-4 h-4" />
             {imageAlbums.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+              <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-[#00E5FF]" />
             )}
           </button>
 
@@ -329,15 +378,15 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             }}
             title="Videos"
             aria-label="Videos"
-            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
+            className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center relative active:scale-90 ${
               activeFilter === 'clips'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
-            <Film className="w-5 h-5" />
+            <Film className="w-4 h-4" />
             {videoAlbums.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+              <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-[#00E5FF]" />
             )}
           </button>
 
@@ -354,16 +403,34 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             }}
             title="Shorts"
             aria-label="Shorts"
-            className={`p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
+            className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center relative active:scale-90 ${
               activeFilter === 'shorts'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.3)] scale-105'
+                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
-            <Smartphone className="w-5 h-5" />
+            <Smartphone className="w-4 h-4" />
             {shortAlbums.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+              <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-[#00E5FF]" />
             )}
+          </button>
+
+          {/* Cyber Divider */}
+          <div className="w-px h-4 bg-white/15 mx-0.5" />
+
+          {/* Integrated Back-to-Top Button */}
+          <button
+            type="button"
+            onClick={onScrollToTop || handleHomeClick}
+            title="Back to Top"
+            aria-label="Scroll back to top"
+            className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-90 ${
+              showBackToTop
+                ? 'text-[#00E5FF] bg-[#00E5FF]/15 border border-[#00E5FF]/40 shadow-[0_0_10px_rgba(0,229,255,0.3)] animate-pulse'
+                : 'text-zinc-400 hover:text-white border border-transparent'
+            }`}
+          >
+            <ChevronUp className="w-4 h-4" />
           </button>
         </div>
       </nav>
@@ -379,9 +446,9 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             onClick={() => setOpenCategory(null)}
           />
 
-          {/* Bottom Popover Sheet right above the bottom dock */}
+          {/* Bottom Popover Sheet right above the compact dock */}
           <div
-            className="absolute bottom-[calc(64px+env(safe-area-inset-bottom))] inset-x-3 max-w-md mx-auto rounded-2xl p-4 shadow-[0_-10px_35px_rgba(0,0,0,0.85)] border flex flex-col max-h-[62vh] transition-transform duration-200 animate-in slide-in-from-bottom-5"
+            className="absolute bottom-[calc(56px+env(safe-area-inset-bottom,0px))] inset-x-3 max-w-md mx-auto rounded-2xl p-4 shadow-[0_-10px_35px_rgba(0,0,0,0.85)] border flex flex-col max-h-[62vh] transition-transform duration-200 animate-in slide-in-from-bottom-5"
             style={{
               backgroundColor: 'var(--card-bg)',
               borderColor: 'var(--nav-border)',
