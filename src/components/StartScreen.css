@@ -1,0 +1,125 @@
+.start-screen-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 100000;
+  background: #030305;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.start-screen-container.fading-out {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+
+.start-screen-ambient-bloom {
+  position: absolute;
+  width: 600px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.28) 0%, rgba(0, 240, 255, 0.06) 50%, transparent 75%);
+  filter: blur(45px);
+  pointer-events: none;
+  opacity: 0;
+  animation: startScreenBloom 0.4s 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.start-screen-svg {
+  width: 90vw;
+  max-width: 900px;
+  height: auto;
+  overflow: visible;
+  z-index: 10;
+}
+
+.neon-circuit-text {
+  font-family: 'Orbitron', 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 78px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  stroke: #00f0ff;
+  stroke-width: 2.2px;
+  fill: transparent;
+  stroke-dasharray: 650;
+  stroke-dashoffset: 650;
+  filter: drop-shadow(0 0 6px #00f0ff) drop-shadow(0 0 16px rgba(0, 240, 255, 0.7));
+  animation:
+    laserStroke 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards,
+    currentSurge 0.4s 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: stroke-dashoffset, fill, filter;
+}
+
+@keyframes laserStroke {
+  0% {
+    stroke-dashoffset: 650;
+    opacity: 0.8;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes currentSurge {
+  0% {
+    fill: transparent;
+    stroke: #00f0ff;
+    stroke-width: 2.2px;
+  }
+  50% {
+    fill: rgba(255, 255, 255, 0.85);
+    stroke: #ffffff;
+    stroke-width: 3.5px;
+    filter: drop-shadow(0 0 16px #00f0ff) drop-shadow(0 0 35px #00f0ff) drop-shadow(0 0 70px rgba(0, 240, 255, 0.95));
+  }
+  100% {
+    fill: #ffffff;
+    stroke: #00f0ff;
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 0 10px #00f0ff) drop-shadow(0 0 25px rgba(0, 240, 255, 0.8)) drop-shadow(0 0 50px rgba(0, 240, 255, 0.5));
+  }
+}
+
+@keyframes startScreenBloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+}
+
+.start-screen-skip-hint {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  z-index: 20;
+  transition: color 0.2s ease;
+  pointer-events: none;
+}
+
+.start-screen-container:hover .start-screen-skip-hint {
+  color: #00f0ff;
+}

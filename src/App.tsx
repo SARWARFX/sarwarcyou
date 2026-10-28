@@ -9,6 +9,12 @@ import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { SiteFooter } from './components/SiteFooter';
+import { StartScreen } from './components/StartScreen';
+import { AmbientSpotlightHero } from './components/AmbientSpotlightHero';
+import { HomeFilterChips } from './components/HomeFilterChips';
+import { ShortsReelsRibbon } from './components/ShortsReelsRibbon';
+import { DynamicVideoGrid } from './components/DynamicVideoGrid';
+import { PhotoShowcaseRow } from './components/PhotoShowcaseRow';
 import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -549,6 +555,91 @@ function App() {
     [activeFilter]
   );
 
+  // Featured spotlight video for Layer 1 hero banner
+  const spotlightVideo = useMemo(() => {
+    const isCandidateVideo = (item: StageMediaItem) => {
+      const isShort = Boolean(
+        item.mediaType === 'short' ||
+        item.category?.toLowerCase().includes('short') ||
+        item.category?.toLowerCase().includes('reel') ||
+        item.url?.toLowerCase().includes('/shorts/') ||
+        item.id?.toLowerCase().includes('shorts')
+      );
+      return !isShort && (item.type === 'video' || isVideoExtension(item.url || item.path || item.id));
+    };
+
+    const fromReleases = rawFeed.latestReleases.find(isCandidateVideo);
+    if (fromReleases) return fromReleases;
+
+    const fromFolders = rawFeed.videoVaultFolders.flatMap((f) => f.items).find(isCandidateVideo);
+    if (fromFolders) return fromFolders;
+
+    return rawFeed.allMediaPool.find(isCandidateVideo) || null;
+  }, [rawFeed.latestReleases, rawFeed.videoVaultFolders, rawFeed.allMediaPool]);
+
+  // Featured videos collection for Layer 4 dynamic video grid
+  const featuredVideos = useMemo(() => {
+    const allClips: StageMediaItem[] = [];
+    const seen = new Set<string>();
+
+    rawFeed.videoVaultFolders.forEach((folder) => {
+      folder.items.forEach((item) => {
+        const key = item.id || item.url;
+        if (key && seen.has(key)) return;
+        const isShort = Boolean(
+          item.mediaType === 'short' ||
+          item.category?.toLowerCase().includes('short') ||
+          item.category?.toLowerCase().includes('reel') ||
+          item.url?.toLowerCase().includes('/shorts/') ||
+          item.id?.toLowerCase().includes('shorts')
+        );
+        if (!isShort && (item.type === 'video' || isVideoExtension(item.url || item.path || item.id))) {
+          if (key) seen.add(key);
+          allClips.push(item);
+        }
+      });
+    });
+
+    if (allClips.length > 0) return allClips;
+
+    return rawFeed.latestReleases.filter((item) => {
+      const isShort = Boolean(
+        item.mediaType === 'short' ||
+        item.category?.toLowerCase().includes('short') ||
+        item.category?.toLowerCase().includes('reel')
+      );
+      return !isShort && (item.type === 'video' || isVideoExtension(item.url || item.path || item.id));
+    });
+  }, [rawFeed.videoVaultFolders, rawFeed.latestReleases]);
+
+  // Category counts for Layer 2 glass filter navigation chips
+  const filterCounts = useMemo(() => {
+    return {
+      all: rawFeed.allMediaPool.length,
+      shorts: rawFeed.shorts.length,
+      videos: rawFeed.videoVaultFolders.reduce((acc, f) => acc + f.items.length, 0),
+      photos: rawFeed.photoVaultFolders.reduce((acc, f) => acc + f.items.length, 0),
+    };
+  }, [rawFeed]);
+
+  // Hero "Explore Album" action dispatcher
+  const handleHeroExplore = useCallback(
+    (albumName: string) => {
+      const folder = findMatchingFolder(rawFeed.albums, albumName);
+      if (folder) {
+        handleOpenViewAll(
+          folder.folder.name,
+          folder.folder.items,
+          folder.folder.variant,
+          undefined,
+          folder.folder.hasMultipleTypes,
+          folder.folder.typeCounts
+        );
+      }
+    },
+    [rawFeed.albums, handleOpenViewAll]
+  );
+
   return (
     <div
       className="w-full max-w-full overflow-x-hidden relative min-h-screen transition-colors duration-200"
@@ -557,6 +648,9 @@ function App() {
         color: 'var(--text-primary)',
       }}
     >
+      {/* 0. Start Screen (Neon Circuit Draw - executes strictly once per browser session) */}
+      <StartScreen />
+
       {/* 1. Responsive Navigation: Desktop Floating Nav + Mobile Fixed Bottom Dock */}
       <ResponsiveNav
         activeFilter={activeFilter}
@@ -569,9 +663,19 @@ function App() {
       />
 
       {/* Main Content Stage */}
-      <div className="w-full pt-2 sm:pt-4 pb-28 md:pb-16 flex flex-col min-h-screen">
+      <div className="w-full pb-28 md:pb-16 flex flex-col min-h-screen">
+        {/* LAYER 1: Ambient Spotlight Hero Banner */}
+        {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && spotlightVideo && (
+          <AmbientSpotlightHero
+            item={spotlightVideo}
+            playlistContext={rawFeed.latestReleases.length > 0 ? rawFeed.latestReleases : rawFeed.allMediaPool}
+            onPlay={(item, playlist) => handleSelectItem(item, playlist)}
+            onExploreAlbum={handleHeroExplore}
+          />
+        )}
+
         {/* 2. Structured Discovery Feed: Tagged Album Sections with Instant In-Place Filtering */}
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:pr-44 xl:pr-36 flex flex-col gap-6 sm:gap-8">
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:pr-44 xl:pr-36 flex flex-col gap-6 sm:gap-8 pt-4">
           {/* Loading State Skeleton */}
           {isLoading && !data && (
             <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
@@ -580,6 +684,51 @@ function App() {
                 Ingesting stream vault...
               </span>
             </div>
+          )}
+
+          {/* LAYER 2: Glass Filter Navigation Chips */}
+          {!isLoading && (
+            <HomeFilterChips
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              counts={filterCounts}
+            />
+          )}
+
+          {/* LAYER 3: Dedicated Shorts & Reels Ribbon */}
+          {!searchQuery && (activeFilter === 'all' || activeFilter === 'shorts') && rawFeed.shorts.length > 0 && (
+            <ShortsReelsRibbon
+              shorts={rawFeed.shorts}
+              onSelectShort={(item) => handleSelectItem(item, rawFeed.shorts)}
+              onViewAll={() => handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts')}
+            />
+          )}
+
+          {/* LAYER 4: Dynamic Video Grid with 600ms Intent Previews */}
+          {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && featuredVideos.length > 0 && (
+            <DynamicVideoGrid
+              videos={featuredVideos}
+              onPlayVideo={(item, playlist) => handleSelectItem(item, playlist)}
+              title={activeFilter === 'clips' ? 'All Videos & Clips' : 'Featured Clips'}
+              limit={activeFilter === 'all' ? 8 : undefined}
+            />
+          )}
+
+          {/* LAYER 5: Dedicated Photo Showcase Row */}
+          {!searchQuery && (activeFilter === 'all' || activeFilter === 'images') && rawFeed.photoVaultFolders.length > 0 && (
+            <PhotoShowcaseRow
+              photoAlbums={rawFeed.photoVaultFolders}
+              onSelectAlbum={(folder) =>
+                handleOpenViewAll(
+                  folder.name,
+                  folder.items,
+                  'photo',
+                  undefined,
+                  folder.hasMultipleTypes,
+                  folder.typeCounts
+                )
+              }
+            />
           )}
 
           {/* Dynamic Album Sections Tagged with data-type and filtered in-place */}
