@@ -1,25 +1,22 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
   VolumeX,
   Volume2,
   Share2,
   Check,
+  Download,
+  Loader2,
   Play,
   Pause,
-  Loader2,
   X,
-  Folder,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
-import {
-  prewarmVideoStream,
-  getCachedVideoPoster,
-} from '../utils/videoPosterGenerator';
+import { getCachedVideoPoster, prewarmVideoStream } from '../utils/videoPosterGenerator';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -27,7 +24,7 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 
-interface ShortsFeedModalProps {
+export interface ShortsFeedModalProps {
   isOpen: boolean;
   onClose: () => void;
   shorts: StageMediaItem[];
@@ -42,273 +39,60 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   initialIndex,
   onIndexChange,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [centerPulse, setCenterPulse] = useState<'play' | 'pause' | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [playRipple, setPlayRipple] = useState<'play' | 'pause' | null>(null);
 
-  // Auto-hiding progress bar visibility state (hover on desktop, 2.5s auto-hide timer on tap)
-  const [showProgress, setShowProgress] = useState(false);
-  const progressTimerRef = useRef<number | null>(null);
-
-  const triggerProgressVisible = useCallback(() => {
-    setShowProgress(true);
-    if (progressTimerRef.current) {
-      window.clearTimeout(progressTimerRef.current);
-    }
-    progressTimerRef.current = window.setTimeout(() => {
-      setShowProgress(false);
-    }, 2500);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (progressTimerRef.current) {
-        window.clearTimeout(progressTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Dynamic aspect ratio for landscape clips
-  const [isLandscape, setIsLandscape] = useState(false);
-
-  // Clickable & draggable progress bar state
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const progressBarRef = useRef<HTMLDivElement>(null);
-  const isDraggingProgressRef = useRef(false);
-
-  // Velocity Swipe-to-Dismiss State
-  const [dismissOffsetY, setDismissOffsetY] = useState(0);
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const lastTapRef = useRef<{ time: number } | null>(null);
-
-  const isNavigatingRef = useRef(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const previousIndexRef = useRef(currentIndex);
-
-  const [prevProps, setPrevProps] = useState({ initialIndex, isOpen });
-  if (prevProps.initialIndex !== initialIndex || prevProps.isOpen !== isOpen) {
-    setPrevProps({ initialIndex, isOpen });
-    if (videoRef.current) {
-      videoRef.current.pause();
-    }
-    setCurrentIndex(initialIndex);
-    setDismissOffsetY(0);
-    setIsPlaying(true);
-    setIsLandscape(false);
-    setCurrentTime(0);
-    setDuration(0);
-  }
-
-  // Synchronize active media index with parent / URL router
-  useEffect(() => {
-    if (isOpen) {
-      onIndexChange?.(currentIndex);
-    }
-  }, [currentIndex, isOpen, onIndexChange]);
-
-  const handleNext = useCallback(() => {
-    if (currentIndex < shorts.length - 1) {
-      // Pause current video immediately so it stops decoding frames in the background
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      setCurrentIndex((prev) => prev + 1);
-      setIsPlaying(true);
-      setDismissOffsetY(0);
-      setIsLandscape(false);
-      setCurrentTime(0);
-    }
-  }, [currentIndex, shorts.length]);
-
-  const handlePrev = useCallback(() => {
-    if (currentIndex > 0) {
-      // Pause current video immediately so it stops decoding frames in the background
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      setCurrentIndex((prev) => prev - 1);
-      setIsPlaying(true);
-      setDismissOffsetY(0);
-      setIsLandscape(false);
-      setCurrentTime(0);
-    }
-  }, [currentIndex]);
-
-  // Category / Album Switch State & Pill Notification
-  const [categoryNotice, setCategoryNotice] = useState<string | null>(null);
-  const categoryTimerRef = useRef<number | null>(null);
-
-  const showCategoryPill = useCallback((name: string) => {
-    if (categoryTimerRef.current) {
-      window.clearTimeout(categoryTimerRef.current);
-    }
-    setCategoryNotice(name);
-    categoryTimerRef.current = window.setTimeout(() => {
-      setCategoryNotice(null);
-    }, 1800);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (categoryTimerRef.current) {
-        window.clearTimeout(categoryTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Dual-Direction Navigation: Left-Right Swipe / Arrow to switch between categories or related reels
-  const handleNextCategory = useCallback(() => {
-    if (shorts.length <= 1) return;
-    const current = shorts[currentIndex];
-    const currentCat = (current?.category || current?.parentAlbum || '').toLowerCase();
-
-    // 1. Search ahead for next short with a different category/album
-    let targetIdx = -1;
-    for (let i = currentIndex + 1; i < shorts.length; i++) {
-      const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
-      if (cat && cat !== currentCat) {
-        targetIdx = i;
-        break;
-      }
-    }
-
-    // 2. Wrap around from start if needed
-    if (targetIdx === -1) {
-      for (let i = 0; i < currentIndex; i++) {
-        const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
-        if (cat && cat !== currentCat) {
-          targetIdx = i;
-          break;
-        }
-      }
-    }
-
-    // 3. Fallback: Skip chunk of 5 reels
-    if (targetIdx === -1) {
-      targetIdx = Math.min(shorts.length - 1, currentIndex + 5);
-      if (targetIdx === currentIndex && shorts.length > 1) {
-        targetIdx = (currentIndex + 1) % shorts.length;
-      }
-    }
-
-    if (targetIdx !== -1 && targetIdx !== currentIndex) {
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      setCurrentIndex(targetIdx);
-      setIsPlaying(true);
-      setDismissOffsetY(0);
-      setIsLandscape(false);
-      setCurrentTime(0);
-      const targetItem = shorts[targetIdx];
-      showCategoryPill(targetItem?.category || targetItem?.parentAlbum || 'Related Reels');
-    }
-  }, [currentIndex, shorts, showCategoryPill]);
-
-  const handlePrevCategory = useCallback(() => {
-    if (shorts.length <= 1) return;
-    const current = shorts[currentIndex];
-    const currentCat = (current?.category || current?.parentAlbum || '').toLowerCase();
-
-    // 1. Search backward for previous short with a different category/album
-    let targetIdx = -1;
-    for (let i = currentIndex - 1; i >= 0; i--) {
-      const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
-      if (cat && cat !== currentCat) {
-        targetIdx = i;
-        break;
-      }
-    }
-
-    // 2. Wrap around from end if needed
-    if (targetIdx === -1) {
-      for (let i = shorts.length - 1; i > currentIndex; i--) {
-        const cat = (shorts[i]?.category || shorts[i]?.parentAlbum || '').toLowerCase();
-        if (cat && cat !== currentCat) {
-          targetIdx = i;
-          break;
-        }
-      }
-    }
-
-    // 3. Fallback: Skip chunk of 5 reels backward
-    if (targetIdx === -1) {
-      targetIdx = Math.max(0, currentIndex - 5);
-      if (targetIdx === currentIndex && shorts.length > 1) {
-        targetIdx = (currentIndex - 1 + shorts.length) % shorts.length;
-      }
-    }
-
-    if (targetIdx !== -1 && targetIdx !== currentIndex) {
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      setCurrentIndex(targetIdx);
-      setIsPlaying(true);
-      setDismissOffsetY(0);
-      setIsLandscape(false);
-      setCurrentTime(0);
-      const targetItem = shorts[targetIdx];
-      showCategoryPill(targetItem?.category || targetItem?.parentAlbum || 'Related Reels');
-    }
-  }, [currentIndex, shorts, showCategoryPill]);
-
-  // Aggressive instant playback trigger and one-ahead pre-warming
-  useEffect(() => {
-    if (!isOpen) {
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      return;
-    }
-
-    // When active short changes, pause previous playback if still running
-    if (previousIndexRef.current !== currentIndex) {
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
-      }
-      previousIndexRef.current = currentIndex;
-    }
-
-    const video = videoRef.current;
-    if (video) {
-      // Call activeVideoRef.current.play().catch(...) immediately
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // If browser autoplay policy blocks unmuted audio on mobile, mute and retry immediately
-          if (!video.muted) {
-            video.muted = true;
-            setIsMuted(true);
-            video.play().catch(() => {});
-          }
-        });
-      }
-    }
-
-    // Pre-warm next reel ONLY for instant swipe (previous reel is NOT pre-warmed to conserve mobile RAM)
-    if (shorts[currentIndex + 1]?.url) {
-      prewarmVideoStream(shorts[currentIndex + 1].url);
-    }
-  }, [currentIndex, isOpen, shorts]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const activeVideoRef = useRef<HTMLVideoElement>(null);
+  const pulseTimerRef = useRef<number | null>(null);
 
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);
 
-  // Instantly release mobile GPU RAM and video decoders
+  // Sync initialIndex changes from parent / deep-link
+  const [prevProps, setPrevProps] = useState({ initialIndex, isOpen });
+  if (prevProps.initialIndex !== initialIndex || prevProps.isOpen !== isOpen) {
+    setPrevProps({ initialIndex, isOpen });
+    setActiveIndex(initialIndex);
+    setIsPlaying(true);
+    setCurrentTime(0);
+    setDuration(0);
+  }
+
+  // Scroll to active index on open or initialIndex change
+  useEffect(() => {
+    if (isOpen && containerRef.current && initialIndex >= 0) {
+      const target = slideRefs.current[initialIndex];
+      if (target) {
+        requestAnimationFrame(() => {
+          target.scrollIntoView({ behavior: 'instant', block: 'start' });
+        });
+      }
+    }
+  }, [isOpen, initialIndex]);
+
+  // Synchronize active media index with parent / URL router
+  useEffect(() => {
+    if (isOpen) {
+      onIndexChange?.(activeIndex);
+    }
+  }, [activeIndex, isOpen, onIndexChange]);
+
+  // Clean release of video resources
   const releaseVideoResources = useCallback(() => {
-    if (videoRef.current) {
+    if (activeVideoRef.current) {
       try {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
+        activeVideoRef.current.pause();
+        activeVideoRef.current.removeAttribute('src');
+        activeVideoRef.current.load();
       } catch {
         // ignore
       }
@@ -329,179 +113,149 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   useEffect(() => {
     return () => {
       releaseVideoResources();
+      if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
     };
   }, [releaseVideoResources]);
 
-  // Keyboard navigation & Escape
+  // IntersectionObserver for DOM virtualization: only currently snapped reel plays
+  useEffect(() => {
+    if (!isOpen || !containerRef.current || !shorts.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            const idx = Number(entry.target.getAttribute('data-reel-index'));
+            if (!isNaN(idx) && idx !== activeIndex) {
+              setActiveIndex(idx);
+              setIsPlaying(true);
+              setCurrentTime(0);
+              setDuration(0);
+
+              // Pre-warm next reel stream
+              if (shorts[idx + 1]?.url) {
+                prewarmVideoStream(shorts[idx + 1].url);
+              }
+            }
+          }
+        });
+      },
+      {
+        root: containerRef.current,
+        threshold: [0.6],
+      }
+    );
+
+    slideRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isOpen, shorts, activeIndex]);
+
+  // Autoplay currently snapped reel and handle mobile autoplay policy
   useEffect(() => {
     if (!isOpen) return;
+
+    const video = activeVideoRef.current;
+    if (video) {
+      video.muted = isMuted;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            // Autoplay with audio was blocked; mute and retry
+            if (!video.muted) {
+              video.muted = true;
+              setIsMuted(true);
+              video.play().then(() => setIsPlaying(true)).catch(() => {});
+            }
+          });
+      }
+    }
+  }, [activeIndex, isOpen, isMuted]);
+
+  // Single-tap play/pause toggle with center pulse icon
+  const togglePlay = useCallback(() => {
+    const video = activeVideoRef.current;
+    if (!video) return;
+
+    if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
+
+    if (video.paused) {
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      setCenterPulse('play');
+    } else {
+      video.pause();
+      setIsPlaying(false);
+      setCenterPulse('pause');
+    }
+
+    pulseTimerRef.current = window.setTimeout(() => {
+      setCenterPulse(null);
+    }, 550);
+  }, []);
+
+  // Sound / Mute Toggle
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (activeVideoRef.current) {
+        activeVideoRef.current.muted = next;
+      }
+      return next;
+    });
+  }, []);
+
+  // Sequential Navigation: Scroll Up / Down
+  const handleScrollNext = useCallback(() => {
+    if (activeIndex < shorts.length - 1) {
+      const nextEl = slideRefs.current[activeIndex + 1];
+      if (nextEl) {
+        nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [activeIndex, shorts.length]);
+
+  const handleScrollPrev = useCallback(() => {
+    if (activeIndex > 0) {
+      const prevEl = slideRefs.current[activeIndex - 1];
+      if (prevEl) {
+        prevEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [activeIndex]);
+
+  // Keyboard Navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         handleClose();
       } else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        handleNext();
+        handleScrollNext();
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        handlePrev();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleNextCategory();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handlePrevCategory();
+        handleScrollPrev();
       } else if (e.key === ' ') {
         e.preventDefault();
         togglePlay();
       } else if (e.key === 'm' || e.key === 'M') {
-        setIsMuted((m) => {
-          if (videoRef.current) videoRef.current.muted = !m;
-          return !m;
-        });
+        toggleMute();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose, handleNext, handlePrev, handleNextCategory, handlePrevCategory]);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleClose, handleScrollNext, handleScrollPrev, togglePlay, toggleMute]);
 
-  // Touch Swipe & Dual-Direction Gesture Engine
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    touchStartRef.current = {
-      x: t.clientX,
-      y: t.clientY,
-      time: performance.now(),
-    };
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const dy = e.touches[0].clientY - touchStartRef.current.y;
-    const dx = e.touches[0].clientX - touchStartRef.current.x;
-    // If pulling down when near start and not horizontal swiping, track dismiss offset
-    if (dy > 0 && Math.abs(dx) < 40 && Math.abs(dy) > 10) {
-      setDismissOffsetY(dy * 0.7);
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const t = e.changedTouches[0];
-    const dy = touchStartRef.current.y - t.clientY;
-    const dx = touchStartRef.current.x - t.clientX;
-    const pullDown = t.clientY - touchStartRef.current.y;
-    const dt = performance.now() - touchStartRef.current.time;
-
-    // Pull down to dismiss
-    if ((pullDown > 110 && dt < 400 && Math.abs(dx) < 50) || pullDown > 190) {
-      handleClose();
-      return;
-    }
-    setDismissOffsetY(0);
-
-    // 1. Dual-Direction: Horizontal Swipe (Left/Right to switch category/album/related reels)
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 35) {
-      if (dx > 0) {
-        handleNextCategory();
-      } else {
-        handlePrevCategory();
-      }
-      touchStartRef.current = null;
-      return;
-    }
-
-    // 2. Dual-Direction: Vertical Swipe (Up/Down to switch sequential reels)
-    if (Math.abs(dy) > 35) {
-      if (dy > 0) {
-        handleNext();
-      } else {
-        handlePrev();
-      }
-      touchStartRef.current = null;
-      return;
-    }
-
-    // Double tap to pause/play
-    const now = performance.now();
-    if (lastTapRef.current && now - lastTapRef.current.time < 300) {
-      togglePlay();
-      lastTapRef.current = null;
-    } else {
-      lastTapRef.current = { time: now };
-    }
-    touchStartRef.current = null;
-    triggerProgressVisible();
-  };
-
-  // Dual-Direction Wheel: Vertical for next/prev sequential, Horizontal for category/album switch
-  const handleWheel = (e: React.WheelEvent) => {
-    if (isNavigatingRef.current) return;
-
-    // Horizontal wheel / trackpad swipe
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 20) {
-      isNavigatingRef.current = true;
-      if (e.deltaX > 0) {
-        handleNextCategory();
-      } else {
-        handlePrevCategory();
-      }
-      setTimeout(() => {
-        isNavigatingRef.current = false;
-      }, 550);
-      return;
-    }
-
-    // Vertical wheel / scroll
-    if (Math.abs(e.deltaY) > 20) {
-      isNavigatingRef.current = true;
-      if (e.deltaY > 0) {
-        handleNext();
-      } else {
-        handlePrev();
-      }
-      setTimeout(() => {
-        isNavigatingRef.current = false;
-      }, 550);
-    }
-  };
-
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play().catch(() => {});
-      setIsPlaying(true);
-      setPlayRipple('play');
-      setTimeout(() => setPlayRipple(null), 500);
-    } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
-      setPlayRipple('pause');
-      setTimeout(() => setPlayRipple(null), 500);
-    }
-  };
-
-  const handleDownload = useCallback(async () => {
-    const item = shorts[currentIndex];
-    if (!item || isDownloading) return;
-    setIsDownloading(true);
-    setDownloadSuccess(false);
-    try {
-      const dlUrl = getMediaUrl(item.url);
-      await downloadBrandedVideo(dlUrl, item.title || item.id, 'short');
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 2000);
-    } catch (err) {
-      console.error('Download error:', err);
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [currentIndex, shorts, isDownloading]);
-
-  const handleShare = useCallback(async () => {
-    const item = shorts[currentIndex];
+  // Share Deep Link (Copies URL)
+  const handleShare = useCallback(async (item: StageMediaItem) => {
     if (!item) return;
     const shareUrl = createShareableMediaUrl(item, 'shorts');
     const success = await copyToClipboard(shareUrl);
@@ -509,438 +263,326 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }
-  }, [currentIndex, shorts]);
+  }, []);
 
-  // Click & Drag-seeking on progress bar
-  const seekToPosition = useCallback((clientX: number) => {
-    if (!progressBarRef.current || !videoRef.current || !duration) return;
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const newTime = pos * duration;
-    videoRef.current.currentTime = newTime;
+  // Branded Video Download
+  const handleDownload = useCallback(async (item: StageMediaItem) => {
+    if (!item || isDownloading) return;
+    setIsDownloading(true);
+    setDownloadSuccess(false);
+    try {
+      const dlUrl = getMediaUrl(item.url);
+      await downloadBrandedVideo(dlUrl, item.title || item.id, 'short');
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 2200);
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [isDownloading]);
+
+  // Seek bar tap handler
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const video = activeVideoRef.current;
+    if (!video || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const newTime = pct * duration;
+    video.currentTime = newTime;
     setCurrentTime(newTime);
   }, [duration]);
 
-  const handleProgressPointerDown = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation();
-    triggerProgressVisible();
-    isDraggingProgressRef.current = true;
-    if (e.currentTarget.setPointerCapture) {
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {
-        // ignore
-      }
-    }
-    seekToPosition(e.clientX);
-  }, [seekToPosition, triggerProgressVisible]);
-
-  const handleProgressPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDraggingProgressRef.current) return;
-    e.stopPropagation();
-    triggerProgressVisible();
-    seekToPosition(e.clientX);
-  }, [seekToPosition, triggerProgressVisible]);
-
-  const handleProgressPointerUp = useCallback((e: React.PointerEvent) => {
-    if (isDraggingProgressRef.current) {
-      e.stopPropagation();
-      triggerProgressVisible();
-      if (e.currentTarget.releasePointerCapture) {
-        try {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch {
-          // ignore
-        }
-      }
-      isDraggingProgressRef.current = false;
-    }
-  }, [triggerProgressVisible]);
-
-  const currentShort = shorts[currentIndex] || shorts[0];
-  const rawUrl = (currentShort?.url || '').replace(/^http:\/\//i, 'https://');
-  let streamUrl = rawUrl;
-  if (streamUrl.includes('drive.google.com') && !streamUrl.includes('/preview')) {
-    streamUrl = streamUrl.replace(/\/view(\?.*)?$/, '/preview');
-  } else if (!streamUrl.includes('drive.google.com')) {
-    streamUrl = getMediaUrl(streamUrl);
-  }
-
-  const shortPoster = useMemo(() => {
-    if (!currentShort) return '';
-    const raw = (
-      currentShort.thumbnails?.[0] ||
-      getCachedThumbnailSync(currentShort.url) ||
-      getCachedVideoPoster(currentShort.url) ||
-      currentShort.thumbnail ||
-      ''
-    );
-    if (!raw || isVideoExtension(raw)) return '';
-    return getMediaUrl(raw);
-  }, [currentShort]);
-
-  const prevShort = currentIndex > 0 ? shorts[currentIndex - 1] : null;
-  const nextShort = currentIndex < shorts.length - 1 ? shorts[currentIndex + 1] : null;
-
-  const prevPoster = useMemo(() => {
-    if (!prevShort) return '';
-    const raw = (
-      prevShort.thumbnails?.[0] ||
-      getCachedThumbnailSync(prevShort.url) ||
-      getCachedVideoPoster(prevShort.url) ||
-      prevShort.thumbnail ||
-      ''
-    );
-    if (!raw || isVideoExtension(raw)) return '';
-    return getMediaUrl(raw);
-  }, [prevShort]);
-
-  const nextPoster = useMemo(() => {
-    if (!nextShort) return '';
-    const raw = (
-      nextShort.thumbnails?.[0] ||
-      getCachedThumbnailSync(nextShort.url) ||
-      getCachedVideoPoster(nextShort.url) ||
-      nextShort.thumbnail ||
-      ''
-    );
-    if (!raw || isVideoExtension(raw)) return '';
-    return getMediaUrl(raw);
-  }, [nextShort]);
-
   if (!isOpen || !shorts.length) return null;
-
-  const displayTitle = sanitizeMediaTitle(
-    currentShort?.title,
-    currentShort?.category || 'Vertical Short Reel'
-  );
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Shorts and Reels Player"
-      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex items-center justify-center bg-black/97 backdrop-blur-2xl select-none touch-none touch-action-none overscroll-contain"
-      onClick={handleClose}
-      onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{
-        transform: dismissOffsetY > 0 ? `translate3d(0, ${dismissOffsetY}px, 0) scale(${Math.max(0.85, 1 - dismissOffsetY / 1000)})` : 'none',
-        transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
-      }}
+      aria-label="Facebook Reels Experience"
+      className="fixed inset-0 z-[9999] w-full h-[100dvh] bg-black text-white select-none overflow-hidden touch-none"
     >
-      {/* Category / Album Switch Banner */}
-      {categoryNotice && (
-        <div className="fixed top-5 inset-x-0 mx-auto w-fit z-[180] px-4 py-2 rounded-full bg-black/85 border border-[#00E5FF]/40 text-[#00E5FF] text-xs font-mono tracking-wider shadow-[0_4px_25px_rgba(0,229,255,0.4)] backdrop-blur-xl animate-in fade-in slide-in-from-top-3 duration-200 flex items-center gap-2 pointer-events-none">
-          <Folder className="w-3.5 h-3.5 text-[#00E5FF]" />
-          <span>{categoryNotice}</span>
-        </div>
-      )}
-
-      {/* Prominent High-Contrast Close Button */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (videoRef.current) {
-            videoRef.current.pause();
-          }
-          setIsPlaying(false);
-          handleClose();
-        }}
-        aria-label="Close shorts reel (Esc)"
-        title="Close (Esc)"
-        className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-[160] p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white/90 hover:text-white border border-white/20 hover:border-white/40 shadow-[0_4px_24px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95"
-      >
-        <X className="w-5 h-5 sm:w-6 sm:h-6" />
-      </button>
-
-
-
-      {/* Main Reel Player Container (Adapts to 9:16 portrait or 16:9 landscape) */}
-      <div className="relative flex items-center justify-center max-h-[92vh] max-w-[98vw] px-2 sm:px-4 md:px-6 gap-3 sm:gap-4 md:gap-6 overflow-hidden">
-        {/* Previous Short (Desktop Flank) */}
-        {!isLandscape && prevShort && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePrev();
-            }}
-            className="hidden md:flex flex-col items-center justify-center aspect-[9/16] h-[78vh] max-h-[720px] max-w-[400px] rounded-3xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl transition-all duration-300 select-none opacity-35 hover:opacity-60 cursor-pointer scale-95 hover:scale-100 flex-shrink-0"
-            title="Previous Short (Left)"
-          >
-            <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
-              {prevPoster ? (
-                <img
-                  src={prevPoster}
-                  alt={prevShort.title || 'Previous Short'}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover pointer-events-none"
-                />
-              ) : (
-                <div className="text-zinc-600 text-xs font-mono uppercase tracking-wider">Previous</div>
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <div className="p-3 rounded-full bg-black/60 border border-white/10 text-white/80">
-                  <ChevronLeft className="w-6 h-6" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Center: Active Reel Container + Aside Actions */}
-        <div className="relative flex items-center justify-center flex-shrink-0">
-          <div
-            className={`group/reel relative rounded-3xl overflow-hidden bg-black shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between transition-all duration-300 ${
-              isLandscape
-                ? 'aspect-video w-[90vw] max-w-[854px] h-auto max-h-[75vh]'
-                : 'aspect-[9/16] h-[88vh] max-h-[820px] max-w-[460px]'
-            }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            togglePlay();
-            triggerProgressVisible();
-          }}
-          onMouseMove={triggerProgressVisible}
-        >
-          {/* Native Video Element */}
-          <div className="absolute inset-0 w-full h-full bg-black z-0">
-            {/* Obsidian Typography Surface Backing behind video */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black select-none pointer-events-none z-0">
-              {shortPoster ? (
-                <img
-                  src={shortPoster}
-                  alt={displayTitle}
-                  loading="lazy"
-                  decoding="async"
-                  className={`w-full h-full ${isLandscape ? 'object-contain' : 'object-cover'}`}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-                    <Play className="w-5 h-5 text-zinc-300 fill-current ml-0.5" />
-                  </div>
-                  <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wide truncate max-w-xs">
-                    {displayTitle}
-                  </h3>
-                  <span className="text-[10px] font-mono uppercase tracking-widest mt-1 brand-gradient-text">
-                    SARWARCYOU REELS
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Ambient CSS backdrop for landscape clips */}
-            {isLandscape && (
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_rgba(232,121,249,0.15)_0%,_rgba(0,0,0,0.95)_75%)] pointer-events-none z-0"
-              />
-            )}
-
-            {streamUrl.includes('media.sarwar.cyou') || streamUrl.includes('huggingface.co') || streamUrl.endsWith('.mp4') || streamUrl.includes('.mp4?') ? (
-              <video
-                ref={videoRef}
-                key="shorts-active-video"
-                src={streamUrl}
-                poster={shortPoster || undefined}
-                autoPlay
-                preload="auto"
-                playsInline
-                {...{ 'webkit-playsinline': 'true' }}
-                disablePictureInPicture
-                crossOrigin="anonymous"
-                loop
-                muted={isMuted}
-                onLoadedMetadata={(e) => {
-                  const v = e.currentTarget;
-                  if (v.videoWidth && v.videoHeight) {
-                    setIsLandscape(v.videoWidth > v.videoHeight);
-                  }
-                  if (v.duration) {
-                    setDuration(v.duration);
-                  }
-                }}
-                onCanPlay={(e) => {
-                  if (isPlaying) {
-                    e.currentTarget.play().catch(() => {});
-                  }
-                }}
-                onTimeUpdate={() => {
-                  if (videoRef.current && !isDraggingProgressRef.current) {
-                    setCurrentTime(videoRef.current.currentTime);
-                  }
-                }}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                className={`w-full h-full relative z-10 transition-all duration-300 ${
-                  isLandscape ? 'object-contain' : 'object-cover'
-                }`}
-              />
-            ) : (
-              <iframe
-                key={currentShort.id}
-                src={streamUrl}
-                className="w-full h-full border-0 relative z-10"
-                allow="autoplay; encrypted-media; fullscreen"
-                allowFullScreen
-                title={displayTitle}
-              />
-            )}
-
-
-          </div>
-
-          {/* Paused overlay indicator */}
-          {!isPlaying && !playRipple && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white shadow-2xl backdrop-blur-sm">
-                <Play className="w-6 h-6 fill-current ml-0.5" />
-              </div>
-            </div>
-          )}
-
-          {/* Center Play/Pause Ripple Indicator */}
-          {playRipple && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-              <div className="w-16 h-16 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white animate-ripple shadow-2xl">
-                {playRipple === 'play' ? (
-                  <Play className="w-7 h-7 fill-current ml-1" />
-                ) : (
-                  <Pause className="w-7 h-7" />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Sleek Auto-Hiding Progress / Scrubber Bar (Hover on Desktop, 2.5s Auto-Hide on Tap) */}
-          <div
-            ref={progressBarRef}
-            onPointerDown={handleProgressPointerDown}
-            onPointerMove={handleProgressPointerMove}
-            onPointerUp={handleProgressPointerUp}
-            onPointerCancel={handleProgressPointerUp}
-            onClick={(e) => {
-              e.stopPropagation();
-              triggerProgressVisible();
-            }}
-            className={`absolute bottom-0 left-0 right-0 z-30 w-full pb-0 pt-3 px-0 cursor-pointer select-none transition-opacity duration-300 ease-out ${
-              showProgress
-                ? 'opacity-100 pointer-events-auto'
-                : 'opacity-0 pointer-events-none group-hover/reel:opacity-100 group-hover/reel:pointer-events-auto'
-            }`}
-            title="Seek Reel Position"
-            role="slider"
-            aria-label="Reel Progress"
-            aria-valuemin={0}
-            aria-valuemax={duration || 100}
-            aria-valuenow={currentTime}
-          >
-            <div className="relative w-full h-[3.5px] bg-white/20 overflow-hidden">
-              <div
-                className="h-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-75 relative"
-                style={{
-                  width: `${duration > 0 ? (currentTime / duration) * 100 : ((currentIndex + 1) / shorts.length) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
+      {/* 1. Header Bar: Close button & Sequential Up/Down arrows */}
+      <div className="fixed top-0 inset-x-0 z-[160] flex items-center justify-between p-3 sm:p-5 pt-[max(0.75rem,env(safe-area-inset-top))] pointer-events-none">
+        {/* Left: Facebook Reels Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 pointer-events-auto shadow-lg">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] animate-pulse" />
+          <span className="text-xs font-bold font-sans uppercase tracking-wider text-white">Reels</span>
+          <span className="text-[10px] font-mono text-zinc-400">
+            {activeIndex + 1}/{shorts.length}
+          </span>
         </div>
 
-        {/* ================= FLOATING GLASS ACTION COLUMN ================= */}
-        <aside
-          className="absolute right-3 bottom-10 sm:static sm:right-auto sm:bottom-auto flex flex-col gap-2.5 sm:gap-3 ml-0 sm:ml-4 md:ml-5 z-[130]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Sound Toggle Button */}
+        {/* Right: Sequential arrow buttons & Close button */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Previous Reel Arrow */}
           <button
-            onClick={() => {
-              setIsMuted((m) => {
-                const next = !m;
-                if (videoRef.current) videoRef.current.muted = next;
-                return next;
-              });
-            }}
-            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
-              isMuted
-                ? 'bg-black/50 text-zinc-400 hover:text-white border border-white/10'
-                : 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/30'
-            }`}
-            title={isMuted ? 'Unmute' : 'Mute'}
+            type="button"
+            onClick={handleScrollPrev}
+            disabled={activeIndex === 0}
+            className="hidden sm:flex p-2.5 rounded-full bg-black/65 hover:bg-black/90 text-white/90 hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-xl transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+            title="Previous Reel (Up Arrow)"
+            aria-label="Previous Reel"
           >
-            {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+            <ChevronUp className="w-4 h-4" />
           </button>
 
-          {/* Direct Download Button */}
+          {/* Next Reel Arrow */}
           <button
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl disabled:opacity-40 ${
-              downloadSuccess
-                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                : 'bg-black/50 text-zinc-400 hover:text-white border border-white/10'
-            }`}
-            title={isDownloading ? 'Downloading Reel (Branded)...' : 'Download Reel'}
+            type="button"
+            onClick={handleScrollNext}
+            disabled={activeIndex === shorts.length - 1}
+            className="hidden sm:flex p-2.5 rounded-full bg-black/65 hover:bg-black/90 text-white/90 hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-xl transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+            title="Next Reel (Down Arrow)"
+            aria-label="Next Reel"
           >
-            {downloadSuccess ? (
-              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-            ) : isDownloading ? (
-              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-cyan-400" />
-            ) : (
-              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-            )}
+            <ChevronDown className="w-4 h-4" />
           </button>
 
-          {/* Share Link Button */}
+          {/* Close Button */}
           <button
-            onClick={handleShare}
-            className={`p-2.5 sm:p-3 rounded-2xl backdrop-blur-xl transition-all cursor-pointer shadow-xl ${
-              copiedLink
-                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                : 'bg-black/50 text-zinc-400 hover:text-white border border-white/10'
-            }`}
-            title="Share Reel Link"
+            type="button"
+            onClick={handleClose}
+            className="p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white/90 hover:text-white border border-white/20 hover:border-white/40 shadow-2xl backdrop-blur-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
+            title="Close Reels (Esc)"
+            aria-label="Close Reels"
           >
-            {copiedLink ? <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" /> : <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-        </aside>
+        </div>
       </div>
 
-      {/* Next Short (Desktop Flank) */}
-      {!isLandscape && nextShort && (
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-            handleNext();
-          }}
-          className="hidden md:flex flex-col items-center justify-center aspect-[9/16] h-[78vh] max-h-[720px] max-w-[400px] rounded-3xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl transition-all duration-300 select-none opacity-35 hover:opacity-60 cursor-pointer scale-95 hover:scale-100 flex-shrink-0"
-          title="Next Short (Right)"
-        >
-          <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
-            {nextPoster ? (
-              <img
-                src={nextPoster}
-                alt={nextShort.title || 'Next Short'}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover pointer-events-none"
-              />
-            ) : (
-              <div className="text-zinc-600 text-xs font-mono uppercase tracking-wider">Next</div>
-            )}
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="p-3 rounded-full bg-black/60 border border-white/10 text-white/80">
-                <ChevronRight className="w-6 h-6" />
+      {/* 2. Full-Screen Vertical Swipe Feed (100dvh with Native CSS Scroll Snapping) */}
+      <div
+        ref={containerRef}
+        className="w-full h-[100dvh] overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth no-scrollbar"
+        style={{
+          scrollSnapType: 'y mandatory',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {shorts.map((item, idx) => {
+          const isSnapped = idx === activeIndex;
+          const isAdjacent = Math.abs(idx - activeIndex) <= 1;
+          const streamUrl = getMediaUrl(item.url || item.path || item.id);
+          const rawPoster = (
+            item.thumbnails?.[0] ||
+            getCachedThumbnailSync(item.url) ||
+            getCachedVideoPoster(item.url) ||
+            item.thumbnail ||
+            ''
+          );
+          const shortPoster = rawPoster && !isVideoExtension(rawPoster) ? getMediaUrl(rawPoster) : '';
+          const displayTitle = sanitizeMediaTitle(item.title, item.category || 'Reel');
+
+          return (
+            <div
+              key={item.id || idx}
+              ref={(el) => {
+                slideRefs.current[idx] = el;
+              }}
+              data-reel-index={idx}
+              className="w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-black flex-shrink-0"
+            >
+              {/* Main Reel Viewport Frame (Centered 9:16 portrait on desktop, full-screen on mobile) */}
+              <div
+                className="relative w-full h-full sm:h-[94vh] sm:max-h-[880px] sm:aspect-[9/16] sm:max-w-[460px] sm:rounded-3xl overflow-hidden bg-black flex items-center justify-center shadow-[0_25px_60px_rgba(0,0,0,0.95)]"
+                onClick={isSnapped ? togglePlay : undefined}
+              >
+                {/* Visual Poster / Backing Image */}
+                {shortPoster && (
+                  <img
+                    src={shortPoster}
+                    alt={displayTitle}
+                    loading={isAdjacent ? 'eager' : 'lazy'}
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0"
+                  />
+                )}
+
+                {/* DOM Virtualization: Only render <video> for active snapped reel and immediate next preloader */}
+                {isAdjacent ? (
+                  <video
+                    ref={isSnapped ? activeVideoRef : undefined}
+                    src={streamUrl}
+                    poster={shortPoster || undefined}
+                    autoPlay={isSnapped}
+                    preload={isSnapped ? 'auto' : 'metadata'}
+                    playsInline
+                    loop
+                    muted={isMuted}
+                    crossOrigin="anonymous"
+                    onPlay={() => {
+                      if (isSnapped) setIsPlaying(true);
+                    }}
+                    onPause={() => {
+                      if (isSnapped) setIsPlaying(false);
+                    }}
+                    onTimeUpdate={() => {
+                      if (isSnapped && activeVideoRef.current) {
+                        setCurrentTime(activeVideoRef.current.currentTime);
+                      }
+                    }}
+                    onLoadedMetadata={(e) => {
+                      if (isSnapped) {
+                        setDuration(e.currentTarget.duration || 0);
+                      }
+                    }}
+                    className="w-full h-full object-cover relative z-10 select-none cursor-pointer"
+                  />
+                ) : (
+                  // Offscreen reel placeholder (zero video decoder footprint, zero bandwidth lag)
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center z-10 pointer-events-none">
+                    <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <Play className="w-5 h-5 text-white/50 fill-current ml-0.5" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Single-tap Play/Pause Center Pulse Icon */}
+                {isSnapped && centerPulse && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/65 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-2xl animate-ping duration-300">
+                      {centerPulse === 'play' ? (
+                        <Play className="w-8 h-8 sm:w-9 sm:h-9 fill-current ml-1 text-white" />
+                      ) : (
+                        <Pause className="w-8 h-8 sm:w-9 sm:h-9 fill-current text-white" />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Paused Static Overlay Indicator */}
+                {isSnapped && !isPlaying && !centerPulse && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                    <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl">
+                      <Play className="w-7 h-7 fill-current ml-1" />
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Floating Right-Hand Action Column */}
+                {isSnapped && (
+                  <aside
+                    className="absolute right-3 sm:right-4 bottom-20 sm:bottom-24 flex flex-col items-center gap-3.5 sm:gap-4 z-30 pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Sound / Mute Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={toggleMute}
+                      className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
+                      title={isMuted ? 'Unmute Reel (M)' : 'Mute Reel (M)'}
+                      aria-label={isMuted ? 'Unmute Reel' : 'Mute Reel'}
+                    >
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-xl border border-white/20 hover:border-white/40 flex items-center justify-center text-white shadow-xl transition-all">
+                        {isMuted ? (
+                          <VolumeX className="w-5 h-5 text-zinc-300" />
+                        ) : (
+                          <Volume2 className="w-5 h-5 text-[#00E5FF]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        {isMuted ? 'Muted' : 'Sound'}
+                      </span>
+                    </button>
+
+                    {/* Share Direct Deep-Link Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleShare(item)}
+                      className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
+                      title="Share Reel Link"
+                      aria-label="Share Reel Link"
+                    >
+                      <div
+                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                          copiedLink
+                            ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                            : 'bg-black/60 hover:bg-black/85 border-white/20 hover:border-white/40 text-white'
+                        }`}
+                      >
+                        {copiedLink ? (
+                          <Check className="w-5 h-5 text-white" />
+                        ) : (
+                          <Share2 className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        {copiedLink ? 'Copied!' : 'Share'}
+                      </span>
+                    </button>
+
+                    {/* Direct Branded Download Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(item)}
+                      disabled={isDownloading}
+                      className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform disabled:opacity-50"
+                      title="Download Reel"
+                      aria-label="Download Reel"
+                    >
+                      <div
+                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                          downloadSuccess
+                            ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                            : 'bg-black/60 hover:bg-black/85 border-white/20 hover:border-white/40 text-white'
+                        }`}
+                      >
+                        {downloadSuccess ? (
+                          <Check className="w-5 h-5 text-white" />
+                        ) : isDownloading ? (
+                          <Loader2 className="w-5 h-5 text-[#00E5FF] animate-spin" />
+                        ) : (
+                          <Download className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        {downloadSuccess ? 'Saved!' : isDownloading ? 'Saving...' : 'Save'}
+                      </span>
+                    </button>
+                  </aside>
+                )}
+
+                {/* 4. Bottom Translucent Gradient Title/Metadata Overlay */}
+                <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/95 via-black/55 to-transparent z-20 pointer-events-none flex flex-col gap-2">
+                  {/* Category / Album Pill Badge */}
+                  {item.category && (
+                    <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-[#00E5FF] bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-[#00E5FF]/30 w-fit pointer-events-auto">
+                      <Sparkles className="w-3 h-3 text-[#00E5FF]" />
+                      <span>{item.category}</span>
+                    </div>
+                  )}
+
+                  {/* Sanitized Reel Title */}
+                  <h2 className="text-sm sm:text-base font-bold text-white tracking-wide line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] pr-16 select-text pointer-events-auto">
+                    {displayTitle}
+                  </h2>
+
+                  {/* Bottom Video Progress Scrub Line */}
+                  {isSnapped && (
+                    <div
+                      className="w-full h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer pointer-events-auto mt-1"
+                      onClick={handleSeek}
+                      title="Seek Reel Time"
+                    >
+                      <div
+                        className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] transition-all duration-100"
+                        style={{
+                          width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
+
+export default ShortsFeedModal;
