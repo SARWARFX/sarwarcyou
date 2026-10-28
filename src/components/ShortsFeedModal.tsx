@@ -9,7 +9,6 @@ import {
   Loader2,
   Play,
   Pause,
-  X,
   Folder,
   ChevronDown,
   ChevronUp,
@@ -397,19 +396,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           <span className="text-[10px] font-mono text-zinc-400">
             {activeIndex + 1}/{shorts.length}
           </span>
-        </div>
-
-        {/* Right: Close button */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white/90 hover:text-white border border-white/20 hover:border-white/40 shadow-2xl backdrop-blur-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-            title="Close Shorts (Esc)"
-            aria-label="Close Shorts"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
         </div>
       </div>
 

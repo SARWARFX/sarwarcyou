@@ -15,7 +15,6 @@ import {
   Loader2,
   ChevronsLeft,
   ChevronsRight,
-  X,
   Share2,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
@@ -831,17 +830,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 {totalCount}
               </span>
             )}
-          </button>
-
-          {/* Close Button */}
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white backdrop-blur-xl border border-white/10 hover:border-white/30 transition-all cursor-pointer active:scale-95"
-            title="Close Player (Esc)"
-            aria-label="Close Player"
-          >
-            <X className="w-4 h-4" />
           </button>
         </div>
       </div>

@@ -7,7 +7,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  X,
   ListVideo,
   Share2,
 } from 'lucide-react';
@@ -729,17 +728,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-            </button>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer"
-              title="Close (Esc)"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
             </button>
           </div>
         </header>
