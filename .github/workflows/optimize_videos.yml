@@ -3,8 +3,8 @@ name: Optimize Videos for Instant Web Streaming
 on:
   workflow_dispatch:
   schedule:
-    # Optional scheduled run every 2 hours if you want automated checks
-    - cron: '0 */2 * * *'
+    # Scheduled daily run at 00:00 UTC
+    - cron: '0 0 * * *'
 
 jobs:
   optimize:
