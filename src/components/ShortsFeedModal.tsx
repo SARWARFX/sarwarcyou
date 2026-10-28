@@ -10,7 +10,7 @@ import {
   Play,
   Pause,
   X,
-  Sparkles,
+  Folder,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -167,7 +167,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         playPromise
           .then(() => setIsPlaying(true))
           .catch(() => {
-            // Autoplay with audio was blocked; mute and retry
             if (!video.muted) {
               video.muted = true;
               setIsMuted(true);
@@ -300,53 +299,28 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Facebook Reels Experience"
+      aria-label="Shorts Player"
       className="fixed inset-0 z-[9999] w-full h-[100dvh] bg-black text-white select-none overflow-hidden touch-none"
     >
-      {/* 1. Header Bar: Close button & Sequential Up/Down arrows */}
+      {/* 1. Header Bar: Close button & Quick Status */}
       <div className="fixed top-0 inset-x-0 z-[160] flex items-center justify-between p-3 sm:p-5 pt-[max(0.75rem,env(safe-area-inset-top))] pointer-events-none">
-        {/* Left: Facebook Reels Badge */}
+        {/* Left: Shorts Brand Badge */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 pointer-events-auto shadow-lg">
           <div className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] animate-pulse" />
-          <span className="text-xs font-bold font-sans uppercase tracking-wider text-white">Reels</span>
+          <span className="text-xs font-bold font-sans uppercase tracking-wider text-white">Shorts</span>
           <span className="text-[10px] font-mono text-zinc-400">
             {activeIndex + 1}/{shorts.length}
           </span>
         </div>
 
-        {/* Right: Sequential arrow buttons & Close button */}
+        {/* Right: Close button */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Previous Reel Arrow */}
-          <button
-            type="button"
-            onClick={handleScrollPrev}
-            disabled={activeIndex === 0}
-            className="hidden sm:flex p-2.5 rounded-full bg-black/65 hover:bg-black/90 text-white/90 hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-xl transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none active:scale-95"
-            title="Previous Reel (Up Arrow)"
-            aria-label="Previous Reel"
-          >
-            <ChevronUp className="w-4 h-4" />
-          </button>
-
-          {/* Next Reel Arrow */}
-          <button
-            type="button"
-            onClick={handleScrollNext}
-            disabled={activeIndex === shorts.length - 1}
-            className="hidden sm:flex p-2.5 rounded-full bg-black/65 hover:bg-black/90 text-white/90 hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-xl transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none active:scale-95"
-            title="Next Reel (Down Arrow)"
-            aria-label="Next Reel"
-          >
-            <ChevronDown className="w-4 h-4" />
-          </button>
-
-          {/* Close Button */}
           <button
             type="button"
             onClick={handleClose}
             className="p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white/90 hover:text-white border border-white/20 hover:border-white/40 shadow-2xl backdrop-blur-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-            title="Close Reels (Esc)"
-            aria-label="Close Reels"
+            title="Close Shorts (Esc)"
+            aria-label="Close Shorts"
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
@@ -374,7 +348,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             ''
           );
           const shortPoster = rawPoster && !isVideoExtension(rawPoster) ? getMediaUrl(rawPoster) : '';
-          const displayTitle = sanitizeMediaTitle(item.title, item.category || 'Reel');
+          const displayTitle = sanitizeMediaTitle(item.title, item.category || 'Short');
+          const albumName = item.category || item.parentAlbum || 'Shorts';
+          const fileName = (item.name || item.path?.split('/').pop() || '').trim();
 
           return (
             <div
@@ -383,187 +359,125 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 slideRefs.current[idx] = el;
               }}
               data-reel-index={idx}
-              className="w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-black flex-shrink-0"
+              className="w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-black flex-shrink-0 px-2 sm:px-4 md:px-6 lg:px-8"
             >
-              {/* Main Reel Viewport Frame (Centered 9:16 portrait on desktop, full-screen on mobile) */}
-              <div
-                className="relative w-full h-full sm:h-[94vh] sm:max-h-[880px] sm:aspect-[9/16] sm:max-w-[460px] sm:rounded-3xl overflow-hidden bg-black flex items-center justify-center shadow-[0_25px_60px_rgba(0,0,0,0.95)]"
-                onClick={isSnapped ? togglePlay : undefined}
-              >
-                {/* Visual Poster / Backing Image */}
-                {shortPoster && (
-                  <img
-                    src={shortPoster}
-                    alt={displayTitle}
-                    loading={isAdjacent ? 'eager' : 'lazy'}
-                    decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0"
-                  />
-                )}
-
-                {/* DOM Virtualization: Only render <video> for active snapped reel and immediate next preloader */}
-                {isAdjacent ? (
-                  <video
-                    ref={isSnapped ? activeVideoRef : undefined}
-                    src={streamUrl}
-                    poster={shortPoster || undefined}
-                    autoPlay={isSnapped}
-                    preload={isSnapped ? 'auto' : 'metadata'}
-                    playsInline
-                    loop
-                    muted={isMuted}
-                    crossOrigin="anonymous"
-                    onPlay={() => {
-                      if (isSnapped) setIsPlaying(true);
-                    }}
-                    onPause={() => {
-                      if (isSnapped) setIsPlaying(false);
-                    }}
-                    onTimeUpdate={() => {
-                      if (isSnapped && activeVideoRef.current) {
-                        setCurrentTime(activeVideoRef.current.currentTime);
-                      }
-                    }}
-                    onLoadedMetadata={(e) => {
-                      if (isSnapped) {
-                        setDuration(e.currentTarget.duration || 0);
-                      }
-                    }}
-                    className="w-full h-full object-cover relative z-10 select-none cursor-pointer"
-                  />
-                ) : (
-                  // Offscreen reel placeholder (zero video decoder footprint, zero bandwidth lag)
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center z-10 pointer-events-none">
-                    <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                      <Play className="w-5 h-5 text-white/50 fill-current ml-0.5" />
+              <div className="relative flex items-center justify-center gap-3 sm:gap-5 md:gap-8 max-h-[96vh] w-full max-w-[1400px] my-auto">
+                {/* ================= 1. LEFT COLUMN (Outside Clip): Album Name, File Name & Details ================= */}
+                <div className="hidden md:flex flex-col justify-end w-56 lg:w-72 xl:w-80 pb-6 z-20 pointer-events-auto flex-shrink-0">
+                  <div className="bg-white/[0.04] backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-2.5">
+                    {/* Album Name Badge */}
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-[#00E5FF]">
+                      <Folder className="w-3.5 h-3.5 text-[#00E5FF] flex-shrink-0" />
+                      <span className="font-semibold uppercase tracking-wider truncate">{albumName}</span>
                     </div>
-                  </div>
-                )}
 
-                {/* Single-tap Play/Pause Center Pulse Icon */}
-                {isSnapped && centerPulse && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/65 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-2xl animate-ping duration-300">
-                      {centerPulse === 'play' ? (
-                        <Play className="w-8 h-8 sm:w-9 sm:h-9 fill-current ml-1 text-white" />
-                      ) : (
-                        <Pause className="w-8 h-8 sm:w-9 sm:h-9 fill-current text-white" />
+                    {/* Clean Video Title */}
+                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight leading-snug select-text">
+                      {displayTitle}
+                    </h2>
+
+                    {/* Exact File Name */}
+                    {fileName && fileName.toLowerCase() !== displayTitle.toLowerCase() && (
+                      <span className="text-xs font-mono text-zinc-400 truncate block select-text">
+                        {fileName}
+                      </span>
+                    )}
+
+                    {/* Reel Index counter & Commit Date */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-white/[0.08] text-xs font-mono text-zinc-400">
+                      <span className="text-[#00E5FF] font-bold">Reel {idx + 1} of {shorts.length}</span>
+                      {item.date && (
+                        <>
+                          <span className="text-zinc-600">•</span>
+                          <span>{new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </>
                       )}
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Paused Static Overlay Indicator */}
-                {isSnapped && !isPlaying && !centerPulse && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                    <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl">
-                      <Play className="w-7 h-7 fill-current ml-1" />
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Floating Right-Hand Action Column */}
-                {isSnapped && (
-                  <aside
-                    className="absolute right-3 sm:right-4 bottom-20 sm:bottom-24 flex flex-col items-center gap-3.5 sm:gap-4 z-30 pointer-events-auto"
-                    onClick={(e) => e.stopPropagation()}
+                {/* ================= 2. CENTER: Clean, 100% Unobstructed Video Clip ================= */}
+                <div className="relative flex flex-col items-center flex-shrink-0">
+                  <div
+                    className="relative aspect-[9/16] h-[74vh] sm:h-[84vh] md:h-[86vh] max-h-[840px] w-auto rounded-2xl sm:rounded-3xl overflow-hidden bg-black flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.95)] border border-white/10 group cursor-pointer"
+                    onClick={isSnapped ? togglePlay : undefined}
                   >
-                    {/* Sound / Mute Toggle Button */}
-                    <button
-                      type="button"
-                      onClick={toggleMute}
-                      className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
-                      title={isMuted ? 'Unmute Reel (M)' : 'Mute Reel (M)'}
-                      aria-label={isMuted ? 'Unmute Reel' : 'Mute Reel'}
-                    >
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-xl border border-white/20 hover:border-white/40 flex items-center justify-center text-white shadow-xl transition-all">
-                        {isMuted ? (
-                          <VolumeX className="w-5 h-5 text-zinc-300" />
-                        ) : (
-                          <Volume2 className="w-5 h-5 text-[#00E5FF]" />
-                        )}
+                    {/* Visual Poster / Backing Image */}
+                    {shortPoster && (
+                      <img
+                        src={shortPoster}
+                        alt={displayTitle}
+                        loading={isAdjacent ? 'eager' : 'lazy'}
+                        decoding="async"
+                        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0"
+                      />
+                    )}
+
+                    {/* DOM Virtualization: Only render <video> for active snapped reel and immediate next preloader */}
+                    {isAdjacent ? (
+                      <video
+                        ref={isSnapped ? activeVideoRef : undefined}
+                        src={streamUrl}
+                        poster={shortPoster || undefined}
+                        autoPlay={isSnapped}
+                        preload={isSnapped ? 'auto' : 'metadata'}
+                        playsInline
+                        loop
+                        muted={isMuted}
+                        crossOrigin="anonymous"
+                        onPlay={() => {
+                          if (isSnapped) setIsPlaying(true);
+                        }}
+                        onPause={() => {
+                          if (isSnapped) setIsPlaying(false);
+                        }}
+                        onTimeUpdate={() => {
+                          if (isSnapped && activeVideoRef.current) {
+                            setCurrentTime(activeVideoRef.current.currentTime);
+                          }
+                        }}
+                        onLoadedMetadata={(e) => {
+                          if (isSnapped) {
+                            setDuration(e.currentTarget.duration || 0);
+                          }
+                        }}
+                        className="w-full h-full object-cover relative z-10 select-none cursor-pointer"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center z-10 pointer-events-none">
+                        <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                          <Play className="w-5 h-5 text-white/50 fill-current ml-0.5" />
+                        </div>
                       </div>
-                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                        {isMuted ? 'Muted' : 'Sound'}
-                      </span>
-                    </button>
+                    )}
 
-                    {/* Share Direct Deep-Link Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleShare(item)}
-                      className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
-                      title="Share Reel Link"
-                      aria-label="Share Reel Link"
-                    >
-                      <div
-                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
-                          copiedLink
-                            ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                            : 'bg-black/60 hover:bg-black/85 border-white/20 hover:border-white/40 text-white'
-                        }`}
-                      >
-                        {copiedLink ? (
-                          <Check className="w-5 h-5 text-white" />
-                        ) : (
-                          <Share2 className="w-5 h-5 text-white" />
-                        )}
+                    {/* Single-tap Play/Pause Center Pulse Icon (only appears for 500ms on tap) */}
+                    {isSnapped && centerPulse && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/65 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-2xl animate-ping duration-300">
+                          {centerPulse === 'play' ? (
+                            <Play className="w-8 h-8 sm:w-9 sm:h-9 fill-current ml-1 text-white" />
+                          ) : (
+                            <Pause className="w-8 h-8 sm:w-9 sm:h-9 fill-current text-white" />
+                          )}
+                        </div>
                       </div>
-                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                        {copiedLink ? 'Copied!' : 'Share'}
-                      </span>
-                    </button>
+                    )}
 
-                    {/* Direct Branded Download Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(item)}
-                      disabled={isDownloading}
-                      className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform disabled:opacity-50"
-                      title="Download Reel"
-                      aria-label="Download Reel"
-                    >
-                      <div
-                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
-                          downloadSuccess
-                            ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                            : 'bg-black/60 hover:bg-black/85 border-white/20 hover:border-white/40 text-white'
-                        }`}
-                      >
-                        {downloadSuccess ? (
-                          <Check className="w-5 h-5 text-white" />
-                        ) : isDownloading ? (
-                          <Loader2 className="w-5 h-5 text-[#00E5FF] animate-spin" />
-                        ) : (
-                          <Download className="w-5 h-5 text-white" />
-                        )}
+                    {/* Paused Static Center Overlay */}
+                    {isSnapped && !isPlaying && !centerPulse && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                        <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl">
+                          <Play className="w-7 h-7 fill-current ml-1" />
+                        </div>
                       </div>
-                      <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                        {downloadSuccess ? 'Saved!' : isDownloading ? 'Saving...' : 'Save'}
-                      </span>
-                    </button>
-                  </aside>
-                )}
+                    )}
+                  </div>
 
-                {/* 4. Bottom Translucent Gradient Title/Metadata Overlay */}
-                <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/95 via-black/55 to-transparent z-20 pointer-events-none flex flex-col gap-2">
-                  {/* Category / Album Pill Badge */}
-                  {item.category && (
-                    <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-[#00E5FF] bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-[#00E5FF]/30 w-fit pointer-events-auto">
-                      <Sparkles className="w-3 h-3 text-[#00E5FF]" />
-                      <span>{item.category}</span>
-                    </div>
-                  )}
-
-                  {/* Sanitized Reel Title */}
-                  <h2 className="text-sm sm:text-base font-bold text-white tracking-wide line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] pr-16 select-text pointer-events-auto">
-                    {displayTitle}
-                  </h2>
-
-                  {/* Bottom Video Progress Scrub Line */}
+                  {/* Scrubber Progress Line OUTSIDE and directly underneath the clip */}
                   {isSnapped && (
                     <div
-                      className="w-full h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer pointer-events-auto mt-1"
+                      className="w-full h-1 bg-white/15 rounded-full overflow-hidden cursor-pointer mt-2"
                       onClick={handleSeek}
                       title="Seek Reel Time"
                     >
@@ -575,7 +489,131 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       />
                     </div>
                   )}
+
+                  {/* Mobile Title & Album Bar OUTSIDE the clip (rendered below the clip on screens < md) */}
+                  <div className="md:hidden flex flex-col items-center text-center mt-2 max-w-[calc(100vw-90px)] px-2 z-20">
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#00E5FF] truncate">
+                      <Folder className="w-3 h-3 text-[#00E5FF] flex-shrink-0" />
+                      <span className="uppercase">{albumName}</span>
+                      <span className="text-zinc-500">•</span>
+                      <span className="text-zinc-400">Reel {idx + 1}/{shorts.length}</span>
+                    </div>
+                    <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-full mt-0.5">
+                      {displayTitle}
+                    </h2>
+                    {fileName && fileName.toLowerCase() !== displayTitle.toLowerCase() && (
+                      <span className="text-[10px] font-mono text-zinc-400 truncate max-w-full">
+                        {fileName}
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* ================= 3. RIGHT COLUMN (Outside Clip): Floating Action Controls ================= */}
+                <aside
+                  className="flex flex-col items-center justify-end pb-6 sm:pb-8 gap-3 sm:gap-4 z-30 pointer-events-auto flex-shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Sound / Mute Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={toggleMute}
+                    className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
+                    title={isMuted ? 'Unmute Reel (M)' : 'Mute Reel (M)'}
+                    aria-label={isMuted ? 'Unmute Reel' : 'Mute Reel'}
+                  >
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.15] backdrop-blur-xl border border-white/20 hover:border-white/40 flex items-center justify-center text-white shadow-xl transition-all">
+                      {isMuted ? (
+                        <VolumeX className="w-5 h-5 text-zinc-400" />
+                      ) : (
+                        <Volume2 className="w-5 h-5 text-[#00E5FF]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] font-medium text-white/90">
+                      {isMuted ? 'Muted' : 'Sound'}
+                    </span>
+                  </button>
+
+                  {/* Share Direct Deep-Link Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleShare(item)}
+                    className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
+                    title="Share Reel Link"
+                    aria-label="Share Reel Link"
+                  >
+                    <div
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                        copiedLink
+                          ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                          : 'bg-white/[0.08] hover:bg-white/[0.15] border-white/20 hover:border-white/40 text-white'
+                      }`}
+                    >
+                      {copiedLink ? (
+                        <Check className="w-5 h-5 text-white" />
+                      ) : (
+                        <Share2 className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] font-medium text-white/90">
+                      {copiedLink ? 'Copied!' : 'Share'}
+                    </span>
+                  </button>
+
+                  {/* Direct Branded Save / Download Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(item)}
+                    disabled={isDownloading}
+                    className="group/action flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform disabled:opacity-50"
+                    title="Save Reel to Device"
+                    aria-label="Save Reel"
+                  >
+                    <div
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                        downloadSuccess
+                          ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                          : 'bg-white/[0.08] hover:bg-white/[0.15] border-white/20 hover:border-white/40 text-white'
+                      }`}
+                    >
+                      {downloadSuccess ? (
+                        <Check className="w-5 h-5 text-white" />
+                      ) : isDownloading ? (
+                        <Loader2 className="w-5 h-5 text-[#00E5FF] animate-spin" />
+                      ) : (
+                        <Download className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] font-medium text-white/90">
+                      {downloadSuccess ? 'Saved!' : isDownloading ? 'Saving...' : 'Save'}
+                    </span>
+                  </button>
+
+                  {/* Up / Down Navigation Controls */}
+                  <div className="flex flex-col gap-1.5 pt-2 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={handleScrollPrev}
+                      disabled={activeIndex === 0}
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all disabled:opacity-20 disabled:pointer-events-none active:scale-90 cursor-pointer"
+                      title="Previous Reel (Up Arrow)"
+                      aria-label="Previous Reel"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleScrollNext}
+                      disabled={activeIndex === shorts.length - 1}
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all disabled:opacity-20 disabled:pointer-events-none active:scale-90 cursor-pointer"
+                      title="Next Reel (Down Arrow)"
+                      aria-label="Next Reel"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                </aside>
               </div>
             </div>
           );
