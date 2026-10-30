@@ -1,20 +1,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
-import { type CyberFilterType } from './components/CyberHeader';
-import { ResponsiveNav } from './components/ResponsiveNav';
 import { CyberVideoPlayer } from './components/CyberVideoPlayer';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
-import { SiteFooter } from './components/SiteFooter';
-import { StartScreen } from './components/StartScreen';
-import { AmbientSpotlightHero } from './components/AmbientSpotlightHero';
-import { HomeFilterChips } from './components/HomeFilterChips';
-import { ShortsReelsRibbon } from './components/ShortsReelsRibbon';
-import { DynamicVideoGrid } from './components/DynamicVideoGrid';
-import { PhotoShowcaseRow } from './components/PhotoShowcaseRow';
-import { VideoAlbumShowcase } from './components/VideoAlbumShowcase';
+import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -25,29 +16,6 @@ import {
   getAlbumSlug,
   getMediaSlug,
 } from './utils/urlRouter';
-import { ChevronUp } from 'lucide-react';
-
-function buildTabUrl(tab: CyberFilterType): string {
-  if (typeof window === 'undefined') return '/';
-  const url = new URL(window.location.href);
-  const searchParams = url.searchParams;
-  searchParams.delete('album');
-  searchParams.delete('media');
-  searchParams.delete('item');
-  searchParams.delete('view');
-  if (tab === 'clips') {
-    searchParams.set('tab', 'videos');
-  } else if (tab === 'images') {
-    searchParams.set('tab', 'photos');
-  } else if (tab === 'shorts') {
-    searchParams.set('tab', 'shorts');
-  } else {
-    searchParams.delete('tab');
-    searchParams.delete('filter');
-  }
-  const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
-  return `${url.pathname}${queryPart}`;
-}
 
 function buildHomeUrl(): string {
   if (typeof window === 'undefined') return '/';
@@ -86,21 +54,12 @@ function buildAlbumUrl(albumNameOrSlug: string): string {
 function App() {
   const { data, isLoading, isDynamicReady } = useMediaData();
 
-  // Search, Filter & Sort State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<CyberFilterType>(() => {
-    const { tabQuery } = parseUrlState();
-    if (tabQuery === 'clips' || tabQuery === 'images' || tabQuery === 'shorts') {
-      return tabQuery;
-    }
-    return 'all';
-  });
   const [sortOrder] = useState<SortOrder>(() => {
     const { sortQuery } = parseUrlState();
     return (sortQuery === 'oldest' || sortQuery === 'name-asc') ? sortQuery : 'newest';
   });
 
-  // Modal / Player States
+  // Modal / Player States - STRICTLY PRESERVED
   const [theaterState, setTheaterState] = useState<{
     isOpen: boolean;
     item: StageMediaItem | null;
@@ -135,7 +94,7 @@ function App() {
     initialIndex: 0,
   });
 
-  // Dedicated "View All" Album View State
+  // Dedicated "View All" Album View State for deep linking compatibility
   const [viewAllState, setViewAllState] = useState<{
     isOpen: boolean;
     title: string;
@@ -168,18 +127,6 @@ function App() {
     }
   }, []);
 
-  const handleFilterChange = useCallback((newFilter: CyberFilterType, pushHistory = true) => {
-    setActiveFilter(newFilter);
-    if (pushHistory && typeof window !== 'undefined') {
-      const targetUrl = buildTabUrl(newFilter);
-      const currentFull = `${window.location.pathname}${window.location.search}`;
-      if (targetUrl !== currentFull) {
-        historyDepthRef.current++;
-        window.history.pushState({ tab: newFilter }, '', targetUrl);
-      }
-    }
-  }, []);
-
   const handleCloseModal = useCallback((type: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
     if (historyDepthRef.current > 0) {
       window.history.back();
@@ -200,23 +147,7 @@ function App() {
     }
   }, []);
 
-  // Global Back-To-Top Button state (> 300px scroll)
-  const [showBackToTop, setShowBackToTop] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const handleScrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Organize raw catalog data into structured multi-row discovery feed
+  // Organize raw catalog data into structured discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
 
   // Universal Media Player / Lightbox Dispatcher
@@ -311,7 +242,7 @@ function App() {
     [openMediaItem]
   );
 
-  // Dedicated "View All" Album Navigator
+  // Dedicated "View All" Album Navigator (for deep link routing)
   const handleOpenViewAll = useCallback(
     (
       albumTitle: string,
@@ -347,7 +278,7 @@ function App() {
         historyDepthRef.current--;
       }
 
-      const { albumQuery, mediaQuery, tabQuery } = parseUrlState();
+      const { albumQuery, mediaQuery } = parseUrlState();
 
       // 1. If mediaQuery is present, open or switch to that media item directly
       if (mediaQuery) {
@@ -375,7 +306,7 @@ function App() {
         }
       }
 
-      // 2. No mediaQuery: ensure all media viewer modals are CLOSED!
+      // 2. No mediaQuery: ensure all media viewer modals are CLOSED
       setTheaterState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
       setLightboxState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
       setShortsState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
@@ -407,15 +338,8 @@ function App() {
         return;
       }
 
-      // 4. No albumQuery: ensure album modal is CLOSED!
+      // 4. No albumQuery: ensure album modal is CLOSED
       setViewAllState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-
-      // 5. Restore activeFilter according to tabQuery (or default to 'all')
-      if (tabQuery === 'clips' || tabQuery === 'images' || tabQuery === 'shorts') {
-        setActiveFilter(tabQuery);
-      } else {
-        setActiveFilter('all');
-      }
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -426,15 +350,11 @@ function App() {
   const hasInitializedUrlRef = useRef(false);
 
   useEffect(() => {
-    // If mediaData or rawFeed is still loading/empty, DO NOT execute a fallback lookup or update URL history
     if (isLoading || !data || !rawFeed || rawFeed.allMediaPool.length === 0 || !isDynamicReady) return;
     if (hasInitializedUrlRef.current) return;
 
-    const { albumQuery, mediaQuery, tabQuery } = parseUrlState();
+    const { albumQuery, mediaQuery } = parseUrlState();
     if (!albumQuery && !mediaQuery) {
-      if (tabQuery && (tabQuery === 'clips' || tabQuery === 'images' || tabQuery === 'shorts')) {
-        setActiveFilter(tabQuery);
-      }
       hasInitializedUrlRef.current = true;
       return;
     }
@@ -461,7 +381,6 @@ function App() {
       let matchedItem: StageMediaItem | null = null;
       let matchedContext: StageMediaItem[] | undefined;
 
-      // Primary check: When albumQuery is explicitly specified, strictly restrict media resolution to that album
       if (albumQuery) {
         if (scopedPool && scopedPool.length > 0) {
           const scopedMatch = findMatchingMediaItem(scopedPool, mediaQuery);
@@ -470,10 +389,7 @@ function App() {
             matchedContext = scopedPool;
           }
         }
-        // CRITICAL: When albumQuery is specified, NEVER fall back to global search!
-        // Strictly prevent cross-album redirection.
       } else {
-        // Fall back to global search ONLY when NO albumQuery was specified
         const allItems: StageMediaItem[] = [
           ...(rawFeed.shorts || []),
           ...(rawFeed.latestReleases || []),
@@ -502,23 +418,18 @@ function App() {
         }
       }
 
-      // Dispatch media selection if an item was found
       if (matchedItem) {
         hasInitializedUrlRef.current = true;
         const preferredAlbum = albumQuery || (matchedItem.category ? getAlbumSlug(matchedItem.category) : undefined);
         const mediaUrl = buildMediaUrl(matchedItem, preferredAlbum);
 
-        // Synthetic history hierarchy on cold load:
-        // Entry 0: Home ('/')
         window.history.replaceState({ tab: 'all' }, '', buildHomeUrl());
 
-        // Entry 1: Album (if applicable and not generic shorts)
         if (preferredAlbum && preferredAlbum.toLowerCase() !== 'shorts') {
           const albumUrl = buildAlbumUrl(preferredAlbum);
           window.history.pushState({ album: preferredAlbum }, '', albumUrl);
           historyDepthRef.current++;
 
-          // Preload viewAllState underneath so closing media reveals album!
           const folder = resolvedFolder || findMatchingFolder(rawFeed.albums, preferredAlbum);
           if (folder) {
             setViewAllState({
@@ -532,24 +443,18 @@ function App() {
           }
         }
 
-        // Entry 2: Media item
         window.history.pushState({ media: matchedItem.id, album: preferredAlbum }, '', mediaUrl);
         historyDepthRef.current++;
 
-        // Open media without pushing an additional duplicate history entry
         openMediaItem(matchedItem, matchedContext, preferredAlbum, false);
         return;
       }
     }
 
-    // 4. If media was not found or only album was specified, open the album view strictly within requested album
     if (albumQuery) {
       hasInitializedUrlRef.current = true;
       const albumUrl = buildAlbumUrl(albumQuery);
-      // Synthetic history hierarchy:
-      // Entry 0: Home ('/')
       window.history.replaceState({ tab: 'all' }, '', buildHomeUrl());
-      // Entry 1: Album
       window.history.pushState({ album: albumQuery }, '', albumUrl);
       historyDepthRef.current++;
 
@@ -570,14 +475,6 @@ function App() {
         }
       }
       return;
-    }
-
-    // Cold-load with tab query
-    if (tabQuery && tabQuery !== 'all') {
-      window.history.replaceState({ tab: 'all' }, '', buildHomeUrl());
-      window.history.pushState({ tab: tabQuery }, '', buildTabUrl(tabQuery));
-      historyDepthRef.current++;
-      setActiveFilter(tabQuery);
     }
 
     hasInitializedUrlRef.current = true;
@@ -642,416 +539,77 @@ function App() {
     sortOrder,
   ]);
 
-  const handleResetHome = useCallback(() => {
-    if (theaterState.isOpen || lightboxState.isOpen || shortsState.isOpen || viewAllState.isOpen) {
-      setTheaterState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-      setLightboxState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-      setShortsState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-      setViewAllState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-    }
-    if (activeFilter !== 'all') {
-      handleFilterChange('all', true);
-    } else {
-      const homeUrl = buildHomeUrl();
-      if (window.location.search || window.location.hash) {
-        historyDepthRef.current++;
-        window.history.pushState({ tab: 'all' }, '', homeUrl);
-      }
-    }
-    setSearchQuery('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [
-    theaterState.isOpen,
-    lightboxState.isOpen,
-    shortsState.isOpen,
-    viewAllState.isOpen,
-    activeFilter,
-    handleFilterChange,
-  ]);
-
-  // Prepare full dynamic album list with precise data-type tags for in-place filtering
-  const albumList = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-
-    return rawFeed.albums.map((album) => {
-      const items = q
-        ? album.items.filter(
-            (it) =>
-              it.title.toLowerCase().includes(q) ||
-              (it.category && it.category.toLowerCase().includes(q)) ||
-              (it.name && it.name.toLowerCase().includes(q))
-          )
-        : album.items;
-
-      const counts = album.typeCounts || { photos: 0, clips: 0, shorts: 0 };
-      const folderPath = album.folderPath || '';
-
-      const isImage =
-        album.type === 'image' ||
-        album.variant === 'photo' ||
-        (counts.photos > 0 && counts.clips === 0 && counts.shorts === 0);
-
-      const isShort =
-        album.variant === 'shorts' ||
-        album.name.toLowerCase() === 'shorts' ||
-        folderPath.toLowerCase().includes('short') ||
-        (counts.shorts > 0 && counts.clips === 0 && counts.photos === 0);
-
-      const isVideo = !isShort && (album.type === 'video' || counts.clips > 0);
-
-      const dataType: 'image' | 'video' | 'short' = isShort ? 'short' : isImage ? 'image' : 'video';
-
-      return {
-        ...album,
-        items,
-        dataType,
-        isImage,
-        isShort,
-        isVideo,
-      };
-    });
-  }, [rawFeed.albums, searchQuery]);
-
-  // Category-specific album items for quick jump menus
-  const imageAlbums = useMemo(
-    () =>
-      albumList
-        .filter((a) => a.isImage && a.items.length > 0)
-        .map((a) => ({ id: a.id, name: a.name, count: a.items.length })),
-    [albumList]
-  );
-
-  const videoAlbums = useMemo(
-    () =>
-      albumList
-        .filter((a) => a.isVideo && a.items.length > 0)
-        .map((a) => ({ id: a.id, name: a.name, count: a.items.length })),
-    [albumList]
-  );
-
-  const shortAlbums = useMemo(
-    () =>
-      albumList
-        .filter((a) => a.isShort && a.items.length > 0)
-        .map((a) => ({ id: a.id, name: a.name, count: a.items.length })),
-    [albumList]
-  );
-
-  // Album selection dispatcher for quick jump menus: opens album view directly
-  const handleJumpToAlbum = useCallback(
-    (albumId: string, category: CyberFilterType) => {
-      const target = rawFeed.albums.find(
-        (a) => a.id === albumId || a.name.toLowerCase() === albumId.toLowerCase()
-      );
-      if (target) {
-        handleOpenViewAll(
-          target.name,
-          target.items,
-          target.variant,
-          undefined,
-          target.hasMultipleTypes,
-          target.typeCounts
-        );
-      } else {
-        if (activeFilter !== 'all' && activeFilter !== category) {
-          handleFilterChange(category, true);
-        }
-      }
-    },
-    [rawFeed.albums, activeFilter, handleFilterChange, handleOpenViewAll]
-  );
-
-  // Helper to check if an item is a vertical short / reel
-  const isShortItem = useCallback((item: StageMediaItem): boolean => {
-    return Boolean(
-      item.mediaType === 'short' ||
-      item.category?.toLowerCase().includes('short') ||
-      item.category?.toLowerCase().includes('reel') ||
-      item.parentAlbum?.toLowerCase().includes('short') ||
-      item.url?.toLowerCase().includes('/shorts/') ||
-      item.id?.toLowerCase().includes('shorts') ||
-      item.path?.toLowerCase().includes('shorts')
-    );
+  const initialAlbumTarget = useMemo(() => {
+    const { albumQuery } = parseUrlState();
+    return albumQuery || undefined;
   }, []);
-
-  // Helper to check if an item is a video
-  const isVideoItem = useCallback((item: StageMediaItem): boolean => {
-    return Boolean(
-      item.type === 'video' ||
-      item.mediaType === 'clip' ||
-      isVideoExtension(item.url || item.path || item.id || item.name || '')
-    );
-  }, []);
-
-  // Full pool of landscape (non-short) video clips from across the entire directory
-  const landscapeVideos = useMemo(() => {
-    const pool: StageMediaItem[] = [];
-    const seen = new Set<string>();
-
-    // 1. Gather all clips from video vault folders (these are landscape video albums)
-    rawFeed.videoVaultFolders.forEach((folder) => {
-      folder.items.forEach((item) => {
-        const key = item.id || item.url;
-        if (key && seen.has(key)) return;
-        if (!isShortItem(item) && isVideoItem(item)) {
-          if (key) seen.add(key);
-          pool.push(item);
-        }
-      });
-    });
-
-    // 2. Also check any other non-short videos in allMediaPool
-    rawFeed.allMediaPool.forEach((item) => {
-      const key = item.id || item.url;
-      if (key && seen.has(key)) return;
-      if (!isShortItem(item) && isVideoItem(item)) {
-        if (key) seen.add(key);
-        pool.push(item);
-      }
-    });
-
-    return pool;
-  }, [rawFeed.videoVaultFolders, rawFeed.allMediaPool, isShortItem, isVideoItem]);
-
-  // Featured spotlight video for Layer 1 hero banner (Picks a random landscape video on each visit)
-  const [spotlightVideo, setSpotlightVideo] = useState<StageMediaItem | null>(null);
-
-  useEffect(() => {
-    if (spotlightVideo) return;
-
-    if (landscapeVideos.length > 0) {
-      const randomIndex = Math.floor(Math.random() * landscapeVideos.length);
-      setSpotlightVideo(landscapeVideos[randomIndex]);
-    } else if (rawFeed.allMediaPool.length > 0) {
-      const fallbackVideos = rawFeed.allMediaPool.filter((item) => isVideoItem(item) && !isShortItem(item));
-      if (fallbackVideos.length > 0) {
-        const randomIndex = Math.floor(Math.random() * fallbackVideos.length);
-        setSpotlightVideo(fallbackVideos[randomIndex]);
-      }
-    }
-  }, [landscapeVideos, rawFeed.allMediaPool, spotlightVideo, isVideoItem, isShortItem]);
-
-  // Context playlist for the active spotlight video
-  const spotlightPlaylist = useMemo(() => {
-    if (!spotlightVideo) return landscapeVideos.length > 0 ? landscapeVideos : rawFeed.allMediaPool;
-    if (spotlightVideo.category) {
-      const folder = findMatchingFolder(rawFeed.albums, spotlightVideo.category);
-      if (folder && folder.folder.items.length > 0) {
-        return folder.folder.items;
-      }
-    }
-    return landscapeVideos.length > 0 ? landscapeVideos : rawFeed.allMediaPool;
-  }, [spotlightVideo, landscapeVideos, rawFeed.albums, rawFeed.allMediaPool]);
-
-  // Featured videos collection for Layer 4 dynamic video grid
-  const featuredVideos = landscapeVideos;
-
-  // Category counts for Layer 2 glass filter navigation chips
-  const filterCounts = useMemo(() => {
-    return {
-      all: rawFeed.allMediaPool.length,
-      shorts: rawFeed.shorts.length,
-      videos: rawFeed.videoVaultFolders.reduce((acc, f) => acc + f.items.length, 0),
-      photos: rawFeed.photoVaultFolders.reduce((acc, f) => acc + f.items.length, 0),
-    };
-  }, [rawFeed]);
-
-  // Hero "Explore Album" action dispatcher
-  const handleHeroExplore = useCallback(
-    (albumName: string) => {
-      const folder = findMatchingFolder(rawFeed.albums, albumName);
-      if (folder) {
-        handleOpenViewAll(
-          folder.folder.name,
-          folder.folder.items,
-          folder.folder.variant,
-          undefined,
-          folder.folder.hasMultipleTypes,
-          folder.folder.typeCounts
-        );
-      }
-    },
-    [rawFeed.albums, handleOpenViewAll]
-  );
 
   return (
-    <div
-      className="w-full max-w-full overflow-x-hidden relative min-h-screen transition-colors duration-200"
-      style={{
-        backgroundColor: 'var(--bg-page)',
-        color: 'var(--text-primary)',
-      }}
-    >
-      {/* 0. Start Screen (Neon Circuit Draw - executes strictly once per browser session) */}
-      <StartScreen />
-
-      {/* 1. Responsive Navigation: Desktop Floating Nav + Mobile Fixed Bottom Dock */}
-      <ResponsiveNav
-        activeFilter={activeFilter}
-        onFilterChange={(filter) => handleFilterChange(filter, true)}
-        onHomeClick={handleResetHome}
-        imageAlbums={imageAlbums}
-        videoAlbums={videoAlbums}
-        shortAlbums={shortAlbums}
-        onJumpToAlbum={handleJumpToAlbum}
-        showBackToTop={showBackToTop}
-        onScrollToTop={handleScrollToTop}
+    <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-black text-white">
+      {/* 1. High-resolution cosmic galaxy background fixed full viewport */}
+      <img
+        src="/assets/galaxy.jpg"
+        alt="Deep Space Cosmic Background"
+        className="fixed inset-0 w-[100vw] h-[100dvh] object-cover pointer-events-none select-none"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          width: '100vw',
+          height: '100dvh',
+          objectFit: 'cover',
+          zIndex: -1,
+        }}
+      />
+      <div
+        className="fixed inset-0 bg-black/40 pointer-events-none"
+        style={{ position: 'fixed', inset: 0, zIndex: -1 }}
       />
 
-      {/* Main Content Stage */}
-      <div className="w-full pb-28 md:pb-16 flex flex-col min-h-screen">
-        {/* LAYER 1: Ambient Spotlight Hero Banner */}
-        {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && spotlightVideo && (
-          <AmbientSpotlightHero
-            item={spotlightVideo}
-            playlistContext={spotlightPlaylist}
-            onPlay={(item, playlist) => handleSelectItem(item, playlist)}
-            onExploreAlbum={handleHeroExplore}
-          />
-        )}
+      {/* 2. Deep Space Tree Explorer (Pure Underlined Text Horizontal Directory) */}
+      {isLoading && !data ? (
+        <div className="flex items-center justify-center w-full h-full text-white/50 font-mono text-sm tracking-widest uppercase">
+          Loading...
+        </div>
+      ) : (
+        <DeepSpaceTreeExplorer
+          items={rawFeed.allMediaPool}
+          initialAlbum={initialAlbumTarget}
+          onOpenPhoto={(photo, playlist, index) => {
+            const albumTarget = photo.category || photo.parentAlbum;
+            const targetUrl = buildMediaUrl(photo, albumTarget);
+            pushModalState('lightbox', targetUrl);
+            setLightboxState({
+              isOpen: true,
+              item: photo,
+              items: playlist,
+              initialIndex: index,
+              albumContext: albumTarget,
+            });
+          }}
+          onOpenVideo={(video, playlist) => {
+            const albumTarget = video.category || video.parentAlbum;
+            const targetUrl = buildMediaUrl(video, albumTarget);
+            pushModalState('theater', targetUrl);
+            setTheaterState({
+              isOpen: true,
+              item: video,
+              playlist,
+              albumContext: albumTarget,
+            });
+          }}
+          onOpenShort={(short, shorts, index) => {
+            const targetUrl = buildMediaUrl(short, 'shorts');
+            pushModalState('shorts', targetUrl);
+            setShortsState({
+              isOpen: true,
+              shorts,
+              initialIndex: index,
+            });
+          }}
+        />
+      )}
 
-        {/* 2. Structured Streaming Discovery Feed with Instant In-Place Filtering */}
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-8 sm:gap-10 pt-4">
-          {/* Loading State Skeleton */}
-          {isLoading && !data && (
-            <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-[#00E5FF] border-t-transparent animate-spin" />
-              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">
-                Ingesting stream vault...
-              </span>
-            </div>
-          )}
-
-          {/* LAYER 2: Glass Filter Navigation Chips */}
-          {!isLoading && (
-            <HomeFilterChips
-              activeFilter={activeFilter}
-              onFilterChange={(filter) => handleFilterChange(filter, true)}
-              counts={filterCounts}
-            />
-          )}
-
-          {/* SEARCH RESULTS VIEW (when user searches) */}
-          {searchQuery && (
-            <div className="w-full flex flex-col gap-6">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                  <span>Search Results for</span>
-                  <span className="text-[#00E5FF]">"{searchQuery}"</span>
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="text-xs font-mono text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  Clear Search
-                </button>
-              </div>
-
-              {rawFeed.allMediaPool.filter(
-                (it) =>
-                  it.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (it.category && it.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                  (it.name && it.name.toLowerCase().includes(searchQuery.toLowerCase()))
-              ).length === 0 ? (
-                <div className="py-20 text-center text-sm font-mono text-zinc-500">
-                  No matching items found for "{searchQuery}".
-                </div>
-              ) : (
-                <DynamicVideoGrid
-                  videos={rawFeed.allMediaPool.filter(
-                    (it) =>
-                      isVideoItem(it) &&
-                      (it.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        (it.category && it.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                        (it.name && it.name.toLowerCase().includes(searchQuery.toLowerCase())))
-                  )}
-                  onPlayVideo={(item, playlist) => handleSelectItem(item, playlist)}
-                  title="Matching Videos"
-                />
-              )}
-            </div>
-          )}
-
-          {/* SHELF 1: Dedicated Shorts & Reels Ribbon (Home & Shorts view) */}
-          {!searchQuery && (activeFilter === 'all' || activeFilter === 'shorts') && rawFeed.shorts.length > 0 && (
-            <ShortsReelsRibbon
-              shorts={rawFeed.shorts}
-              onSelectShort={(item) => handleSelectItem(item, rawFeed.shorts)}
-              onViewAll={() => handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts')}
-            />
-          )}
-
-          {/* SHELF 2: Featured Video Clips Grid (Home view: top 12; Videos view: all videos) */}
-          {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && featuredVideos.length > 0 && (
-            <DynamicVideoGrid
-              videos={featuredVideos}
-              onPlayVideo={(item, playlist) => handleSelectItem(item, playlist)}
-              title={activeFilter === 'clips' ? 'All Video Clips' : 'Featured Clips'}
-              limit={activeFilter === 'all' ? 12 : undefined}
-            />
-          )}
-
-          {/* SHELF 3: Video Album Collections (Home view & Videos view) */}
-          {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && rawFeed.videoVaultFolders.length > 0 && (
-            <VideoAlbumShowcase
-              videoAlbums={rawFeed.videoVaultFolders}
-              onSelectAlbum={(folder) =>
-                handleOpenViewAll(
-                  folder.name,
-                  folder.items,
-                  folder.variant || 'standard',
-                  undefined,
-                  folder.hasMultipleTypes,
-                  folder.typeCounts
-                )
-              }
-            />
-          )}
-
-          {/* SHELF 4: Dedicated Photo Showcase Row (Home view & Photos view) */}
-          {!searchQuery && (activeFilter === 'all' || activeFilter === 'images') && rawFeed.photoVaultFolders.length > 0 && (
-            <PhotoShowcaseRow
-              photoAlbums={rawFeed.photoVaultFolders}
-              onSelectAlbum={(folder) =>
-                handleOpenViewAll(
-                  folder.name,
-                  folder.items,
-                  'photo',
-                  undefined,
-                  folder.hasMultipleTypes,
-                  folder.typeCounts
-                )
-              }
-            />
-          )}
-        </main>
-
-        {/* 3. Minimalist Footer */}
-        <SiteFooter onBackToTop={handleResetHome} className="mt-14" />
-      </div>
-
-      {/* Floating Global Back-To-Top Button (Desktop only; mobile is integrated into bottom dock) */}
-      <button
-        type="button"
-        onClick={handleScrollToTop}
-        aria-label="Scroll back to top"
-        title="Back to top"
-        className={`hidden md:flex fixed bottom-6 right-4 sm:right-6 z-40 p-2.5 rounded-full shadow-lg transition-all duration-200 cursor-pointer items-center justify-center ${
-          showBackToTop
-            ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
-            : 'opacity-0 translate-y-4 pointer-events-none scale-90'
-        }`}
-        style={{
-          backgroundColor: 'var(--nav-bg)',
-          color: 'var(--text-primary)',
-          border: '1px solid var(--nav-border)',
-        }}
-      >
-        <ChevronUp className="w-4 h-4" />
-      </button>
-
-      {/* 4. Single Global Video Player (Clips) */}
+      {/* 3. Single Global Video Player (Clips) - STRICTLY UNTOUCHED */}
       <CyberVideoPlayer
         isOpen={theaterState.isOpen}
         onClose={() => handleCloseModal('theater')}
@@ -1077,7 +635,7 @@ function App() {
         }}
       />
 
-      {/* 5. Single Global Shorts Feed Player */}
+      {/* 4. Single Global Shorts Feed Player (Reels) - STRICTLY UNTOUCHED */}
       <ShortsFeedModal
         isOpen={shortsState.isOpen}
         onClose={() => handleCloseModal('shorts')}
@@ -1096,7 +654,7 @@ function App() {
         }}
       />
 
-      {/* 6. Single High-Definition Image Lightbox */}
+      {/* 5. Single High-Definition Image Lightbox - STRICTLY UNTOUCHED */}
       <MediaModal
         isOpen={lightboxState.isOpen}
         onClose={() => handleCloseModal('lightbox')}
@@ -1135,7 +693,7 @@ function App() {
         }}
       />
 
-      {/* 7. Dedicated Full Album View Modal */}
+      {/* 6. FullAlbumViewModal (for backward compatibility / deep links) */}
       <FullAlbumViewModal
         isOpen={viewAllState.isOpen}
         title={viewAllState.title}
