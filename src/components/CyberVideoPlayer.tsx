@@ -36,7 +36,7 @@ export interface CyberVideoPlayerProps {
   onSelectFolder?: (folder: MediaFolderEntry) => void;
 }
 
-const PLAYBACK_SPEED_OPTIONS = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+const PLAYBACK_SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds < 0) return '00:00';
@@ -69,6 +69,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [speedMenuPos, setSpeedMenuPos] = useState<{ bottom: number; right: number } | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
   const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
@@ -137,43 +138,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const speedBtnRef = useRef<HTMLButtonElement>(null);
   const isDraggingProgress = useRef(false);
 
-  // Outside click & ESC key handler for Playback Speed menu
-  useEffect(() => {
-    if (!showSpeedMenu) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        speedMenuRef.current &&
-        !speedMenuRef.current.contains(e.target as Node) &&
-        speedBtnRef.current &&
-        !speedBtnRef.current.contains(e.target as Node)
-      ) {
-        setShowSpeedMenu(false);
-      }
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowSpeedMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showSpeedMenu]);
-
-  // Ensure playbackSpeed persistence across video changes
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = playbackSpeed;
-      videoRef.current.preservesPitch = true;
-    }
-  }, [playbackSpeed, item?.id, item?.url]);
-
   // Auto-hide HUD on inactivity
   const resetHudTimer = useCallback(() => {
     setShowHud(true);
@@ -184,6 +148,120 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       setShowSpeedMenu(false);
     }, 3200);
   }, [showSpeedMenu, seekHover.isHovering]);
+
+  // Robust Playback Speed Application Engine
+  const applyPlaybackSpeed = useCallback((speed: number) => {
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      try {
+        videoRef.current.defaultPlaybackRate = speed;
+        videoRef.current.playbackRate = speed;
+        videoRef.current.preservesPitch = true;
+        (videoRef.current as any).webkitPreservesPitch = true;
+        (videoRef.current as any).mozPreservesPitch = true;
+      } catch (err) {
+        console.warn('Failed to set video playback rate:', err);
+      }
+    }
+  }, []);
+
+  const handleSelectSpeed = useCallback(
+    (speed: number) => {
+      applyPlaybackSpeed(speed);
+      setShowSpeedMenu(false);
+      resetHudTimer();
+    },
+    [applyPlaybackSpeed, resetHudTimer]
+  );
+
+  const toggleSpeedMenu = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowSpeedMenu((prev) => {
+      const next = !prev;
+      if (next && speedBtnRef.current) {
+        const rect = speedBtnRef.current.getBoundingClientRect();
+        setSpeedMenuPos({
+          bottom: Math.max(16, window.innerHeight - rect.top + 8),
+          right: Math.max(8, window.innerWidth - rect.right),
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  // Sync menu position dynamically on resize / scroll
+  useEffect(() => {
+    if (!showSpeedMenu || !speedBtnRef.current) return;
+    const updatePos = () => {
+      if (speedBtnRef.current) {
+        const rect = speedBtnRef.current.getBoundingClientRect();
+        setSpeedMenuPos({
+          bottom: Math.max(16, window.innerHeight - rect.top + 8),
+          right: Math.max(8, window.innerWidth - rect.right),
+        });
+      }
+    };
+    updatePos();
+    window.addEventListener('resize', updatePos);
+    window.addEventListener('scroll', updatePos, true);
+    return () => {
+      window.removeEventListener('resize', updatePos);
+      window.removeEventListener('scroll', updatePos, true);
+    };
+  }, [showSpeedMenu]);
+
+  // Outside click & ESC key handler for Playback Speed menu (touch + mouse)
+  useEffect(() => {
+    if (!showSpeedMenu) return;
+
+    if (hudTimerRef.current) {
+      window.clearTimeout(hudTimerRef.current);
+      hudTimerRef.current = null;
+    }
+    setShowHud(true);
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        speedMenuRef.current &&
+        !speedMenuRef.current.contains(target) &&
+        speedBtnRef.current &&
+        !speedBtnRef.current.contains(target)
+      ) {
+        setShowSpeedMenu(false);
+        resetHudTimer();
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowSpeedMenu(false);
+        resetHudTimer();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSpeedMenu, resetHudTimer]);
+
+  // Ensure playbackSpeed persistence across video changes
+  useEffect(() => {
+    if (videoRef.current) {
+      try {
+        videoRef.current.defaultPlaybackRate = playbackSpeed;
+        videoRef.current.playbackRate = playbackSpeed;
+        videoRef.current.preservesPitch = true;
+        (videoRef.current as any).webkitPreservesPitch = true;
+        (videoRef.current as any).mozPreservesPitch = true;
+      } catch (_) {}
+    }
+  }, [playbackSpeed, item?.id, item?.url]);
 
   useEffect(() => {
     return () => {
@@ -637,6 +715,22 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         toggleFullscreen();
       } else if (e.key === 'm' || e.key === 'M') {
         handleToggleMute();
+      } else if (e.key === '>' || (e.shiftKey && e.key === '.') || e.key === ']') {
+        e.preventDefault();
+        const curIdx = PLAYBACK_SPEED_OPTIONS.indexOf(playbackSpeed);
+        const nextSpeed = curIdx >= 0 && curIdx < PLAYBACK_SPEED_OPTIONS.length - 1
+          ? PLAYBACK_SPEED_OPTIONS[curIdx + 1]
+          : playbackSpeed;
+        applyPlaybackSpeed(nextSpeed);
+        resetHudTimer();
+      } else if (e.key === '<' || (e.shiftKey && e.key === ',') || e.key === '[') {
+        e.preventDefault();
+        const curIdx = PLAYBACK_SPEED_OPTIONS.indexOf(playbackSpeed);
+        const prevSpeed = curIdx > 0
+          ? PLAYBACK_SPEED_OPTIONS[curIdx - 1]
+          : playbackSpeed;
+        applyPlaybackSpeed(prevSpeed);
+        resetHudTimer();
       }
     };
 
@@ -644,7 +738,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose, togglePlay, seekBy, toggleFullscreen, handleToggleMute]);
+  }, [isOpen, onClose, togglePlay, seekBy, toggleFullscreen, handleToggleMute, playbackSpeed, applyPlaybackSpeed, resetHudTimer]);
 
   // Handle Download
   const handleDownload = async () => {
@@ -914,6 +1008,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           }`}
           onCanPlay={(e) => {
             const v = e.currentTarget;
+            try {
+              v.defaultPlaybackRate = playbackSpeed;
+              v.playbackRate = playbackSpeed;
+              v.preservesPitch = true;
+              (v as any).webkitPreservesPitch = true;
+              (v as any).mozPreservesPitch = true;
+            } catch (_) {}
             const playPromise = v.play();
             if (playPromise !== undefined) {
               playPromise.then(() => setIsPlaying(true)).catch(() => {});
@@ -941,15 +1042,51 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           onLoadedMetadata={() => {
             if (videoRef.current) {
               setDuration(videoRef.current.duration || 0);
-              videoRef.current.playbackRate = playbackSpeed;
-              videoRef.current.preservesPitch = true;
+              try {
+                videoRef.current.defaultPlaybackRate = playbackSpeed;
+                videoRef.current.playbackRate = playbackSpeed;
+                videoRef.current.preservesPitch = true;
+                (videoRef.current as any).webkitPreservesPitch = true;
+                (videoRef.current as any).mozPreservesPitch = true;
+              } catch (_) {}
             }
           }}
           onPlay={() => {
             setIsPlaying(true);
             if (videoRef.current) {
-              videoRef.current.playbackRate = playbackSpeed;
-              videoRef.current.preservesPitch = true;
+              try {
+                videoRef.current.defaultPlaybackRate = playbackSpeed;
+                videoRef.current.playbackRate = playbackSpeed;
+                videoRef.current.preservesPitch = true;
+                (videoRef.current as any).webkitPreservesPitch = true;
+                (videoRef.current as any).mozPreservesPitch = true;
+              } catch (_) {}
+            }
+          }}
+          onPlaying={(e) => {
+            setIsPlaying(true);
+            const v = e.currentTarget;
+            if (v.playbackRate !== playbackSpeed) {
+              try {
+                v.defaultPlaybackRate = playbackSpeed;
+                v.playbackRate = playbackSpeed;
+                v.preservesPitch = true;
+                (v as any).webkitPreservesPitch = true;
+                (v as any).mozPreservesPitch = true;
+              } catch (_) {}
+            }
+          }}
+          onRateChange={(e) => {
+            const v = e.currentTarget;
+            // Prevent browser media engine from silently resetting playbackRate back to 1.0
+            if (playbackSpeed !== 1 && v.playbackRate === 1) {
+              try {
+                v.defaultPlaybackRate = playbackSpeed;
+                v.playbackRate = playbackSpeed;
+                v.preservesPitch = true;
+                (v as any).webkitPreservesPitch = true;
+                (v as any).mozPreservesPitch = true;
+              } catch (_) {}
             }
           }}
           onEnded={handleVideoEnded}
@@ -1067,7 +1204,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
 
         {/* HUD Button Row: Smoked Frosted Glass Pill */}
-        <div className="cyber-pill px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2 w-full max-w-full overflow-x-auto scrollbar-none shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+        <div className="cyber-pill px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2 w-full max-w-full overflow-visible shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
           {/* Left side: Play/Pause button + Current Time / Duration counter */}
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
@@ -1229,21 +1366,34 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <button
                 ref={speedBtnRef}
                 type="button"
-                onClick={() => setShowSpeedMenu((prev) => !prev)}
-                className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer active:scale-95"
-                title="Playback Speed"
+                onClick={toggleSpeedMenu}
+                className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer active:scale-95 flex-shrink-0 ${
+                  playbackSpeed !== 1
+                    ? 'bg-violet-600/30 text-violet-300 border border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]'
+                    : 'hover:bg-white/10 text-zinc-300 hover:text-white'
+                }`}
+                title="Playback Speed (< / >)"
                 aria-haspopup="true"
                 aria-expanded={showSpeedMenu}
               >
-                <Gauge className="w-3.5 h-3.5 text-violet-400" />
+                <Gauge className={`w-3.5 h-3.5 ${playbackSpeed !== 1 ? 'text-violet-300' : 'text-violet-400'}`} />
                 <span>{playbackSpeed}x</span>
               </button>
 
               {showSpeedMenu && (
                 <div
                   ref={speedMenuRef}
-                  className="absolute bottom-11 right-0 mb-1 py-1.5 px-1 rounded-xl bg-neutral-900/95 backdrop-blur-xl border border-white/15 shadow-2xl flex flex-col gap-0.5 z-50 min-w-[85px] max-h-[50vh] overflow-y-auto"
+                  style={{
+                    bottom: speedMenuPos ? `${speedMenuPos.bottom}px` : '4.5rem',
+                    right: speedMenuPos ? `${speedMenuPos.right}px` : '1rem',
+                  }}
+                  className="fixed py-1.5 px-1 rounded-xl bg-neutral-900/95 backdrop-blur-xl border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_20px_rgba(139,92,246,0.25)] flex flex-col gap-0.5 z-[10000] min-w-[110px] max-h-[50vh] overflow-y-auto pointer-events-auto animate-fade-in"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
+                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold border-b border-white/10 mb-0.5">
+                    Playback Speed
+                  </div>
                   {PLAYBACK_SPEED_OPTIONS.map((speed) => {
                     const isSelected = playbackSpeed === speed;
                     const label = speed === 1 ? '1x (Normal)' : `${speed}x`;
@@ -1251,18 +1401,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                       <button
                         key={speed}
                         type="button"
-                        onClick={() => {
-                          setPlaybackSpeed(speed);
-                          if (videoRef.current) {
-                            videoRef.current.playbackRate = speed;
-                            videoRef.current.preservesPitch = true;
-                          }
-                          setShowSpeedMenu(false);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectSpeed(speed);
                         }}
-                        className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-1.5 ${
+                        className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
                           isSelected
                             ? 'bg-violet-600/30 text-violet-300 font-semibold shadow-[0_0_10px_rgba(139,92,246,0.25)] border border-violet-500/30'
-                            : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/10 active:bg-white/15'
                         }`}
                       >
                         <span>{label}</span>
