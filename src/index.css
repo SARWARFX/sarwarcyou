@@ -191,6 +191,29 @@ html, body {
   animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Smooth minimalist cyber scrollbar for deep space directory */
+.space-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.space-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.space-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+.space-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.6);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+.space-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scroll-behavior: smooth;
+}
+
 /* Hide scrollbars for carousel tracks */
 .no-scrollbar::-webkit-scrollbar,
 .scrollbar-none::-webkit-scrollbar {

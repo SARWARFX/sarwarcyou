@@ -1,8 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Play, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
-import { isPhotoExtension } from '../utils/mediaTypeDetector';
+import { isPhotoExtension, isVideoExtension } from '../utils/mediaTypeDetector';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import { getCachedVideoThumbnail, generateVideoThumbnail } from '../utils/videoThumbnailGenerator';
 
 export interface DeepSpaceTreeExplorerProps {
   items: StageMediaItem[];
@@ -67,6 +69,312 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
 
   return { root, subfolders: sub };
 }
+
+/**
+ * 9:16 Vertical Card for Shorts directory items
+ */
+const ShortCardItem: React.FC<{
+  short: StageMediaItem;
+  allShorts: StageMediaItem[];
+  index: number;
+  onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number) => void;
+  folderName: string;
+}> = ({ short, allShorts, index, onOpenShort, folderName }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isInViewport, setIsInViewport] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const cleanTitle = sanitizeMediaTitle(short.title || short.name, folderName);
+  const streamUrl = getMediaUrl(short.url || short.path || short.id);
+
+  const staticPoster =
+    short.posterUrl ||
+    short.poster ||
+    short.thumbnails?.[0] ||
+    short.thumbnail;
+
+  const posterSrc = staticPoster && !isVideoExtension(staticPoster) ? getMediaUrl(staticPoster) : null;
+
+  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
+    return !posterSrc ? getCachedVideoThumbnail(streamUrl) : null;
+  });
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInViewport(entry.isIntersecting);
+      },
+      { rootMargin: '250px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (posterSrc || !isInViewport) return;
+
+    const cached = getCachedVideoThumbnail(streamUrl);
+    if (cached) {
+      setVideoThumb(cached);
+      return;
+    }
+
+    let isSubscribed = true;
+    generateVideoThumbnail(streamUrl, '9/16').then((dataUrl) => {
+      if (isSubscribed && dataUrl) {
+        setVideoThumb(dataUrl);
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [posterSrc, streamUrl, isInViewport]);
+
+  const displayImage = posterSrc || videoThumb;
+
+  return (
+    <div
+      ref={cardRef}
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenShort(short, allShorts, index)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenShort(short, allShorts, index);
+        }
+      }}
+      aria-label={`Play short: ${cleanTitle}`}
+      className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+    >
+      {/* 9:16 Vertical Poster Container */}
+      <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-transparent border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300">
+        {displayImage ? (
+          <img
+            src={displayImage}
+            alt={cleanTitle}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setImgLoaded(true)}
+            className={`w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 ${
+              imgLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ) : (
+          <div className="w-full h-full bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
+            <Play className="w-6 h-6 text-white/30 ml-0.5" />
+          </div>
+        )}
+
+        {/* Play Icon Badge / Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <div className="w-10 h-10 rounded-full bg-[#00f0ff]/90 text-black flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.8)]">
+            <Play className="w-4 h-4 fill-current ml-0.5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Title beneath the thumbnail with high-contrast text shadow */}
+      <span
+        className="text-xs sm:text-sm font-mono text-white/95 line-clamp-2 leading-snug group-hover:text-[#00f0ff] transition-colors"
+        style={{
+          textShadow: '0 1px 4px #000, 0 0 8px #000',
+        }}
+      >
+        {cleanTitle}
+      </span>
+    </div>
+  );
+};
+
+/**
+ * 16:9 Landscape Card for Video & Clip directory items
+ */
+const VideoCardItem: React.FC<{
+  video: StageMediaItem;
+  allVideos: StageMediaItem[];
+  onOpenVideo: (item: StageMediaItem, playlist: StageMediaItem[]) => void;
+  folderName: string;
+}> = ({ video, allVideos, onOpenVideo, folderName }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hoverTimerRef = useRef<number | null>(null);
+
+  const [isInViewport, setIsInViewport] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [isPreviewActive, setIsPreviewActive] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoDuration, setVideoDuration] = useState<string | null>(null);
+
+  const cleanTitle = sanitizeMediaTitle(video.title || video.name, folderName);
+  const streamUrl = getMediaUrl(video.url || video.path || video.id);
+
+  const staticPoster =
+    video.posterUrl ||
+    video.poster ||
+    video.thumbnails?.[0] ||
+    video.thumbnail;
+
+  const posterSrc = staticPoster && !isVideoExtension(staticPoster) ? getMediaUrl(staticPoster) : null;
+
+  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
+    return !posterSrc ? getCachedVideoThumbnail(streamUrl) : null;
+  });
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInViewport(entry.isIntersecting);
+      },
+      { rootMargin: '250px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (posterSrc || !isInViewport) return;
+
+    const cached = getCachedVideoThumbnail(streamUrl);
+    if (cached) {
+      setVideoThumb(cached);
+      return;
+    }
+
+    let isSubscribed = true;
+    generateVideoThumbnail(streamUrl, '16/9').then((dataUrl) => {
+      if (isSubscribed && dataUrl) {
+        setVideoThumb(dataUrl);
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [posterSrc, streamUrl, isInViewport]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = window.setTimeout(() => {
+      setIsPreviewActive(true);
+    }, 500); // 500ms hover intent
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setIsPreviewActive(false);
+    setVideoLoaded(false);
+  };
+
+  const displayImage = posterSrc || videoThumb;
+
+  return (
+    <div
+      ref={cardRef}
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenVideo(video, allVideos)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenVideo(video, allVideos);
+        }
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      aria-label={`Watch video: ${cleanTitle}`}
+      className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+    >
+      {/* 16:9 Widescreen Frame */}
+      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-transparent border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300">
+        {/* High-res Poster / Thumbnail */}
+        {displayImage ? (
+          <img
+            src={displayImage}
+            alt={cleanTitle}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setImgLoaded(true)}
+            className={`w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 ${
+              imgLoaded ? 'opacity-100' : 'opacity-0'
+            } ${isPreviewActive && videoLoaded ? 'opacity-0' : 'opacity-100'}`}
+          />
+        ) : (
+          <div className="w-full h-full bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
+            <Film className="w-7 h-7 text-white/30" />
+          </div>
+        )}
+
+        {/* Desktop Video Preview (Mounted on >500ms hover) */}
+        {isPreviewActive && streamUrl && (
+          <video
+            ref={videoRef}
+            src={streamUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            crossOrigin="anonymous"
+            onLoadedMetadata={(e) => {
+              const dur = e.currentTarget.duration;
+              if (dur && isFinite(dur)) {
+                const m = Math.floor(dur / 60);
+                const s = Math.floor(dur % 60);
+                setVideoDuration(`${m}:${s < 10 ? '0' : ''}${s}`);
+              }
+            }}
+            onLoadedData={() => setVideoLoaded(true)}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+              videoLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        )}
+
+        {/* Duration / HD Badge */}
+        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 pointer-events-none">
+          <span className="px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-medium text-white border border-white/10 shadow">
+            {videoDuration || 'HD'}
+          </span>
+        </div>
+
+        {/* Play Pulse Overlay on Hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <div className="w-11 h-11 rounded-full bg-[#00f0ff]/90 text-black flex items-center justify-center shadow-[0_0_18px_rgba(0,240,255,0.8)] transform scale-90 group-hover:scale-100 transition-transform">
+            <Play className="w-4 h-4 fill-current ml-0.5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Title with high-contrast text shadow */}
+      <span
+        className="text-xs sm:text-sm font-mono text-white/95 line-clamp-2 leading-snug group-hover:text-[#00f0ff] transition-colors"
+        style={{
+          textShadow: '0 1px 4px #000, 0 0 8px #000',
+        }}
+      >
+        {cleanTitle}
+      </span>
+    </div>
+  );
+};
 
 export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
   items,
@@ -184,12 +492,22 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     const videos: StageMediaItem[] = [];
     const shorts: StageMediaItem[] = [];
 
+    const isShortDir =
+      activeLeafNode.fullPath.toLowerCase().includes('short') ||
+      selectedPath.some((p) => p.toLowerCase().includes('short'));
+
     for (const file of activeLeafNode.files) {
       const isPhoto = file.type === 'image' || isPhotoExtension(file.path || file.url || file.name || '');
       if (isPhoto) {
         photos.push(file);
       } else {
-        const isShort = file.mediaType === 'short' || file.path?.toLowerCase().includes('short');
+        const isShort =
+          isShortDir ||
+          file.mediaType === 'short' ||
+          file.path?.toLowerCase().includes('short') ||
+          file.url?.toLowerCase().includes('short') ||
+          file.category?.toLowerCase().includes('short');
+
         if (isShort) {
           shorts.push(file);
         } else {
@@ -199,7 +517,7 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     }
 
     return { photoFiles: photos, videoFiles: videos, shortFiles: shorts };
-  }, [activeLeafNode]);
+  }, [activeLeafNode, selectedPath]);
 
   // Handler to toggle or select root folder (Depth 0)
   const handleSelectRoot = (rootName: string) => {
@@ -225,9 +543,9 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
   };
 
   return (
-    <div className="w-full h-[100dvh] overflow-x-auto overflow-y-hidden flex flex-row items-stretch p-6 sm:p-10 md:p-16 gap-8 sm:gap-12 md:gap-16 no-scrollbar select-none">
+    <div className="w-full h-[100dvh] overflow-x-auto overflow-y-hidden flex flex-row items-stretch p-6 sm:p-10 md:p-14 gap-6 sm:gap-10 md:gap-12 no-scrollbar select-none">
       {/* COLUMN 0: Root Folders (Clean Text with Subtle Underline, NO Icons) */}
-      <div className="flex-shrink-0 flex flex-col min-w-[140px] sm:min-w-[180px] md:min-w-[210px] max-w-[260px] h-full overflow-y-auto no-scrollbar gap-5 py-4">
+      <div className="flex-shrink-0 flex flex-col min-w-[130px] sm:min-w-[160px] md:min-w-[190px] max-w-[240px] h-full overflow-y-auto space-scrollbar gap-5 py-4">
         {rootFolders.map((node) => {
           const isActive = selectedPath[0] === node.name;
           return (
@@ -249,7 +567,7 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
 
       {/* COLUMN 1: Subfolders in Horizontal Tree Column Layout (Only visible when a root folder is clicked) */}
       {selectedPath[0] && rootMap.get(selectedPath[0]) && (
-        <div className="flex-shrink-0 flex flex-col min-w-[140px] sm:min-w-[180px] md:min-w-[210px] max-w-[260px] h-full overflow-y-auto no-scrollbar gap-4 py-4">
+        <div className="flex-shrink-0 flex flex-col min-w-[130px] sm:min-w-[160px] md:min-w-[190px] max-w-[240px] h-full overflow-y-auto space-scrollbar gap-4 py-4">
           {Array.from(rootMap.get(selectedPath[0])!.subfolders.values()).map((subNode) => {
             const isSubActive = selectedPath[1] === subNode.name;
             return (
@@ -270,58 +588,57 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
         </div>
       )}
 
-      {/* COLUMN 2: Files in the Active Leaf Folder (ONLY visible when user drills down into an actual media folder) */}
+      {/* COLUMN 2 (Column 3 in Explorer): Files in the Active Leaf Folder (ONLY visible when user drills down into an actual media folder) */}
       {activeLeafNode && (
-        <div className="flex-shrink-0 md:flex-1 min-w-[280px] sm:min-w-[340px] md:min-w-[420px] h-full overflow-y-auto no-scrollbar py-4 pl-2 pr-6 flex flex-col gap-6">
-          {/* Photos: Floating transparent grid directly over galaxy background */}
+        <div className="flex-1 min-w-[300px] sm:min-w-[420px] md:min-w-[540px] h-full overflow-y-auto space-scrollbar py-4 pl-2 pr-4 sm:pr-8 flex flex-col gap-6">
+          {/* 1. Photos: Floating transparent grid directly over galaxy background */}
           {photoFiles.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
               {photoFiles.map((photo, idx) => (
                 <div
                   key={photo.id || idx}
                   onClick={() => onOpenPhoto(photo, photoFiles, idx)}
-                  className="relative aspect-square cursor-pointer overflow-hidden rounded group bg-transparent border-0 p-0 shadow-none transition-transform duration-300 hover:scale-[1.03]"
+                  className="relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-transparent border border-white/15 hover:border-[#00f0ff] p-0 shadow-none hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300 transform hover:scale-[1.03]"
                 >
                   <img
                     src={getMediaUrl(photo.url)}
                     alt={photo.title || photo.name || 'Photo'}
                     loading="lazy"
                     decoding="async"
-                    className="w-full h-full object-cover rounded transition-all duration-300 group-hover:brightness-110 group-hover:shadow-[0_0_20px_rgba(0,240,255,0.5)]"
+                    className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
                   />
                 </div>
               ))}
             </div>
           )}
 
-          {/* Videos: Listed as underlined titles */}
+          {/* 2. Videos: 16:9 Landscape Widescreen Cards Grid */}
           {videoFiles.length > 0 && (
-            <div className="flex flex-col gap-3 py-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 p-1">
               {videoFiles.map((video) => (
-                <button
-                  key={video.id}
-                  type="button"
-                  onClick={() => onOpenVideo(video, videoFiles)}
-                  className="text-left text-sm sm:text-base font-mono pb-1 w-fit transition-all duration-300 cursor-pointer border-b-[1.5px] border-white/30 text-white/85 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_2px_8px_rgba(0,240,255,0.35)] hover:[text-shadow:0_0_12px_rgba(0,240,255,0.7)]"
-                >
-                  {sanitizeMediaTitle(video.title || video.name, activeLeafNode.name)}
-                </button>
+                <VideoCardItem
+                  key={video.id || video.url}
+                  video={video}
+                  allVideos={videoFiles}
+                  onOpenVideo={onOpenVideo}
+                  folderName={activeLeafNode.name}
+                />
               ))}
             </div>
           )}
 
-          {/* Shorts: Listed as underlined titles */}
+          {/* 3. Shorts: 9:16 Vertical Cards Grid */}
           {shortFiles.length > 0 && (
-            <div className="flex flex-col gap-3 py-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
               {shortFiles.map((short, idx) => (
-                <button
-                  key={short.id}
-                  type="button"
-                  onClick={() => onOpenShort(short, shortFiles, idx)}
-                  className="text-left text-sm sm:text-base font-mono pb-1 w-fit transition-all duration-300 cursor-pointer border-b-[1.5px] border-white/30 text-white/85 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_2px_8px_rgba(0,240,255,0.35)] hover:[text-shadow:0_0_12px_rgba(0,240,255,0.7)]"
-                >
-                  {sanitizeMediaTitle(short.title || short.name, activeLeafNode.name)}
-                </button>
+                <ShortCardItem
+                  key={short.id || short.url}
+                  short={short}
+                  allShorts={shortFiles}
+                  index={idx}
+                  onOpenShort={onOpenShort}
+                  folderName={activeLeafNode.name}
+                />
               ))}
             </div>
           )}
