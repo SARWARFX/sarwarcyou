@@ -70,8 +70,8 @@ html, body {
   min-height: 100%;
   overflow-x: hidden;
   position: relative;
-  background-color: var(--bg-page);
-  color: var(--text-primary);
+  background-color: transparent !important;
+  color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
@@ -86,8 +86,8 @@ html, body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
-  background-color: var(--bg-page);
-  color: var(--text-primary);
+  background-color: transparent !important;
+  color: #ffffff;
 }
 
 /* Style 3: Smoked Frosted Glass UI */

@@ -6,6 +6,7 @@ import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
+import galaxyBg from './assets/galaxy.jpg';
 import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -545,10 +546,10 @@ function App() {
   }, []);
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-black text-white">
+    <div className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent">
       {/* 1. High-resolution cosmic galaxy background fixed full viewport */}
       <img
-        src="/assets/galaxy.jpg"
+        src={galaxyBg}
         alt="Deep Space Cosmic Background"
         className="fixed inset-0 w-[100vw] h-[100dvh] object-cover pointer-events-none select-none"
         style={{
@@ -559,10 +560,6 @@ function App() {
           objectFit: 'cover',
           zIndex: -1,
         }}
-      />
-      <div
-        className="fixed inset-0 bg-black/40 pointer-events-none"
-        style={{ position: 'fixed', inset: 0, zIndex: -1 }}
       />
 
       {/* 2. Deep Space Tree Explorer (Pure Underlined Text Horizontal Directory) */}
