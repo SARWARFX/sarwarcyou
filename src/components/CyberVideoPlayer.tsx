@@ -16,6 +16,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Share2,
+  X,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -854,77 +855,110 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-[9999] bg-black text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-[9999] text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      style={{
+        background: 'rgba(3, 5, 10, 0.55)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
     >
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.08)_0%,_rgba(0,0,0,0.95)_70%)]" />
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
 
-      {/* 2. Top Bar Overlay (Top Left: Album Name with File Count; Top Right: Queue & Close) */}
+      {/* 2. Top Bar Overlay (Floating clean glass container) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`absolute top-0 inset-x-0 z-40 p-4 sm:px-6 sm:py-4 pt-[max(1rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-opacity duration-300 ${
+        className={`absolute top-0 inset-x-0 z-40 p-3 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        {/* Top Left: Album Name with File Count (No file name) */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-sm sm:text-base font-bold tracking-wide text-white truncate max-w-[200px] xs:max-w-xs sm:max-w-md">
-            {albumName}
-          </span>
-          {totalCount > 0 && (
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-[#00E5FF] font-mono font-bold border border-[#00E5FF]/30 flex-shrink-0">
-              {currentItemIndex} / {totalCount}
+        <div
+          className="flex items-center justify-between w-full max-w-5xl mx-auto px-3.5 sm:px-5 py-2 sm:py-2.5 shadow-lg"
+          style={{
+            background: 'rgba(8, 11, 20, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '8px',
+          }}
+        >
+          {/* Top Left: Album Name with File Count (No file name) */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className="text-sm sm:text-base font-bold tracking-wide text-white truncate max-w-[200px] xs:max-w-xs sm:max-w-md"
+              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+            >
+              {albumName}
             </span>
-          )}
-        </div>
-
-        {/* Top Right: Share, Queue and Close Button */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Mobile View: Share Button beside Queue Button */}
-          <button
-            type="button"
-            onClick={() => {
-              handleShareMedia();
-              resetHudTimer();
-            }}
-            className={`md:hidden flex items-center justify-center p-2 rounded-full backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
-              shareSuccess
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
-                : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
-            }`}
-            title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
-            aria-label="Share Video Link"
-          >
-            {shareSuccess ? (
-              <Check className="w-3.5 h-3.5 text-[#00E5FF]" />
-            ) : (
-              <Share2 className="w-3.5 h-3.5" />
-            )}
-          </button>
-
-          {/* Queue Toggle Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowSidebar((prev) => !prev);
-              resetHudTimer();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
-              showSidebar
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
-                : 'bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border-white/10'
-            }`}
-            title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
-            aria-label="Queue & Suggestions"
-          >
-            <ListVideo className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">QUEUE</span>
             {totalCount > 0 && (
-              <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
-                {totalCount}
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-[#00f0ff] font-mono font-bold border border-[#00f0ff]/30 flex-shrink-0">
+                {currentItemIndex} / {totalCount}
               </span>
             )}
-          </button>
+          </div>
+
+          {/* Top Right: Share, Queue and Close Button */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Mobile View: Share Button beside Queue Button */}
+            <button
+              type="button"
+              onClick={() => {
+                handleShareMedia();
+                resetHudTimer();
+              }}
+              className={`md:hidden flex items-center justify-center p-2 rounded-full backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
+                shareSuccess
+                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                  : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
+              }`}
+              title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
+              aria-label="Share Video Link"
+            >
+              {shareSuccess ? (
+                <Check className="w-3.5 h-3.5 text-[#00f0ff]" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {/* Queue Toggle Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowSidebar((prev) => !prev);
+                resetHudTimer();
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
+                showSidebar
+                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                  : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
+              }`}
+              title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
+              aria-label="Queue & Suggestions"
+            >
+              <ListVideo className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">QUEUE</span>
+              {totalCount > 0 && (
+                <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.2 rounded-full">
+                  {totalCount}
+                </span>
+              )}
+            </button>
+
+            {/* Floating Minimal Glass Close Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.5)] flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ml-1"
+              title="Close (Esc)"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1145,7 +1179,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           </div>
 
           {/* Visual Track */}
-          <div className="relative w-full h-2 group-hover/seek:h-2.5 bg-white/10 rounded-full transition-all flex items-center overflow-hidden">
+          <div className="relative w-full h-2 group-hover/seek:h-2.5 bg-white/10 rounded-full transition-all flex items-center overflow-visible">
             {/* Buffered Progress */}
             <div
               className="absolute left-0 top-0 bottom-0 bg-white/20 rounded-full transition-all"
@@ -1162,8 +1196,20 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
             {/* Active Progress with Neon Cyan Glow */}
             <div
-              className="absolute left-0 top-0 bottom-0 bg-[#00E5FF] shadow-[0_0_12px_#00E5FF] rounded-full transition-all"
-              style={{ width: `${progressPct}%` }}
+              className="absolute left-0 top-0 bottom-0 bg-[#00f0ff] rounded-full transition-all"
+              style={{
+                width: `${progressPct}%`,
+                filter: 'drop-shadow(0 0 6px rgba(0, 240, 255, 0.6))',
+              }}
+            />
+
+            {/* Scrubber handle: Neon cyan circle */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-[#00f0ff] border border-white shadow-[0_0_10px_#00f0ff] transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
+              style={{
+                left: `${progressPct}%`,
+                filter: 'drop-shadow(0 0 6px rgba(0, 240, 255, 0.6))',
+              }}
             />
 
             {/* Ghost Scrub Line Marker */}
@@ -1177,7 +1223,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* A-B Loop Locked Interval Shading */}
             {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
               <div
-                className="absolute top-0 bottom-0 bg-violet-500/30 border-x-2 border-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.6)] z-10 pointer-events-none"
+                className="absolute top-0 bottom-0 bg-[#00f0ff]/20 border-x-2 border-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.5)] z-10 pointer-events-none"
                 style={{
                   left: `${(loopA / duration) * 100}%`,
                   width: `${((loopB - loopA) / duration) * 100}%`,
@@ -1196,21 +1242,30 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* Marker B */}
             {duration > 0 && loopB !== null && (
               <div
-                className="absolute top-0 bottom-0 w-1 bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.9)] z-20 pointer-events-none"
+                className="absolute top-0 bottom-0 w-1 bg-[#00f0ff] shadow-[0_0_8px_#00f0ff] z-20 pointer-events-none"
                 style={{ left: `${(loopB / duration) * 100}%` }}
               />
             )}
           </div>
         </div>
 
-        {/* HUD Button Row: Smoked Frosted Glass Pill */}
-        <div className="cyber-pill px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1 sm:gap-2 w-full max-w-full overflow-visible shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+        {/* HUD Button Row: Clean floating glass container */}
+        <div
+          className="px-2.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-2 w-full max-w-full overflow-visible shadow-[0_10px_35px_rgba(0,0,0,0.8)]"
+          style={{
+            background: 'rgba(8, 11, 20, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '8px',
+          }}
+        >
           {/* Left side: Play/Pause button + Current Time / Duration counter */}
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={togglePlay}
-              className="p-1.5 sm:p-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/90 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
@@ -1221,7 +1276,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </button>
 
-            <span className="text-[10px] sm:text-xs font-mono font-medium text-white/80 tracking-wider whitespace-nowrap select-none">
+            <span
+              className="text-[10px] sm:text-xs font-mono font-medium text-white/80 tracking-wider whitespace-nowrap select-none"
+              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+            >
               {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
             </span>
           </div>
@@ -1241,8 +1299,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               }}
               className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
                 repeatMode !== 'off'
-                  ? 'bg-violet-600/30 text-violet-300 border border-violet-500/40 shadow-[0_0_10px_rgba(139,92,246,0.25)]'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
+                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10'
               }`}
               title={
                 repeatMode === 'off'
@@ -1254,9 +1312,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               aria-label={`Repeat mode: ${repeatMode}`}
             >
               {repeatMode === 'one' ? (
-                <Repeat1 className="w-4 h-4 text-violet-300" />
+                <Repeat1 className="w-4 h-4 text-[#00f0ff]" />
               ) : (
-                <Repeat className={`w-4 h-4 ${repeatMode === 'all' ? 'text-violet-300' : ''}`} />
+                <Repeat className={`w-4 h-4 ${repeatMode === 'all' ? 'text-[#00f0ff]' : ''}`} />
               )}
             </button>
 
@@ -1266,10 +1324,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               onClick={handleToggleLoop}
               className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 flex-shrink-0 ${
                 loopA !== null && loopB !== null
-                  ? 'bg-violet-600/30 text-violet-300 border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.3)]'
+                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/30 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
                   : loopA !== null
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
-                  : 'p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/10 border border-transparent'
+                  : 'p-1.5 sm:p-2 text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border border-transparent'
               }`}
               title={
                 loopA !== null && loopB !== null
@@ -1283,7 +1341,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <Repeat
                 className={`w-3.5 h-3.5 ${
                   loopA !== null && loopB !== null
-                    ? 'text-violet-300'
+                    ? 'text-[#00f0ff]'
                     : loopA !== null
                     ? 'text-amber-400 animate-pulse'
                     : 'text-current'
@@ -1307,8 +1365,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               }}
               className={`px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer border flex-shrink-0 active:scale-95 ${
                 fitMode === 'cover'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_8px_rgba(0,229,255,0.3)]'
-                  : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border-white/10'
+                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/50 shadow-[0_0_8px_rgba(0,240,255,0.3)]'
+                  : 'bg-white/5 hover:bg-[#00f0ff]/10 text-white/80 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
               }`}
               title={
                 fitMode === 'cover'
@@ -1328,7 +1386,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
                 downloadSuccess
                   ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10'
               } disabled:opacity-40`}
               title={downloadSuccess ? 'Video Clip Saved' : isDownloading ? 'Downloading Video...' : 'Download Video Clip'}
               aria-label="Download Video"
@@ -1336,26 +1394,26 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               {downloadSuccess ? (
                 <Check className="w-4 h-4 text-emerald-400" />
               ) : isDownloading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-[#00E5FF]" />
+                <Loader2 className="w-4 h-4 animate-spin text-[#00f0ff]" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
             </button>
 
-            {/* Share / Copy Direct Link (Desktop only; on mobile it is placed beside Queue button) */}
+            {/* Share / Copy Direct Link */}
             <button
               type="button"
               onClick={handleShareMedia}
               className={`hidden md:inline-flex p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
                 shareSuccess
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_10px_rgba(0,229,255,0.3)]'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
+                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10'
               }`}
               title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
               aria-label="Share Video Link"
             >
               {shareSuccess ? (
-                <Check className="w-4 h-4 text-[#00E5FF]" />
+                <Check className="w-4 h-4 text-[#00f0ff]" />
               ) : (
                 <Share2 className="w-4 h-4" />
               )}
@@ -1369,14 +1427,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 onClick={toggleSpeedMenu}
                 className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer active:scale-95 flex-shrink-0 ${
                   playbackSpeed !== 1
-                    ? 'bg-violet-600/30 text-violet-300 border border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]'
-                    : 'hover:bg-white/10 text-zinc-300 hover:text-white'
+                    ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_8px_rgba(0,240,255,0.3)]'
+                    : 'hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff]'
                 }`}
                 title="Playback Speed (< / >)"
                 aria-haspopup="true"
                 aria-expanded={showSpeedMenu}
               >
-                <Gauge className={`w-3.5 h-3.5 ${playbackSpeed !== 1 ? 'text-violet-300' : 'text-violet-400'}`} />
+                <Gauge className={`w-3.5 h-3.5 ${playbackSpeed !== 1 ? 'text-[#00f0ff]' : 'text-zinc-400'}`} />
                 <span>{playbackSpeed}x</span>
               </button>
 
@@ -1386,8 +1444,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   style={{
                     bottom: speedMenuPos ? `${speedMenuPos.bottom}px` : '4.5rem',
                     right: speedMenuPos ? `${speedMenuPos.right}px` : '1rem',
+                    background: 'rgba(8, 11, 20, 0.85)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
                   }}
-                  className="fixed py-1.5 px-1 rounded-xl bg-neutral-900/95 backdrop-blur-xl border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_20px_rgba(139,92,246,0.25)] flex flex-col gap-0.5 z-[10000] min-w-[110px] max-h-[50vh] overflow-y-auto pointer-events-auto animate-fade-in"
+                  className="fixed py-1.5 px-1 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_20px_rgba(0,240,255,0.2)] flex flex-col gap-0.5 z-[10000] min-w-[110px] max-h-[50vh] overflow-y-auto pointer-events-auto animate-fade-in"
                   onClick={(e) => e.stopPropagation()}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
@@ -1407,12 +1468,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                         }}
                         className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
                           isSelected
-                            ? 'bg-violet-600/30 text-violet-300 font-semibold shadow-[0_0_10px_rgba(139,92,246,0.25)] border border-violet-500/30'
+                            ? 'bg-[#00f0ff]/20 text-[#00f0ff] font-semibold shadow-[0_0_10px_rgba(0,240,255,0.25)] border border-[#00f0ff]/30'
                             : 'text-zinc-400 hover:text-white hover:bg-white/10 active:bg-white/15'
                         }`}
                       >
                         <span>{label}</span>
-                        {isSelected && <Check className="w-3 h-3 text-violet-400" />}
+                        {isSelected && <Check className="w-3 h-3 text-[#00f0ff]" />}
                       </button>
                     );
                   })}
@@ -1424,18 +1485,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleToggleMute}
-              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title={isMuted ? 'Unmute' : 'Mute'}
               aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-violet-400" />}
+              {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-[#00f0ff]" />}
             </button>
 
             {/* Fullscreen */}
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title="Fullscreen (F)"
               aria-label="Toggle Fullscreen"
             >
@@ -1449,7 +1510,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* 5. Slide-out Queue & Suggestions Drawer (Responsive Bottom Sheet on Mobile, Right Drawer on Desktop) */}
       {showSidebar && (
         <div
-          className="fixed inset-0 z-[10000] flex flex-col md:flex-row justify-end items-end md:items-stretch bg-black/75 backdrop-blur-sm animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
+          className="fixed inset-0 z-[10000] flex flex-col md:flex-row justify-end items-end md:items-stretch animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
+          style={{
+            background: 'rgba(3, 5, 10, 0.55)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
           onClick={(e) => {
             e.stopPropagation();
             setShowSidebar(false);

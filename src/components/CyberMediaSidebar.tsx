@@ -56,11 +56,22 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
 
   return (
     <aside
-      className={`w-full md:w-[340px] max-w-full md:max-w-[90vw] h-full flex flex-col overflow-hidden border-t md:border-t-0 md:border-l border-white/10 flex-shrink-0 bg-[#07070a]/98 backdrop-blur-3xl select-none z-30 shadow-2xl ${className}`}
+      className={`w-full md:w-[340px] max-w-full md:max-w-[90vw] h-full flex flex-col overflow-hidden border-t md:border-t-0 md:border-l border-white/10 flex-shrink-0 select-none z-30 shadow-2xl ${className}`}
+      style={{
+        background: 'rgba(8, 11, 20, 0.75)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+      }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* 1. PERMANENTLY PINNED HEADER BAR (Never scrolls out of view) */}
-      <div className="flex-shrink-0 px-3.5 sm:px-4 pt-3 pb-2.5 border-b border-white/[0.08] bg-[#07070a] z-20">
+      <div
+        className="flex-shrink-0 px-3.5 sm:px-4 pt-3 pb-2.5 border-b border-white/[0.08] z-20"
+        style={{
+          background: 'rgba(8, 11, 20, 0.85)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
         {/* Mobile top pull handle */}
         <div className="w-12 h-1.5 bg-white/20 hover:bg-white/40 rounded-full mx-auto -mt-0.5 mb-2.5 md:hidden" />
 
@@ -68,16 +79,16 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {mediaType === 'video' ? (
-              <Film className="w-4 h-4 text-amber-400" />
+              <Film className="w-4 h-4 text-[#00f0ff]" />
             ) : (
-              <Camera className="w-4 h-4 text-cyan-400" />
+              <Camera className="w-4 h-4 text-[#00f0ff]" />
             )}
             <h2 className="text-sm font-bold font-sans text-white uppercase tracking-wider">
               {mediaType === 'video' ? 'Video Queue' : 'Photo Gallery'}
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-white/5 text-[#00E5FF] border border-[#00E5FF]/20">
+            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-white/5 text-[#00f0ff] border border-[#00f0ff]/20">
               {activeIdx + 1} / {items.length}
             </span>
             {onClose && (
@@ -87,7 +98,7 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   e.stopPropagation();
                   onClose();
                 }}
-                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition-colors cursor-pointer border border-white/15 shadow-sm active:scale-95"
+                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all cursor-pointer border border-white/15 flex items-center justify-center active:scale-95"
                 title="Close Queue (Esc)"
               >
                 <X className="w-4 h-4" />

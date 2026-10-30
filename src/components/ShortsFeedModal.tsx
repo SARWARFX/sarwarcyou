@@ -12,6 +12,7 @@ import {
   Folder,
   ChevronDown,
   ChevronUp,
+  X,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -400,7 +401,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Shorts Player"
-      className="fixed inset-0 z-[9999] w-full h-[100dvh] bg-black text-white select-none overflow-hidden touch-none"
+      className="fixed inset-0 z-[9999] w-full h-[100dvh] text-white select-none overflow-hidden touch-none"
+      style={{
+        background: 'rgba(3, 5, 10, 0.55)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
     >
       {/* 1. Header Bar: Close button & Quick Status (Auto-hides on mobile during viewing) */}
       <div
@@ -411,13 +417,31 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         }`}
       >
         {/* Left: Shorts Brand Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 pointer-events-auto shadow-lg">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] animate-pulse" />
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full pointer-events-auto shadow-lg"
+          style={{
+            background: 'rgba(8, 11, 20, 0.65)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+          }}
+        >
+          <div className="w-2.5 h-2.5 rounded-full bg-[#00f0ff] shadow-[0_0_8px_#00f0ff] animate-pulse" />
           <span className="text-xs font-bold font-sans uppercase tracking-wider text-white">Shorts</span>
-          <span className="text-[10px] font-mono text-zinc-400">
+          <span className="text-[10px] font-mono text-zinc-300">
             {activeIndex + 1}/{shorts.length}
           </span>
         </div>
+
+        {/* Right: Floating Minimal Glass Close Button */}
+        <button
+          type="button"
+          onClick={() => onClose()}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.5)] flex items-center justify-center pointer-events-auto transition-all duration-300 cursor-pointer active:scale-95"
+          title="Close (Esc)"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
       </div>
 
       {/* 2. Full-Screen Vertical Swipe Feed (100dvh with Native CSS Scroll Snapping) */}
@@ -452,33 +476,55 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 slideRefs.current[idx] = el;
               }}
               data-reel-index={idx}
-              className="w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-black flex-shrink-0 p-0 md:px-6 lg:px-8"
+              className="w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-transparent flex-shrink-0 p-0 md:px-6 lg:px-8"
             >
               <div className="relative flex items-center justify-center md:gap-8 w-full h-full md:max-h-[96vh] md:w-auto md:max-w-[1400px] my-auto">
                 {/* ================= 1. DESKTOP LEFT COLUMN (Outside Clip): Album, Title & Details ================= */}
                 <div className="hidden md:flex flex-col justify-end w-56 lg:w-72 xl:w-80 pb-6 z-20 pointer-events-auto flex-shrink-0">
-                  <div className="bg-white/[0.04] backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-2.5">
+                  <div
+                    className="p-4 sm:p-5 rounded-2xl flex flex-col gap-2.5 shadow-xl"
+                    style={{
+                      background: 'rgba(8, 11, 20, 0.55)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                    }}
+                  >
                     {/* Album Name Badge */}
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-[#00E5FF]">
-                      <Folder className="w-3.5 h-3.5 text-[#00E5FF] flex-shrink-0" />
-                      <span className="font-semibold uppercase tracking-wider truncate">{albumName}</span>
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-[#00f0ff]">
+                      <Folder className="w-3.5 h-3.5 text-[#00f0ff] flex-shrink-0" />
+                      <span
+                        className="font-semibold uppercase tracking-wider truncate"
+                        style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+                      >
+                        {albumName}
+                      </span>
                     </div>
 
                     {/* Clean Video Title */}
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight leading-snug select-text">
+                    <h2
+                      className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight leading-snug select-text"
+                      style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+                    >
                       {displayTitle}
                     </h2>
 
                     {/* Exact File Name */}
                     {fileName && fileName.toLowerCase() !== displayTitle.toLowerCase() && (
-                      <span className="text-xs font-mono text-zinc-400 truncate block select-text">
+                      <span
+                        className="text-xs font-mono text-zinc-300 truncate block select-text"
+                        style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+                      >
                         {fileName}
                       </span>
                     )}
 
                     {/* Reel Index counter & Commit Date */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-white/[0.08] text-xs font-mono text-zinc-400">
-                      <span className="text-[#00E5FF] font-bold">Reel {idx + 1} of {shorts.length}</span>
+                    <div
+                      className="flex items-center gap-2 pt-2 border-t border-white/[0.08] text-xs font-mono text-zinc-300"
+                      style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+                    >
+                      <span className="text-[#00f0ff] font-bold">Reel {idx + 1} of {shorts.length}</span>
                       {item.date && (
                         <>
                           <span className="text-zinc-600">•</span>
@@ -627,11 +673,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         title={isMuted ? 'Unmute Reel (M)' : 'Mute Reel (M)'}
                         aria-label={isMuted ? 'Unmute Reel' : 'Mute Reel'}
                       >
-                        <div className="w-11 h-11 rounded-full bg-black/65 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white shadow-xl">
+                        <div className="w-11 h-11 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] flex items-center justify-center text-white hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.45)] shadow-xl transition-all">
                           {isMuted ? (
                             <VolumeX className="w-5 h-5 text-zinc-400" />
                           ) : (
-                            <Volume2 className="w-5 h-5 text-[#00E5FF]" />
+                            <Volume2 className="w-5 h-5 text-[#00f0ff]" />
                           )}
                         </div>
                         <span className="text-[10px] font-medium text-white drop-shadow">
@@ -648,14 +694,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         aria-label="Share Reel Link"
                       >
                         <div
-                          className={`w-11 h-11 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                          className={`w-11 h-11 rounded-full backdrop-blur-md border flex items-center justify-center shadow-xl transition-all ${
                             copiedLink
-                              ? 'bg-emerald-600/90 border-emerald-400 text-white'
-                              : 'bg-black/65 border-white/20 text-white'
+                              ? 'bg-[#00f0ff]/20 border-[#00f0ff] text-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.5)]'
+                              : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 border-white/[0.12] hover:border-[#00f0ff] text-white hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.45)]'
                           }`}
                         >
                           {copiedLink ? (
-                            <Check className="w-5 h-5 text-white" />
+                            <Check className="w-5 h-5 text-[#00f0ff]" />
                           ) : (
                             <Share2 className="w-5 h-5 text-white" />
                           )}
@@ -675,16 +721,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         aria-label="Save Reel"
                       >
                         <div
-                          className={`w-11 h-11 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                          className={`w-11 h-11 rounded-full backdrop-blur-md border flex items-center justify-center shadow-xl transition-all ${
                             downloadSuccess
-                              ? 'bg-emerald-600/90 border-emerald-400 text-white'
-                              : 'bg-black/65 border-white/20 text-white'
+                              ? 'bg-[#00f0ff]/20 border-[#00f0ff] text-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.5)]'
+                              : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 border-white/[0.12] hover:border-[#00f0ff] text-white hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.45)]'
                           }`}
                         >
                           {downloadSuccess ? (
-                            <Check className="w-5 h-5 text-white" />
+                            <Check className="w-5 h-5 text-[#00f0ff]" />
                           ) : isDownloading ? (
-                            <Loader2 className="w-5 h-5 text-[#00E5FF] animate-spin" />
+                            <Loader2 className="w-5 h-5 text-[#00f0ff] animate-spin" />
                           ) : (
                             <Download className="w-5 h-5 text-white" />
                           )}
@@ -697,7 +743,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
                     {/* ================= MOBILE BOTTOM METADATA OVERLAY (Directly ON Video) ================= */}
                     <div
-                      className={`md:hidden absolute inset-x-0 bottom-0 z-20 flex flex-col justify-end pt-14 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent transition-all duration-300 pointer-events-auto ${
+                      className={`md:hidden absolute inset-x-0 bottom-0 z-20 flex flex-col justify-end pt-14 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-all duration-300 pointer-events-auto ${
                         showControls || !isPlaying
                           ? 'opacity-100 translate-y-0'
                           : 'opacity-0 translate-y-3 pointer-events-none'
@@ -706,21 +752,30 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     >
                       <div className="flex flex-col gap-1 max-w-[calc(100%-4rem)] select-text">
                         {/* Album Badge */}
-                        <div className="flex items-center gap-1.5 text-xs font-mono text-[#00E5FF]">
-                          <Folder className="w-3.5 h-3.5 text-[#00E5FF] flex-shrink-0" />
-                          <span className="font-semibold uppercase tracking-wider truncate drop-shadow">{albumName}</span>
+                        <div
+                          className="flex items-center gap-1.5 text-xs font-mono text-[#00f0ff]"
+                          style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+                        >
+                          <Folder className="w-3.5 h-3.5 text-[#00f0ff] flex-shrink-0" />
+                          <span className="font-semibold uppercase tracking-wider truncate">{albumName}</span>
                           <span className="text-zinc-400">•</span>
-                          <span className="text-zinc-300 font-mono drop-shadow">Reel {idx + 1}/{shorts.length}</span>
+                          <span className="text-zinc-300 font-mono">Reel {idx + 1}/{shorts.length}</span>
                         </div>
 
                         {/* Title */}
-                        <h2 className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] line-clamp-2">
+                        <h2
+                          className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug line-clamp-2"
+                          style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+                        >
                           {displayTitle}
                         </h2>
 
                         {/* File Name */}
                         {fileName && fileName.toLowerCase() !== displayTitle.toLowerCase() && (
-                          <span className="text-[11px] font-mono text-zinc-300 drop-shadow truncate block">
+                          <span
+                            className="text-[11px] font-mono text-zinc-300 truncate block"
+                            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+                          >
                             {fileName}
                           </span>
                         )}
@@ -734,9 +789,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                           title="Seek Reel Time"
                         >
                           <div
-                            className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF]"
+                            className="h-full bg-[#00f0ff]"
                             style={{
                               width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+                              filter: 'drop-shadow(0 0 6px rgba(0, 240, 255, 0.6))',
                             }}
                           />
                         </div>
@@ -752,9 +808,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       title="Seek Reel Time"
                     >
                       <div
-                        className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF]"
+                        className="h-full bg-[#00f0ff]"
                         style={{
                           width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+                          filter: 'drop-shadow(0 0 6px rgba(0, 240, 255, 0.6))',
                         }}
                       />
                     </div>
@@ -774,11 +831,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     title={isMuted ? 'Unmute Reel (M)' : 'Mute Reel (M)'}
                     aria-label={isMuted ? 'Unmute Reel' : 'Mute Reel'}
                   >
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.15] backdrop-blur-xl border border-white/20 hover:border-white/40 flex items-center justify-center text-white shadow-xl transition-all">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] flex items-center justify-center text-white hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.45)] shadow-xl transition-all">
                       {isMuted ? (
                         <VolumeX className="w-5 h-5 text-zinc-400" />
                       ) : (
-                        <Volume2 className="w-5 h-5 text-[#00E5FF]" />
+                        <Volume2 className="w-5 h-5 text-[#00f0ff]" />
                       )}
                     </div>
                     <span className="text-[10px] sm:text-[11px] font-medium text-white/90">
@@ -795,14 +852,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     aria-label="Share Reel Link"
                   >
                     <div
-                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-md border flex items-center justify-center shadow-xl transition-all ${
                         copiedLink
-                          ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                          : 'bg-white/[0.08] hover:bg-white/[0.15] border-white/20 hover:border-white/40 text-white'
+                          ? 'bg-[#00f0ff]/20 border-[#00f0ff] text-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.5)]'
+                          : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 border-white/[0.12] hover:border-[#00f0ff] text-white hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.45)]'
                       }`}
                     >
                       {copiedLink ? (
-                        <Check className="w-5 h-5 text-white" />
+                        <Check className="w-5 h-5 text-[#00f0ff]" />
                       ) : (
                         <Share2 className="w-5 h-5 text-white" />
                       )}
@@ -822,16 +879,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     aria-label="Save Reel"
                   >
                     <div
-                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-xl border flex items-center justify-center shadow-xl transition-all ${
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-md border flex items-center justify-center shadow-xl transition-all ${
                         downloadSuccess
-                          ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                          : 'bg-white/[0.08] hover:bg-white/[0.15] border-white/20 hover:border-white/40 text-white'
+                          ? 'bg-[#00f0ff]/20 border-[#00f0ff] text-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.5)]'
+                          : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 border-white/[0.12] hover:border-[#00f0ff] text-white hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.45)]'
                       }`}
                     >
                       {downloadSuccess ? (
-                        <Check className="w-5 h-5 text-white" />
+                        <Check className="w-5 h-5 text-[#00f0ff]" />
                       ) : isDownloading ? (
-                        <Loader2 className="w-5 h-5 text-[#00E5FF] animate-spin" />
+                        <Loader2 className="w-5 h-5 text-[#00f0ff] animate-spin" />
                       ) : (
                         <Download className="w-5 h-5 text-white" />
                       )}
@@ -847,7 +904,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       type="button"
                       onClick={handleScrollPrev}
                       disabled={activeIndex === 0}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all disabled:opacity-20 disabled:pointer-events-none active:scale-90 cursor-pointer"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 border border-white/[0.12] hover:border-[#00f0ff] flex items-center justify-center text-white/80 hover:text-[#00f0ff] hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all disabled:opacity-20 disabled:pointer-events-none active:scale-90 cursor-pointer"
                       title="Previous Reel (Up Arrow)"
                       aria-label="Previous Reel"
                     >
@@ -858,7 +915,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       type="button"
                       onClick={handleScrollNext}
                       disabled={activeIndex === shorts.length - 1}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all disabled:opacity-20 disabled:pointer-events-none active:scale-90 cursor-pointer"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 border border-white/[0.12] hover:border-[#00f0ff] flex items-center justify-center text-white/80 hover:text-[#00f0ff] hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all disabled:opacity-20 disabled:pointer-events-none active:scale-90 cursor-pointer"
                       title="Next Reel (Down Arrow)"
                       aria-label="Next Reel"
                     >

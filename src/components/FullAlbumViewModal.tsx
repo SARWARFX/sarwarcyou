@@ -229,19 +229,31 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={`${title} Full Album View`}
-      className="fixed inset-0 z-[500] bg-[#030305]/98 text-white flex flex-col overflow-hidden animate-fade-in"
+      className="fixed inset-0 z-[500] text-white flex flex-col overflow-hidden animate-fade-in"
+      style={{
+        background: 'rgba(3, 5, 10, 0.55)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
     >
       {/* 1. Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#030305]/95 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
+      <header
+        className="sticky top-0 z-40 border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4"
+        style={{
+          background: 'rgba(8, 11, 20, 0.65)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+      >
         {/* Left: Back button & Title (Sole navigation button on screen) */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/15 transition-all duration-200 cursor-pointer text-xs font-mono font-medium hover:scale-105 active:scale-95 flex-shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border border-white/15 hover:border-[#00f0ff] hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all duration-200 cursor-pointer text-xs font-mono font-medium hover:scale-105 active:scale-95 flex-shrink-0"
             title="Back to Vault (Esc)"
           >
-            <ArrowLeft className="w-4 h-4 text-[#00E5FF]" />
+            <ArrowLeft className="w-4 h-4 text-[#00f0ff]" />
             <span className="hidden xs:inline">Back</span>
           </button>
 

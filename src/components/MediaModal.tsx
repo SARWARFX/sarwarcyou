@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ListVideo,
   Share2,
+  X,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -569,7 +570,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] bg-black select-none touch-none touch-action-none flex items-center justify-center animate-fade-in cursor-pointer"
+        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] select-none touch-none touch-action-none flex items-center justify-center animate-fade-in cursor-pointer"
+        style={{
+          background: 'rgba(3, 5, 10, 0.55)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
         onClick={handleStageClick}
         onDoubleClick={handleStageDoubleClick}
         onMouseMove={wakeFullscreenClose}
@@ -607,7 +613,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             exitFullscreen();
           }}
-          className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[160] p-2.5 sm:p-3 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.95)] hover:border-[#00D2FF]/60 hover:text-[#00D2FF] transition-all duration-300 cursor-pointer ${
+          className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[160] w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_18px_rgba(0,240,255,0.5)] flex items-center justify-center transition-all duration-300 cursor-pointer ${
             showControls && showFullscreenClose
               ? 'opacity-100 scale-100 pointer-events-auto'
               : 'opacity-0 scale-90 pointer-events-none'
@@ -627,7 +633,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row bg-[#030305]/95 backdrop-blur-2xl select-none animate-fade-in touch-none touch-action-none overscroll-contain"
+      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row select-none animate-fade-in touch-none touch-action-none overscroll-contain"
+      style={{
+        background: 'rgba(3, 5, 10, 0.55)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
       onClick={(e) => {
         if (showSidebar) {
           setShowSidebar(false);
@@ -639,21 +650,24 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }}
     >
       {/* 1. Left Pane: Primary Media Stage (~65-70% desktop width, 100% mobile) */}
-      <div className="flex-1 relative flex flex-col justify-between overflow-hidden h-full min-h-[50vh] md:min-h-0 bg-[#030305]">
+      <div className="flex-1 relative flex flex-col justify-between overflow-hidden h-full min-h-[50vh] md:min-h-0 bg-transparent">
         {/* Top Bar Header */}
         <header
-          className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300 ${
+          className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-b from-black/60 via-transparent to-transparent transition-opacity duration-300 ${
             showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Left Corner: Info Only */}
           <div className="flex items-center gap-3 text-white/90 min-w-0 pr-4">
-            <span className="text-sm font-semibold tracking-wide truncate max-w-xs md:max-w-md">
+            <span
+              className="text-sm font-semibold tracking-wide truncate max-w-xs md:max-w-md"
+              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+            >
               {currentItem?.title || currentItem?.name || cleanTitle}
             </span>
             {hasItemList && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/70 font-mono flex-shrink-0">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/80 font-mono flex-shrink-0 border border-white/10">
                 {activeIdx + 1} / {items.length}
               </span>
             )}
@@ -666,15 +680,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSidebar(!showSidebar)}
-                className={`p-2 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`p-2 rounded-full transition-all flex items-center gap-1.5 cursor-pointer border ${
                   showSidebar
-                    ? 'text-[#00E5FF] bg-white/15'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                    ? 'text-[#00f0ff] bg-[#00f0ff]/15 border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                    : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border-white/10 hover:border-[#00f0ff]/30'
                 }`}
                 title={showSidebar ? 'Hide Queue' : 'Show Queue'}
                 aria-label="Toggle queue"
               >
-                <ListVideo className="w-5 h-5" />
+                <ListVideo className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -683,20 +697,20 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               type="button"
               onClick={handleDownload}
               disabled={isDownloading}
-              className={`p-2 rounded-full transition-all cursor-pointer ${
+              className={`p-2 rounded-full transition-all cursor-pointer border ${
                 downloadSuccess
-                  ? 'text-emerald-400 bg-emerald-500/20'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40'
+                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border-white/10 hover:border-[#00f0ff]/30'
               } disabled:opacity-40`}
               title="Download Original Media"
               aria-label="Download image"
             >
               {downloadSuccess ? (
-                <Check className="w-5 h-5 text-emerald-400" />
+                <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               ) : isDownloading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-[#00E5FF]" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-[#00f0ff]" />
               ) : (
-                <Download className="w-5 h-5" />
+                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
 
@@ -704,18 +718,18 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             <button
               type="button"
               onClick={handleSharePhoto}
-              className={`p-2 rounded-full transition-all cursor-pointer ${
+              className={`p-2 rounded-full transition-all cursor-pointer border ${
                 shareSuccess
-                  ? 'text-[#00E5FF] bg-[#00E5FF]/20'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'text-[#00f0ff] bg-[#00f0ff]/20 border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border-white/10 hover:border-[#00f0ff]/30'
               }`}
               title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Image Link'}
               aria-label="Share image"
             >
               {shareSuccess ? (
-                <Check className="w-5 h-5 text-[#00E5FF]" />
+                <Check className="w-4 h-4 sm:w-5 sm:h-5 text-[#00f0ff]" />
               ) : (
-                <Share2 className="w-5 h-5" />
+                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
 
@@ -723,16 +737,30 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              className="p-2 text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 rounded-full border border-white/10 hover:border-[#00f0ff]/30 transition-all cursor-pointer"
               title="Toggle Fullscreen (F)"
               aria-label="Toggle fullscreen"
             >
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
+            </button>
+
+            {/* Floating Minimal Glass Close Button (✕) with #00f0ff hover glow */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.5)] flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ml-1"
+              title="Close (Esc)"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </header>
 
-        {/* Side Arrow Navigation within Left Pane */}
+        {/* Side Arrow Navigation within Left Pane: Floating minimal glass buttons matching shorts controls */}
         {hasItemList && items.length > 1 && (
           <>
             <button
@@ -742,7 +770,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 handlePrev();
               }}
               disabled={activeIdx <= 0}
-              className={`absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all duration-300 cursor-pointer disabled:opacity-20 disabled:pointer-events-none ${
+              className={`absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_18px_rgba(0,240,255,0.5)] flex items-center justify-center transition-all duration-300 cursor-pointer disabled:opacity-20 disabled:pointer-events-none active:scale-95 ${
                 showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
               }`}
               title="Previous (Left Arrow)"
@@ -757,7 +785,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 handleNext();
               }}
               disabled={activeIdx >= items.length - 1}
-              className={`absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85)] hover:border-[#00D2FF]/60 hover:shadow-[0_0_20px_rgba(0,210,255,0.35)] transition-all duration-300 cursor-pointer disabled:opacity-20 disabled:pointer-events-none ${
+              className={`absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_18px_rgba(0,240,255,0.5)] flex items-center justify-center transition-all duration-300 cursor-pointer disabled:opacity-20 disabled:pointer-events-none active:scale-95 ${
                 showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
               }`}
               title="Next (Right Arrow)"
@@ -819,7 +847,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       {/* 2. Slide-out Queue & Suggestions Drawer (Responsive Bottom Sheet on Mobile, Right Drawer on Desktop) */}
       {showSidebar && (
         <div
-          className="fixed inset-0 z-[130] flex flex-col md:flex-row justify-end items-end md:items-stretch bg-black/75 backdrop-blur-sm animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
+          className="fixed inset-0 z-[130] flex flex-col md:flex-row justify-end items-end md:items-stretch animate-fade-in pointer-events-auto overflow-hidden w-full max-w-full"
+          style={{
+            background: 'rgba(3, 5, 10, 0.55)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
           onClick={(e) => {
             e.stopPropagation();
             setShowSidebar(false);
