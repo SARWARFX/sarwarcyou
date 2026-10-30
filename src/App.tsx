@@ -3,7 +3,6 @@ import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
 import { type CyberFilterType } from './components/CyberHeader';
 import { ResponsiveNav } from './components/ResponsiveNav';
-import { CyberCarouselRow } from './components/CyberCarouselRow';
 import { CyberVideoPlayer } from './components/CyberVideoPlayer';
 import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
@@ -738,25 +737,28 @@ function App() {
     [albumList]
   );
 
-  // Smooth scrolling & highlight dispatcher for quick jump menus
+  // Album selection dispatcher for quick jump menus: opens album view directly
   const handleJumpToAlbum = useCallback(
     (albumId: string, category: CyberFilterType) => {
-      if (activeFilter !== 'all' && activeFilter !== category) {
-        handleFilterChange(category, true);
-      }
-
-      setTimeout(() => {
-        const el = document.getElementById(albumId);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          el.classList.add('album-jump-highlight');
-          setTimeout(() => {
-            el.classList.remove('album-jump-highlight');
-          }, 2000);
+      const target = rawFeed.albums.find(
+        (a) => a.id === albumId || a.name.toLowerCase() === albumId.toLowerCase()
+      );
+      if (target) {
+        handleOpenViewAll(
+          target.name,
+          target.items,
+          target.variant,
+          undefined,
+          target.hasMultipleTypes,
+          target.typeCounts
+        );
+      } else {
+        if (activeFilter !== 'all' && activeFilter !== category) {
+          handleFilterChange(category, true);
         }
-      }, 60);
+      }
     },
-    [activeFilter, handleFilterChange]
+    [rawFeed.albums, activeFilter, handleFilterChange, handleOpenViewAll]
   );
 
   // Helper to check if an item is a vertical short / reel
@@ -908,8 +910,8 @@ function App() {
           />
         )}
 
-        {/* 2. Structured Discovery Feed: Tagged Album Sections with Instant In-Place Filtering */}
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-20 xl:px-20 flex flex-col gap-6 sm:gap-8 pt-4">
+        {/* 2. Structured Streaming Discovery Feed with Instant In-Place Filtering */}
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-8 sm:gap-10 pt-4">
           {/* Loading State Skeleton */}
           {isLoading && !data && (
             <div className="w-full py-20 flex flex-col items-center justify-center gap-3">
@@ -929,7 +931,49 @@ function App() {
             />
           )}
 
-          {/* LAYER 3: Dedicated Shorts & Reels Ribbon */}
+          {/* SEARCH RESULTS VIEW (when user searches) */}
+          {searchQuery && (
+            <div className="w-full flex flex-col gap-6">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  <span>Search Results for</span>
+                  <span className="text-[#00E5FF]">"{searchQuery}"</span>
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs font-mono text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Clear Search
+                </button>
+              </div>
+
+              {rawFeed.allMediaPool.filter(
+                (it) =>
+                  it.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (it.category && it.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  (it.name && it.name.toLowerCase().includes(searchQuery.toLowerCase()))
+              ).length === 0 ? (
+                <div className="py-20 text-center text-sm font-mono text-zinc-500">
+                  No matching items found for "{searchQuery}".
+                </div>
+              ) : (
+                <DynamicVideoGrid
+                  videos={rawFeed.allMediaPool.filter(
+                    (it) =>
+                      isVideoItem(it) &&
+                      (it.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (it.category && it.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (it.name && it.name.toLowerCase().includes(searchQuery.toLowerCase())))
+                  )}
+                  onPlayVideo={(item, playlist) => handleSelectItem(item, playlist)}
+                  title="Matching Videos"
+                />
+              )}
+            </div>
+          )}
+
+          {/* SHELF 1: Dedicated Shorts & Reels Ribbon (Home & Shorts view) */}
           {!searchQuery && (activeFilter === 'all' || activeFilter === 'shorts') && rawFeed.shorts.length > 0 && (
             <ShortsReelsRibbon
               shorts={rawFeed.shorts}
@@ -938,8 +982,18 @@ function App() {
             />
           )}
 
-          {/* When filter is 'clips': Show Video Album Collections instead of an endless list of all individual videos */}
-          {!searchQuery && activeFilter === 'clips' && rawFeed.videoVaultFolders.length > 0 && (
+          {/* SHELF 2: Featured Video Clips Grid (Home view: top 12; Videos view: all videos) */}
+          {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && featuredVideos.length > 0 && (
+            <DynamicVideoGrid
+              videos={featuredVideos}
+              onPlayVideo={(item, playlist) => handleSelectItem(item, playlist)}
+              title={activeFilter === 'clips' ? 'All Video Clips' : 'Featured Clips'}
+              limit={activeFilter === 'all' ? 12 : undefined}
+            />
+          )}
+
+          {/* SHELF 3: Video Album Collections (Home view & Videos view) */}
+          {!searchQuery && (activeFilter === 'all' || activeFilter === 'clips') && rawFeed.videoVaultFolders.length > 0 && (
             <VideoAlbumShowcase
               videoAlbums={rawFeed.videoVaultFolders}
               onSelectAlbum={(folder) =>
@@ -955,17 +1009,7 @@ function App() {
             />
           )}
 
-          {/* LAYER 4: Featured Video Clips Preview (Only on 'all' view with strict limit) */}
-          {!searchQuery && activeFilter === 'all' && featuredVideos.length > 0 && (
-            <DynamicVideoGrid
-              videos={featuredVideos}
-              onPlayVideo={(item, playlist) => handleSelectItem(item, playlist)}
-              title="Featured Clips"
-              limit={8}
-            />
-          )}
-
-          {/* LAYER 5: Dedicated Photo Showcase Row */}
+          {/* SHELF 4: Dedicated Photo Showcase Row (Home view & Photos view) */}
           {!searchQuery && (activeFilter === 'all' || activeFilter === 'images') && rawFeed.photoVaultFolders.length > 0 && (
             <PhotoShowcaseRow
               photoAlbums={rawFeed.photoVaultFolders}
@@ -981,47 +1025,6 @@ function App() {
               }
             />
           )}
-
-          {/* Dynamic Album Sections Tagged with data-type and filtered in-place */}
-          {albumList.map((album) => {
-            if (album.items.length === 0) return null;
-
-            let isVisible = true;
-            if (activeFilter === 'images') {
-              isVisible = album.isImage;
-            } else if (activeFilter === 'clips') {
-              isVisible = album.isVideo;
-            } else if (activeFilter === 'shorts') {
-              isVisible = album.isShort;
-            }
-
-            return (
-              <div
-                key={album.id}
-                id={album.id}
-                data-type={album.dataType}
-                style={{ display: isVisible ? undefined : 'none' }}
-                className="scroll-mt-24 transition-all duration-150"
-              >
-                <CyberCarouselRow
-                  title={album.name}
-                  items={album.items}
-                  variant={album.variant}
-                  onSelectItem={(item, currentList) => handleSelectItem(item, currentList || album.items)}
-                  onViewAll={() =>
-                    handleOpenViewAll(
-                      album.name,
-                      album.items,
-                      album.variant,
-                      undefined,
-                      album.hasMultipleTypes,
-                      album.typeCounts
-                    )
-                  }
-                />
-              </div>
-            );
-          })}
         </main>
 
         {/* 3. Minimalist Footer */}
