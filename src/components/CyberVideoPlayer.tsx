@@ -16,6 +16,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Share2,
+  Info,
   X,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
@@ -77,6 +78,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [showTelemetry, setShowTelemetry] = useState(false);
+  const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
 
   // Seek bar hover preview state
   const [seekHover, setSeekHover] = useState<{
@@ -921,6 +924,25 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </button>
 
+            {/* Telemetry HUD Toggle Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowTelemetry((prev) => !prev);
+                resetHudTimer();
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
+                showTelemetry
+                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                  : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
+              }`}
+              title={showTelemetry ? 'Hide Stream Telemetry' : 'Show Stream Telemetry'}
+              aria-label="Stream Telemetry HUD"
+            >
+              <Info className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">INFO</span>
+            </button>
+
             {/* Queue Toggle Button */}
             <button
               type="button"
@@ -961,6 +983,72 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
+      {showTelemetry && (
+        <div
+          className="fixed top-16 left-4 sm:top-20 sm:left-8 z-50 p-4 rounded-xl border border-[#00f0ff]/40 font-mono text-xs text-cyan-200 select-text max-w-sm pointer-events-auto shadow-[0_0_24px_rgba(0,240,255,0.2)] animate-fade-in"
+          style={{
+            background: 'rgba(4, 8, 16, 0.78)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            textShadow: '0 1px 4px #000, 0 0 8px #000',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-[#00f0ff]/30 pb-2 mb-2.5">
+            <span className="text-[#00f0ff] font-bold tracking-widest text-[11px] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-ping" />
+              STREAM // TELEMETRY HUD
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowTelemetry(false)}
+              className="text-white/60 hover:text-[#00f0ff] text-xs font-sans px-1"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex justify-between gap-4">
+              <span className="text-white/50">TITLE:</span>
+              <span className="text-white font-medium truncate max-w-[200px]" title={item.name || item.title}>
+                {item.name || item.title}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-white/50">RESOLUTION:</span>
+              <span className="text-[#00f0ff] font-bold">
+                {videoResolution ? `${videoResolution.width} × ${videoResolution.height}` : 'Detecting...'}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-white/50">CODEC / EXT:</span>
+              <span className="text-white uppercase font-bold">
+                {item.url?.split('.').pop()?.split('?')[0] || 'MP4'}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-white/50">DURATION:</span>
+              <span className="text-white">{formatTime(duration)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-white/50">BUFFERED / NOW:</span>
+              <span className="text-white">{formatTime(currentTime)} / {formatTime(buffered)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-white/50">STORAGE REPO:</span>
+              <span className="text-cyan-300 truncate max-w-[180px]">SARWARFX/stream-vault</span>
+            </div>
+            <div className="flex flex-col gap-0.5 pt-1 border-t border-white/10">
+              <span className="text-white/50 text-[10px]">SOURCE URL:</span>
+              <span className="text-[10px] text-white/70 break-all bg-black/40 p-1.5 rounded border border-white/5 select-all">
+                {streamUrl}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2.5 Swipe Left-Right Gesture Scrubbing Overlay with Frame Preview */}
       {gestureSeek.isVisible && (
@@ -1076,6 +1164,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           onLoadedMetadata={() => {
             if (videoRef.current) {
               setDuration(videoRef.current.duration || 0);
+              setVideoResolution({
+                width: videoRef.current.videoWidth,
+                height: videoRef.current.videoHeight,
+              });
               try {
                 videoRef.current.defaultPlaybackRate = playbackSpeed;
                 videoRef.current.playbackRate = playbackSpeed;

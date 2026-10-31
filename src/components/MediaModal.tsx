@@ -10,9 +10,11 @@ import {
   ListVideo,
   Share2,
   X,
+  Info,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
+import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
@@ -61,6 +63,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [isLightboxFullscreen, setIsLightboxFullscreen] = useState(false);
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
   const isFullscreen = isNativeFullscreen || isLightboxFullscreen;
+
+  // Media Stream & EXIF Telemetry HUD
+  const [showTelemetry, setShowTelemetry] = useState(false);
+  const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
 
   // Auto-hiding close button for truly full screen photo mode
   const [showFullscreenClose, setShowFullscreenClose] = useState(true);
@@ -232,6 +238,29 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose, isFullscreen, toggleFullscreen, exitFullscreen, showSidebar, handleNext, handlePrev]);
+
+  // Smart Adjacent Pre-Fetching: pre-decode i - 1 and i + 1 images in memory
+  useEffect(() => {
+    if (!isOpen || !items || items.length === 0) return;
+
+    const adjacentIndices = [activeIdx - 1, activeIdx + 1].filter(
+      (i) => i >= 0 && i < items.length
+    );
+
+    adjacentIndices.forEach((idx) => {
+      const targetItem = items[idx];
+      if (!targetItem) return;
+      const targetUrl = getMediaUrl(targetItem.url || targetItem.path || targetItem.id);
+      if (!targetUrl || isVideoExtension(targetUrl)) return;
+
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = targetUrl;
+      if ('decode' in img) {
+        img.decode().catch(() => {});
+      }
+    });
+  }, [isOpen, activeIdx, items]);
 
   // -------------------------------------------------------------
   // Mobile Touch Gestures & Desktop Zoom Handlers
@@ -589,6 +618,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           <img
             src={getMediaUrl(secureUrl)}
             alt={cleanTitle}
+            onLoad={(e) => setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })}
             style={{
               transform:
                 touchDeltaX !== 0
@@ -733,6 +763,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               )}
             </button>
 
+            {/* EXIF & Telemetry HUD Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setShowTelemetry((prev) => !prev)}
+              className={`p-2 rounded-full transition-all cursor-pointer border ${
+                showTelemetry
+                  ? 'text-[#00f0ff] bg-[#00f0ff]/20 border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border-white/10 hover:border-[#00f0ff]/30'
+              }`}
+              title="EXIF & Image Telemetry"
+              aria-label="Toggle telemetry HUD"
+            >
+              <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
             {/* Fullscreen Toggle Button */}
             <button
               type="button"
@@ -759,6 +804,67 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             </button>
           </div>
         </header>
+
+        {/* Retro Sci-Fi EXIF & Media Telemetry HUD */}
+        {showTelemetry && (
+          <div
+            className="absolute top-16 left-4 md:top-20 md:left-8 z-50 p-4 rounded-xl border border-[#00f0ff]/40 font-mono text-xs text-cyan-200 select-text max-w-sm pointer-events-auto shadow-[0_0_24px_rgba(0,240,255,0.2)] animate-fade-in"
+            style={{
+              background: 'rgba(4, 8, 16, 0.78)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              textShadow: '0 1px 4px #000, 0 0 8px #000',
+            }}
+          >
+            <div className="flex items-center justify-between border-b border-[#00f0ff]/30 pb-2 mb-2.5">
+              <span className="text-[#00f0ff] font-bold tracking-widest text-[11px] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-ping" />
+                EXIF // STREAM TELEMETRY
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowTelemetry(false)}
+                className="text-white/60 hover:text-[#00f0ff] text-xs font-sans px-1"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between gap-4">
+                <span className="text-white/50">NAME:</span>
+                <span className="text-white font-medium truncate max-w-[200px]" title={cleanTitle}>
+                  {cleanTitle}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/50">FORMAT:</span>
+                <span className="text-[#00f0ff] font-bold uppercase">
+                  {secureUrl.split('.').pop()?.split('?')[0] || (type === 'video' ? 'MP4' : 'IMAGE')}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/50">DIMENSIONS:</span>
+                <span className="text-white">
+                  {imgDimensions ? `${imgDimensions.width} × ${imgDimensions.height} px` : 'Auto / Responsive'}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/50">INDEX:</span>
+                <span className="text-white">{activeIdx + 1} / {items.length}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/50">STORAGE REPO:</span>
+                <span className="text-cyan-300 truncate max-w-[180px]">SARWARFX/stream-vault</span>
+              </div>
+              <div className="flex flex-col gap-0.5 pt-1 border-t border-white/10">
+                <span className="text-white/50 text-[10px]">SOURCE PATH:</span>
+                <span className="text-[10px] text-white/70 break-all bg-black/40 p-1.5 rounded border border-white/5 select-all">
+                  {secureUrl}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Side Arrow Navigation within Left Pane: Floating minimal glass buttons matching shorts controls */}
         {hasItemList && items.length > 1 && (
@@ -824,6 +930,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               <img
                 src={getMediaUrl(secureUrl)}
                 alt={cleanTitle}
+                onLoad={(e) => setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })}
                 style={{
                   transform:
                     touchDeltaX !== 0

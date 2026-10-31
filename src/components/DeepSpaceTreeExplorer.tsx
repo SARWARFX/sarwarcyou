@@ -12,6 +12,7 @@ export interface DeepSpaceTreeExplorerProps {
   onOpenVideo: (item: StageMediaItem, playlist: StageMediaItem[]) => void;
   onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number) => void;
   initialAlbum?: string;
+  isNavDisabled?: boolean;
 }
 
 export interface DirectoryNode {
@@ -79,7 +80,8 @@ const ShortCardItem: React.FC<{
   index: number;
   onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number) => void;
   folderName: string;
-}> = ({ short, allShorts, index, onOpenShort, folderName }) => {
+  isFocused?: boolean;
+}> = ({ short, allShorts, index, onOpenShort, folderName, isFocused }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
@@ -88,6 +90,7 @@ const ShortCardItem: React.FC<{
 
   return (
     <div
+      id={`tree-item-2-${index}`}
       role="button"
       tabIndex={0}
       onClick={() => onOpenShort(short, allShorts, index)}
@@ -98,10 +101,18 @@ const ShortCardItem: React.FC<{
         }
       }}
       aria-label={`Play short: ${cleanTitle}`}
-      className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+      className={`group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform ${
+        isFocused ? '-translate-y-1' : 'hover:-translate-y-1'
+      }`}
     >
       {/* 9:16 Vertical Poster Container */}
-      <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-transparent border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300">
+      <div
+        className={`relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-transparent transition-all duration-300 ${
+          isFocused
+            ? 'border-2 border-[#00f0ff] shadow-[0_0_24px_rgba(0,240,255,0.75)] ring-1 ring-[#00f0ff]'
+            : 'border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)]'
+        }`}
+      >
         {/* Clean placeholder background styling while images decode */}
         {(!imgLoaded || imgError) && (
           <div className="absolute inset-0 bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
@@ -133,7 +144,9 @@ const ShortCardItem: React.FC<{
 
       {/* Title beneath the thumbnail with high-contrast text shadow */}
       <span
-        className="text-xs sm:text-sm font-mono text-white/95 line-clamp-2 leading-snug group-hover:text-[#00f0ff] transition-colors"
+        className={`text-xs sm:text-sm font-mono line-clamp-2 leading-snug transition-colors ${
+          isFocused ? 'text-[#00f0ff] font-bold' : 'text-white/95 group-hover:text-[#00f0ff]'
+        }`}
         style={{
           textShadow: '0 1px 4px #000, 0 0 8px #000',
         }}
@@ -152,7 +165,9 @@ const VideoCardItem: React.FC<{
   allVideos: StageMediaItem[];
   onOpenVideo: (item: StageMediaItem, playlist: StageMediaItem[]) => void;
   folderName: string;
-}> = ({ video, allVideos, onOpenVideo, folderName }) => {
+  index: number;
+  isFocused?: boolean;
+}> = ({ video, allVideos, onOpenVideo, folderName, index, isFocused }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hoverTimerRef = useRef<number | null>(null);
 
@@ -190,6 +205,7 @@ const VideoCardItem: React.FC<{
 
   return (
     <div
+      id={`tree-item-2-${index}`}
       role="button"
       tabIndex={0}
       onClick={() => onOpenVideo(video, allVideos)}
@@ -202,10 +218,18 @@ const VideoCardItem: React.FC<{
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       aria-label={`Watch video: ${cleanTitle}`}
-      className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+      className={`group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform ${
+        isFocused ? '-translate-y-1' : 'hover:-translate-y-1'
+      }`}
     >
       {/* 16:9 Widescreen Frame */}
-      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-transparent border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300">
+      <div
+        className={`relative w-full aspect-video rounded-xl overflow-hidden bg-transparent transition-all duration-300 ${
+          isFocused
+            ? 'border-2 border-[#00f0ff] shadow-[0_0_24px_rgba(0,240,255,0.75)] ring-1 ring-[#00f0ff]'
+            : 'border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)]'
+        }`}
+      >
         {/* Clean placeholder background styling while images decode */}
         {(!imgLoaded || imgError) && (
           <div className="absolute inset-0 bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
@@ -270,7 +294,9 @@ const VideoCardItem: React.FC<{
 
       {/* Title with high-contrast text shadow */}
       <span
-        className="text-xs sm:text-sm font-mono text-white/95 line-clamp-2 leading-snug group-hover:text-[#00f0ff] transition-colors"
+        className={`text-xs sm:text-sm font-mono line-clamp-2 leading-snug transition-colors ${
+          isFocused ? 'text-[#00f0ff] font-bold' : 'text-white/95 group-hover:text-[#00f0ff]'
+        }`}
         style={{
           textShadow: '0 1px 4px #000, 0 0 8px #000',
         }}
@@ -287,6 +313,7 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
   onOpenVideo,
   onOpenShort,
   initialAlbum,
+  isNavDisabled = false,
 }) => {
   // Build the hierarchical tree directly from in-memory catalog items
   const rootMap = useMemo(() => {
@@ -347,6 +374,10 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
   // Active path selection chain (starts completely empty [] on root homepage)
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
 
+  // Keyboard navigation focus state (Col 0: Root, Col 1: Subfolders, Col 2: Media Files)
+  const [focusedCol, setFocusedCol] = useState<number>(0);
+  const [focusedIndex, setFocusedIndex] = useState<number>(0);
+
   // Deep-linking: Only expand path if an explicit album parameter was provided in the URL
   useEffect(() => {
     if (!initialAlbum || rootFolders.length === 0 || selectedPath.length > 0) return;
@@ -381,6 +412,12 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
 
     return chain;
   }, [rootMap, selectedPath]);
+
+  // Current active subfolders in Column 1
+  const currentSubfolders = useMemo(() => {
+    if (!selectedPath[0] || !rootMap.has(selectedPath[0])) return [];
+    return Array.from(rootMap.get(selectedPath[0])!.subfolders.values());
+  }, [selectedPath, rootMap]);
 
   // The active leaf folder node (only active when user has drilled down into an actual media folder)
   const activeLeafNode = useMemo(() => {
@@ -424,6 +461,22 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     return { photoFiles: photos, videoFiles: videos, shortFiles: shorts };
   }, [activeLeafNode, selectedPath]);
 
+  // Active media files list in Column 2 for keyboard navigation
+  const activeMediaFiles = useMemo(() => {
+    if (photoFiles.length > 0) return { type: 'photo' as const, items: photoFiles };
+    if (videoFiles.length > 0) return { type: 'video' as const, items: videoFiles };
+    if (shortFiles.length > 0) return { type: 'short' as const, items: shortFiles };
+    return { type: 'none' as const, items: [] };
+  }, [photoFiles, videoFiles, shortFiles]);
+
+  // Scroll focused element into view smoothly
+  useEffect(() => {
+    const el = document.getElementById(`tree-item-${focusedCol}-${focusedIndex}`);
+    if (el) {
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    }
+  }, [focusedCol, focusedIndex]);
+
   // Handler to toggle or select root folder (Depth 0)
   const handleSelectRoot = (rootName: string) => {
     if (selectedPath[0] === rootName) {
@@ -447,18 +500,145 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     }
   };
 
+  // Keyboard-First Power Navigation Listener
+  useEffect(() => {
+    if (isNavDisabled) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Guard against typing in text fields or search modals
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // 1. Move Up: ArrowUp, k, K
+      if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        setFocusedIndex((prev) => Math.max(0, prev - 1));
+        return;
+      }
+
+      // 2. Move Down: ArrowDown, j, J
+      if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
+        e.preventDefault();
+        let maxIndex = 0;
+        if (focusedCol === 0) maxIndex = rootFolders.length - 1;
+        else if (focusedCol === 1) maxIndex = currentSubfolders.length - 1;
+        else if (focusedCol === 2) maxIndex = activeMediaFiles.items.length - 1;
+
+        if (maxIndex >= 0) {
+          setFocusedIndex((prev) => Math.min(maxIndex, prev + 1));
+        }
+        return;
+      }
+
+      // 3. Expand / Open: ArrowRight, Enter, l, L
+      if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === 'l' || e.key === 'L') {
+        if (focusedCol === 0) {
+          e.preventDefault();
+          const rootNode = rootFolders[focusedIndex];
+          if (rootNode) {
+            handleSelectRoot(rootNode.name);
+            setFocusedCol(1);
+            setFocusedIndex(0);
+          }
+        } else if (focusedCol === 1) {
+          e.preventDefault();
+          const subNode = currentSubfolders[focusedIndex];
+          if (subNode) {
+            handleSelectSubfolder(subNode.name);
+            setFocusedCol(2);
+            setFocusedIndex(0);
+          }
+        } else if (focusedCol === 2) {
+          e.preventDefault();
+          const item = activeMediaFiles.items[focusedIndex];
+          if (item) {
+            if (activeMediaFiles.type === 'photo') {
+              onOpenPhoto(item, photoFiles, focusedIndex);
+            } else if (activeMediaFiles.type === 'video') {
+              onOpenVideo(item, videoFiles);
+            } else if (activeMediaFiles.type === 'short') {
+              onOpenShort(item, shortFiles, focusedIndex);
+            }
+          }
+        }
+        return;
+      }
+
+      // 4. Step back a level: ArrowLeft, h, H, Escape
+      if (e.key === 'ArrowLeft' || e.key === 'h' || e.key === 'H' || e.key === 'Escape') {
+        if (focusedCol === 2) {
+          e.preventDefault();
+          setFocusedCol(1);
+          const activeSubName = selectedPath[1];
+          const subIdx = currentSubfolders.findIndex((s) => s.name === activeSubName);
+          setFocusedIndex(subIdx >= 0 ? subIdx : 0);
+        } else if (focusedCol === 1) {
+          e.preventDefault();
+          setFocusedCol(0);
+          if (e.key === 'Escape') {
+            setSelectedPath([]);
+          }
+          const activeRootName = selectedPath[0];
+          const rootIdx = rootFolders.findIndex((r) => r.name === activeRootName);
+          setFocusedIndex(rootIdx >= 0 ? rootIdx : 0);
+        } else if (focusedCol === 0) {
+          if (e.key === 'Escape' && selectedPath.length > 0) {
+            e.preventDefault();
+            setSelectedPath([]);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isNavDisabled,
+    focusedCol,
+    focusedIndex,
+    rootFolders,
+    currentSubfolders,
+    activeMediaFiles,
+    photoFiles,
+    videoFiles,
+    shortFiles,
+    selectedPath,
+    onOpenPhoto,
+    onOpenVideo,
+    onOpenShort,
+  ]);
+
   return (
     <div className="w-full h-[100dvh] overflow-x-auto overflow-y-hidden flex flex-row items-stretch p-6 sm:p-10 md:p-14 gap-6 sm:gap-10 md:gap-12 no-scrollbar select-none">
       {/* COLUMN 0: Root Folders (Clean Text with Subtle Underline, NO Icons) */}
       <div className="flex-shrink-0 flex flex-col min-w-[130px] sm:min-w-[160px] md:min-w-[190px] max-w-[240px] h-full overflow-y-auto space-scrollbar gap-5 py-4">
-        {rootFolders.map((node) => {
+        {rootFolders.map((node, idx) => {
           const isActive = selectedPath[0] === node.name;
+          const isFocused = focusedCol === 0 && focusedIndex === idx;
           return (
             <button
               key={node.name}
+              id={`tree-item-0-${idx}`}
               type="button"
-              onClick={() => handleSelectRoot(node.name)}
-              className={`text-left text-base sm:text-lg md:text-xl font-mono tracking-wider transition-all duration-300 cursor-pointer pb-1.5 w-fit border-b-[1.5px] ${
+              onClick={() => {
+                handleSelectRoot(node.name);
+                setFocusedCol(1);
+                setFocusedIndex(0);
+              }}
+              onMouseEnter={() => {
+                setFocusedCol(0);
+                setFocusedIndex(idx);
+              }}
+              className={`text-left text-base sm:text-lg md:text-xl font-mono tracking-wider transition-all duration-300 cursor-pointer pb-1.5 w-fit border-b-[1.5px] rounded px-1 -mx-1 ${
+                isFocused ? 'ring-1 ring-[#00f0ff] bg-[#00f0ff]/10 ' : ''
+              }${
                 isActive
                   ? 'text-[#00f0ff] font-bold border-[#00f0ff] shadow-[0_2px_10px_rgba(0,240,255,0.4)] [text-shadow:0_0_15px_rgba(0,240,255,0.8)]'
                   : 'text-white/80 border-white/40 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_2px_8px_rgba(0,240,255,0.35)] hover:[text-shadow:0_0_12px_rgba(0,240,255,0.7)]'
@@ -473,14 +653,26 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
       {/* COLUMN 1: Subfolders in Horizontal Tree Column Layout (Only visible when a root folder is clicked) */}
       {selectedPath[0] && rootMap.get(selectedPath[0]) && (
         <div className="flex-shrink-0 flex flex-col min-w-[130px] sm:min-w-[160px] md:min-w-[190px] max-w-[240px] h-full overflow-y-auto space-scrollbar gap-4 py-4">
-          {Array.from(rootMap.get(selectedPath[0])!.subfolders.values()).map((subNode) => {
+          {currentSubfolders.map((subNode, idx) => {
             const isSubActive = selectedPath[1] === subNode.name;
+            const isFocused = focusedCol === 1 && focusedIndex === idx;
             return (
               <button
                 key={subNode.name}
+                id={`tree-item-1-${idx}`}
                 type="button"
-                onClick={() => handleSelectSubfolder(subNode.name)}
-                className={`text-left text-sm sm:text-base md:text-lg font-mono tracking-wide transition-all duration-300 cursor-pointer pb-1 w-fit border-b-[1.5px] ${
+                onClick={() => {
+                  handleSelectSubfolder(subNode.name);
+                  setFocusedCol(2);
+                  setFocusedIndex(0);
+                }}
+                onMouseEnter={() => {
+                  setFocusedCol(1);
+                  setFocusedIndex(idx);
+                }}
+                className={`text-left text-sm sm:text-base md:text-lg font-mono tracking-wide transition-all duration-300 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded px-1 -mx-1 ${
+                  isFocused ? 'ring-1 ring-[#00f0ff] bg-[#00f0ff]/10 ' : ''
+                }${
                   isSubActive
                     ? 'text-[#00f0ff] font-bold border-[#00f0ff] shadow-[0_2px_8px_rgba(0,240,255,0.35)] [text-shadow:0_0_12px_rgba(0,240,255,0.75)]'
                     : 'text-white/80 border-white/40 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_2px_8px_rgba(0,240,255,0.35)] hover:[text-shadow:0_0_12px_rgba(0,240,255,0.7)]'
@@ -499,34 +691,52 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
           {/* 1. Photos: Floating transparent grid directly over galaxy background */}
           {photoFiles.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
-              {photoFiles.map((photo, idx) => (
-                <div
-                  key={photo.id || idx}
-                  onClick={() => onOpenPhoto(photo, photoFiles, idx)}
-                  className="relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-transparent border border-white/15 hover:border-[#00f0ff] p-0 shadow-none hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300 transform hover:scale-[1.03]"
-                >
-                  <img
-                    src={getMediaUrl(photo.url)}
-                    alt={photo.title || photo.name || 'Photo'}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
-                  />
-                </div>
-              ))}
+              {photoFiles.map((photo, idx) => {
+                const isFocused = focusedCol === 2 && focusedIndex === idx;
+                return (
+                  <div
+                    key={photo.id || idx}
+                    id={`tree-item-2-${idx}`}
+                    onClick={() => {
+                      setFocusedCol(2);
+                      setFocusedIndex(idx);
+                      onOpenPhoto(photo, photoFiles, idx);
+                    }}
+                    onMouseEnter={() => {
+                      setFocusedCol(2);
+                      setFocusedIndex(idx);
+                    }}
+                    className={`relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-transparent transition-all duration-300 transform ${
+                      isFocused
+                        ? 'border-2 border-[#00f0ff] shadow-[0_0_24px_rgba(0,240,255,0.75)] scale-[1.04] ring-1 ring-[#00f0ff]'
+                        : 'border border-white/15 hover:border-[#00f0ff] p-0 shadow-none hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] hover:scale-[1.03]'
+                    }`}
+                  >
+                    <img
+                      src={getMediaUrl(photo.url)}
+                      alt={photo.title || photo.name || 'Photo'}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {/* 2. Videos: 16:9 Landscape Widescreen Cards Grid */}
           {videoFiles.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 p-1">
-              {videoFiles.map((video) => (
+              {videoFiles.map((video, idx) => (
                 <VideoCardItem
                   key={video.id || video.url}
                   video={video}
                   allVideos={videoFiles}
                   onOpenVideo={onOpenVideo}
                   folderName={activeLeafNode.name}
+                  index={idx}
+                  isFocused={focusedCol === 2 && focusedIndex === idx}
                 />
               ))}
             </div>
@@ -543,6 +753,7 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                   index={idx}
                   onOpenShort={onOpenShort}
                   folderName={activeLeafNode.name}
+                  isFocused={focusedCol === 2 && focusedIndex === idx}
                 />
               ))}
             </div>

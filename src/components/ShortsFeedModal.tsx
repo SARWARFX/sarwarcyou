@@ -232,6 +232,45 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     });
   }, [activeIndex, isOpen, isMuted]);
 
+  // Smart Adjacent Pre-Fetching: while active video i is playing, silently pre-fetch i + 1
+  useEffect(() => {
+    if (!isOpen || activeIndex >= shorts.length - 1) return;
+    const nextItem = shorts[activeIndex + 1];
+    if (!nextItem) return;
+
+    const nextUrl = getMediaUrl(nextItem.url || nextItem.path || nextItem.id);
+    if (!nextUrl) return;
+
+    // 1. Silent pre-fetch link in document head
+    const linkId = 'preload-next-short-video';
+    let link = document.getElementById(linkId) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'prefetch';
+      link.as = 'video';
+      document.head.appendChild(link);
+    }
+    link.href = nextUrl;
+
+    // 2. Offscreen video buffer element with preload="auto" to pre-buffer frame 0
+    const hiddenCacheVideo = document.createElement('video');
+    hiddenCacheVideo.muted = true;
+    hiddenCacheVideo.playsInline = true;
+    hiddenCacheVideo.preload = 'auto';
+    hiddenCacheVideo.src = nextUrl;
+    hiddenCacheVideo.load();
+
+    return () => {
+      try {
+        hiddenCacheVideo.src = '';
+        hiddenCacheVideo.load();
+      } catch {
+        // ignore
+      }
+    };
+  }, [isOpen, activeIndex, shorts]);
+
   // Single-tap play/pause toggle with center pulse icon
   const togglePlay = useCallback(() => {
     const video = videoRefs.current[activeIndex] || activeVideoRef.current;
@@ -564,7 +603,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         src={streamUrl}
                         poster={shortPoster || undefined}
                         autoPlay={isSnapped}
-                        preload={isSnapped ? 'auto' : 'metadata'}
+                        preload={isSnapped || idx === activeIndex + 1 ? 'auto' : 'metadata'}
                         playsInline
                         {...({ 'webkit-playsinline': 'true' } as any)}
                         loop

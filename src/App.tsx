@@ -6,6 +6,7 @@ import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
+import { CyberCommandPalette } from './components/CyberCommandPalette';
 import galaxyBg from './assets/galaxy.jpg';
 import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
@@ -146,6 +147,83 @@ function App() {
         window.history.replaceState({ tab: 'all' }, '', targetUrl);
       }
     }
+  }, []);
+
+  // Cyberpunk Command Palette State
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Subtle Mouse Parallax Canvas on desktop (pointer: fine)
+  const galaxyBgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isFinePointer = window.matchMedia('(pointer: fine)').matches;
+    if (!isFinePointer) return;
+
+    let rafId: number | null = null;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const halfW = window.innerWidth / 2;
+      const halfH = window.innerHeight / 2;
+      const normX = (e.clientX - halfW) / halfW;
+      const normY = (e.clientY - halfH) / halfH;
+
+      // Subtle hardware-accelerated shift clamped to max 14px
+      targetX = -normX * 14;
+      targetY = -normY * 14;
+
+      if (!rafId) {
+        rafId = requestAnimationFrame(updateParallax);
+      }
+    };
+
+    const updateParallax = () => {
+      currentX += (targetX - currentX) * 0.1;
+      currentY += (targetY - currentY) * 0.1;
+
+      if (galaxyBgRef.current) {
+        galaxyBgRef.current.style.transform = `translate3d(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px, 0) scale(1.05)`;
+      }
+
+      if (Math.abs(targetX - currentX) > 0.05 || Math.abs(targetY - currentY) > 0.05) {
+        rafId = requestAnimationFrame(updateParallax);
+      } else {
+        rafId = null;
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  // Global Command Palette Shortcut (Ctrl+K / Cmd+K, or "/" when no input is focused)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      if (e.key === '/') {
+        const targetTag = (document.activeElement?.tagName || '').toLowerCase();
+        const isEditable = document.activeElement?.getAttribute('contenteditable') === 'true';
+        if (targetTag !== 'input' && targetTag !== 'textarea' && !isEditable) {
+          e.preventDefault();
+          setIsCommandPaletteOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Organize raw catalog data into structured discovery feed
@@ -547,11 +625,12 @@ function App() {
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent">
-      {/* 1. High-resolution cosmic galaxy background fixed full viewport */}
+      {/* 1. High-resolution cosmic galaxy background fixed full viewport with cursor parallax */}
       <img
+        ref={galaxyBgRef}
         src={galaxyBg}
         alt="Deep Space Cosmic Background"
-        className="fixed inset-0 w-[100vw] h-[100dvh] object-cover pointer-events-none select-none"
+        className="fixed inset-0 w-[100vw] h-[100dvh] object-cover pointer-events-none select-none transition-transform duration-300 ease-out"
         style={{
           position: 'fixed',
           inset: 0,
@@ -559,6 +638,8 @@ function App() {
           height: '100dvh',
           objectFit: 'cover',
           zIndex: -1,
+          transform: 'translate3d(0, 0, 0) scale(1.05)',
+          willChange: 'transform',
         }}
       />
 
@@ -571,6 +652,7 @@ function App() {
         <DeepSpaceTreeExplorer
           items={rawFeed.allMediaPool}
           initialAlbum={initialAlbumTarget}
+          isNavDisabled={isCommandPaletteOpen || theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen}
           onOpenPhoto={(photo, playlist, index) => {
             const albumTarget = photo.category || photo.parentAlbum;
             const targetUrl = buildMediaUrl(photo, albumTarget);
@@ -701,6 +783,46 @@ function App() {
         typeCounts={viewAllState.typeCounts}
         onClose={() => handleCloseModal('viewAll')}
         onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
+      />
+
+      {/* 7. Cyberpunk Command Palette (Ctrl+K / Cmd+K / "/") */}
+      <CyberCommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        items={rawFeed.allMediaPool}
+        allShorts={rawFeed.shorts}
+        onOpenPhoto={(photo, playlist, index) => {
+          const albumTarget = photo.category || photo.parentAlbum;
+          const targetUrl = buildMediaUrl(photo, albumTarget);
+          pushModalState('lightbox', targetUrl);
+          setLightboxState({
+            isOpen: true,
+            item: photo,
+            items: playlist,
+            initialIndex: index,
+            albumContext: albumTarget,
+          });
+        }}
+        onOpenVideo={(video, playlist) => {
+          const albumTarget = video.category || video.parentAlbum;
+          const targetUrl = buildMediaUrl(video, albumTarget);
+          pushModalState('theater', targetUrl);
+          setTheaterState({
+            isOpen: true,
+            item: video,
+            playlist,
+            albumContext: albumTarget,
+          });
+        }}
+        onOpenShort={(short, shorts, index) => {
+          const targetUrl = buildMediaUrl(short, 'shorts');
+          pushModalState('shorts', targetUrl);
+          setShortsState({
+            isOpen: true,
+            shorts,
+            initialIndex: index,
+          });
+        }}
       />
     </div>
   );
