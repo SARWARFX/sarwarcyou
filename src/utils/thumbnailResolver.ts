@@ -1,5 +1,5 @@
 import type { StageMediaItem, HfMediaItem } from '../types';
-import { normalizeRepoPath, getMediaUrl, HF_RESOLVE_BASE } from './imageUrlResolver';
+import { normalizeRepoPath, getMediaUrl, getThumbnailUrl, getImageUrl, HF_RESOLVE_BASE } from './imageUrlResolver';
 import { isVideoExtension } from './mediaTypeDetector';
 import {
   preloadImageFrames,
@@ -12,6 +12,8 @@ export {
   preloadImageFrames,
   useThumbnailScrubber,
   useThumbnailScrubber as useHoverThumbnailScrub,
+  getThumbnailUrl,
+  getImageUrl,
   type UseThumbnailScrubberOptions,
   type UseThumbnailScrubberResult,
 };

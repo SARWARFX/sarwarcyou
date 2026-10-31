@@ -92,6 +92,8 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
     clean = clean.replace(/^Thumbnails\/Shorts[-_\s]Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
     clean = clean.replace(/^Thumbnails\/Shorts\/Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
+    clean = clean.replace(/^Thumbnails\/Shorts[-_\s](\d{4})\//i, 'Thumbnails/Shorts/Shorts $1/');
+    clean = clean.replace(/^Thumbnails\/Shorts\/(\d{4})\//i, 'Thumbnails/Shorts/Shorts $1/');
     clean = clean.replace(/^Thumbnails\/Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Thumbnails/Shorts/Shorts Classic/$1');
   } else {
     clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
@@ -109,6 +111,8 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Images\//i, 'Photographs/');
     clean = clean.replace(/^Shorts[-_\s]Classic\//i, 'Shorts/Shorts Classic/');
     clean = clean.replace(/^Shorts\/Classic\//i, 'Shorts/Shorts Classic/');
+    clean = clean.replace(/^Shorts[-_\s](\d{4})\//i, 'Shorts/Shorts $1/');
+    clean = clean.replace(/^Shorts\/(\d{4})\//i, 'Shorts/Shorts $1/');
     clean = clean.replace(/^Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Shorts/Shorts Classic/$1');
   }
 
@@ -295,6 +299,70 @@ export function getDirectImageUrl(
 
   // Route photo through Cloudflare Worker edge proxy
   return getMediaUrl(target);
+}
+
+/**
+ * Resolves static WebP thumbnail URL for any media item or path,
+ * correctly mapping all subfolders under "Shorts" ("Shorts Classic", "Shorts 2027", etc.).
+ */
+export function getThumbnailUrl(
+  itemOrPath?: string | { url?: string; path?: string; id?: string; thumbnail?: string; poster?: string; posterUrl?: string; category?: string; parentAlbum?: string; name?: string; title?: string } | null
+): string {
+  if (!itemOrPath) return '';
+
+  // 1. Explicit non-video poster or thumbnail
+  if (typeof itemOrPath === 'object' && itemOrPath !== null) {
+    const poster = itemOrPath.poster || itemOrPath.posterUrl || itemOrPath.thumbnail;
+    if (poster && !isVideoExtension(poster)) {
+      return getMediaUrl(poster);
+    }
+  }
+
+  // 2. Extract raw path or URL
+  const raw = typeof itemOrPath === 'string'
+    ? itemOrPath
+    : (itemOrPath.path || itemOrPath.url || itemOrPath.id || '');
+  if (!raw) return '';
+
+  // If raw points directly to a pre-generated thumbnail
+  if (/^Thumbnails\//i.test(raw) || /\.(webp|jpg|jpeg|png)$/i.test(raw)) {
+    return getMediaUrl(raw);
+  }
+
+  // 3. If file path has no folder slashes but category or parentAlbum is available
+  let fullPath = raw;
+  if (!raw.includes('/') && typeof itemOrPath === 'object' && itemOrPath !== null) {
+    const cat = itemOrPath.category || itemOrPath.parentAlbum || '';
+    if (cat) {
+      const prefix = cat.toLowerCase().includes('shorts') && !cat.toLowerCase().startsWith('shorts/')
+        ? `Shorts/${cat}`
+        : cat;
+      fullPath = `${prefix}/${raw}`;
+    }
+  }
+
+  // 4. Strip CDN / HF resolve base to obtain clean relative path
+  let clean = fullPath.replace(/#t=[\d.,]+$/i, '').split('?')[0].trim();
+  if (clean.includes('/resolve/main/')) {
+    clean = clean.split('/resolve/main/')[1] || clean;
+  } else if (clean.includes('media.sarwar.cyou/')) {
+    clean = clean.split('media.sarwar.cyou/')[1] || clean;
+  }
+
+  const normalized = normalizeRepoPath(clean);
+  const basePathWithoutExt = normalized.replace(/\.(mp4|mov|webm|mkv|avi|m4v)$/i, '');
+  if (!basePathWithoutExt) return '';
+
+  return getMediaUrl(`Thumbnails/${basePathWithoutExt}.webp`);
+}
+
+/**
+ * Universal image/thumbnail URL resolver alias.
+ */
+export function getImageUrl(
+  itemOrPath?: string | { url?: string; path?: string; id?: string; thumbnail?: string; poster?: string; posterUrl?: string; category?: string; parentAlbum?: string; name?: string; title?: string } | null
+): string {
+  return getThumbnailUrl(itemOrPath);
 }
 
 export function getBackupDriveUrl(fileId: string): string {

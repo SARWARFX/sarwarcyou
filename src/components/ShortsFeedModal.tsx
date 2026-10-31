@@ -91,10 +91,6 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
   const activeVideoRef = useRef<HTMLVideoElement>(null);
   const pulseTimerRef = useRef<number | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
-  const isWheelLockedRef = useRef(false);
-  const wheelLockTimerRef = useRef<number | null>(null);
-  const accumulatedWheelDeltaRef = useRef(0);
-  const wheelResetTimerRef = useRef<number | null>(null);
   const fallbackAttemptedRef = useRef<Record<string, boolean>>({});
 
   // Synchronous refs to prevent stale closure reads in event listeners
@@ -189,10 +185,6 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
     fallbackAttemptedRef.current = {};
     if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
     if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
-    if (wheelLockTimerRef.current) window.clearTimeout(wheelLockTimerRef.current);
-    if (wheelResetTimerRef.current) window.clearTimeout(wheelResetTimerRef.current);
-    isWheelLockedRef.current = false;
-    accumulatedWheelDeltaRef.current = 0;
 
     // Clean up dynamically injected preload links from document head
     try {
@@ -223,170 +215,82 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
   }, [releaseVideoResources]);
 
   // =========================================================================
-  // ZERO AUDIO OVERLAP ENGINE:
-  // Instantaneous scroll listener that silences & pauses the previous short
-  // the exact instant user swipes past the 50% midpoint.
+  // NATIVE CSS SCROLL SNAP INTERSECTION OBSERVER:
+  // Detects active reel transitions cleanly without intercepting raw wheel/touch inputs.
   // =========================================================================
   useEffect(() => {
-    if (!isOpen) return;
-    const container = containerRef.current;
-    if (!container) return;
+    if (!isOpen || !containerRef.current) return;
 
-    const handleScroll = () => {
-      const h = container.clientHeight;
-      if (h <= 0) return;
-      const scrollTop = container.scrollTop;
-      const targetIndex = Math.round(scrollTop / h);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const indexAttr = entry.target.getAttribute('data-reel-index');
+            if (indexAttr !== null) {
+              const targetIdx = parseInt(indexAttr, 10);
+              if (!isNaN(targetIdx) && targetIdx !== activeIndexRef.current) {
+                activeIndexRef.current = targetIdx;
 
-      if (shorts && targetIndex !== activeIndexRef.current && targetIndex >= 0 && targetIndex < shorts.length) {
-        activeIndexRef.current = targetIndex;
+                // Synchronously silence & pause all non-target videos immediately
+                videoRefs.current.forEach((v, i) => {
+                  if (v && i !== targetIdx) {
+                    v.pause();
+                    v.muted = true;
+                  }
+                });
 
-        // Synchronously silence & pause all non-target videos immediately
-        videoRefs.current.forEach((v, i) => {
-          if (v && i !== targetIndex) {
-            v.pause();
-            v.muted = true;
+                const targetVideo = videoRefs.current[targetIdx];
+                if (targetVideo) {
+                  activeVideoRef.current = targetVideo;
+                  targetVideo.muted = isMutedRef.current;
+                  const playPromise = targetVideo.play();
+                  if (playPromise !== undefined) {
+                    playPromise
+                      .then(() => setIsPlaying(true))
+                      .catch(() => {
+                        if (!isMutedRef.current) {
+                          targetVideo.muted = true;
+                          isMutedRef.current = true;
+                          setIsMuted(true);
+                        }
+                      });
+                  }
+                  setCurrentTime(targetVideo.currentTime);
+                  setDuration(
+                    targetVideo.duration && isFinite(targetVideo.duration) ? targetVideo.duration : 0
+                  );
+                } else {
+                  setCurrentTime(0);
+                  setDuration(0);
+                }
+
+                setActiveIndex(targetIdx);
+                setIsPlaying(true);
+                resetControlsTimer();
+
+                // Prewarm next reel stream
+                if (shorts && shorts[targetIdx + 1]?.url) {
+                  prewarmVideoStream(shorts[targetIdx + 1].url);
+                }
+              }
+            }
           }
         });
-
-        const targetVideo = videoRefs.current[targetIndex];
-        if (targetVideo) {
-          activeVideoRef.current = targetVideo;
-          targetVideo.muted = isMutedRef.current;
-          const playPromise = targetVideo.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => setIsPlaying(true))
-              .catch((err) => {
-                console.warn("Autoplay blocked, falling back to muted:", err);
-                targetVideo.muted = true;
-                setIsMuted(true);
-                isMutedRef.current = true;
-                targetVideo.play().then(() => setIsPlaying(true)).catch(console.error);
-              });
-          }
-          setCurrentTime(targetVideo.currentTime);
-          setDuration(
-            targetVideo.duration && isFinite(targetVideo.duration) ? targetVideo.duration : 0
-          );
-        } else {
-          setCurrentTime(0);
-          setDuration(0);
-        }
-
-        setActiveIndex(targetIndex);
-        setIsPlaying(true);
-        resetControlsTimer();
-
-        // Prewarm next reel stream
-        if (shorts && shorts[targetIndex + 1]?.url) {
-          prewarmVideoStream(shorts[targetIndex + 1].url);
-        }
+      },
+      {
+        root: containerRef.current,
+        threshold: 0.6,
       }
-    };
+    );
 
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [isOpen, shorts, resetControlsTimer]);
+    slideRefs.current.forEach((slide) => {
+      if (slide) observer.observe(slide);
+    });
 
-  // =========================================================================
-  // DESKTOP MOUSE WHEEL DEBOUNCING & SNAP PHYSICS:
-  // Intercepts high-frequency wheel notches, prevents micro-scroll jitter,
-  // locks subsequent wheel ticks for 500ms, immediately frees GPU decoders,
-  // and smoothly advances exactly one slide at a time.
-  // =========================================================================
-  useEffect(() => {
-    if (!isOpen) return;
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // If a transition is already in flight, block all momentum wheel ticks
-      if (isWheelLockedRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      // Reset accumulated micro-ticks if user paused scrolling
-      if (wheelResetTimerRef.current) {
-        window.clearTimeout(wheelResetTimerRef.current);
-      }
-      wheelResetTimerRef.current = window.setTimeout(() => {
-        accumulatedWheelDeltaRef.current = 0;
-      }, 150);
-
-      // Normalize wheel delta by deltaMode (Firefox line mode = 1, page mode = 2)
-      let normalizedDeltaY = e.deltaY;
-      if (e.deltaMode === 1) {
-        normalizedDeltaY *= 16;
-      } else if (e.deltaMode === 2 && typeof window !== 'undefined') {
-        normalizedDeltaY *= window.innerHeight;
-      }
-
-      accumulatedWheelDeltaRef.current += normalizedDeltaY;
-
-      // On first valid wheel tick exceeding threshold (>= 30px)
-      if (Math.abs(accumulatedWheelDeltaRef.current) >= 30) {
-        const direction = accumulatedWheelDeltaRef.current > 0 ? 1 : -1;
-        accumulatedWheelDeltaRef.current = 0;
-        const targetIndex = activeIndexRef.current + direction;
-
-        // If at top or bottom boundaries, prevent browser window bounce
-        if (!shorts || targetIndex < 0 || targetIndex >= shorts.length) {
-          e.preventDefault();
-          return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Lock incoming wheel events immediately
-        isWheelLockedRef.current = true;
-        activeIndexRef.current = targetIndex;
-
-        // Pause non-target videos immediately during transition to free GPU decoders
-        videoRefs.current.forEach((v, i) => {
-          if (v && i !== targetIndex) {
-            v.pause();
-            v.muted = true;
-          }
-        });
-
-        // Smoothly animate to the target slide
-        const targetEl = slideRefs.current[targetIndex];
-        if (targetEl) {
-          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          container.scrollTo({
-            top: targetIndex * container.clientHeight,
-            behavior: 'smooth',
-          });
-        }
-
-        // Release lock after ~500ms so multiple wheel notches do not queue up or jitter
-        if (wheelLockTimerRef.current) {
-          window.clearTimeout(wheelLockTimerRef.current);
-        }
-        wheelLockTimerRef.current = window.setTimeout(() => {
-          isWheelLockedRef.current = false;
-        }, 500);
-      }
-    };
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
-      container.removeEventListener('wheel', handleWheel);
-      if (wheelLockTimerRef.current) {
-        window.clearTimeout(wheelLockTimerRef.current);
-        wheelLockTimerRef.current = null;
-      }
-      if (wheelResetTimerRef.current) {
-        window.clearTimeout(wheelResetTimerRef.current);
-        wheelResetTimerRef.current = null;
-      }
+      observer.disconnect();
     };
-  }, [isOpen, shorts?.length]);
+  }, [isOpen, shorts?.length, resetControlsTimer]);
 
   // Autoplay currently snapped reel and guarantee all other videos are muted & paused
   useEffect(() => {
@@ -706,16 +610,13 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
         </button>
       </div>
 
-      {/* 2. Full-Screen Vertical Swipe Feed (100dvh with Native CSS Scroll Snapping) */}
+      {/* 2. Full-Screen Vertical Swipe Feed (Native CSS Scroll Snapping) */}
       <div
         ref={containerRef}
-        className="w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth no-scrollbar"
+        className="h-screen w-full overflow-y-auto snap-y snap-mandatory scroll-smooth overscroll-y-contain no-scrollbar"
         style={{
-          width: '100%',
-          height: '100%',
           scrollSnapType: 'y mandatory',
-          scrollBehavior: 'smooth',
-          overflowY: 'scroll',
+          overscrollBehaviorY: 'contain',
           scrollbarWidth: 'none',
           WebkitOverflowScrolling: 'touch',
         }}
@@ -754,12 +655,10 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
                 slideRefs.current[idx] = el;
               }}
               data-reel-index={idx}
-              className="w-[100vw] md:w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-transparent flex-shrink-0 p-0 m-0 border-0 rounded-none md:px-6 lg:px-8"
+              className="h-screen w-full shrink-0 snap-start snap-always relative flex items-center justify-center overflow-hidden p-0 m-0 border-0 md:px-6 lg:px-8"
               style={{
                 scrollSnapAlign: 'start',
                 scrollSnapStop: 'always',
-                height: '100dvh',
-                minHeight: '100vh',
                 willChange: isAdjacent ? 'transform' : 'auto',
               }}
             >

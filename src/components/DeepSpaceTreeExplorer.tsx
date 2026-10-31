@@ -3,7 +3,7 @@ import { Play, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isPhotoExtension } from '../utils/mediaTypeDetector';
-import { getMediaUrl } from '../utils/imageUrlResolver';
+import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 import { sortMediaItemsDescending } from '../utils/albumExtractor';
 
@@ -88,7 +88,7 @@ const ShortCardItem: React.FC<{
   const [isLandscape, setIsLandscape] = useState(false);
 
   const cleanTitle = sanitizeMediaTitle(short.title || short.name, folderName);
-  const thumbnailSrc = resolveStaticVideoThumbnail(short);
+  const thumbnailSrc = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
 
   return (
     <div
@@ -115,10 +115,15 @@ const ShortCardItem: React.FC<{
             : 'border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)]'
         }`}
       >
-        {/* Clean placeholder background styling while images decode */}
-        {(!imgLoaded || imgError) && (
-          <div className="absolute inset-0 bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
-            <Play className="w-6 h-6 text-white/30 ml-0.5" />
+        {/* Dark gradient fallback background when loading or onError so cards never appear broken */}
+        {(!imgLoaded || imgError || !thumbnailSrc) && (
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/90 via-black to-zinc-950 flex flex-col items-center justify-center p-3 text-center">
+            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-2 shadow-inner">
+              <Play className="w-4 h-4 text-[#00f0ff]/60 fill-current ml-0.5" />
+            </div>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest line-clamp-1">
+              {cleanTitle || 'Short'}
+            </span>
           </div>
         )}
 
@@ -200,7 +205,7 @@ const VideoCardItem: React.FC<{
 
   const cleanTitle = sanitizeMediaTitle(video.title || video.name, folderName);
   const streamUrl = getMediaUrl(video.url || video.path || video.id);
-  const thumbnailSrc = resolveStaticVideoThumbnail(video);
+  const thumbnailSrc = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
 
   useEffect(() => {
     return () => {
@@ -251,10 +256,15 @@ const VideoCardItem: React.FC<{
             : 'border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)]'
         }`}
       >
-        {/* Clean placeholder background styling while images decode */}
-        {(!imgLoaded || imgError) && (
-          <div className="absolute inset-0 bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
-            <Film className="w-7 h-7 text-white/30" />
+        {/* Dark gradient fallback background when loading or onError so cards never appear broken */}
+        {(!imgLoaded || imgError || !thumbnailSrc) && (
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/90 via-black to-zinc-950 flex flex-col items-center justify-center p-3 text-center">
+            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
+              <Film className="w-4 h-4 text-[#00f0ff]/60" />
+            </div>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest line-clamp-1">
+              {cleanTitle || 'Video'}
+            </span>
           </div>
         )}
 
@@ -814,6 +824,13 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                       alt={photo.title || photo.name || 'Photo'}
                       loading="lazy"
                       decoding="async"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.classList.add('bg-gradient-to-b', 'from-zinc-900', 'to-black');
+                        }
+                      }}
                       className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
                     />
                   </div>
