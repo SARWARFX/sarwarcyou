@@ -85,6 +85,7 @@ const ShortCardItem: React.FC<{
 }> = ({ short, allShorts, index, onOpenShort, folderName, isFocused }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
 
   const cleanTitle = sanitizeMediaTitle(short.title || short.name, folderName);
   const thumbnailSrc = resolveStaticVideoThumbnail(short);
@@ -108,7 +109,7 @@ const ShortCardItem: React.FC<{
     >
       {/* 9:16 Vertical Poster Container */}
       <div
-        className={`relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-transparent transition-all duration-300 ${
+        className={`relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-black/40 backdrop-blur-sm transition-all duration-300 ${
           isFocused
             ? 'border-2 border-[#00f0ff] shadow-[0_0_24px_rgba(0,240,255,0.75)] ring-1 ring-[#00f0ff]'
             : 'border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)]'
@@ -122,21 +123,40 @@ const ShortCardItem: React.FC<{
         )}
 
         {thumbnailSrc && !imgError && (
-          <img
-            src={thumbnailSrc}
-            alt={cleanTitle}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
-            className={`w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 ${
-              imgLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
+          <>
+            {/* If thumbnail is landscape, render blurred background fill so the vertical card remains aesthetically filled */}
+            {isLandscape && (
+              <img
+                src={thumbnailSrc}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover blur-md opacity-35 scale-110 pointer-events-none select-none"
+              />
+            )}
+            <img
+              src={thumbnailSrc}
+              alt={cleanTitle}
+              loading="lazy"
+              decoding="async"
+              onLoad={(e) => {
+                setImgLoaded(true);
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight && img.naturalWidth > img.naturalHeight) {
+                  setIsLandscape(true);
+                }
+              }}
+              onError={() => setImgError(true)}
+              className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${
+                isLandscape
+                  ? 'relative z-10 object-contain object-center'
+                  : 'object-cover object-center'
+              } ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+            />
+          </>
         )}
 
         {/* Play Icon Badge / Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+        <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
           <div className="w-10 h-10 rounded-full bg-[#00f0ff]/90 text-black flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.8)]">
             <Play className="w-4 h-4 fill-current ml-0.5" />
           </div>

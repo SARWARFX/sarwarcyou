@@ -50,9 +50,17 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [readyVideos, setReadyVideos] = useState<Record<number, boolean>>({});
+  const [landscapeVideos, setLandscapeVideos] = useState<Record<number, boolean>>({});
 
   const markVideoReady = useCallback((index: number) => {
     setReadyVideos((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
+  }, []);
+
+  const updateVideoOrientation = useCallback((index: number, width: number, height: number) => {
+    if (width > 0 && height > 0) {
+      const isWide = width > height;
+      setLandscapeVideos((prev) => (prev[index] === isWide ? prev : { ...prev, [index]: isWide }));
+    }
   }, []);
 
   // Mobile Immersive Mode: Controls auto-hide during playback and reveal on user access
@@ -528,6 +536,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           const displayTitle = sanitizeMediaTitle(item.title, item.category || 'Short');
           const albumName = item.category || item.parentAlbum || 'Shorts';
           const fileName = (item.name || item.path?.split('/').pop() || '').trim();
+          const isLandscapeVideo = Boolean(landscapeVideos[idx]);
 
           return (
             <div
@@ -603,7 +612,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 {/* ================= 2. VIDEO STAGE (Full Screen on Mobile, Aspect 9:16 on Desktop) ================= */}
                 <div className="relative flex flex-col items-center flex-shrink-0 w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto md:h-auto p-0 m-0 border-0 rounded-none">
                   <div
-                    className="relative w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto md:h-[86vh] md:max-h-[840px] md:aspect-[9/16] rounded-none md:rounded-3xl overflow-hidden bg-black flex items-center justify-center shadow-none md:shadow-[0_20px_60px_rgba(0,0,0,0.95)] border-0 md:border md:border-white/10 group cursor-pointer p-0 m-0"
+                    className={`relative w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto md:h-[86vh] md:max-h-[840px] md:aspect-[9/16] rounded-none md:rounded-3xl overflow-hidden flex items-center justify-center shadow-none md:shadow-[0_20px_60px_rgba(0,0,0,0.95)] border-0 md:border md:border-white/10 group cursor-pointer p-0 m-0 ${
+                      isLandscapeVideo ? 'bg-transparent md:bg-black/25' : 'bg-black'
+                    }`}
+                    style={{
+                      background: isLandscapeVideo ? 'rgba(3, 6, 14, 0.35)' : undefined,
+                    }}
                     onClick={isSnapped ? handleVideoClick : undefined}
                   >
                     {/* Visual Poster / Backing Image (Completely unmounted once video is ready) */}
@@ -613,8 +627,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         alt={displayTitle}
                         loading={isAdjacent ? 'eager' : 'lazy'}
                         decoding="async"
-                        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          if (img.naturalWidth && img.naturalHeight) {
+                            updateVideoOrientation(idx, img.naturalWidth, img.naturalHeight);
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full select-none pointer-events-none z-0"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          maxHeight: '100dvh',
+                          objectFit: isLandscapeVideo ? 'contain' : 'cover',
+                        }}
                       />
                     )}
 
@@ -623,6 +648,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       <video
                         ref={(el) => {
                           videoRefs.current[idx] = el;
+                          if (el && el.videoWidth && el.videoHeight) {
+                            updateVideoOrientation(idx, el.videoWidth, el.videoHeight);
+                          }
                           if (idx === activeIndex) {
                             activeVideoRef.current = el;
                             if (el && el.paused && isSnapped) {
@@ -652,8 +680,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         crossOrigin="anonymous"
                         onCanPlay={(e) => {
                           markVideoReady(idx);
+                          const v = e.currentTarget;
+                          if (v.videoWidth && v.videoHeight) {
+                            updateVideoOrientation(idx, v.videoWidth, v.videoHeight);
+                          }
                           if (idx === activeIndex) {
-                            const v = e.currentTarget;
                             if (v.paused) {
                               v.muted = isMuted;
                               const playPromise = v.play();
@@ -682,6 +713,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         }}
                         onPlaying={(e) => {
                           markVideoReady(idx);
+                          const v = e.currentTarget;
+                          if (v.videoWidth && v.videoHeight) {
+                            updateVideoOrientation(idx, v.videoWidth, v.videoHeight);
+                          }
                           if (idx === activeIndex) {
                             setIsPlaying(true);
                             const v = e.currentTarget;
@@ -709,8 +744,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                           }
                         }}
                         onLoadedMetadata={(e) => {
+                          const v = e.currentTarget;
+                          if (v.videoWidth && v.videoHeight) {
+                            updateVideoOrientation(idx, v.videoWidth, v.videoHeight);
+                          }
                           if (idx === activeIndex) {
-                            const v = e.currentTarget;
                             if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
                               setDuration(v.duration);
                             }
@@ -725,8 +763,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                             }
                           }
                         }}
-                        className="relative z-10 w-full h-full object-cover select-none cursor-pointer"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="relative z-10 w-full h-full select-none cursor-pointer"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          maxHeight: '100dvh',
+                          objectFit: isLandscapeVideo ? 'contain' : 'cover',
+                        }}
                       />
                     ) : (
                       <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center z-10 pointer-events-none">
