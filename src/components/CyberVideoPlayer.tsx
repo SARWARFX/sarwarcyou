@@ -135,6 +135,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const sliderPreviewVideoRef = useRef<HTMLVideoElement>(null);
   const gesturePreviewVideoRef = useRef<HTMLVideoElement>(null);
   const wasPlayingBeforeGesture = useRef(false);
+  const lastTimeUpdateRef = useRef<number>(0);
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -396,9 +397,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       setCurrentTime(targetTime);
     }
 
-    // Also update gesture preview video frame
-    if (gesturePreviewVideoRef.current && Math.abs(gesturePreviewVideoRef.current.currentTime - targetTime) > 0.15) {
-      gesturePreviewVideoRef.current.currentTime = targetTime;
+    // Also update gesture preview video frame lazily
+    if (gesturePreviewVideoRef.current) {
+      if (!gesturePreviewVideoRef.current.src || gesturePreviewVideoRef.current.src !== streamUrl) {
+        gesturePreviewVideoRef.current.src = streamUrl;
+      }
+      if (Math.abs(gesturePreviewVideoRef.current.currentTime - targetTime) > 0.15) {
+        gesturePreviewVideoRef.current.currentTime = targetTime;
+      }
     }
 
     resetHudTimer();
@@ -435,6 +441,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
       gestureFadeTimeoutRef.current = window.setTimeout(() => {
         setGestureSeek((prev) => ({ ...prev, isVisible: false }));
+        if (gesturePreviewVideoRef.current) {
+          try {
+            gesturePreviewVideoRef.current.pause();
+            gesturePreviewVideoRef.current.removeAttribute('src');
+            gesturePreviewVideoRef.current.load();
+          } catch (_) {}
+        }
       }, 400);
     } else if (!drag.hasMovedPastThreshold && !drag.isLockedVertical) {
       togglePlay();
@@ -459,6 +472,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
     gestureFadeTimeoutRef.current = window.setTimeout(() => {
       setGestureSeek((prev) => ({ ...prev, isVisible: false }));
+      if (gesturePreviewVideoRef.current) {
+        try {
+          gesturePreviewVideoRef.current.pause();
+          gesturePreviewVideoRef.current.removeAttribute('src');
+          gesturePreviewVideoRef.current.load();
+        } catch (_) {}
+      }
     }, 400);
 
     gestureDragRef.current = null;
@@ -536,8 +556,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       setCurrentTime(targetTime);
     }
 
-    if (gesturePreviewVideoRef.current && Math.abs(gesturePreviewVideoRef.current.currentTime - targetTime) > 0.15) {
-      gesturePreviewVideoRef.current.currentTime = targetTime;
+    if (gesturePreviewVideoRef.current) {
+      if (!gesturePreviewVideoRef.current.src || gesturePreviewVideoRef.current.src !== streamUrl) {
+        gesturePreviewVideoRef.current.src = streamUrl;
+      }
+      if (Math.abs(gesturePreviewVideoRef.current.currentTime - targetTime) > 0.15) {
+        gesturePreviewVideoRef.current.currentTime = targetTime;
+      }
     }
 
     resetHudTimer();
@@ -567,6 +592,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       if (gestureFadeTimeoutRef.current) window.clearTimeout(gestureFadeTimeoutRef.current);
       gestureFadeTimeoutRef.current = window.setTimeout(() => {
         setGestureSeek((prev) => ({ ...prev, isVisible: false }));
+        if (gesturePreviewVideoRef.current) {
+          try {
+            gesturePreviewVideoRef.current.pause();
+            gesturePreviewVideoRef.current.removeAttribute('src');
+            gesturePreviewVideoRef.current.load();
+          } catch (_) {}
+        }
       }, 400);
     }
 
@@ -608,9 +640,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       hoverTime: time,
     });
 
-    // Update timeslider hover preview video frame
-    if (sliderPreviewVideoRef.current && Math.abs(sliderPreviewVideoRef.current.currentTime - time) > 0.15) {
-      sliderPreviewVideoRef.current.currentTime = time;
+    // Lazily mount timeslider hover preview video frame on demand
+    if (sliderPreviewVideoRef.current) {
+      if (!sliderPreviewVideoRef.current.src || sliderPreviewVideoRef.current.src !== streamUrl) {
+        sliderPreviewVideoRef.current.src = streamUrl;
+      }
+      if (Math.abs(sliderPreviewVideoRef.current.currentTime - time) > 0.15) {
+        sliderPreviewVideoRef.current.currentTime = time;
+      }
     }
   };
 
@@ -620,6 +657,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   const handleSeekMouseLeave = () => {
     setSeekHover((prev) => ({ ...prev, isHovering: false }));
+    if (sliderPreviewVideoRef.current) {
+      try {
+        sliderPreviewVideoRef.current.pause();
+        sliderPreviewVideoRef.current.removeAttribute('src');
+        sliderPreviewVideoRef.current.load();
+      } catch (_) {}
+    }
   };
 
   // Toggle Fullscreen
@@ -1065,8 +1109,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/15 bg-black relative shadow-lg">
               <video
                 ref={gesturePreviewVideoRef}
-                src={streamUrl}
-                preload="auto"
+                src={gestureSeek.isActive ? streamUrl : undefined}
+                preload="none"
                 muted
                 playsInline
                 crossOrigin="anonymous"
@@ -1156,10 +1200,16 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   return;
                 }
               }
-              if (!isDraggingProgress.current && !gestureSeek.isActive) {
-                setCurrentTime(now);
-                if (videoRef.current.buffered.length > 0) {
-                  setBuffered(videoRef.current.buffered.end(videoRef.current.buffered.length - 1));
+
+              // Throttle state updates to at most once every 100ms for locked 60fps UI performance
+              const wallNow = performance.now();
+              if (wallNow - lastTimeUpdateRef.current >= 100) {
+                lastTimeUpdateRef.current = wallNow;
+                if (!isDraggingProgress.current && !gestureSeek.isActive) {
+                  setCurrentTime(now);
+                  if (videoRef.current.buffered.length > 0) {
+                    setBuffered(videoRef.current.buffered.end(videoRef.current.buffered.length - 1));
+                  }
                 }
               }
             }
@@ -1252,8 +1302,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               {/* Live Video Frame Preview */}
               <video
                 ref={sliderPreviewVideoRef}
-                src={streamUrl}
-                preload="auto"
+                src={seekHover.isHovering ? streamUrl : undefined}
+                preload="none"
                 muted
                 playsInline
                 crossOrigin="anonymous"

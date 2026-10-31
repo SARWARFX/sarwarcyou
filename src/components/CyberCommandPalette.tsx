@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Search, X, Play, Film, Camera, Sparkles, CornerDownLeft, ArrowDown, ArrowUp } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
@@ -46,51 +46,6 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
     }
   }, [isOpen]);
 
-  // Global keydown listeners for Palette navigation & dismissal
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-        return;
-      }
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev + 1) % filteredItems.length : 0));
-        return;
-      }
-
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev - 1 + filteredItems.length) % filteredItems.length : 0));
-        return;
-      }
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (filteredItems.length > 0 && filteredItems[selectedIndex]) {
-          handleSelectItem(filteredItems[selectedIndex]);
-        }
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectedIndex]);
-
-  // Keep highlighted item in view
-  useEffect(() => {
-    if (!resultsContainerRef.current) return;
-    const selectedEl = resultsContainerRef.current.children[selectedIndex] as HTMLElement | undefined;
-    if (selectedEl) {
-      selectedEl.scrollIntoView({ block: 'nearest' });
-    }
-  }, [selectedIndex]);
-
   // Fast in-memory fuzzy search & filtering
   const filteredItems = useMemo(() => {
     if (!items || items.length === 0) return [];
@@ -123,7 +78,7 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
     setSelectedIndex(0);
   }, [query, filter]);
 
-  const handleSelectItem = (item: StageMediaItem) => {
+  const handleSelectItem = useCallback((item: StageMediaItem) => {
     onClose();
 
     if (item.mediaType === 'short') {
@@ -136,7 +91,64 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
     } else {
       onOpenPhoto(item, [item], 0);
     }
-  };
+  }, [allShorts, onClose, onOpenPhoto, onOpenShort, onOpenVideo]);
+
+  // Synchronous refs to prevent stale closure reads in keydown listeners
+  const filteredItemsRef = useRef(filteredItems);
+  filteredItemsRef.current = filteredItems;
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const handleSelectItemRef = useRef(handleSelectItem);
+  handleSelectItemRef.current = handleSelectItem;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Global keydown listeners for Palette navigation & dismissal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      const currentFiltered = filteredItemsRef.current;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (currentFiltered.length > 0 ? (prev + 1) % currentFiltered.length : 0));
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (currentFiltered.length > 0 ? (prev - 1 + currentFiltered.length) % currentFiltered.length : 0));
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const curIdx = selectedIndexRef.current;
+        if (currentFiltered.length > 0 && currentFiltered[curIdx]) {
+          handleSelectItemRef.current(currentFiltered[curIdx]);
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Keep highlighted item in view
+  useEffect(() => {
+    if (!resultsContainerRef.current) return;
+    const selectedEl = resultsContainerRef.current.children[selectedIndex] as HTMLElement | undefined;
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selectedIndex]);
 
   if (!isOpen) return null;
 

@@ -421,17 +421,41 @@ function App() {
         }
       }
 
-      // 2. If the URL contains no media param, guarantee that ALL modal overlays are unmounted
+      // 2. Unmount media players
       setTheaterState({ isOpen: false, item: null, playlist: [] });
       setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
       setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
+
+      // 3. If albumQuery is present in URL, restore the previous album viewAllState
+      if (albumQuery) {
+        const isShortsAlbum = albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts';
+        if (isShortsAlbum) {
+          handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts', undefined, undefined, undefined, false);
+          return;
+        }
+        const folder = findMatchingFolder(rawFeed.albums, albumQuery);
+        if (folder) {
+          handleOpenViewAll(
+            folder.folder.name,
+            folder.folder.items,
+            folder.folder.variant,
+            undefined,
+            folder.folder.hasMultipleTypes,
+            folder.folder.typeCounts,
+            false
+          );
+          return;
+        }
+      }
+
+      // 4. If neither media nor album param is present, close album view as well
       setViewAllState({ isOpen: false, title: '', items: [] });
       historyDepthRef.current = 0;
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [rawFeed, openMediaItem]);
+  }, [rawFeed, openMediaItem, handleOpenViewAll]);
 
   // Deep Link Synchronizer: Parse Initial URL on load
   const hasInitializedUrlRef = useRef(false);
