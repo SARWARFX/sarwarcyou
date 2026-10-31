@@ -8,6 +8,7 @@ import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { CyberCommandPalette } from './components/CyberCommandPalette';
 import { AmbientNoticesHUD } from './components/AmbientNoticesHUD';
+import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import galaxyBg from './assets/galaxy.jpg';
 import type { StageMediaItem, SortOrder } from './types';
@@ -653,6 +654,9 @@ function App() {
       <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
         <AmbientNoticesHUD />
       </div>
+
+      {/* Global Network Connectivity Indicator (Online/Offline HUD) */}
+      <NetworkStatusHUD />
 
       {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
       {theaterState.isOpen && theaterState.item && (
