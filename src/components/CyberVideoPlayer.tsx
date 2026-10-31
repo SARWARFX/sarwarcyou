@@ -652,6 +652,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     if (videoRef.current) {
       try {
         videoRef.current.pause();
+        videoRef.current.src = '';
         videoRef.current.removeAttribute('src');
         videoRef.current.load();
       } catch {
@@ -661,6 +662,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     if (sliderPreviewVideoRef.current) {
       try {
         sliderPreviewVideoRef.current.pause();
+        sliderPreviewVideoRef.current.src = '';
         sliderPreviewVideoRef.current.removeAttribute('src');
         sliderPreviewVideoRef.current.load();
       } catch {
@@ -670,6 +672,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     if (gesturePreviewVideoRef.current) {
       try {
         gesturePreviewVideoRef.current.pause();
+        gesturePreviewVideoRef.current.src = '';
         gesturePreviewVideoRef.current.removeAttribute('src');
         gesturePreviewVideoRef.current.load();
       } catch {

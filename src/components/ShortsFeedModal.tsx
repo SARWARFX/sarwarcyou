@@ -130,6 +130,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         try {
           v.pause();
           v.muted = true;
+          v.src = '';
           v.removeAttribute('src');
           v.load();
         } catch {

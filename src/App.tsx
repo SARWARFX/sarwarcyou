@@ -129,24 +129,18 @@ function App() {
     }
   }, []);
 
-  const handleCloseModal = useCallback((type: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
-    if (historyDepthRef.current > 0) {
-      window.history.back();
-    } else {
-      if (type === 'lightbox') setLightboxState((prev) => ({ ...prev, isOpen: false }));
-      else if (type === 'theater') setTheaterState((prev) => ({ ...prev, isOpen: false }));
-      else if (type === 'shorts') setShortsState((prev) => ({ ...prev, isOpen: false }));
-      else if (type === 'viewAll') setViewAllState((prev) => ({ ...prev, isOpen: false }));
+  const handleCloseModal = useCallback((_type?: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
+    // 1. Immediately reset all modal states to completely unmount players
+    setTheaterState({ isOpen: false, item: null, playlist: [] });
+    setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
+    setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
+    setViewAllState({ isOpen: false, title: '', items: [] });
+    historyDepthRef.current = 0;
 
-      const { albumQuery } = parseUrlState();
-      if ((type === 'lightbox' || type === 'theater' || type === 'shorts') && albumQuery && albumQuery.toLowerCase() !== 'shorts') {
-        const targetUrl = buildAlbumUrl(albumQuery);
-        window.history.replaceState({ album: albumQuery }, '', targetUrl);
-      } else {
-        const targetUrl = buildHomeUrl();
-        window.history.replaceState({ tab: 'all' }, '', targetUrl);
-      }
-    }
+    // 2. Cleanly clear all player query parameters (media=..., album=...) from URL
+    // using replaceState so closing NEVER triggers nested back-stack loops
+    const targetUrl = buildHomeUrl();
+    window.history.replaceState({ tab: 'all' }, '', targetUrl);
   }, []);
 
   // Cyberpunk Command Palette State
@@ -229,7 +223,7 @@ function App() {
   // Organize raw catalog data into structured discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
 
-  // Universal Media Player / Lightbox Dispatcher
+  // Universal Media Player / Lightbox Dispatcher with strict mutual exclusivity
   const openMediaItem = useCallback(
     (item: StageMediaItem, playlistContext?: StageMediaItem[], preferredAlbum?: string, pushHistory = true) => {
       const isShort = Boolean(
@@ -241,10 +235,10 @@ function App() {
       );
 
       const isVid =
-        isShort ||
-        item.type === 'video' ||
-        item.mediaType === 'clip' ||
-        isVideoExtension(item.url || item.id || item.path);
+        !isShort &&
+        (item.type === 'video' ||
+         item.mediaType === 'clip' ||
+         isVideoExtension(item.url || item.id || item.path));
 
       if (isShort) {
         const fullShortsList =
@@ -258,15 +252,21 @@ function App() {
           (s) => s.id === item.id || s.url === item.url
         );
 
-        const targetItem = fullShortsList[targetIdx !== -1 ? targetIdx : 0] || item;
+        const targetIndex = targetIdx !== -1 ? targetIdx : 0;
+        const targetItem = fullShortsList[targetIndex] || item;
         const targetUrl = buildMediaUrl(targetItem, preferredAlbum || 'shorts');
         if (pushHistory) {
           pushModalState('shorts', targetUrl);
         }
+
+        // STRICT MUTUAL EXCLUSIVITY: Opening short -> set activeVideo = null, isVideoOpen = false, clear lightbox & viewAll
+        setTheaterState({ isOpen: false, item: null, playlist: [] });
+        setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
+        setViewAllState({ isOpen: false, title: '', items: [] });
         setShortsState({
           isOpen: true,
           shorts: fullShortsList,
-          initialIndex: targetIdx !== -1 ? targetIdx : 0,
+          initialIndex: targetIndex,
         });
         return;
       }
@@ -277,6 +277,11 @@ function App() {
         if (pushHistory) {
           pushModalState('theater', targetUrl);
         }
+
+        // STRICT MUTUAL EXCLUSIVITY: Opening video -> set activeShort = null, isShortsOpen = false, clear lightbox & viewAll
+        setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
+        setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
+        setViewAllState({ isOpen: false, title: '', items: [] });
         setTheaterState({
           isOpen: true,
           item,
@@ -286,7 +291,7 @@ function App() {
         return;
       }
 
-      // Photographic / Image asset
+      // Photographic / Image asset: Opening photo -> clear both active video and short states
       const photoPlaylist =
         playlistContext && playlistContext.length > 0
           ? playlistContext
@@ -296,18 +301,24 @@ function App() {
         (p) => p.id === item.id || p.url === item.url
       );
 
-      const targetItem = photoPlaylist[photoIdx !== -1 ? photoIdx : 0] || item;
+      const targetIndex = photoIdx !== -1 ? photoIdx : 0;
+      const targetItem = photoPlaylist[targetIndex] || item;
       const albumTarget = preferredAlbum || targetItem.category || targetItem.parentAlbum;
       const targetUrl = buildMediaUrl(targetItem, albumTarget);
 
       if (pushHistory) {
         pushModalState('lightbox', targetUrl);
       }
+
+      // STRICT MUTUAL EXCLUSIVITY: Opening photo -> clear both active video and short states
+      setTheaterState({ isOpen: false, item: null, playlist: [] });
+      setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
+      setViewAllState({ isOpen: false, title: '', items: [] });
       setLightboxState({
         isOpen: true,
-        item,
+        item: targetItem,
         items: photoPlaylist,
-        initialIndex: photoIdx !== -1 ? photoIdx : 0,
+        initialIndex: targetIndex,
         albumContext: albumTarget,
       });
     },
@@ -317,6 +328,27 @@ function App() {
   const handleSelectItem = useCallback(
     (item: StageMediaItem, playlistContext?: StageMediaItem[], preferredAlbum?: string) => {
       openMediaItem(item, playlistContext, preferredAlbum, true);
+    },
+    [openMediaItem]
+  );
+
+  const handleOpenPhoto = useCallback(
+    (photo: StageMediaItem, playlist: StageMediaItem[], _index: number) => {
+      openMediaItem(photo, playlist, photo.category || photo.parentAlbum, true);
+    },
+    [openMediaItem]
+  );
+
+  const handleOpenVideo = useCallback(
+    (video: StageMediaItem, playlist: StageMediaItem[]) => {
+      openMediaItem(video, playlist, video.category || video.parentAlbum, true);
+    },
+    [openMediaItem]
+  );
+
+  const handleOpenShort = useCallback(
+    (short: StageMediaItem, shorts: StageMediaItem[], _index: number) => {
+      openMediaItem(short, shorts, 'shorts', true);
     },
     [openMediaItem]
   );
@@ -385,40 +417,12 @@ function App() {
         }
       }
 
-      // 2. No mediaQuery: ensure all media viewer modals are CLOSED
-      setTheaterState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-      setLightboxState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-      setShortsState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
-
-      // 3. If albumQuery is present (and no mediaQuery), ensure the album modal is OPEN
-      if (albumQuery) {
-        const isShortsAlbum = albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts';
-        if (isShortsAlbum) {
-          setViewAllState({
-            isOpen: true,
-            title: 'Shorts',
-            items: rawFeed.shorts,
-            variant: 'shorts',
-          });
-        } else {
-          const folderToOpen = findMatchingFolder(rawFeed.albums, albumQuery);
-          if (folderToOpen) {
-            setViewAllState({
-              isOpen: true,
-              title: folderToOpen.folder.name,
-              subtitle: undefined,
-              items: folderToOpen.folder.items,
-              variant: folderToOpen.folder.variant,
-              hasMultipleTypes: folderToOpen.folder.hasMultipleTypes,
-              typeCounts: folderToOpen.folder.typeCounts,
-            });
-          }
-        }
-        return;
-      }
-
-      // 4. No albumQuery: ensure album modal is CLOSED
-      setViewAllState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+      // 2. If the URL contains no media param, guarantee that ALL modal overlays are unmounted
+      setTheaterState({ isOpen: false, item: null, playlist: [] });
+      setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
+      setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
+      setViewAllState({ isOpen: false, title: '', items: [] });
+      historyDepthRef.current = 0;
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -653,137 +657,103 @@ function App() {
           items={rawFeed.allMediaPool}
           initialAlbum={initialAlbumTarget}
           isNavDisabled={isCommandPaletteOpen || theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen}
-          onOpenPhoto={(photo, playlist, index) => {
-            const albumTarget = photo.category || photo.parentAlbum;
-            const targetUrl = buildMediaUrl(photo, albumTarget);
-            pushModalState('lightbox', targetUrl);
-            setLightboxState({
-              isOpen: true,
-              item: photo,
-              items: playlist,
-              initialIndex: index,
-              albumContext: albumTarget,
-            });
+          onOpenPhoto={handleOpenPhoto}
+          onOpenVideo={handleOpenVideo}
+          onOpenShort={handleOpenShort}
+        />
+      )}
+
+      {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
+      {theaterState.isOpen && theaterState.item && (
+        <CyberVideoPlayer
+          isOpen={theaterState.isOpen}
+          onClose={() => handleCloseModal('theater')}
+          item={theaterState.item}
+          playlist={theaterState.playlist}
+          allFolders={rawFeed.videoVaultFolders}
+          onSelectItem={(item) => {
+            setTheaterState((prev) => ({ ...prev, item }));
+            const targetUrl = buildMediaUrl(item, item.category || item.parentAlbum);
+            window.history.replaceState({ modalOpen: true, view: 'theater', id: item.id }, '', targetUrl);
           }}
-          onOpenVideo={(video, playlist) => {
-            const albumTarget = video.category || video.parentAlbum;
-            const targetUrl = buildMediaUrl(video, albumTarget);
-            pushModalState('theater', targetUrl);
-            setTheaterState({
-              isOpen: true,
-              item: video,
-              playlist,
-              albumContext: albumTarget,
-            });
+          onSelectFolder={(folder) => {
+            if (folder.items.length > 0) {
+              const firstItem = folder.items[0];
+              openMediaItem(firstItem, folder.items, folder.name, true);
+            }
           }}
-          onOpenShort={(short, shorts, index) => {
-            const targetUrl = buildMediaUrl(short, 'shorts');
-            pushModalState('shorts', targetUrl);
-            setShortsState({
-              isOpen: true,
-              shorts,
-              initialIndex: index,
+        />
+      )}
+
+      {/* 4. Single Global Shorts Feed Player (Reels) - Completely unmounted when closed */}
+      {shortsState.isOpen && shortsState.shorts.length > 0 && (
+        <ShortsFeedModal
+          isOpen={shortsState.isOpen}
+          onClose={() => handleCloseModal('shorts')}
+          shorts={shortsState.shorts}
+          initialIndex={shortsState.initialIndex}
+          onIndexChange={(idx) => {
+            setShortsState((prev) => ({
+              ...prev,
+              initialIndex: idx,
+            }));
+            const currentShort = shortsState.shorts[idx];
+            if (currentShort) {
+              const targetUrl = buildMediaUrl(currentShort, 'shorts');
+              window.history.replaceState({ modalOpen: true, view: 'shorts', id: currentShort.id }, '', targetUrl);
+            }
+          }}
+        />
+      )}
+
+      {/* 5. Single High-Definition Image Lightbox - Completely unmounted when closed */}
+      {lightboxState.isOpen && lightboxState.item && (
+        <MediaModal
+          isOpen={lightboxState.isOpen}
+          onClose={() => handleCloseModal('lightbox')}
+          url={lightboxState.item?.url || null}
+          type="image"
+          title={lightboxState.item?.title}
+          items={lightboxState.items}
+          currentIndex={lightboxState.initialIndex}
+          allFolders={rawFeed.photoVaultFolders}
+          onSelectFolder={(folder) => {
+            if (folder.items.length > 0) {
+              const firstItem = folder.items[0];
+              openMediaItem(firstItem, folder.items, folder.name, true);
+            }
+          }}
+          onIndexChange={(idx) => {
+            setLightboxState((prev) => {
+              const nextItem = prev.items[idx] || prev.item;
+              if (nextItem) {
+                const targetUrl = buildMediaUrl(nextItem, nextItem.category || nextItem.parentAlbum);
+                window.history.replaceState({ modalOpen: true, view: 'lightbox', id: nextItem.id }, '', targetUrl);
+              }
+              return {
+                ...prev,
+                initialIndex: idx,
+                item: nextItem,
+              };
             });
           }}
         />
       )}
 
-      {/* 3. Single Global Video Player (Clips) - STRICTLY UNTOUCHED */}
-      <CyberVideoPlayer
-        isOpen={theaterState.isOpen}
-        onClose={() => handleCloseModal('theater')}
-        item={theaterState.item}
-        playlist={theaterState.playlist}
-        allFolders={rawFeed.videoVaultFolders}
-        onSelectItem={(item) => {
-          setTheaterState((prev) => ({ ...prev, item }));
-          const targetUrl = buildMediaUrl(item, item.category || item.parentAlbum);
-          window.history.replaceState({ modalOpen: true, view: 'theater', id: item.id }, '', targetUrl);
-        }}
-        onSelectFolder={(folder) => {
-          if (folder.items.length > 0) {
-            const firstItem = folder.items[0];
-            const targetUrl = buildMediaUrl(firstItem, folder.name);
-            pushModalState('theater', targetUrl);
-            setTheaterState({
-              isOpen: true,
-              item: firstItem,
-              playlist: folder.items,
-            });
-          }
-        }}
-      />
-
-      {/* 4. Single Global Shorts Feed Player (Reels) - STRICTLY UNTOUCHED */}
-      <ShortsFeedModal
-        isOpen={shortsState.isOpen}
-        onClose={() => handleCloseModal('shorts')}
-        shorts={shortsState.shorts}
-        initialIndex={shortsState.initialIndex}
-        onIndexChange={(idx) => {
-          setShortsState((prev) => ({
-            ...prev,
-            initialIndex: idx,
-          }));
-          const currentShort = shortsState.shorts[idx];
-          if (currentShort) {
-            const targetUrl = buildMediaUrl(currentShort, 'shorts');
-            window.history.replaceState({ modalOpen: true, view: 'shorts', id: currentShort.id }, '', targetUrl);
-          }
-        }}
-      />
-
-      {/* 5. Single High-Definition Image Lightbox - STRICTLY UNTOUCHED */}
-      <MediaModal
-        isOpen={lightboxState.isOpen}
-        onClose={() => handleCloseModal('lightbox')}
-        url={lightboxState.item?.url || null}
-        type="image"
-        title={lightboxState.item?.title}
-        items={lightboxState.items}
-        currentIndex={lightboxState.initialIndex}
-        allFolders={rawFeed.photoVaultFolders}
-        onSelectFolder={(folder) => {
-          if (folder.items.length > 0) {
-            const firstItem = folder.items[0];
-            const targetUrl = buildMediaUrl(firstItem, folder.name);
-            pushModalState('lightbox', targetUrl);
-            setLightboxState({
-              isOpen: true,
-              item: firstItem,
-              items: folder.items,
-              initialIndex: 0,
-            });
-          }
-        }}
-        onIndexChange={(idx) => {
-          setLightboxState((prev) => {
-            const nextItem = prev.items[idx] || prev.item;
-            if (nextItem) {
-              const targetUrl = buildMediaUrl(nextItem, nextItem.category || nextItem.parentAlbum);
-              window.history.replaceState({ modalOpen: true, view: 'lightbox', id: nextItem.id }, '', targetUrl);
-            }
-            return {
-              ...prev,
-              initialIndex: idx,
-              item: nextItem,
-            };
-          });
-        }}
-      />
-
       {/* 6. FullAlbumViewModal (for backward compatibility / deep links) */}
-      <FullAlbumViewModal
-        isOpen={viewAllState.isOpen}
-        title={viewAllState.title}
-        subtitle={viewAllState.subtitle}
-        items={viewAllState.items}
-        variant={viewAllState.variant}
-        hasMultipleTypes={viewAllState.hasMultipleTypes}
-        typeCounts={viewAllState.typeCounts}
-        onClose={() => handleCloseModal('viewAll')}
-        onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
-      />
+      {viewAllState.isOpen && (
+        <FullAlbumViewModal
+          isOpen={viewAllState.isOpen}
+          title={viewAllState.title}
+          subtitle={viewAllState.subtitle}
+          items={viewAllState.items}
+          variant={viewAllState.variant}
+          hasMultipleTypes={viewAllState.hasMultipleTypes}
+          typeCounts={viewAllState.typeCounts}
+          onClose={() => handleCloseModal('viewAll')}
+          onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
+        />
+      )}
 
       {/* 7. Cyberpunk Command Palette (Ctrl+K / Cmd+K / "/") */}
       <CyberCommandPalette
@@ -791,38 +761,9 @@ function App() {
         onClose={() => setIsCommandPaletteOpen(false)}
         items={rawFeed.allMediaPool}
         allShorts={rawFeed.shorts}
-        onOpenPhoto={(photo, playlist, index) => {
-          const albumTarget = photo.category || photo.parentAlbum;
-          const targetUrl = buildMediaUrl(photo, albumTarget);
-          pushModalState('lightbox', targetUrl);
-          setLightboxState({
-            isOpen: true,
-            item: photo,
-            items: playlist,
-            initialIndex: index,
-            albumContext: albumTarget,
-          });
-        }}
-        onOpenVideo={(video, playlist) => {
-          const albumTarget = video.category || video.parentAlbum;
-          const targetUrl = buildMediaUrl(video, albumTarget);
-          pushModalState('theater', targetUrl);
-          setTheaterState({
-            isOpen: true,
-            item: video,
-            playlist,
-            albumContext: albumTarget,
-          });
-        }}
-        onOpenShort={(short, shorts, index) => {
-          const targetUrl = buildMediaUrl(short, 'shorts');
-          pushModalState('shorts', targetUrl);
-          setShortsState({
-            isOpen: true,
-            shorts,
-            initialIndex: index,
-          });
-        }}
+        onOpenPhoto={handleOpenPhoto}
+        onOpenVideo={handleOpenVideo}
+        onOpenShort={handleOpenShort}
       />
     </div>
   );
