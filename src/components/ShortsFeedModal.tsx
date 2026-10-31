@@ -13,13 +13,14 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getCachedVideoPoster, prewarmVideoStream } from '../utils/videoPosterGenerator';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getCachedThumbnailSync } from '../utils/clientVideoThumbnails';
-import { getMediaUrl } from '../utils/imageUrlResolver';
+import { getMediaUrl, getVideoStreamUrl, getDirectHfVideoUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
@@ -52,6 +53,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [readyVideos, setReadyVideos] = useState<Record<number, boolean>>({});
   const [landscapeVideos, setLandscapeVideos] = useState<Record<number, boolean>>({});
+  const [videoSourceOverrides, setVideoSourceOverrides] = useState<Record<number, string>>({});
+  const [videoErrors, setVideoErrors] = useState<Record<number, boolean>>({});
 
   const markVideoReady = useCallback((index: number) => {
     setReadyVideos((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
@@ -102,6 +105,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setCurrentTime(0);
     setDuration(0);
     setReadyVideos({});
+    setVideoSourceOverrides({});
+    setVideoErrors({});
     resetControlsTimer();
   }
 
@@ -156,6 +161,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }
     });
     setReadyVideos({});
+    setVideoSourceOverrides({});
+    setVideoErrors({});
     if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
     if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
     if (wheelLockTimerRef.current) window.clearTimeout(wheelLockTimerRef.current);
@@ -654,7 +661,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           const item = rawItem || ({} as Partial<StageMediaItem>);
           const isSnapped = idx === activeIndex;
           const isAdjacent = Math.abs(idx - activeIndex) <= 1;
-          const streamUrl = getMediaUrl(item.url || item.path || item.id || '');
+          const primaryStreamUrl = getVideoStreamUrl(item as StageMediaItem);
+          const directHfUrl = getDirectHfVideoUrl(item as StageMediaItem);
+          const streamUrl = videoSourceOverrides[idx] || primaryStreamUrl || directHfUrl;
           const rawPoster = (
             item.thumbnails?.[0] ||
             (item.url ? getCachedThumbnailSync(item.url) : '') ||
@@ -736,7 +745,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
                     >
                       <span className="text-[#00f0ff] font-bold">Reel {idx + 1} of {shorts.length}</span>
-                      {item.date && (
+                      {item.date && typeof item.date === 'number' && item.date > 0 && !isNaN(new Date(item.date).getTime()) && (
                         <>
                           <span className="text-zinc-600">•</span>
                           <span>{new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -906,6 +915,29 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                             }
                           }
                         }}
+                        onError={(e) => {
+                          const v = e.currentTarget;
+                          // Distinguish between actual network/codec failure and initial buffering
+                          if (!v.error) {
+                            return;
+                          }
+
+                          // If primary stream failed, attempt direct Hugging Face raw resolve endpoint fallback
+                          if (!videoSourceOverrides[idx] && directHfUrl && streamUrl !== directHfUrl) {
+                            console.warn(`[ShortsPlayer] Stream failed on ${streamUrl}, falling back to direct HF CDN: ${directHfUrl}`);
+                            setVideoSourceOverrides((prev) => ({ ...prev, [idx]: directHfUrl }));
+                            v.src = directHfUrl;
+                            v.load();
+                            if (isSnapped) {
+                              v.play().catch(console.error);
+                            }
+                            return;
+                          }
+
+                          // If fallback also failed or video.error is active after attempted load
+                          console.error(`[ShortsPlayer] Video load error code ${v.error.code} on index ${idx}:`, v.error.message);
+                          setVideoErrors((prev) => ({ ...prev, [idx]: true }));
+                        }}
                         className="relative z-10 w-full h-full select-none cursor-pointer"
                         style={{
                           width: '100%',
@@ -919,6 +951,39 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
                           <Play className="w-5 h-5 text-white/50 fill-current ml-0.5" />
                         </div>
+                      </div>
+                    )}
+
+                    {/* Active Playback Error Overlay (Only shown if video.error is active after attempted load and no fallback succeeds) */}
+                    {videoErrors[idx] && (
+                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-black/85 backdrop-blur-md">
+                        <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mb-3 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                          <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-base font-bold text-white mb-1">Playback Error</h3>
+                        <p className="text-xs text-zinc-300 font-mono mb-4 max-w-xs">
+                          Unable to stream video. The media file or network may be temporarily unavailable.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVideoErrors((prev) => {
+                              const next = { ...prev };
+                              delete next[idx];
+                              return next;
+                            });
+                            const v = videoRefs.current[idx];
+                            if (v) {
+                              v.src = directHfUrl || primaryStreamUrl;
+                              v.load();
+                              v.play().catch(console.error);
+                            }
+                          }}
+                          className="py-1.5 px-4 rounded-xl bg-white/10 hover:bg-[#00f0ff]/20 border border-white/20 hover:border-[#00f0ff] text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95"
+                        >
+                          Retry Video
+                        </button>
                       </div>
                     )}
 

@@ -87,6 +87,7 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Thumbnails\/Images\/works\//i, 'Thumbnails/Photographs/Favourite Images/');
     clean = clean.replace(/^Thumbnails\/Images\/Classic(?:\s*)\//i, 'Thumbnails/Photographs/Classic Images/');
     clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
+    clean = clean.replace(/^Thumbnails\/Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Thumbnails/Shorts/Shorts Classic/$1');
   } else {
     clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
     clean = clean.replace(/^Clips\/H2026\//i, 'Video Clips/Clips 2026/');
@@ -101,6 +102,7 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Images\/works\//i, 'Photographs/Favourite Images/');
     clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
     clean = clean.replace(/^Images\//i, 'Photographs/');
+    clean = clean.replace(/^Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Shorts/Shorts Classic/$1');
   }
 
   return clean;
@@ -198,6 +200,51 @@ export function getMediaUrl(relativePath?: string | null): string {
   }
 
   return `${MEDIA_CDN_BASE}/${encodedPath}`;
+}
+
+/**
+ * Resolves the primary streaming URL for a video (via Cloudflare edge proxy).
+ */
+export function getVideoStreamUrl(
+  itemOrPath?: string | { url?: string; path?: string; id?: string } | null
+): string {
+  if (!itemOrPath) return '';
+  if (typeof itemOrPath === 'string') {
+    return getMediaUrl(itemOrPath);
+  }
+  const rawPath = itemOrPath.url || itemOrPath.path || itemOrPath.id || '';
+  return getMediaUrl(rawPath);
+}
+
+/**
+ * Resolves the direct Hugging Face raw/resolve streaming URL (with ?raw=true)
+ * for resilient playback fallback directly from the Hugging Face dataset CDN.
+ */
+export function getDirectHfVideoUrl(
+  itemOrPath?: string | { url?: string; path?: string; id?: string } | null
+): string {
+  if (!itemOrPath) return '';
+  const raw =
+    typeof itemOrPath === 'string'
+      ? itemOrPath
+      : itemOrPath.path || itemOrPath.url || itemOrPath.id || '';
+  if (!raw) return '';
+
+  let path = raw.replace(/#t=[\d.,]+$/i, '').split('?')[0].trim();
+  if (path.startsWith('blob:') || path.startsWith('data:')) return path;
+  if (/^https?:\/\//i.test(path) && !path.includes('huggingface.co') && !path.includes('media.sarwar.cyou')) {
+    return path;
+  }
+
+  path = path.replace(/^https?:\/\/huggingface\.co\/datasets\/[^/]+\/[^/]+\/(?:resolve|raw|tree)\/main\//i, '');
+  path = path.replace(/^https?:\/\/media\.sarwar\.cyou\//i, '');
+
+  const normalized = normalizeRepoPath(path);
+  const cleanPath = normalized.replace(/^\/+/, '');
+  if (!cleanPath) return '';
+
+  const encodedPath = encodeMediaPathSegments(cleanPath);
+  return `${HF_RESOLVE_BASE}/${encodedPath}?raw=true`;
 }
 
 export function getDirectImageUrl(

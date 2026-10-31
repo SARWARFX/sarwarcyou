@@ -165,6 +165,7 @@ export function organizeVaultFeed(
       title,
       name: title,
       url: mediaUrl,
+      path: clean,
       thumbnail: defaultThumb,
       poster: isVid ? staticThumb : undefined,
       posterUrl: isVid ? staticThumb : undefined,

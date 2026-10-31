@@ -10,7 +10,7 @@ import { CyberCommandPalette } from './components/CyberCommandPalette';
 import { AmbientNoticesHUD } from './components/AmbientNoticesHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import galaxyBg from './assets/galaxy.jpg';
-import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
+import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
   parseUrlState,
@@ -19,6 +19,7 @@ import {
   findMatchingFolder,
   getAlbumSlug,
   getMediaSlug,
+  searchCatalogRecursively,
 } from './utils/urlRouter';
 
 function buildHomeUrl(): string {
@@ -403,26 +404,15 @@ function App() {
 
       // 1. If mediaQuery is present, open or switch to that media item directly
       if (mediaQuery) {
-        const isShortsAlbum = albumQuery
-          ? albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts'
-          : false;
-
-        let scopedPool: StageMediaItem[] | undefined;
-        if (albumQuery) {
-          if (isShortsAlbum) {
-            scopedPool = rawFeed.shorts;
-          } else {
-            const folderMatch = findMatchingFolder(rawFeed.albums, albumQuery);
-            if (folderMatch) {
-              scopedPool = folderMatch.folder.items;
-            }
-          }
-        }
-
-        const pool = scopedPool || rawFeed.allMediaPool;
-        const matched = findMatchingMediaItem(pool, mediaQuery);
-        if (matched) {
-          openMediaItem(matched.item, pool, albumQuery || undefined, false);
+        const resolved = searchCatalogRecursively(
+          rawFeed.albums,
+          rawFeed.allMediaPool,
+          rawFeed.shorts,
+          albumQuery,
+          mediaQuery
+        );
+        if (resolved && resolved.matchedItem) {
+          openMediaItem(resolved.matchedItem, resolved.playlist, resolved.preferredAlbum, false);
           return;
         }
       }
@@ -452,68 +442,24 @@ function App() {
       return;
     }
 
-    // 1. Resolve album context if albumQuery is provided
-    let scopedPool: StageMediaItem[] | undefined;
-    let resolvedFolder: { folder: MediaFolderEntry; index: number } | null = null;
     const isShortsAlbum = albumQuery
       ? albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts'
       : false;
 
-    if (albumQuery) {
-      if (isShortsAlbum) {
-        scopedPool = rawFeed.shorts;
-      } else {
-        resolvedFolder = findMatchingFolder(rawFeed.albums, albumQuery);
-        if (resolvedFolder) {
-          scopedPool = resolvedFolder.folder.items;
-        }
-      }
-    }
-
     if (mediaQuery) {
-      let matchedItem: StageMediaItem | null = null;
-      let matchedContext: StageMediaItem[] | undefined;
+      const resolved = searchCatalogRecursively(
+        rawFeed.albums,
+        rawFeed.allMediaPool,
+        rawFeed.shorts,
+        albumQuery,
+        mediaQuery
+      );
 
-      if (albumQuery) {
-        if (scopedPool && scopedPool.length > 0) {
-          const scopedMatch = findMatchingMediaItem(scopedPool, mediaQuery);
-          if (scopedMatch) {
-            matchedItem = scopedMatch.item;
-            matchedContext = scopedPool;
-          }
-        }
-      } else {
-        const allItems: StageMediaItem[] = [
-          ...(rawFeed.shorts || []),
-          ...(rawFeed.latestReleases || []),
-          ...rawFeed.albums.flatMap((f) => f.items),
-          ...(rawFeed.allMediaPool || []),
-        ];
-        const seen = new Set<string>();
-        const uniquePool = allItems.filter((item) => {
-          const key = item.id || item.url;
-          if (!key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        const fallbackMatch = findMatchingMediaItem(uniquePool, mediaQuery);
-        if (fallbackMatch) {
-          matchedItem = fallbackMatch.item;
-          if (matchedItem.mediaType === 'short') {
-            matchedContext = rawFeed.shorts;
-          } else if (matchedItem.category) {
-            const folderMatch = findMatchingFolder(rawFeed.albums, matchedItem.category);
-            if (folderMatch) {
-              matchedContext = folderMatch.folder.items;
-            }
-          }
-        }
-      }
-
-      if (matchedItem) {
+      if (resolved && resolved.matchedItem) {
         hasInitializedUrlRef.current = true;
-        const preferredAlbum = albumQuery || (matchedItem.category ? getAlbumSlug(matchedItem.category) : undefined);
+        const matchedItem = resolved.matchedItem;
+        const matchedContext = resolved.playlist;
+        const preferredAlbum = resolved.preferredAlbum;
         const mediaUrl = buildMediaUrl(matchedItem, preferredAlbum);
 
         window.history.replaceState({ tab: 'all' }, '', buildHomeUrl());
@@ -523,7 +469,7 @@ function App() {
           window.history.pushState({ album: preferredAlbum }, '', albumUrl);
           historyDepthRef.current++;
 
-          const folder = resolvedFolder || findMatchingFolder(rawFeed.albums, preferredAlbum);
+          const folder = findMatchingFolder(rawFeed.albums, preferredAlbum);
           if (folder) {
             setViewAllState({
               isOpen: true,
@@ -554,7 +500,7 @@ function App() {
       if (isShortsAlbum) {
         handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts', undefined, undefined, undefined, false);
       } else {
-        const folderToOpen = resolvedFolder || findMatchingFolder(rawFeed.albums, albumQuery);
+        const folderToOpen = findMatchingFolder(rawFeed.albums, albumQuery);
         if (folderToOpen) {
           handleOpenViewAll(
             folderToOpen.folder.name,
