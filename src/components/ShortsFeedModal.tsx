@@ -80,6 +80,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const accumulatedWheelDeltaRef = useRef(0);
   const wheelResetTimerRef = useRef<number | null>(null);
 
+  // Synchronous refs to prevent stale closure reads in event listeners
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
+
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);
 
@@ -168,6 +174,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (wheelResetTimerRef.current) window.clearTimeout(wheelResetTimerRef.current);
     isWheelLockedRef.current = false;
     accumulatedWheelDeltaRef.current = 0;
+
+    // Clean up dynamically injected preload links from document head
+    try {
+      const preloadLink = document.getElementById('preload-next-short-video');
+      if (preloadLink && preloadLink.parentNode) {
+        preloadLink.parentNode.removeChild(preloadLink);
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   const handleClose = useCallback(() => {
@@ -203,7 +219,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       const scrollTop = container.scrollTop;
       const targetIndex = Math.round(scrollTop / h);
 
-      if (targetIndex !== activeIndex && targetIndex >= 0 && targetIndex < shorts.length) {
+      if (targetIndex !== activeIndexRef.current && targetIndex >= 0 && targetIndex < shorts.length) {
+        activeIndexRef.current = targetIndex;
+
         // Synchronously silence & pause all non-target videos immediately
         videoRefs.current.forEach((v, i) => {
           if (v && i !== targetIndex) {
@@ -215,7 +233,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         const targetVideo = videoRefs.current[targetIndex];
         if (targetVideo) {
           activeVideoRef.current = targetVideo;
-          targetVideo.muted = isMuted;
+          targetVideo.muted = isMutedRef.current;
           const playPromise = targetVideo.play();
           if (playPromise !== undefined) {
             playPromise
@@ -224,6 +242,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 console.warn("Autoplay blocked, falling back to muted:", err);
                 targetVideo.muted = true;
                 setIsMuted(true);
+                isMutedRef.current = true;
                 targetVideo.play().then(() => setIsPlaying(true)).catch(console.error);
               });
           }
@@ -249,7 +268,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [isOpen, activeIndex, shorts, resetControlsTimer]);
+  }, [isOpen, shorts, resetControlsTimer]);
 
   // =========================================================================
   // DESKTOP MOUSE WHEEL DEBOUNCING & SNAP PHYSICS:
@@ -278,13 +297,21 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         accumulatedWheelDeltaRef.current = 0;
       }, 150);
 
-      accumulatedWheelDeltaRef.current += e.deltaY;
+      // Normalize wheel delta by deltaMode (Firefox line mode = 1, page mode = 2)
+      let normalizedDeltaY = e.deltaY;
+      if (e.deltaMode === 1) {
+        normalizedDeltaY *= 16;
+      } else if (e.deltaMode === 2 && typeof window !== 'undefined') {
+        normalizedDeltaY *= window.innerHeight;
+      }
 
-      // On first valid wheel tick exceeding threshold (> 30px)
+      accumulatedWheelDeltaRef.current += normalizedDeltaY;
+
+      // On first valid wheel tick exceeding threshold (>= 30px)
       if (Math.abs(accumulatedWheelDeltaRef.current) >= 30) {
         const direction = accumulatedWheelDeltaRef.current > 0 ? 1 : -1;
         accumulatedWheelDeltaRef.current = 0;
-        const targetIndex = activeIndex + direction;
+        const targetIndex = activeIndexRef.current + direction;
 
         // If at top or bottom boundaries, prevent browser window bounce
         if (targetIndex < 0 || targetIndex >= shorts.length) {
@@ -297,6 +324,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
         // Lock incoming wheel events immediately
         isWheelLockedRef.current = true;
+        activeIndexRef.current = targetIndex;
 
         // Pause non-target videos immediately during transition to free GPU decoders
         videoRefs.current.forEach((v, i) => {
@@ -339,7 +367,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         wheelResetTimerRef.current = null;
       }
     };
-  }, [isOpen, activeIndex, shorts.length]);
+  }, [isOpen, shorts.length]);
 
   // Autoplay currently snapped reel and guarantee all other videos are muted & paused
   useEffect(() => {
@@ -633,7 +661,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         {/* Right: Floating Minimal Glass Close Button */}
         <button
           type="button"
-          onClick={() => onClose()}
+          onClick={handleClose}
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.5)] flex items-center justify-center pointer-events-auto transition-all duration-300 cursor-pointer active:scale-95"
           title="Close (Esc)"
           aria-label="Close"
@@ -674,7 +702,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           const displayTitle = sanitizeMediaTitle(item.title || item.name || 'Short', item.category || 'Short');
           const albumName = item.category || item.parentAlbum || 'Shorts';
           const fileName = (item.name || item.path?.split('/').pop() || '').trim();
-          const isLandscapeVideo = Boolean(landscapeVideos[idx]);
+          const videoEl = videoRefs.current[idx];
+          const isLandscapeVideo = Boolean(
+            landscapeVideos[idx] ||
+            (videoEl && videoEl.videoWidth > 0 && videoEl.videoHeight > 0 && videoEl.videoWidth > videoEl.videoHeight)
+          );
 
           return (
             <div
@@ -757,7 +789,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 {/* ================= 2. VIDEO STAGE (Full Screen on Mobile, Aspect 9:16 on Desktop) ================= */}
                 <div className="relative flex flex-col items-center flex-shrink-0 w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto md:h-auto p-0 m-0 border-0 rounded-none">
                   <div
-                    className={`relative w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto md:h-[86vh] md:max-h-[840px] md:aspect-[9/16] rounded-none md:rounded-3xl overflow-hidden flex items-center justify-center shadow-none md:shadow-[0_20px_60px_rgba(0,0,0,0.95)] border-0 md:border md:border-white/10 group cursor-pointer p-0 m-0 ${
+                    className={`relative w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto ${
+                      isLandscapeVideo
+                        ? 'md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[820px]'
+                        : 'md:aspect-[9/16] md:h-[86vh] md:max-h-[840px]'
+                    } rounded-none md:rounded-3xl overflow-hidden flex items-center justify-center shadow-none md:shadow-[0_20px_60px_rgba(0,0,0,0.95)] border-0 md:border md:border-white/10 group cursor-pointer p-0 m-0 ${
                       isLandscapeVideo ? 'bg-transparent md:bg-black/25' : 'bg-black'
                     }`}
                     style={{

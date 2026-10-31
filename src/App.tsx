@@ -379,6 +379,10 @@ function App() {
       if (pushHistory) {
         pushModalState('viewAll', targetUrl);
       }
+      // STRICT MUTUAL EXCLUSIVITY: Explicitly reset all player states when opening album view
+      setTheaterState({ isOpen: false, item: null, playlist: [] });
+      setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
+      setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
       setViewAllState({
         isOpen: true,
         title: albumTitle,
@@ -709,29 +713,35 @@ function App() {
 
       {/* 6. FullAlbumViewModal (for backward compatibility / deep links) */}
       {viewAllState.isOpen && (
-        <FullAlbumViewModal
-          isOpen={viewAllState.isOpen}
-          title={viewAllState.title}
-          subtitle={viewAllState.subtitle}
-          items={viewAllState.items}
-          variant={viewAllState.variant}
-          hasMultipleTypes={viewAllState.hasMultipleTypes}
-          typeCounts={viewAllState.typeCounts}
-          onClose={() => handleCloseModal('viewAll')}
-          onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
-        />
+        <PlayerErrorBoundary onClose={() => handleCloseModal('viewAll')} fallbackTitle="Album View Error">
+          <FullAlbumViewModal
+            isOpen={viewAllState.isOpen}
+            title={viewAllState.title}
+            subtitle={viewAllState.subtitle}
+            items={viewAllState.items}
+            variant={viewAllState.variant}
+            hasMultipleTypes={viewAllState.hasMultipleTypes}
+            typeCounts={viewAllState.typeCounts}
+            onClose={() => handleCloseModal('viewAll')}
+            onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
+          />
+        </PlayerErrorBoundary>
       )}
 
       {/* 7. Cyberpunk Command Palette (Ctrl+K / Cmd+K / "/") */}
-      <CyberCommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        items={rawFeed.allMediaPool}
-        allShorts={rawFeed.shorts}
-        onOpenPhoto={handleOpenPhoto}
-        onOpenVideo={handleOpenVideo}
-        onOpenShort={handleOpenShort}
-      />
+      {isCommandPaletteOpen && (
+        <PlayerErrorBoundary onClose={() => setIsCommandPaletteOpen(false)} fallbackTitle="Command Palette Error">
+          <CyberCommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            items={rawFeed.allMediaPool}
+            allShorts={rawFeed.shorts}
+            onOpenPhoto={handleOpenPhoto}
+            onOpenVideo={handleOpenVideo}
+            onOpenShort={handleOpenShort}
+          />
+        </PlayerErrorBoundary>
+      )}
     </div>
   );
 }

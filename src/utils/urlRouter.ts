@@ -112,10 +112,19 @@ export function parseUrlState(): ParsedRouteState {
     }
   }
 
+  const safeDecode = (val: string | null | undefined): string | null => {
+    if (!val) return null;
+    try {
+      return decodeURIComponent(val);
+    } catch {
+      return val;
+    }
+  };
+
   return {
-    albumQuery: albumQuery ? decodeURIComponent(albumQuery) : null,
-    mediaQuery: mediaQuery ? decodeURIComponent(mediaQuery) : null,
-    sortQuery: sortQuery ? decodeURIComponent(sortQuery) : null,
+    albumQuery: safeDecode(albumQuery),
+    mediaQuery: safeDecode(mediaQuery),
+    sortQuery: safeDecode(sortQuery),
     tabQuery,
   };
 }
@@ -129,7 +138,12 @@ export function findMatchingAlbum(
 ): { album: AlbumData; index: number } | null {
   if (!query || !albums || albums.length === 0) return null;
 
-  const rawQuery = decodeURIComponent(query).trim().toLowerCase();
+  let rawQuery = query.trim().toLowerCase();
+  try {
+    rawQuery = decodeURIComponent(rawQuery).trim().toLowerCase();
+  } catch {
+    // keep rawQuery if malformed
+  }
   const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
   // 1. Match by slug
@@ -167,7 +181,12 @@ export function findMatchingFolder(
 ): { folder: MediaFolderEntry; index: number } | null {
   if (!query || !folders || folders.length === 0) return null;
 
-  const rawQuery = decodeURIComponent(query).trim().toLowerCase();
+  let rawQuery = query.trim().toLowerCase();
+  try {
+    rawQuery = decodeURIComponent(rawQuery).trim().toLowerCase();
+  } catch {
+    // keep rawQuery if malformed
+  }
   const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
   let idx = folders.findIndex((f) => {
