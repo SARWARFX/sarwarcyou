@@ -40,7 +40,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   initialIndex,
   onIndexChange,
 }) => {
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const safeInitialIndex = Math.max(0, Math.min(initialIndex || 0, Math.max(0, (shorts?.length || 1) - 1)));
+  const [activeIndex, setActiveIndex] = useState(safeInitialIndex);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [centerPulse, setCenterPulse] = useState<'play' | 'pause' | null>(null);
@@ -96,7 +97,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [prevProps, setPrevProps] = useState({ initialIndex, isOpen });
   if (prevProps.initialIndex !== initialIndex || prevProps.isOpen !== isOpen) {
     setPrevProps({ initialIndex, isOpen });
-    setActiveIndex(initialIndex);
+    setActiveIndex(safeInitialIndex);
     setIsPlaying(true);
     setCurrentTime(0);
     setDuration(0);
@@ -119,15 +120,18 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   // Scroll to active index on open or initialIndex change
   useEffect(() => {
-    if (isOpen && containerRef.current && initialIndex >= 0) {
-      const target = slideRefs.current[initialIndex];
+    if (isOpen && containerRef.current && shorts && shorts.length > 0) {
+      const targetIdx = Math.max(0, Math.min(initialIndex || 0, shorts.length - 1));
+      const target = slideRefs.current[targetIdx];
       if (target) {
         requestAnimationFrame(() => {
-          target.scrollIntoView({ behavior: 'instant', block: 'start' });
+          target.scrollIntoView({ behavior: 'auto', block: 'start' });
         });
+      } else if (containerRef.current) {
+        containerRef.current.scrollTop = targetIdx * containerRef.current.clientHeight;
       }
     }
-  }, [isOpen, initialIndex]);
+  }, [isOpen, initialIndex, shorts]);
 
   // Synchronize active media index with parent / URL router
   useEffect(() => {
@@ -524,10 +528,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   // Share Deep Link (Copies URL)
   const handleShare = useCallback(
-    async (item: StageMediaItem) => {
+    async (item?: StageMediaItem | Partial<StageMediaItem> | null) => {
       if (!item) return;
       resetControlsTimer();
-      const shareUrl = createShareableMediaUrl(item, 'shorts');
+      const shareUrl = createShareableMediaUrl(item as StageMediaItem, 'shorts');
       const success = await copyToClipboard(shareUrl);
       if (success) {
         setCopiedLink(true);
@@ -539,14 +543,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   // Branded Video Download
   const handleDownload = useCallback(
-    async (item: StageMediaItem) => {
+    async (item?: StageMediaItem | Partial<StageMediaItem> | null) => {
       if (!item || isDownloading) return;
       resetControlsTimer();
       setIsDownloading(true);
       setDownloadSuccess(false);
       try {
-        const dlUrl = getMediaUrl(item.url);
-        await downloadBrandedVideo(dlUrl, item.title || item.id, 'short');
+        const dlUrl = getMediaUrl(item.url || item.path || item.id || '');
+        await downloadBrandedVideo(dlUrl, item.title || item.name || item.id || 'short', 'short');
         setDownloadSuccess(true);
         setTimeout(() => setDownloadSuccess(false), 2200);
       } catch (err) {
@@ -574,15 +578,23 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     [activeIndex, duration, resetControlsTimer]
   );
 
-  if (!isOpen || !shorts.length) return null;
+  if (!isOpen || !shorts || !shorts.length) return null;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Shorts Player"
-      className="fixed inset-0 z-[9999] w-full h-[100dvh] text-white select-none overflow-hidden touch-none"
+      className="fixed inset-0 z-50 w-[100vw] h-[100dvh] text-white select-none overflow-hidden flex justify-center items-center"
       style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
+        zIndex: 50,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         background: 'rgba(3, 5, 10, 0.55)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
@@ -627,8 +639,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* 2. Full-Screen Vertical Swipe Feed (100dvh with Native CSS Scroll Snapping) */}
       <div
         ref={containerRef}
-        className="w-full h-[100dvh] overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth no-scrollbar"
+        className="w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth no-scrollbar"
         style={{
+          width: '100%',
+          height: '100%',
           scrollSnapType: 'y mandatory',
           scrollBehavior: 'smooth',
           overflowY: 'scroll',
@@ -636,19 +650,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {shorts.map((item, idx) => {
+        {shorts.map((rawItem, idx) => {
+          const item = rawItem || ({} as Partial<StageMediaItem>);
           const isSnapped = idx === activeIndex;
           const isAdjacent = Math.abs(idx - activeIndex) <= 1;
-          const streamUrl = getMediaUrl(item.url || item.path || item.id);
+          const streamUrl = getMediaUrl(item.url || item.path || item.id || '');
           const rawPoster = (
             item.thumbnails?.[0] ||
-            getCachedThumbnailSync(item.url) ||
-            getCachedVideoPoster(item.url) ||
+            (item.url ? getCachedThumbnailSync(item.url) : '') ||
+            (item.url ? getCachedVideoPoster(item.url) : '') ||
             item.thumbnail ||
             ''
           );
           const shortPoster = rawPoster && !isVideoExtension(rawPoster) ? getMediaUrl(rawPoster) : '';
-          const displayTitle = sanitizeMediaTitle(item.title, item.category || 'Short');
+          const displayTitle = sanitizeMediaTitle(item.title || item.name || 'Short', item.category || 'Short');
           const albumName = item.category || item.parentAlbum || 'Shorts';
           const fileName = (item.name || item.path?.split('/').pop() || '').trim();
           const isLandscapeVideo = Boolean(landscapeVideos[idx]);

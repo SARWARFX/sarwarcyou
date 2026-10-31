@@ -8,6 +8,7 @@ import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { CyberCommandPalette } from './components/CyberCommandPalette';
 import { AmbientNoticesHUD } from './components/AmbientNoticesHUD';
+import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import galaxyBg from './assets/galaxy.jpg';
 import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
@@ -249,9 +250,17 @@ function App() {
             ? rawFeed.shorts
             : [item];
 
-        const targetIdx = fullShortsList.findIndex(
-          (s) => s.id === item.id || s.url === item.url
+        let targetIdx = fullShortsList.findIndex(
+          (s) => (s.id && item.id && s.id === item.id) || (s.url && item.url && s.url === item.url)
         );
+
+        if (targetIdx === -1) {
+          const itemQuery = item.title || item.name || item.id || '';
+          const matchResult = findMatchingMediaItem(fullShortsList, itemQuery);
+          if (matchResult) {
+            targetIdx = matchResult.index;
+          }
+        }
 
         const targetIndex = targetIdx !== -1 ? targetIdx : 0;
         const targetItem = fullShortsList[targetIndex] || item;
@@ -673,79 +682,85 @@ function App() {
 
       {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
       {theaterState.isOpen && theaterState.item && (
-        <CyberVideoPlayer
-          isOpen={theaterState.isOpen}
-          onClose={() => handleCloseModal('theater')}
-          item={theaterState.item}
-          playlist={theaterState.playlist}
-          allFolders={rawFeed.videoVaultFolders}
-          onSelectItem={(item) => {
-            setTheaterState((prev) => ({ ...prev, item }));
-            const targetUrl = buildMediaUrl(item, item.category || item.parentAlbum);
-            window.history.replaceState({ modalOpen: true, view: 'theater', id: item.id }, '', targetUrl);
-          }}
-          onSelectFolder={(folder) => {
-            if (folder.items.length > 0) {
-              const firstItem = folder.items[0];
-              openMediaItem(firstItem, folder.items, folder.name, true);
-            }
-          }}
-        />
+        <PlayerErrorBoundary onClose={() => handleCloseModal('theater')} fallbackTitle="Video Player Error">
+          <CyberVideoPlayer
+            isOpen={theaterState.isOpen}
+            onClose={() => handleCloseModal('theater')}
+            item={theaterState.item}
+            playlist={theaterState.playlist}
+            allFolders={rawFeed.videoVaultFolders}
+            onSelectItem={(item) => {
+              setTheaterState((prev) => ({ ...prev, item }));
+              const targetUrl = buildMediaUrl(item, item.category || item.parentAlbum);
+              window.history.replaceState({ modalOpen: true, view: 'theater', id: item.id }, '', targetUrl);
+            }}
+            onSelectFolder={(folder) => {
+              if (folder.items.length > 0) {
+                const firstItem = folder.items[0];
+                openMediaItem(firstItem, folder.items, folder.name, true);
+              }
+            }}
+          />
+        </PlayerErrorBoundary>
       )}
 
       {/* 4. Single Global Shorts Feed Player (Reels) - Completely unmounted when closed */}
       {shortsState.isOpen && shortsState.shorts.length > 0 && (
-        <ShortsFeedModal
-          isOpen={shortsState.isOpen}
-          onClose={() => handleCloseModal('shorts')}
-          shorts={shortsState.shorts}
-          initialIndex={shortsState.initialIndex}
-          onIndexChange={(idx) => {
-            setShortsState((prev) => ({
-              ...prev,
-              initialIndex: idx,
-            }));
-            const currentShort = shortsState.shorts[idx];
-            if (currentShort) {
-              const targetUrl = buildMediaUrl(currentShort, 'shorts');
-              window.history.replaceState({ modalOpen: true, view: 'shorts', id: currentShort.id }, '', targetUrl);
-            }
-          }}
-        />
+        <PlayerErrorBoundary onClose={() => handleCloseModal('shorts')} fallbackTitle="Shorts Player Error">
+          <ShortsFeedModal
+            isOpen={shortsState.isOpen}
+            onClose={() => handleCloseModal('shorts')}
+            shorts={shortsState.shorts}
+            initialIndex={shortsState.initialIndex}
+            onIndexChange={(idx) => {
+              setShortsState((prev) => ({
+                ...prev,
+                initialIndex: idx,
+              }));
+              const currentShort = shortsState.shorts[idx];
+              if (currentShort) {
+                const targetUrl = buildMediaUrl(currentShort, 'shorts');
+                window.history.replaceState({ modalOpen: true, view: 'shorts', id: currentShort.id }, '', targetUrl);
+              }
+            }}
+          />
+        </PlayerErrorBoundary>
       )}
 
       {/* 5. Single High-Definition Image Lightbox - Completely unmounted when closed */}
       {lightboxState.isOpen && lightboxState.item && (
-        <MediaModal
-          isOpen={lightboxState.isOpen}
-          onClose={() => handleCloseModal('lightbox')}
-          url={lightboxState.item?.url || null}
-          type="image"
-          title={lightboxState.item?.title}
-          items={lightboxState.items}
-          currentIndex={lightboxState.initialIndex}
-          allFolders={rawFeed.photoVaultFolders}
-          onSelectFolder={(folder) => {
-            if (folder.items.length > 0) {
-              const firstItem = folder.items[0];
-              openMediaItem(firstItem, folder.items, folder.name, true);
-            }
-          }}
-          onIndexChange={(idx) => {
-            setLightboxState((prev) => {
-              const nextItem = prev.items[idx] || prev.item;
-              if (nextItem) {
-                const targetUrl = buildMediaUrl(nextItem, nextItem.category || nextItem.parentAlbum);
-                window.history.replaceState({ modalOpen: true, view: 'lightbox', id: nextItem.id }, '', targetUrl);
+        <PlayerErrorBoundary onClose={() => handleCloseModal('lightbox')} fallbackTitle="Image Viewer Error">
+          <MediaModal
+            isOpen={lightboxState.isOpen}
+            onClose={() => handleCloseModal('lightbox')}
+            url={lightboxState.item?.url || null}
+            type="image"
+            title={lightboxState.item?.title}
+            items={lightboxState.items}
+            currentIndex={lightboxState.initialIndex}
+            allFolders={rawFeed.photoVaultFolders}
+            onSelectFolder={(folder) => {
+              if (folder.items.length > 0) {
+                const firstItem = folder.items[0];
+                openMediaItem(firstItem, folder.items, folder.name, true);
               }
-              return {
-                ...prev,
-                initialIndex: idx,
-                item: nextItem,
-              };
-            });
-          }}
-        />
+            }}
+            onIndexChange={(idx) => {
+              setLightboxState((prev) => {
+                const nextItem = prev.items[idx] || prev.item;
+                if (nextItem) {
+                  const targetUrl = buildMediaUrl(nextItem, nextItem.category || nextItem.parentAlbum);
+                  window.history.replaceState({ modalOpen: true, view: 'lightbox', id: nextItem.id }, '', targetUrl);
+                }
+                return {
+                  ...prev,
+                  initialIndex: idx,
+                  item: nextItem,
+                };
+              });
+            }}
+          />
+        </PlayerErrorBoundary>
       )}
 
       {/* 6. FullAlbumViewModal (for backward compatibility / deep links) */}

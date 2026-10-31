@@ -198,14 +198,21 @@ export function findMatchingFolder(
   return null;
 }
 
+export const normalizeComparisonString = (s: string): string => {
+  if (!s) return '';
+  return s.toLowerCase().replace(/[-_\s.]/g, '');
+};
+
 /**
  * Finds a matching media item inside an album or full media pool using ID, filename, stem, title, or index.
+ * Normalizes comparison strings (strips hyphens, underscores, spaces, dots) and guarantees a safe fallback.
  */
 export function findMatchingMediaItem(
   items: StageMediaItem[],
   query: string | null
 ): { item: StageMediaItem; index: number } | null {
-  if (!query || !items || items.length === 0) return null;
+  if (!items || items.length === 0) return null;
+  if (!query) return { item: items[0], index: 0 };
 
   let rawQuery = query.trim().toLowerCase();
   try {
@@ -215,6 +222,29 @@ export function findMatchingMediaItem(
   }
   const queryStem = rawQuery.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim();
   const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const normQuery = normalizeComparisonString(rawQuery);
+  const normStem = normalizeComparisonString(queryStem);
+
+  // 1. Normalized comparison across title, name, ID, path, and URL filename
+  if (normQuery) {
+    const normIdx = items.findIndex((it) => {
+      if (!it) return false;
+      const candidates = [
+        it.name || '',
+        it.title || '',
+        it.id || '',
+        it.path ? it.path.split('/').pop() || it.path : '',
+        it.url ? it.url.split('?')[0].split('#')[0].split('/').pop() || '' : '',
+      ];
+      return candidates.some((c) => {
+        if (!c) return false;
+        const nc = normalizeComparisonString(c);
+        const ncNoExt = normalizeComparisonString(c.replace(/\.[a-z0-9]{2,5}$/i, ''));
+        return nc === normQuery || ncNoExt === normQuery || nc === normStem || ncNoExt === normStem;
+      });
+    });
+    if (normIdx !== -1) return { item: items[normIdx], index: normIdx };
+  }
 
   const getCandidateFilenamesAndStems = (it: StageMediaItem) => {
     const rawNames: string[] = [];
@@ -316,7 +346,8 @@ export function findMatchingMediaItem(
     }
   }
 
-  return null;
+  // 9. Safe Fallback: always return index 0 if query didn't match so it NEVER returns null or crashes
+  return { item: items[0], index: 0 };
 }
 
 export interface SyncUrlStateOptions {
