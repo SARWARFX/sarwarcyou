@@ -1,3 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <path d="M18 10.5C18 7.8 21 6.1 23.3 7.5L53.7 29C55.8 30.2 55.8 33.8 53.7 35L23.3 56.5C21 57.9 18 56.2 18 53.5V10.5Z" fill="#8B5CF6"/>
+  <defs>
+    <linearGradient id="cyanBluePlay" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff" />
+      <stop offset="100%" stop-color="#0080ff" />
+    </linearGradient>
+  </defs>
+  <path d="M18 10.5C18 7.8 21 6.1 23.3 7.5L53.7 29C55.8 30.2 55.8 33.8 53.7 35L23.3 56.5C21 57.9 18 56.2 18 53.5V10.5Z" fill="url(#cyanBluePlay)"/>
 </svg>
