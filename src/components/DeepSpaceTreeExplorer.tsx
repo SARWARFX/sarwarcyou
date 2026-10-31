@@ -465,7 +465,12 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     const cleanTarget = initialAlbum.toLowerCase().replace(/[-_]+/g, ' ').trim();
     for (const root of rootFolders) {
       if (root.name.toLowerCase() === cleanTarget) {
-        setSelectedPath([root.name]);
+        const sortedSubs = sortSubfolderNodesDescending(Array.from(root.subfolders.values()));
+        if (sortedSubs.length > 0) {
+          setSelectedPath([root.name, sortedSubs[0].name]);
+        } else {
+          setSelectedPath([root.name]);
+        }
         return;
       }
       for (const sub of root.subfolders.values()) {
@@ -563,12 +568,23 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
   }, [focusedCol, focusedIndex]);
 
   // Handler to toggle or select root folder (Depth 0)
+  // Automatically selects its first subfolder so the media contents are immediately viewable
   const handleSelectRoot = (rootName: string) => {
-    if (selectedPath[0] === rootName) {
-      // Toggle off to return to clean root homepage
+    const rootNode = rootMap.get(rootName);
+    const sortedSubs = rootNode && rootNode.subfolders.size > 0
+      ? sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()))
+      : [];
+    const firstSubName = sortedSubs[0]?.name;
+
+    // If clicking the currently active root folder and its first subfolder is already active, toggle off to return to clean root homepage
+    if (selectedPath[0] === rootName && (!firstSubName || selectedPath[1] === firstSubName)) {
       setSelectedPath([]);
     } else {
-      setSelectedPath([rootName]);
+      if (firstSubName) {
+        setSelectedPath([rootName, firstSubName]);
+      } else {
+        setSelectedPath([rootName]);
+      }
     }
   };
 
@@ -577,12 +593,8 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     const rootName = selectedPath[0];
     if (!rootName) return;
 
-    if (selectedPath[1] === subfolderName) {
-      // Toggle off subfolder, stay on root folder
-      setSelectedPath([rootName]);
-    } else {
-      setSelectedPath([rootName, subfolderName]);
-    }
+    // Keep active subfolder selected on repeat click
+    setSelectedPath([rootName, subfolderName]);
   };
 
   // Keyboard-First Power Navigation Listener
