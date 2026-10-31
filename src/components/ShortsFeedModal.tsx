@@ -72,6 +72,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const activeVideoRef = useRef<HTMLVideoElement>(null);
   const pulseTimerRef = useRef<number | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
+  const isWheelLockedRef = useRef(false);
+  const wheelLockTimerRef = useRef<number | null>(null);
+  const accumulatedWheelDeltaRef = useRef(0);
+  const wheelResetTimerRef = useRef<number | null>(null);
 
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);
@@ -150,6 +154,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setReadyVideos({});
     if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
     if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
+    if (wheelLockTimerRef.current) window.clearTimeout(wheelLockTimerRef.current);
+    if (wheelResetTimerRef.current) window.clearTimeout(wheelResetTimerRef.current);
+    isWheelLockedRef.current = false;
+    accumulatedWheelDeltaRef.current = 0;
   }, []);
 
   const handleClose = useCallback(() => {
@@ -232,6 +240,96 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
   }, [isOpen, activeIndex, shorts, resetControlsTimer]);
+
+  // =========================================================================
+  // DESKTOP MOUSE WHEEL DEBOUNCING & SNAP PHYSICS:
+  // Intercepts high-frequency wheel notches, prevents micro-scroll jitter,
+  // locks subsequent wheel ticks for 500ms, immediately frees GPU decoders,
+  // and smoothly advances exactly one slide at a time.
+  // =========================================================================
+  useEffect(() => {
+    if (!isOpen) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // If a transition is already in flight, block all momentum wheel ticks
+      if (isWheelLockedRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Reset accumulated micro-ticks if user paused scrolling
+      if (wheelResetTimerRef.current) {
+        window.clearTimeout(wheelResetTimerRef.current);
+      }
+      wheelResetTimerRef.current = window.setTimeout(() => {
+        accumulatedWheelDeltaRef.current = 0;
+      }, 150);
+
+      accumulatedWheelDeltaRef.current += e.deltaY;
+
+      // On first valid wheel tick exceeding threshold (> 30px)
+      if (Math.abs(accumulatedWheelDeltaRef.current) >= 30) {
+        const direction = accumulatedWheelDeltaRef.current > 0 ? 1 : -1;
+        accumulatedWheelDeltaRef.current = 0;
+        const targetIndex = activeIndex + direction;
+
+        // If at top or bottom boundaries, prevent browser window bounce
+        if (targetIndex < 0 || targetIndex >= shorts.length) {
+          e.preventDefault();
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Lock incoming wheel events immediately
+        isWheelLockedRef.current = true;
+
+        // Pause non-target videos immediately during transition to free GPU decoders
+        videoRefs.current.forEach((v, i) => {
+          if (v && i !== targetIndex) {
+            v.pause();
+            v.muted = true;
+          }
+        });
+
+        // Smoothly animate to the target slide
+        const targetEl = slideRefs.current[targetIndex];
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          container.scrollTo({
+            top: targetIndex * container.clientHeight,
+            behavior: 'smooth',
+          });
+        }
+
+        // Release lock after ~500ms so multiple wheel notches do not queue up or jitter
+        if (wheelLockTimerRef.current) {
+          window.clearTimeout(wheelLockTimerRef.current);
+        }
+        wheelLockTimerRef.current = window.setTimeout(() => {
+          isWheelLockedRef.current = false;
+        }, 500);
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      if (wheelLockTimerRef.current) {
+        window.clearTimeout(wheelLockTimerRef.current);
+        wheelLockTimerRef.current = null;
+      }
+      if (wheelResetTimerRef.current) {
+        window.clearTimeout(wheelResetTimerRef.current);
+        wheelResetTimerRef.current = null;
+      }
+    };
+  }, [isOpen, activeIndex, shorts.length]);
 
   // Autoplay currently snapped reel and guarantee all other videos are muted & paused
   useEffect(() => {
@@ -369,7 +467,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   // Sequential Navigation: Scroll Up / Down
   const handleScrollNext = useCallback(() => {
     if (activeIndex < shorts.length - 1) {
-      const nextEl = slideRefs.current[activeIndex + 1];
+      const nextIdx = activeIndex + 1;
+      videoRefs.current.forEach((v, i) => {
+        if (v && i !== nextIdx) {
+          v.pause();
+          v.muted = true;
+        }
+      });
+      const nextEl = slideRefs.current[nextIdx];
       if (nextEl) {
         nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -378,7 +483,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const handleScrollPrev = useCallback(() => {
     if (activeIndex > 0) {
-      const prevEl = slideRefs.current[activeIndex - 1];
+      const prevIdx = activeIndex - 1;
+      videoRefs.current.forEach((v, i) => {
+        if (v && i !== prevIdx) {
+          v.pause();
+          v.muted = true;
+        }
+      });
+      const prevEl = slideRefs.current[prevIdx];
       if (prevEl) {
         prevEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -518,6 +630,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         className="w-full h-[100dvh] overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth no-scrollbar"
         style={{
           scrollSnapType: 'y mandatory',
+          scrollBehavior: 'smooth',
+          overflowY: 'scroll',
+          scrollbarWidth: 'none',
           WebkitOverflowScrolling: 'touch',
         }}
       >
@@ -546,8 +661,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               }}
               data-reel-index={idx}
               className="w-[100vw] md:w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-transparent flex-shrink-0 p-0 m-0 border-0 rounded-none md:px-6 lg:px-8"
+              style={{
+                scrollSnapAlign: 'start',
+                scrollSnapStop: 'always',
+                height: '100dvh',
+                minHeight: '100vh',
+                willChange: isAdjacent ? 'transform' : 'auto',
+              }}
             >
-              <div className="relative flex items-center justify-center md:gap-8 w-[100vw] md:w-auto h-[100dvh] max-h-[100dvh] md:max-h-[96vh] md:max-w-[1400px] p-0 m-0 border-0 rounded-none my-auto">
+              <div
+                className="relative flex items-center justify-center md:gap-8 w-[100vw] md:w-auto h-[100dvh] max-h-[100dvh] md:max-h-[96vh] md:max-w-[1400px] p-0 m-0 border-0 rounded-none my-auto"
+                style={{
+                  willChange: isAdjacent ? 'transform' : 'auto',
+                }}
+              >
                 {/* ================= 1. DESKTOP LEFT COLUMN (Outside Clip): Album, Title & Details ================= */}
                 <div className="hidden md:flex flex-col justify-end w-56 lg:w-72 xl:w-80 pb-6 z-20 pointer-events-auto flex-shrink-0 gap-3">
                   <div
@@ -617,6 +744,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     }`}
                     style={{
                       background: isLandscapeVideo ? 'rgba(3, 6, 14, 0.35)' : undefined,
+                      willChange: isAdjacent ? 'transform' : 'auto',
                     }}
                     onClick={isSnapped ? handleVideoClick : undefined}
                   >
