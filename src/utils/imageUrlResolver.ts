@@ -32,9 +32,17 @@ export function normalizeRepoPath(path: string): string {
   let clean = path.replace(/\\/g, '/').replace(/^\/+/, '').trim();
   // Strip trailing media playback fragment like #t=1.0 or query strings
   clean = clean.replace(/#t=[\d.,]+$/i, '').split('?')[0];
-  clean = clean.replace(/^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i, '');
-  if (/_thumb_[1-5]\.[a-zA-Z0-9]+$/i.test(clean)) {
-    clean = clean.replace(/_thumb_[1-5]\.[a-zA-Z0-9]+$/i, '.mp4');
+
+  const isThumbnailPath = /^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i.test(clean);
+
+  if (isThumbnailPath) {
+    // Canonicalize thumbnail prefix to 'Thumbnails/'
+    clean = clean.replace(/^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i, 'Thumbnails/');
+  } else {
+    // Legacy check: if old multi-frame thumbnail pattern was passed as video
+    if (/_thumb_[1-5]\.[a-zA-Z0-9]+$/i.test(clean)) {
+      clean = clean.replace(/_thumb_[1-5]\.[a-zA-Z0-9]+$/i, '.mp4');
+    }
   }
 
   // 1. Specific legacy files
@@ -42,15 +50,19 @@ export function normalizeRepoPath(path: string): string {
     return '';
   }
   if (/Tejashwini.*Lulustream/i.test(clean)) {
-    return 'Video Clips/Clips 2027/webmedia-serial-427.mp4';
+    return isThumbnailPath
+      ? 'Thumbnails/Video Clips/Clips 2027/webmedia-serial-427.webp'
+      : 'Video Clips/Clips 2027/webmedia-serial-427.mp4';
   }
   if (/Nidhi.*Agarwal/i.test(clean)) {
-    return 'Shorts/webmedia-serial-340.mp4';
+    return isThumbnailPath
+      ? 'Thumbnails/Shorts/webmedia-serial-340.webp'
+      : 'Shorts/webmedia-serial-340.mp4';
   }
   if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean)) {
     return 'REALTube/REALTube Video Clips/asha8.mp4';
   }
-  if (/^Thumbnails\/Images\/Bandhobis\/asha8_thumb_/i.test(clean)) {
+  if (/^Thumbnails\/Images\/Bandhobis\/asha8/i.test(clean)) {
     return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/REALTube/REALTube Video Clips/');
   }
   if (/^Images\/Bandhobis\//i.test(clean)) {
@@ -61,22 +73,35 @@ export function normalizeRepoPath(path: string): string {
   }
 
   // 2. Folder mappings
-  clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
-  clean = clean.replace(/^Clips\/H2026\//i, 'Video Clips/Clips 2026/');
-  clean = clean.replace(/^Clips\/H2027\//i, 'Video Clips/Clips 2027/');
-  clean = clean.replace(/^Clips\/Favorite\//i, 'Video Clips/Favorite Video Clips/');
-  clean = clean.replace(/^Clips\/Others(?:\s*)\//i, 'Video Clips/Classic Video Clips/');
-  clean = clean.replace(/^Clips\//i, 'Video Clips/');
-  clean = clean.replace(/^Thumbnails\/Clips\//i, 'Thumbnails/Video Clips/');
+  if (isThumbnailPath) {
+    clean = clean.replace(/^Thumbnails\/Clips\/H2025\//i, 'Thumbnails/Video Clips/Clips 2025/');
+    clean = clean.replace(/^Thumbnails\/Clips\/H2026\//i, 'Thumbnails/Video Clips/Clips 2026/');
+    clean = clean.replace(/^Thumbnails\/Clips\/H2027\//i, 'Thumbnails/Video Clips/Clips 2027/');
+    clean = clean.replace(/^Thumbnails\/Clips\/Favorite\//i, 'Thumbnails/Video Clips/Favorite Video Clips/');
+    clean = clean.replace(/^Thumbnails\/Clips\/Others(?:\s*)\//i, 'Thumbnails/Video Clips/Classic Video Clips/');
+    clean = clean.replace(/^Thumbnails\/Clips\//i, 'Thumbnails/Video Clips/');
 
-  clean = clean.replace(/^Images\/H2025\//i, 'Photographs/Images 2025/');
-  clean = clean.replace(/^Images\/H2026\//i, 'Photographs/Images 2026/');
-  clean = clean.replace(/^Images\/H2027\//i, 'Photographs/Images 2027/');
-  clean = clean.replace(/^Images\/works\//i, 'Photographs/Favourite Images/');
-  clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
-  clean = clean.replace(/^Images\//i, 'Photographs/');
-  clean = clean.replace(/^Thumbnails\/Images\/works\//i, 'Thumbnails/Photographs/Favourite Images/');
-  clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
+    clean = clean.replace(/^Thumbnails\/Images\/H2025\//i, 'Thumbnails/Photographs/Images 2025/');
+    clean = clean.replace(/^Thumbnails\/Images\/H2026\//i, 'Thumbnails/Photographs/Images 2026/');
+    clean = clean.replace(/^Thumbnails\/Images\/H2027\//i, 'Thumbnails/Photographs/Images 2027/');
+    clean = clean.replace(/^Thumbnails\/Images\/works\//i, 'Thumbnails/Photographs/Favourite Images/');
+    clean = clean.replace(/^Thumbnails\/Images\/Classic(?:\s*)\//i, 'Thumbnails/Photographs/Classic Images/');
+    clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
+  } else {
+    clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
+    clean = clean.replace(/^Clips\/H2026\//i, 'Video Clips/Clips 2026/');
+    clean = clean.replace(/^Clips\/H2027\//i, 'Video Clips/Clips 2027/');
+    clean = clean.replace(/^Clips\/Favorite\//i, 'Video Clips/Favorite Video Clips/');
+    clean = clean.replace(/^Clips\/Others(?:\s*)\//i, 'Video Clips/Classic Video Clips/');
+    clean = clean.replace(/^Clips\//i, 'Video Clips/');
+
+    clean = clean.replace(/^Images\/H2025\//i, 'Photographs/Images 2025/');
+    clean = clean.replace(/^Images\/H2026\//i, 'Photographs/Images 2026/');
+    clean = clean.replace(/^Images\/H2027\//i, 'Photographs/Images 2027/');
+    clean = clean.replace(/^Images\/works\//i, 'Photographs/Favourite Images/');
+    clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
+    clean = clean.replace(/^Images\//i, 'Photographs/');
+  }
 
   return clean;
 }
@@ -195,6 +220,12 @@ export function getDirectImageUrl(
     const posterTarget = item.poster || item.posterUrl || item.thumbnail || '';
     if (posterTarget && !isVideoExtension(posterTarget)) {
       return getMediaUrl(posterTarget);
+    }
+    const rawVideoPath = item.url || item.id || target;
+    const cleanRaw = rawVideoPath.split('?')[0].split('#')[0];
+    const base = cleanRaw.replace(/\.(mp4|mov|webm|mkv|avi|m4v)$/i, '');
+    if (base) {
+      return getMediaUrl(`Thumbnails/${base}.webp`);
     }
     return '';
   }

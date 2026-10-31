@@ -9,7 +9,7 @@ import {
   isPhotoExtension,
 } from './mediaTypeDetector';
 import { getItemTimestamp, sortMediaItems } from './albumExtractor';
-// Native browser video posters used instead of static thumbnails
+import { resolveStaticVideoThumbnail } from './thumbnailResolver';
 import { sanitizeMediaTitle } from './titleSanitizer';
 import { getAlbumSlug } from './urlRouter';
 
@@ -156,8 +156,9 @@ export function organizeVaultFeed(
 
     const mediaUrl = getMediaUrl(it.url || clean);
     const title = cleanTitleFromPath(clean);
-    const thumbs: string[] | undefined = undefined;
-    const defaultThumb = isVid ? (thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : mediaUrl)) : mediaUrl;
+    const staticThumb = isVid ? resolveStaticVideoThumbnail(it.poster || clean) : mediaUrl;
+    const thumbs: string[] | undefined = isVid ? [staticThumb] : undefined;
+    const defaultThumb = isVid ? staticThumb : mediaUrl;
 
     const item: StageMediaItem = {
       id: `media-${clean.replace(/[/\\.]+/g, '-')}`,
@@ -165,7 +166,8 @@ export function organizeVaultFeed(
       name: title,
       url: mediaUrl,
       thumbnail: defaultThumb,
-      poster: thumbs?.[0] || (it.poster ? getMediaUrl(it.poster) : undefined),
+      poster: isVid ? staticThumb : undefined,
+      posterUrl: isVid ? staticThumb : undefined,
       thumbnails: thumbs,
       category: formatAlbumDisplayName(folderPath),
       type: isVid ? 'video' : 'image',

@@ -1,4 +1,4 @@
-name: Generate Multi-Frame Video Thumbnails
+name: Generate Single-Frame Video Thumbnails (30% WebP)
 
 on:
   workflow_dispatch:
@@ -11,9 +11,13 @@ on:
 jobs:
   generate-thumbnails:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,16 +29,17 @@ jobs:
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install huggingface_hub
 
-      - name: Run Multi-Frame Thumbnail Pipeline
+      - name: Run Single-Frame 30% WebP Thumbnail Pipeline
         id: thumbnail_step
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python - << 'EOF'
           import os
+          import json
           import subprocess
           import urllib.parse
-          from huggingface_hub import HfApi, list_repo_files
+          from huggingface_hub import HfApi, list_repo_files, hf_hub_download
 
           hf_token = os.environ.get("HF_TOKEN")
           if not hf_token:
@@ -51,14 +56,29 @@ jobs:
 
           video_files = [
               f for f in all_files 
-              if f.lower().endswith(('.mp4', '.mov', '.webm', '.mkv'))
-              and not f.startswith("Thumbnails/")
+              if f.lower().endswith(('.mp4', '.mov', '.webm', '.mkv', '.avi'))
+              and not f.lower().startswith(('thumbnails/', '.thumbnails/'))
           ]
 
           print(f"Total video files found in vault: {len(video_files)}")
 
-          PERCENTAGES = [0.20, 0.40, 0.60, 0.80, 0.95]
-          generated_count = 0
+          # Load existing thumbnails manifest if present
+          manifest = {}
+          if os.path.exists("public/thumbnails.json"):
+              try:
+                  with open("public/thumbnails.json", "r", encoding="utf-8") as mf:
+                      manifest = json.load(mf)
+                  print(f"Loaded existing manifest with {len(manifest)} items from public/thumbnails.json")
+              except Exception as e:
+                  print(f"Note: Could not parse local manifest: {e}")
+          elif "thumbnails.json" in existing_files_set:
+              try:
+                  manifest_path = hf_hub_download(repo_id=REPO_ID, filename="thumbnails.json", repo_type="dataset", token=hf_token)
+                  with open(manifest_path, "r", encoding="utf-8") as mf:
+                      manifest = json.load(mf)
+                  print(f"Loaded existing manifest with {len(manifest)} items from Hugging Face dataset")
+              except Exception as e:
+                  print(f"Note: Could not load remote manifest: {e}")
 
           def get_duration(url, token):
               quoted_path = urllib.parse.quote(url, safe=":/")
@@ -79,73 +99,95 @@ jobs:
                   print(f"  [Probe Warning] Could not probe {url}: {res.stderr.strip()[:150]}")
                   return None
 
+          generated_count = 0
+
           for idx, v in enumerate(video_files, 1):
               base_name = os.path.splitext(v)[0]
-              expected_thumbs = [f"Thumbnails/{base_name}_thumb_{i+1}.jpg" for i in range(len(PERCENTAGES))]
-              
-              if all(t in existing_files_set for t in expected_thumbs):
-                  print(f"[{idx}/{len(video_files)}] [SKIP] All 5 thumbs exist: {v}")
+              thumb_rel_path = f"Thumbnails/{base_name}.webp"
+              dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_rel_path)
+
+              # Incremental processing check: skip if thumbnail already exists in HF dataset or local destination
+              if thumb_rel_path in existing_files_set or os.path.exists(dest_path):
+                  manifest[v] = thumb_rel_path
+                  print(f"[{idx}/{len(video_files)}] [SKIP] Thumbnail already exists: {thumb_rel_path}")
                   continue
 
-              print(f"[{idx}/{len(video_files)}] [PROCESSING] Sampling frames for: {v}")
-              
-              # Safely quote file path for spaces and unicode
+              print(f"[{idx}/{len(video_files)}] [PROCESSING] Capturing 30% frame for: {v}")
+
+              # Safely quote file path for URL resolution
               quoted_v = urllib.parse.quote(v, safe="/")
               video_url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{quoted_v}"
-              
+
               duration = get_duration(video_url, hf_token)
-              if not duration:
+              if not duration or duration <= 0:
                   print(f"  -> Using 10.0s fallback duration for {v}")
                   duration = 10.0
 
-              for i, pct in enumerate(PERCENTAGES):
-                  thumb_rel_path = f"Thumbnails/{base_name}_thumb_{i+1}.jpg"
-                  dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_rel_path)
+              # Exactly 30% duration target
+              seek_time = max(0.5, round(duration * 0.30, 2))
+              os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
-                  if thumb_rel_path in existing_files_set or os.path.exists(dest_path):
-                      continue
+              cmd = [
+                  "ffmpeg", "-y"
+              ]
+              if hf_token:
+                  cmd.extend(["-headers", f"Authorization: Bearer {hf_token}\r\n"])
 
-                  os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-                  seek_time = max(0.2, round(duration * pct, 2))
+              cmd.extend([
+                  "-ss", str(seek_time),
+                  "-i", video_url,
+                  "-frames:v", "1",
+                  "-vf", "scale='min(640,iw)':-2",
+                  "-c:v", "libwebp",
+                  "-quality", "80",
+                  dest_path
+              ])
 
-                  cmd = [
-                      "ffmpeg", "-y"
-                  ]
-                  if hf_token:
-                      cmd.extend(["-headers", f"Authorization: Bearer {hf_token}\r\n"])
+              res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+              if res.returncode == 0 and os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
+                  generated_count += 1
+                  manifest[v] = thumb_rel_path
+                  print(f"  [SUCCESS] Generated WebP ({os.path.getsize(dest_path)} B) @ {seek_time}s: {thumb_rel_path}")
+              else:
+                  print(f"  [FFmpeg Error] Capture failed for {v}: {res.stderr.strip()[:150]}")
 
-                  cmd.extend([
-                      "-ss", str(seek_time),
-                      "-i", video_url,
-                      "-frames:v", "1",
-                      "-vf", "scale=640:-1",
-                      "-q:v", "3",
-                      dest_path
-                  ])
-                  
-                  res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
-                  if res.returncode == 0 and os.path.exists(dest_path):
-                      generated_count += 1
-                  else:
-                      print(f"  [FFmpeg Error] Frame {i+1} failed for {v}: {res.stderr.strip()[:150]}")
+          print(f"\nFinished extraction. Total new thumbnails generated: {generated_count}")
 
-          print(f"\nFinished extraction. Total new frame thumbnails generated: {generated_count}")
+          # Write updated manifest to temp thumb dir (for dataset upload) and public/ & src/data/ (for app)
+          manifest_temp_path = os.path.join(LOCAL_THUMB_DIR, "thumbnails.json")
+          with open(manifest_temp_path, "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+
+          os.makedirs("public", exist_ok=True)
+          with open("public/thumbnails.json", "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+
+          os.makedirs("src/data", exist_ok=True)
+          with open("src/data/thumbnails.json", "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"generated_count={generated_count}\n")
 
           if generated_count > 0:
-              print(f"Committing and uploading to {REPO_ID} (single atomic commit)...")
+              print(f"Committing and uploading generated thumbnails to {REPO_ID} (single atomic commit)...")
               api.upload_folder(
                   folder_path=LOCAL_THUMB_DIR,
                   repo_id=REPO_ID,
                   repo_type="dataset",
-                  commit_message=f"Generate {generated_count} multi-frame video thumbnails (20-95%, 640px)"
+                  commit_message=f"feat(thumbnails): generate {generated_count} single-frame 30% WebP thumbnails (quality 80, 640px max)"
               )
-              print("Upload complete!")
+              print("Dataset upload complete!")
           else:
-              print("Repository is completely up-to-date. No new uploads needed.")
+              print("Hugging Face dataset repository is completely up-to-date. No new uploads needed.")
           EOF
+
+      - name: Commit Updated Thumbnails Manifest to Repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/thumbnails.json src/data/thumbnails.json
+          git diff --staged --quiet || (git commit -m "chore(manifest): update thumbnails.json [skip ci]" && git push origin main)
 
       - name: Purge Cloudflare Cache
         if: steps.thumbnail_step.outputs.generated_count != '0' && env.CLOUDFLARE_ZONE_ID != ''

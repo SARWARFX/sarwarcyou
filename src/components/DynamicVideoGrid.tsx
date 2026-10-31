@@ -3,8 +3,7 @@ import { Play, Film, Calendar } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { getMediaUrl } from '../utils/imageUrlResolver';
-import { isVideoExtension } from '../utils/mediaTypeDetector';
-import { getCachedVideoThumbnail, generateVideoThumbnail } from '../utils/videoThumbnailGenerator';
+import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 
 export interface DynamicVideoGridProps {
   videos: StageMediaItem[];
@@ -24,63 +23,15 @@ const VideoCardItem: React.FC<{
   const hoverIntentTimerRef = useRef<number | null>(null);
   const previewDurationTimerRef = useRef<number | null>(null);
 
-  const [isInViewport, setIsInViewport] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [isPreviewActive, setIsPreviewActive] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
 
   const cleanTitle = sanitizeMediaTitle(item.title || item.name || 'Stream Vault Clip', item.category);
   const streamUrl = getMediaUrl(item.url || item.path || item.id);
-
-  const staticPoster =
-    item.thumbnails?.[0] ||
-    item.posterUrl ||
-    item.poster ||
-    item.thumbnail;
-
-  const posterSrc = staticPoster && !isVideoExtension(staticPoster) ? getMediaUrl(staticPoster) : null;
-
-  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
-    return !posterSrc ? getCachedVideoThumbnail(streamUrl) : null;
-  });
-
-  // Observe viewport visibility
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInViewport(entry.isIntersecting);
-      },
-      { rootMargin: '200px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Generate thumbnail if missing static poster
-  useEffect(() => {
-    if (posterSrc || !isInViewport) return;
-
-    const cached = getCachedVideoThumbnail(streamUrl);
-    if (cached) {
-      setVideoThumb(cached);
-      return;
-    }
-
-    let isSubscribed = true;
-    generateVideoThumbnail(streamUrl, '16/9').then((dataUrl) => {
-      if (isSubscribed && dataUrl) {
-        setVideoThumb(dataUrl);
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [posterSrc, streamUrl, isInViewport]);
+  const posterSrc = resolveStaticVideoThumbnail(item);
+  const displayImage = !imgError ? posterSrc : null;
 
   // Clean up all timers on unmount
   useEffect(() => {
@@ -120,8 +71,6 @@ const VideoCardItem: React.FC<{
     setVideoLoaded(false);
   }, []);
 
-  const displayImage = posterSrc || videoThumb;
-
   return (
     <div
       ref={cardRef}
@@ -149,6 +98,7 @@ const VideoCardItem: React.FC<{
             loading="lazy"
             decoding="async"
             onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
             className={`w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-105 ${
               imgLoaded ? 'opacity-100' : 'opacity-0'
             } ${isPreviewActive && videoLoaded ? 'opacity-0' : 'opacity-100'}`}

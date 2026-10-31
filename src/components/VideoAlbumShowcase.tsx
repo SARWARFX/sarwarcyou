@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Film, Play, Layers } from 'lucide-react';
 import type { MediaFolderEntry } from '../types';
 import { getMediaUrl } from '../utils/imageUrlResolver';
-import { isVideoExtension } from '../utils/mediaTypeDetector';
-import { getCachedVideoThumbnail, generateVideoThumbnail } from '../utils/videoThumbnailGenerator';
+import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 
 export interface VideoAlbumShowcaseProps {
   videoAlbums: MediaFolderEntry[];
@@ -17,44 +16,11 @@ const VideoAlbumCard: React.FC<{
 }> = ({ album, onSelect }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
 
+  const [imgError, setImgError] = useState(false);
+
   const coverItem = album.items?.[0];
-  const cleanMediaUrl = coverItem ? getMediaUrl(coverItem.url || coverItem.path || coverItem.id) : '';
-
-  const staticPoster =
-    album.coverUrl ||
-    coverItem?.thumbnails?.[0] ||
-    coverItem?.posterUrl ||
-    coverItem?.poster ||
-    coverItem?.thumbnail;
-
-  const posterSrc = staticPoster && !isVideoExtension(staticPoster) ? getMediaUrl(staticPoster) : null;
-
-  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
-    return !posterSrc && cleanMediaUrl ? getCachedVideoThumbnail(cleanMediaUrl) : null;
-  });
-
-  useEffect(() => {
-    if (posterSrc || !cleanMediaUrl) return;
-
-    const cached = getCachedVideoThumbnail(cleanMediaUrl);
-    if (cached) {
-      setVideoThumb(cached);
-      return;
-    }
-
-    let isSubscribed = true;
-    generateVideoThumbnail(cleanMediaUrl, '16/9').then((dataUrl) => {
-      if (isSubscribed && dataUrl) {
-        setVideoThumb(dataUrl);
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [posterSrc, cleanMediaUrl]);
-
-  const displayImage = posterSrc || videoThumb;
+  const posterSrc = coverItem ? resolveStaticVideoThumbnail(coverItem) : (album.coverUrl ? getMediaUrl(album.coverUrl) : null);
+  const displayImage = !imgError ? posterSrc : null;
   const count = album.items?.length || album.count || 0;
 
   return (
@@ -79,6 +45,7 @@ const VideoAlbumCard: React.FC<{
           loading="lazy"
           decoding="async"
           onLoad={() => setImgLoaded(true)}
+          onError={() => setImgError(true)}
           className={`w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-105 ${
             imgLoaded ? 'opacity-100' : 'opacity-0'
           }`}

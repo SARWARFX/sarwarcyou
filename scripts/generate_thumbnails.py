@@ -1,8 +1,9 @@
 import os
 import sys
 import json
+import urllib.parse
 import subprocess
-from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub import HfApi, list_repo_files
 
 REPO_ID = "SARWARFX/stream-vault"
 REPO_TYPE = "dataset"
@@ -13,85 +14,115 @@ if not HF_TOKEN:
     sys.exit(1)
 
 api = HfApi(token=HF_TOKEN)
+LOCAL_THUMB_DIR = "./temp_thumbnails"
+os.makedirs(LOCAL_THUMB_DIR, exist_ok=True)
 
-def get_video_duration(file_path):
+def get_duration(url, token):
+    quoted_path = urllib.parse.quote(url, safe=":/")
     cmd = [
         "ffprobe", "-v", "error",
         "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        file_path
+        "-of", "default=noprint_wrappers=1:nokey=1"
     ]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if token:
+        cmd.extend(["-headers", f"Authorization: Bearer {token}\r\n"])
+    cmd.append(quoted_path)
+
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
-        return float(result.stdout.strip())
+        val = float(res.stdout.strip())
+        return val if val > 0 else None
     except Exception:
-        return 0.0
-
-def generate_5_thumbnails(video_path, output_prefix):
-    duration = get_video_duration(video_path)
-    if duration <= 0:
-        print(f"Skipping {video_path}: unable to determine duration.")
-        return []
-
-    # 5 intervals across the video: 20%, 40%, 60%, 80%, 95%
-    percentages = [0.20, 0.40, 0.60, 0.80, 0.95]
-    generated_files = []
-
-    for idx, pct in enumerate(percentages, start=1):
-        timestamp = max(0.5, duration * pct)
-        out_name = f"{output_prefix}_thumb_{idx}.jpg"
-        
-        cmd = [
-            "ffmpeg", "-y",
-            "-ss", f"{timestamp:.2f}",
-            "-i", video_path,
-            "-frames:v", "1",
-            "-q:v", "3",
-            "-vf", "scale='min(720,iw)':-2",
-            out_name
-        ]
-        res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        if res.returncode == 0 and os.path.exists(out_name):
-            generated_files.append(out_name)
-    return generated_files
+        return None
 
 def main():
-    print("Fetching repository tree...")
-    files = api.list_repo_files(repo_id=REPO_ID, repo_type=REPO_TYPE)
-    video_exts = ('.mp4', '.mov', '.webm', '.mkv')
-    videos = [f for f in files if f.lower().endswith(video_exts) and not f.startswith("thumbnails/")]
+    print(f"Fetching current file manifest from {REPO_ID}...")
+    all_files = list_repo_files(repo_id=REPO_ID, repo_type=REPO_TYPE, token=HF_TOKEN)
+    existing_files_set = set(all_files)
 
-    print(f"Found {len(videos)} videos in stream-vault.")
+    video_files = [
+        f for f in all_files 
+        if f.lower().endswith(('.mp4', '.mov', '.webm', '.mkv', '.avi'))
+        and not f.lower().startswith(('thumbnails/', '.thumbnails/'))
+    ]
 
-    os.makedirs("temp_videos", exist_ok=True)
-    os.makedirs("generated_thumbs", exist_ok=True)
+    print(f"Total video files found in vault: {len(video_files)}")
 
-    for i, video_rel_path in enumerate(videos, 1):
-        base_name = os.path.splitext(os.path.basename(video_rel_path))[0]
-        print(f"[{i}/{len(videos)}] Processing: {video_rel_path}")
+    manifest = {}
+    if os.path.exists("public/thumbnails.json"):
+        try:
+            with open("public/thumbnails.json", "r", encoding="utf-8") as mf:
+                manifest = json.load(mf)
+        except Exception:
+            pass
 
-        # Download video
-        local_video = hf_hub_download(repo_id=REPO_ID, repo_type=REPO_TYPE, filename=video_rel_path, token=HF_TOKEN, local_dir="temp_videos")
-        
-        out_prefix = os.path.join("generated_thumbs", base_name)
-        thumbs = generate_5_thumbnails(local_video, out_prefix)
+    generated_count = 0
 
-        # Upload each generated frame to Hugging Face under thumbnails/<video_name>/
-        for thumb_path in thumbs:
-            remote_thumb_path = f"thumbnails/{base_name}/{os.path.basename(thumb_path)}"
-            api.upload_file(
-                path_or_fileobj=thumb_path,
-                path_in_repo=remote_thumb_path,
-                repo_id=REPO_ID,
-                repo_type=REPO_TYPE,
-                commit_message=f"Add 5-frame thumb: {os.path.basename(thumb_path)}"
-            )
-            os.remove(thumb_path)
+    for idx, v in enumerate(video_files, 1):
+        base_name = os.path.splitext(v)[0]
+        thumb_rel_path = f"Thumbnails/{base_name}.webp"
+        dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_rel_path)
 
-        if os.path.exists(local_video):
-            os.remove(local_video)
+        # Incremental check
+        if thumb_rel_path in existing_files_set or os.path.exists(dest_path):
+            manifest[v] = thumb_rel_path
+            print(f"[{idx}/{len(video_files)}] [SKIP] Already exists: {thumb_rel_path}")
+            continue
 
-    print("All 5-frame thumbnails generated and pushed successfully.")
+        print(f"[{idx}/{len(video_files)}] [PROCESSING] Capturing 30% frame for: {v}")
+        quoted_v = urllib.parse.quote(v, safe="/")
+        video_url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{quoted_v}"
+
+        duration = get_duration(video_url, HF_TOKEN)
+        if not duration or duration <= 0:
+            duration = 10.0
+
+        seek_time = max(0.5, round(duration * 0.30, 2))
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+
+        cmd = ["ffmpeg", "-y"]
+        if HF_TOKEN:
+            cmd.extend(["-headers", f"Authorization: Bearer {HF_TOKEN}\r\n"])
+        cmd.extend([
+            "-ss", str(seek_time),
+            "-i", video_url,
+            "-frames:v", "1",
+            "-vf", "scale='min(640,iw)':-2",
+            "-c:v", "libwebp",
+            "-quality", "80",
+            dest_path
+        ])
+
+        res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        if res.returncode == 0 and os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
+            generated_count += 1
+            manifest[v] = thumb_rel_path
+            print(f"  [SUCCESS] Generated WebP ({os.path.getsize(dest_path)} B) @ {seek_time}s: {thumb_rel_path}")
+        else:
+            print(f"  [Error] Capture failed for {v}: {res.stderr.strip()[:150]}")
+
+    print(f"\nTotal new thumbnails generated: {generated_count}")
+
+    with open(os.path.join(LOCAL_THUMB_DIR, "thumbnails.json"), "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    os.makedirs("public", exist_ok=True)
+    with open("public/thumbnails.json", "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    os.makedirs("src/data", exist_ok=True)
+    with open("src/data/thumbnails.json", "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    if generated_count > 0:
+        print(f"Committing and uploading generated thumbnails to {REPO_ID}...")
+        api.upload_folder(
+            folder_path=LOCAL_THUMB_DIR,
+            repo_id=REPO_ID,
+            repo_type=REPO_TYPE,
+            commit_message=f"feat(thumbnails): generate {generated_count} single-frame 30% WebP thumbnails (quality 80, 640px max)"
+        )
+        print("Upload complete!")
 
 if __name__ == "__main__":
     main()

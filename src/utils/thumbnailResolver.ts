@@ -1,5 +1,7 @@
 import type { StageMediaItem, HfMediaItem } from '../types';
-import { normalizeRepoPath } from './imageUrlResolver';
+import { normalizeRepoPath, getMediaUrl } from './imageUrlResolver';
+import { isVideoExtension } from './mediaTypeDetector';
+import thumbnailsManifest from '../data/thumbnails.json';
 import {
   preloadImageFrames,
   useThumbnailScrubber,
@@ -17,7 +19,7 @@ export {
 
 /**
  * Extract clean relative path within the Hugging Face dataset from any URL or path.
- * e.g., "https://huggingface.co/.../Clips/Favorite/video.mp4" -> "Clips/Favorite/video.mp4"
+ * e.g., "https://huggingface.co/.../Clips/Favorite/video.mp4" -> "Video Clips/Favorite/video.mp4"
  */
 export function extractHfRelativePath(urlOrPath: string): string {
   if (!urlOrPath) return '';
@@ -80,34 +82,97 @@ export function parseVideoPathInfo(urlOrPath: string): VideoPathInfo | null {
   return { relPath, parentDir, fileName, stem };
 }
 
+const manifestMap: Record<string, string> = (thumbnailsManifest as Record<string, string>) || {};
+
 /**
- * Returns empty array: static thumbnail dependencies removed in favor of native video posters (#t=1.0).
+ * Resolves the single pre-generated high-quality 30% WebP static thumbnail URL
+ * for any video or short item.
  */
-export function getAnticipatedThumbnailUrls(_urlOrPath?: string): string[] {
-  return [];
+export function resolveStaticVideoThumbnail(
+  itemOrPath?: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; poster?: string; posterUrl?: string; thumbnail?: string; thumbnails?: string[]; type?: string } | null
+): string {
+  if (!itemOrPath) return '';
+
+  // 1. Check if item object already has an explicit non-video poster or thumbnail
+  if (typeof itemOrPath === 'object' && itemOrPath !== null) {
+    const itemObj = itemOrPath as { posterUrl?: string; poster?: string; thumbnail?: string; thumbnails?: string[] };
+    const poster = itemObj.posterUrl || itemObj.poster || itemObj.thumbnails?.[0];
+    if (poster && !isVideoExtension(poster)) {
+      return getMediaUrl(poster);
+    }
+    if (itemObj.thumbnail && !isVideoExtension(itemObj.thumbnail)) {
+      return getMediaUrl(itemObj.thumbnail);
+    }
+  }
+
+  // 2. Extract clean relative path
+  const raw = typeof itemOrPath === 'string'
+    ? itemOrPath
+    : (('path' in itemOrPath && typeof itemOrPath.path === 'string') ? itemOrPath.path : (itemOrPath.url || ''));
+
+  if (!raw) return '';
+
+  // 3. If raw path is already pointing directly to a thumbnail file
+  if (/^Thumbnails\//i.test(raw) || /\.(webp|jpg|jpeg|png)$/i.test(raw)) {
+    return getMediaUrl(raw);
+  }
+
+  const relPath = extractHfRelativePath(raw);
+  if (!relPath) return '';
+
+  // 4. Manifest lookup (full path, relative path, or filename)
+  if (manifestMap[relPath]) {
+    return getMediaUrl(manifestMap[relPath]);
+  }
+  if (manifestMap[raw]) {
+    return getMediaUrl(manifestMap[raw]);
+  }
+  const fileName = relPath.split('/').pop() || '';
+  if (fileName && manifestMap[fileName]) {
+    return getMediaUrl(manifestMap[fileName]);
+  }
+
+  // 5. Predictable canonical single-frame WebP thumbnail location: Thumbnails/${basePathWithoutExtension}.webp
+  const basePathWithoutExtension = relPath.replace(/\.(mp4|mov|webm|mkv|m4v|avi|flv)$/i, '');
+  if (!basePathWithoutExtension) return '';
+
+  return getMediaUrl(`Thumbnails/${basePathWithoutExtension}.webp`);
 }
 
 /**
- * Returns empty array: static thumbnail dependencies removed in favor of native video posters (#t=1.0).
+ * Returns single pre-generated 30% WebP thumbnail URL as an array.
+ */
+export function getAnticipatedThumbnailUrls(urlOrPath?: string): string[] {
+  if (!urlOrPath) return [];
+  const thumb = resolveStaticVideoThumbnail(urlOrPath);
+  return thumb ? [thumb] : [];
+}
+
+/**
+ * Returns single pre-generated 30% WebP thumbnail URL as an array.
  */
 export function getVideoThumbnails(
-  _itemOrPath?: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
+  itemOrPath?: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
 ): string[] {
-  return [];
+  if (!itemOrPath) return [];
+  const thumb = resolveStaticVideoThumbnail(itemOrPath);
+  return thumb ? [thumb] : [];
 }
 
-export function getAnticipatedThumbnailUrlsWithExt(_urlOrPath?: string): string[] {
-  return [];
+export function getAnticipatedThumbnailUrlsWithExt(urlOrPath?: string): string[] {
+  return getAnticipatedThumbnailUrls(urlOrPath);
 }
 
 export function resolveMultiFrameThumbnails(
-  _item?: StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
+  item?: StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
 ): string[] {
-  return [];
+  if (!item) return [];
+  const thumb = resolveStaticVideoThumbnail(item);
+  return thumb ? [thumb] : [];
 }
 
 export function resolveMultiFrameThumbnailsExt(
-  _item?: StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
+  item?: StageMediaItem | HfMediaItem | { url?: string; path?: string; thumbnails?: string[]; type?: string }
 ): string[] {
-  return [];
+  return resolveMultiFrameThumbnails(item);
 }

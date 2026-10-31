@@ -2,9 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Play, Flame } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
-import { getMediaUrl } from '../utils/imageUrlResolver';
-import { isVideoExtension } from '../utils/mediaTypeDetector';
-import { getCachedVideoThumbnail, generateVideoThumbnail } from '../utils/videoThumbnailGenerator';
+import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 
 export interface ShortsReelsRibbonProps {
   shorts: StageMediaItem[];
@@ -19,61 +17,12 @@ const ShortCardItem: React.FC<{
   onSelect: (item: StageMediaItem, index: number) => void;
 }> = ({ item, index, onSelect }) => {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [isInViewport, setIsInViewport] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const cleanTitle = sanitizeMediaTitle(item.title || item.name || `Short #${index + 1}`, item.category);
-  const cleanMediaUrl = getMediaUrl(item.url || item.path || item.id);
-
-  const staticPoster =
-    item.thumbnails?.[0] ||
-    item.posterUrl ||
-    item.poster ||
-    item.thumbnail;
-
-  const posterSrc = staticPoster && !isVideoExtension(staticPoster) ? getMediaUrl(staticPoster) : null;
-
-  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
-    return !posterSrc ? getCachedVideoThumbnail(cleanMediaUrl) : null;
-  });
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInViewport(entry.isIntersecting);
-      },
-      { rootMargin: '200px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (posterSrc || !isInViewport) return;
-
-    const cached = getCachedVideoThumbnail(cleanMediaUrl);
-    if (cached) {
-      setVideoThumb(cached);
-      return;
-    }
-
-    let isSubscribed = true;
-    generateVideoThumbnail(cleanMediaUrl, '9/16').then((dataUrl) => {
-      if (isSubscribed && dataUrl) {
-        setVideoThumb(dataUrl);
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [posterSrc, cleanMediaUrl, isInViewport]);
-
-  const displayImage = posterSrc || videoThumb;
+  const posterSrc = resolveStaticVideoThumbnail(item);
+  const displayImage = !imgError ? posterSrc : null;
 
   return (
     <div
@@ -98,6 +47,7 @@ const ShortCardItem: React.FC<{
           loading="lazy"
           decoding="async"
           onLoad={() => setImgLoaded(true)}
+          onError={() => setImgError(true)}
           className={`w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-108 ${
             imgLoaded ? 'opacity-100' : 'opacity-0'
           }`}

@@ -2,9 +2,9 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Play, Film } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
-import { isPhotoExtension, isVideoExtension } from '../utils/mediaTypeDetector';
+import { isPhotoExtension } from '../utils/mediaTypeDetector';
 import { getMediaUrl } from '../utils/imageUrlResolver';
-import { getCachedVideoThumbnail, generateVideoThumbnail } from '../utils/videoThumbnailGenerator';
+import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 
 export interface DeepSpaceTreeExplorerProps {
   items: StageMediaItem[];
@@ -80,66 +80,14 @@ const ShortCardItem: React.FC<{
   onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number) => void;
   folderName: string;
 }> = ({ short, allShorts, index, onOpenShort, folderName }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [isInViewport, setIsInViewport] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const cleanTitle = sanitizeMediaTitle(short.title || short.name, folderName);
-  const streamUrl = getMediaUrl(short.url || short.path || short.id);
-
-  const staticPoster =
-    short.posterUrl ||
-    short.poster ||
-    short.thumbnails?.[0] ||
-    short.thumbnail;
-
-  const posterSrc = staticPoster && !isVideoExtension(staticPoster) ? getMediaUrl(staticPoster) : null;
-
-  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
-    return !posterSrc ? getCachedVideoThumbnail(streamUrl) : null;
-  });
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInViewport(entry.isIntersecting);
-      },
-      { rootMargin: '250px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (posterSrc || !isInViewport) return;
-
-    const cached = getCachedVideoThumbnail(streamUrl);
-    if (cached) {
-      setVideoThumb(cached);
-      return;
-    }
-
-    let isSubscribed = true;
-    generateVideoThumbnail(streamUrl, '9/16').then((dataUrl) => {
-      if (isSubscribed && dataUrl) {
-        setVideoThumb(dataUrl);
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [posterSrc, streamUrl, isInViewport]);
-
-  const displayImage = posterSrc || videoThumb;
+  const thumbnailSrc = resolveStaticVideoThumbnail(short);
 
   return (
     <div
-      ref={cardRef}
       role="button"
       tabIndex={0}
       onClick={() => onOpenShort(short, allShorts, index)}
@@ -154,21 +102,25 @@ const ShortCardItem: React.FC<{
     >
       {/* 9:16 Vertical Poster Container */}
       <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-transparent border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300">
-        {displayImage ? (
+        {/* Clean placeholder background styling while images decode */}
+        {(!imgLoaded || imgError) && (
+          <div className="absolute inset-0 bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
+            <Play className="w-6 h-6 text-white/30 ml-0.5" />
+          </div>
+        )}
+
+        {thumbnailSrc && !imgError && (
           <img
-            src={displayImage}
+            src={thumbnailSrc}
             alt={cleanTitle}
             loading="lazy"
             decoding="async"
             onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
             className={`w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 ${
               imgLoaded ? 'opacity-100' : 'opacity-0'
             }`}
           />
-        ) : (
-          <div className="w-full h-full bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
-            <Play className="w-6 h-6 text-white/30 ml-0.5" />
-          </div>
         )}
 
         {/* Play Icon Badge / Overlay */}
@@ -201,66 +153,18 @@ const VideoCardItem: React.FC<{
   onOpenVideo: (item: StageMediaItem, playlist: StageMediaItem[]) => void;
   folderName: string;
 }> = ({ video, allVideos, onOpenVideo, folderName }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hoverTimerRef = useRef<number | null>(null);
 
-  const [isInViewport, setIsInViewport] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [isPreviewActive, setIsPreviewActive] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoDuration, setVideoDuration] = useState<string | null>(null);
 
   const cleanTitle = sanitizeMediaTitle(video.title || video.name, folderName);
   const streamUrl = getMediaUrl(video.url || video.path || video.id);
-
-  const staticPoster =
-    video.posterUrl ||
-    video.poster ||
-    video.thumbnails?.[0] ||
-    video.thumbnail;
-
-  const posterSrc = staticPoster && !isVideoExtension(staticPoster) ? getMediaUrl(staticPoster) : null;
-
-  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
-    return !posterSrc ? getCachedVideoThumbnail(streamUrl) : null;
-  });
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInViewport(entry.isIntersecting);
-      },
-      { rootMargin: '250px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (posterSrc || !isInViewport) return;
-
-    const cached = getCachedVideoThumbnail(streamUrl);
-    if (cached) {
-      setVideoThumb(cached);
-      return;
-    }
-
-    let isSubscribed = true;
-    generateVideoThumbnail(streamUrl, '16/9').then((dataUrl) => {
-      if (isSubscribed && dataUrl) {
-        setVideoThumb(dataUrl);
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [posterSrc, streamUrl, isInViewport]);
+  const thumbnailSrc = resolveStaticVideoThumbnail(video);
 
   useEffect(() => {
     return () => {
@@ -284,11 +188,8 @@ const VideoCardItem: React.FC<{
     setVideoLoaded(false);
   };
 
-  const displayImage = posterSrc || videoThumb;
-
   return (
     <div
-      ref={cardRef}
       role="button"
       tabIndex={0}
       onClick={() => onOpenVideo(video, allVideos)}
@@ -305,22 +206,26 @@ const VideoCardItem: React.FC<{
     >
       {/* 16:9 Widescreen Frame */}
       <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-transparent border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] transition-all duration-300">
-        {/* High-res Poster / Thumbnail */}
-        {displayImage ? (
+        {/* Clean placeholder background styling while images decode */}
+        {(!imgLoaded || imgError) && (
+          <div className="absolute inset-0 bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
+            <Film className="w-7 h-7 text-white/30" />
+          </div>
+        )}
+
+        {/* High-res Pre-generated Static WebP Thumbnail */}
+        {thumbnailSrc && !imgError && (
           <img
-            src={displayImage}
+            src={thumbnailSrc}
             alt={cleanTitle}
             loading="lazy"
             decoding="async"
             onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
             className={`w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 ${
               imgLoaded ? 'opacity-100' : 'opacity-0'
             } ${isPreviewActive && videoLoaded ? 'opacity-0' : 'opacity-100'}`}
           />
-        ) : (
-          <div className="w-full h-full bg-white/[0.04] backdrop-blur-[2px] flex items-center justify-center">
-            <Film className="w-7 h-7 text-white/30" />
-          </div>
         )}
 
         {/* Desktop Video Preview (Mounted on >500ms hover) */}

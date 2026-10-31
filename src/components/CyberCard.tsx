@@ -4,7 +4,7 @@ import type { StageMediaItem } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getMediaUrl } from '../utils/imageUrlResolver';
-import { generateVideoThumbnail, getCachedVideoThumbnail } from '../utils/videoThumbnailGenerator';
+import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 
 export interface CyberCardProps {
   item: StageMediaItem;
@@ -92,49 +92,15 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     return sanitizeMediaTitle(activeItem.title || activeItem.name, activeItem.category);
   }, [activeItem.title, activeItem.name, activeItem.category]);
 
-  // Non-video poster image resolution
+  // Static poster/thumbnail resolution
   const posterImage = useMemo(() => {
     if (!isVideo) {
       return cleanMediaUrl;
     }
-    if (activeItem.poster && !isVideoExtension(activeItem.poster)) {
-      return getMediaUrl(activeItem.poster);
-    }
-    if (activeItem.posterUrl && !isVideoExtension(activeItem.posterUrl)) {
-      return getMediaUrl(activeItem.posterUrl);
-    }
-    if (activeItem.thumbnail && !isVideoExtension(activeItem.thumbnail)) {
-      return getMediaUrl(activeItem.thumbnail);
-    }
-    return null;
-  }, [isVideo, cleanMediaUrl, activeItem.poster, activeItem.posterUrl, activeItem.thumbnail]);
+    return resolveStaticVideoThumbnail(activeItem);
+  }, [isVideo, cleanMediaUrl, activeItem]);
 
-  // Visual thumbnail state for video files without static poster image
-  const [videoThumb, setVideoThumb] = useState<string | null>(() => {
-    return isVideo && !posterImage ? getCachedVideoThumbnail(cleanMediaUrl) : null;
-  });
-
-  useEffect(() => {
-    if (!isVideo || posterImage) return;
-
-    const cached = getCachedVideoThumbnail(cleanMediaUrl);
-    if (cached) {
-      setVideoThumb(cached);
-      return;
-    }
-
-    if (isInViewport) {
-      let isSubscribed = true;
-      generateVideoThumbnail(cleanMediaUrl, isShort ? '9/16' : '16/9').then((dataUrl) => {
-        if (isSubscribed && dataUrl) {
-          setVideoThumb(dataUrl);
-        }
-      });
-      return () => {
-        isSubscribed = false;
-      };
-    }
-  }, [isVideo, posterImage, cleanMediaUrl, isInViewport, isShort]);
+  const displayImageSrc = posterImage;
 
   const effectiveVariant = isShort ? 'shorts' : (isVideo && variant === 'photo' ? 'standard' : variant);
 
@@ -143,8 +109,6 @@ export const CyberCard: React.FC<CyberCardProps> = ({
     shorts: 'w-[130px] sm:w-[150px] aspect-[9/16]',
     photo: 'w-[140px] sm:w-[160px] aspect-[3/4]',
   }[effectiveVariant];
-
-  const displayImageSrc = posterImage || videoThumb;
 
   return (
     <div
