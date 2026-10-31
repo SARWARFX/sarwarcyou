@@ -23,6 +23,7 @@ import { getMediaUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
+import { AmbientNoticesHUD } from './AmbientNoticesHUD';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -535,11 +536,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 slideRefs.current[idx] = el;
               }}
               data-reel-index={idx}
-              className="w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-transparent flex-shrink-0 p-0 md:px-6 lg:px-8"
+              className="w-[100vw] md:w-full h-[100dvh] max-h-[100dvh] flex items-center justify-center relative snap-start snap-always overflow-hidden bg-transparent flex-shrink-0 p-0 m-0 border-0 rounded-none md:px-6 lg:px-8"
             >
-              <div className="relative flex items-center justify-center md:gap-8 w-full h-full md:max-h-[96vh] md:w-auto md:max-w-[1400px] my-auto">
+              <div className="relative flex items-center justify-center md:gap-8 w-[100vw] md:w-auto h-[100dvh] max-h-[100dvh] md:max-h-[96vh] md:max-w-[1400px] p-0 m-0 border-0 rounded-none my-auto">
                 {/* ================= 1. DESKTOP LEFT COLUMN (Outside Clip): Album, Title & Details ================= */}
-                <div className="hidden md:flex flex-col justify-end w-56 lg:w-72 xl:w-80 pb-6 z-20 pointer-events-auto flex-shrink-0">
+                <div className="hidden md:flex flex-col justify-end w-56 lg:w-72 xl:w-80 pb-6 z-20 pointer-events-auto flex-shrink-0 gap-3">
                   <div
                     className="p-4 sm:p-5 rounded-2xl flex flex-col gap-2.5 shadow-xl"
                     style={{
@@ -592,12 +593,17 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* CASE B: Desktop Left Margin Ambient Notices HUD (@media (min-width: 1024px)) */}
+                  <div className="hidden lg:block">
+                    <AmbientNoticesHUD />
+                  </div>
                 </div>
 
                 {/* ================= 2. VIDEO STAGE (Full Screen on Mobile, Aspect 9:16 on Desktop) ================= */}
-                <div className="relative flex flex-col items-center flex-shrink-0 w-full h-full md:w-auto md:h-auto">
+                <div className="relative flex flex-col items-center flex-shrink-0 w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto md:h-auto p-0 m-0 border-0 rounded-none">
                   <div
-                    className="relative w-full h-full md:aspect-[9/16] md:h-[86vh] md:max-h-[840px] md:w-auto md:rounded-3xl overflow-hidden bg-black flex items-center justify-center md:shadow-[0_20px_60px_rgba(0,0,0,0.95)] md:border md:border-white/10 group cursor-pointer"
+                    className="relative w-[100vw] h-[100dvh] max-h-[100dvh] md:w-auto md:h-[86vh] md:max-h-[840px] md:aspect-[9/16] rounded-none md:rounded-3xl overflow-hidden bg-black flex items-center justify-center shadow-none md:shadow-[0_20px_60px_rgba(0,0,0,0.95)] border-0 md:border md:border-white/10 group cursor-pointer p-0 m-0"
                     onClick={isSnapped ? handleVideoClick : undefined}
                   >
                     {/* Visual Poster / Backing Image (Completely unmounted once video is ready) */}
@@ -608,6 +614,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         loading={isAdjacent ? 'eager' : 'lazy'}
                         decoding="async"
                         className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     )}
 
@@ -719,6 +726,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                           }
                         }}
                         className="relative z-10 w-full h-full object-cover select-none cursor-pointer"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
                       <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center z-10 pointer-events-none">
@@ -752,7 +760,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
                     {/* ================= MOBILE FLOATING BUTTONS OVERLAY (Directly ON Video) ================= */}
                     <div
-                      className={`md:hidden absolute right-3 bottom-24 z-30 flex flex-col items-center gap-3.5 transition-all duration-300 pointer-events-auto ${
+                      className={`md:hidden absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] z-30 flex flex-col items-center gap-3.5 transition-all duration-300 pointer-events-auto ${
                         showControls || !isPlaying
                           ? 'opacity-100 translate-x-0'
                           : 'opacity-0 translate-x-3 pointer-events-none'
@@ -837,7 +845,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
                     {/* ================= MOBILE BOTTOM METADATA OVERLAY (Directly ON Video) ================= */}
                     <div
-                      className={`md:hidden absolute inset-x-0 bottom-0 z-20 flex flex-col justify-end pt-14 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-all duration-300 pointer-events-auto ${
+                      className={`md:hidden absolute inset-x-0 bottom-0 z-20 flex flex-col justify-end pt-14 pb-[max(1rem,env(safe-area-inset-bottom))] px-[max(1rem,env(safe-area-inset-left))] bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-all duration-300 pointer-events-auto ${
                         showControls || !isPlaying
                           ? 'opacity-100 translate-y-0'
                           : 'opacity-0 translate-y-3 pointer-events-none'

@@ -7,6 +7,7 @@ import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { CyberCommandPalette } from './components/CyberCommandPalette';
+import { AmbientNoticesHUD } from './components/AmbientNoticesHUD';
 import galaxyBg from './assets/galaxy.jpg';
 import type { StageMediaItem, SortOrder, MediaFolderEntry } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
@@ -661,6 +662,13 @@ function App() {
           onOpenVideo={handleOpenVideo}
           onOpenShort={handleOpenShort}
         />
+      )}
+
+      {/* CASE A: Ambient Notices HUD on Homepage Explorer (Fixed bottom-left, hidden when any viewer is open or on mobile) */}
+      {!theaterState.isOpen && !shortsState.isOpen && !lightboxState.isOpen && !viewAllState.isOpen && !isCommandPaletteOpen && (
+        <div className="fixed bottom-6 left-6 z-20 hidden md:block">
+          <AmbientNoticesHUD />
+        </div>
       )}
 
       {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
