@@ -5,6 +5,7 @@ import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isPhotoExtension } from '../utils/mediaTypeDetector';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
+import { sortMediaItemsDescending } from '../utils/albumExtractor';
 
 export interface DeepSpaceTreeExplorerProps {
   items: StageMediaItem[];
@@ -307,6 +308,54 @@ const VideoCardItem: React.FC<{
   );
 };
 
+/**
+ * Sorts subfolder nodes in reverse chronological order (newest first).
+ * - Extracts year from folder name (e.g. 2027 -> 2026 -> 2025, H2027 -> H2026 -> H2025).
+ * - Prioritizes chronological year folders first.
+ * - For other folders, checks the latest media timestamp within the folder.
+ * - Natural alphanumeric sort descending as fallback.
+ */
+export function sortSubfolderNodesDescending(nodes: DirectoryNode[]): DirectoryNode[] {
+  return [...nodes].sort((a, b) => {
+    const yearMatchA = a.name.match(/(?:H|Year)?(20[2-3][0-9])/i);
+    const yearMatchB = b.name.match(/(?:H|Year)?(20[2-3][0-9])/i);
+
+    const yearA = yearMatchA ? parseInt(yearMatchA[1], 10) : null;
+    const yearB = yearMatchB ? parseInt(yearMatchB[1], 10) : null;
+
+    if (yearA !== null && yearB !== null && yearA !== yearB) {
+      return yearB - yearA; // Newest year first: 2027 -> 2026 -> 2025
+    }
+    if (yearA !== null && yearB === null) return -1;
+    if (yearB !== null && yearA === null) return 1;
+
+    // Compare latest file timestamp in folders
+    const getLatestFileDate = (node: DirectoryNode): number => {
+      let maxTime = 0;
+      for (const f of node.files) {
+        const t = f.date || 0;
+        if (t > maxTime) maxTime = t;
+      }
+      for (const sub of node.subfolders.values()) {
+        const t = getLatestFileDate(sub);
+        if (t > maxTime) maxTime = t;
+      }
+      return maxTime;
+    };
+
+    const maxA = getLatestFileDate(a);
+    const maxB = getLatestFileDate(b);
+    if (maxA > 0 && maxB > 0 && maxA !== maxB) {
+      return maxB - maxA;
+    }
+    if (maxB > 0 && maxA <= 0) return 1;
+    if (maxA > 0 && maxB <= 0) return -1;
+
+    // Fallback: natural alphanumeric sort
+    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
 export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
   items,
   onOpenPhoto,
@@ -352,6 +401,17 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
       }
 
       currentNode.files.push(item);
+    }
+
+    // Ensure all directory node file lists are sorted latest-first (descending)
+    for (const node of map.values()) {
+      const sortRecursive = (n: DirectoryNode) => {
+        n.files = sortMediaItemsDescending(n.files);
+        for (const sub of n.subfolders.values()) {
+          sortRecursive(sub);
+        }
+      };
+      sortRecursive(node);
     }
 
     return map;
@@ -413,10 +473,11 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     return chain;
   }, [rootMap, selectedPath]);
 
-  // Current active subfolders in Column 1
+  // Current active subfolders in Column 1 (chronological subfolders sorted newest first: 2027 -> 2026 -> 2025)
   const currentSubfolders = useMemo(() => {
     if (!selectedPath[0] || !rootMap.has(selectedPath[0])) return [];
-    return Array.from(rootMap.get(selectedPath[0])!.subfolders.values());
+    const rawSubs = Array.from(rootMap.get(selectedPath[0])!.subfolders.values());
+    return sortSubfolderNodesDescending(rawSubs);
   }, [selectedPath, rootMap]);
 
   // The active leaf folder node (only active when user has drilled down into an actual media folder)
@@ -458,7 +519,11 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
       }
     }
 
-    return { photoFiles: photos, videoFiles: videos, shortFiles: shorts };
+    return {
+      photoFiles: sortMediaItemsDescending(photos),
+      videoFiles: sortMediaItemsDescending(videos),
+      shortFiles: sortMediaItemsDescending(shorts),
+    };
   }, [activeLeafNode, selectedPath]);
 
   // Active media files list in Column 2 for keyboard navigation

@@ -242,12 +242,22 @@ export function organizeVaultFeed(
     })
     .filter((a) => a.count > 0);
 
-  // 4. Sort Albums dynamically by latest upload timestamp so active folders surface first
+  // 4. Sort Albums dynamically by latest upload timestamp & year so active folders surface first
   albums.sort((a, b) => {
+    const yearMatchA = a.name.match(/(?:H|Year)?(20[2-3][0-9])/i);
+    const yearMatchB = b.name.match(/(?:H|Year)?(20[2-3][0-9])/i);
+    const yearA = yearMatchA ? parseInt(yearMatchA[1], 10) : null;
+    const yearB = yearMatchB ? parseInt(yearMatchB[1], 10) : null;
+    if (yearA !== null && yearB !== null && yearA !== yearB) {
+      return yearB - yearA; // Newest year first: 2027 -> 2026 -> 2025
+    }
+
     const timeA = a.items[0]?.date || 0;
     const timeB = b.items[0]?.date || 0;
     if (timeB !== timeA) return timeB - timeA;
-    return a.name.localeCompare(b.name, undefined, { numeric: true });
+    if (yearA !== null && yearB === null) return -1;
+    if (yearB !== null && yearA === null) return 1;
+    return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
   });
 
   // 5. Aggregate global pools

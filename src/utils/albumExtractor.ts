@@ -116,9 +116,122 @@ export function getItemTimestamp(item: {
   return extractTimestampFromPath(rawStr);
 }
 
+export interface SerialInfo {
+  prefix: string;
+  serial: number;
+  isExplicitSerial: boolean;
+}
+
+/**
+ * Extracts a numerical serial number or sequence number from a filename or title.
+ * Handles patterns like:
+ * - "Webmedia Serial 496" -> serial 496, isExplicitSerial: true
+ * - "webmedia-serial-45" -> serial 45, isExplicitSerial: true
+ * - "Serial 1" -> serial 1, isExplicitSerial: true
+ * - "Borsha (2)" -> serial 2, isExplicitSerial: false
+ * - "Inna 1" -> serial 1, isExplicitSerial: false
+ * - "SmartSelect Works 3" -> serial 3, isExplicitSerial: false
+ */
+export function extractSerialNumber(str: string): SerialInfo | null {
+  if (!str) return null;
+  const clean = str.replace(/\.[a-z0-9]{2,5}$/i, '').trim();
+
+  // 1. Explicit 'serial', 'part', 'ep', 'episode', or 'no' keyword:
+  const explicitMatch = clean.match(/^(.*?)(?:webmedia[-_ ]*)?(?:serial|part|episode|ep|no)[-_ #]*(\d+)(?:\D*)$/i);
+  if (explicitMatch) {
+    const rawPrefix = explicitMatch[1].toLowerCase().replace(/[^a-z0-9]/g, '');
+    const serial = parseInt(explicitMatch[2], 10);
+    if (!isNaN(serial)) {
+      return { prefix: rawPrefix || 'serial', serial, isExplicitSerial: true };
+    }
+  }
+
+  // 2. Trailing number or number in parentheses: e.g. "Borsha (2)", "Classic 1", "Farida 02"
+  const trailingMatch = clean.match(/^(.*?)[\s_(-]+(\d+)\)?$/i);
+  if (trailingMatch) {
+    const rawPrefix = trailingMatch[1].toLowerCase().replace(/[^a-z0-9]/g, '');
+    const serial = parseInt(trailingMatch[2], 10);
+    if (!isNaN(serial)) {
+      return { prefix: rawPrefix, serial, isExplicitSerial: false };
+    }
+  }
+
+  // 3. Any number in filename
+  const anyNumMatch = clean.match(/(?:^|\D)(\d+)(?:\D|$)/);
+  if (anyNumMatch) {
+    const serial = parseInt(anyNumMatch[1], 10);
+    if (!isNaN(serial)) {
+      return { prefix: '', serial, isExplicitSerial: false };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Global media item comparator implementing strict reverse-chronological ordering:
+ * 1. Timestamp / Date modified or created (newest to oldest: b.timestamp - a.timestamp)
+ * 2. Numerical serial extraction if filenames contain numbers (e.g. Webmedia Serial 496 before Webmedia Serial 495, Webmedia Serial 1)
+ * 3. Natural alphanumeric sort descending as fallback (b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' }))
+ */
+export function compareMediaItemsDescending(
+  a: {
+    date?: number;
+    lastCommit?: { date?: string; id?: string; title?: string };
+    path?: string;
+    name?: string;
+    title?: string;
+    url?: string;
+    id?: string;
+    dateModified?: string | number;
+    modified?: string | number;
+    uploadDate?: string | number;
+    timestamp?: string | number;
+  },
+  b: {
+    date?: number;
+    lastCommit?: { date?: string; id?: string; title?: string };
+    path?: string;
+    name?: string;
+    title?: string;
+    url?: string;
+    id?: string;
+    dateModified?: string | number;
+    modified?: string | number;
+    uploadDate?: string | number;
+    timestamp?: string | number;
+  }
+): number {
+  // Priority 1: Timestamp / Date modified or created (newest to oldest)
+  const timeA = getItemTimestamp(a);
+  const timeB = getItemTimestamp(b);
+  if (timeA > 0 && timeB > 0 && timeA !== timeB) {
+    return timeB - timeA;
+  }
+  if (timeB > 0 && timeA <= 0) return 1;
+  if (timeA > 0 && timeB <= 0) return -1;
+
+  // Priority 2: Numerical serial extraction if filenames contain numbers
+  const strA = (a.name || a.title || a.path || a.id || '').trim();
+  const strB = (b.name || b.title || b.path || b.id || '').trim();
+  const sA = extractSerialNumber(strA);
+  const sB = extractSerialNumber(strB);
+
+  if (sA && sB) {
+    if (sA.isExplicitSerial && sB.isExplicitSerial) {
+      if (sB.serial !== sA.serial) return sB.serial - sA.serial;
+    } else if (sA.prefix === sB.prefix) {
+      if (sB.serial !== sA.serial) return sB.serial - sA.serial;
+    }
+  }
+
+  // Priority 3: Natural alphanumeric sort descending as fallback
+  return strB.localeCompare(strA, undefined, { numeric: true, sensitivity: 'base' });
+}
+
 /**
  * Universal sort function for StageMediaItem collections:
- * - 'newest' (Default): Newest dateModified / commit / upload timestamp first
+ * - 'newest' (Default): Global reverse-chronological ordering (latest items first)
  * - 'oldest': Oldest dateModified / commit / upload timestamp first
  * - 'name-asc': Alphabetical order by title / filename (A–Z)
  */
@@ -129,29 +242,34 @@ export function sortMediaItems(items: StageMediaItem[], order: SortOrder = 'newe
       const nameB = b.title || b.name || b.id || '';
       return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
     }
-    const timeA = getItemTimestamp(a);
-    const timeB = getItemTimestamp(b);
     if (order === 'oldest') {
-      if (timeA !== timeB) return timeA - timeB;
-      const nameA = a.title || a.name || a.id || '';
-      const nameB = b.title || b.name || b.id || '';
-      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      return compareMediaItemsDescending(b, a);
     }
-    // Default: 'newest'
-    if (timeB !== timeA) return timeB - timeA;
-    const nameA = a.name || a.title || a.id || '';
-    const nameB = b.name || b.title || b.id || '';
-    return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+    // Default: 'newest' (latest items first)
+    return compareMediaItemsDescending(a, b);
   });
 }
 
 /**
- * Sorts any list of StageMediaItem strictly in descending order (latest first):
+ * Sorts any list of media items strictly in descending order (latest first):
  * Primary: Newest dateModified / commit / upload timestamp first
- * Secondary Fallback: Natural descending order by title / filename / index
+ * Secondary: Numerical serial extraction (Webmedia Serial 496 before 495)
+ * Tertiary: Natural alphanumeric sort descending as fallback
  */
-export function sortMediaItemsDescending(items: StageMediaItem[]): StageMediaItem[] {
-  return sortMediaItems(items, 'newest');
+export function sortMediaItemsDescending<T extends {
+  date?: number;
+  lastCommit?: { date?: string; id?: string; title?: string };
+  path?: string;
+  name?: string;
+  title?: string;
+  url?: string;
+  id?: string;
+  dateModified?: string | number;
+  modified?: string | number;
+  uploadDate?: string | number;
+  timestamp?: string | number;
+}>(items: T[]): T[] {
+  return [...items].sort(compareMediaItemsDescending);
 }
 
 /**

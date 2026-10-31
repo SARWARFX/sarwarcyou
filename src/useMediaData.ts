@@ -51,7 +51,7 @@ import {
   isThumbnailFile,
   parseMediaPath,
 } from './utils/mediaTypeDetector';
-import { extractTimestampFromPath } from './utils/albumExtractor';
+import { extractTimestampFromPath, compareMediaItemsDescending } from './utils/albumExtractor';
 import { MEDIA_CDN_BASE, getMediaUrl, normalizeRepoPath } from './utils/imageUrlResolver';
 
 
@@ -257,17 +257,10 @@ export function parseTreeToCatalog(
   }
 
   // Sort all catalog items strictly chronologically (newest uploads first)
-  const sortByNewest = (a: HfMediaItem, b: HfMediaItem) => {
-    const timeA = a.date || (a.lastCommit?.date ? new Date(a.lastCommit.date).getTime() : 0) || extractTimestampFromPath(a.path || a.name);
-    const timeB = b.date || (b.lastCommit?.date ? new Date(b.lastCommit.date).getTime() : 0) || extractTimestampFromPath(b.path || b.name);
-    if (timeB !== timeA) return timeB - timeA;
-    return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
-  };
-
-  clips.sort(sortByNewest);
-  shorts.sort(sortByNewest);
-  images.sort(sortByNewest);
-  allMedia.sort(sortByNewest);
+  clips.sort(compareMediaItemsDescending);
+  shorts.sort(compareMediaItemsDescending);
+  images.sort(compareMediaItemsDescending);
+  allMedia.sort(compareMediaItemsDescending);
 
   return { clips, shorts, images, allMedia };
 }
@@ -436,13 +429,7 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
           };
         };
 
-        const sortItems = (arr: HfMediaItem[]) =>
-          [...arr].sort((a, b) => {
-            const timeA = a.date || (a.lastCommit?.date ? new Date(a.lastCommit.date).getTime() : 0) || extractTimestampFromPath(a.path || a.name);
-            const timeB = b.date || (b.lastCommit?.date ? new Date(b.lastCommit.date).getTime() : 0) || extractTimestampFromPath(b.path || b.name);
-            if (timeB !== timeA) return timeB - timeA;
-            return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
-          });
+        const sortItems = (arr: HfMediaItem[]) => [...arr].sort(compareMediaItemsDescending);
 
         const rawClipsList = (rawData.clips || []).map(enrichItem);
         const rawShortsList = (rawData.shorts || []).map(enrichItem);
@@ -494,13 +481,7 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
 }
 
 const getNormalizedFallbackCatalog = (): HfMediaCatalog => {
-  const sortItems = (arr: HfMediaItem[]) =>
-    [...arr].sort((a, b) => {
-      const timeA = a.date || (a.lastCommit?.date ? new Date(a.lastCommit.date).getTime() : 0) || extractTimestampFromPath(a.path || a.name);
-      const timeB = b.date || (b.lastCommit?.date ? new Date(b.lastCommit.date).getTime() : 0) || extractTimestampFromPath(b.path || b.name);
-      if (timeB !== timeA) return timeB - timeA;
-      return (b.name || '').localeCompare(a.name || '', undefined, { numeric: true });
-    });
+  const sortItems = (arr: HfMediaItem[]) => [...arr].sort(compareMediaItemsDescending);
 
   const clips = sortItems(
     (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
