@@ -619,12 +619,10 @@ function App() {
         />
       )}
 
-      {/* CASE A: Ambient Notices HUD on Homepage Explorer (Fixed bottom-left, hidden when any viewer is open or on mobile) */}
-      {!theaterState.isOpen && !shortsState.isOpen && !lightboxState.isOpen && !viewAllState.isOpen && !isCommandPaletteOpen && (
-        <div className="fixed bottom-6 left-6 z-20 hidden md:block">
-          <AmbientNoticesHUD />
-        </div>
-      )}
+      {/* Intermittent / Periodic Ambient Notices HUD (fades in for ~8s every couple of minutes across all viewports) */}
+      <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
+        <AmbientNoticesHUD />
+      </div>
 
       {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
       {theaterState.isOpen && theaterState.item && (

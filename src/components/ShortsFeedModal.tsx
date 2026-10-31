@@ -24,7 +24,6 @@ import { getMediaUrl, getVideoStreamUrl, getDirectHfVideoUrl } from '../utils/im
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
-import { AmbientNoticesHUD } from './AmbientNoticesHUD';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean;
@@ -752,11 +751,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         </>
                       )}
                     </div>
-                  </div>
-
-                  {/* CASE B: Desktop Left Margin Ambient Notices HUD (@media (min-width: 1024px)) */}
-                  <div className="hidden lg:block">
-                    <AmbientNoticesHUD />
                   </div>
                 </div>
 
