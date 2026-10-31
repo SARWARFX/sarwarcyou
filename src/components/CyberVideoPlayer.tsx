@@ -18,10 +18,11 @@ import {
   Share2,
   Info,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
-import { getMediaUrl } from '../utils/imageUrlResolver';
+import { getMediaUrl, getDirectHfVideoUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
@@ -80,6 +81,17 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [shareSuccess, setShareSuccess] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
+
+  // Playback Fallback & Error State
+  const [sourceOverride, setSourceOverride] = useState<string | null>(null);
+  const [hasPlaybackError, setHasPlaybackError] = useState(false);
+  const fallbackAttemptedRef = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setSourceOverride(null);
+    setHasPlaybackError(false);
+    fallbackAttemptedRef.current = {};
+  }, [item?.id, item?.url, isOpen]);
 
   // Seek bar hover preview state
   const [seekHover, setSeekHover] = useState<{
@@ -884,7 +896,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   if (!isOpen || !item) return null;
 
-  const streamUrl = getMediaUrl(item.url || item.path || item.id);
+  const primaryStreamUrl = getMediaUrl(item.url || item.path || item.id);
+  const directHfUrl = getDirectHfVideoUrl(item);
+  const streamUrl = sourceOverride || primaryStreamUrl || directHfUrl;
   const albumName = item.category || item.parentAlbum || 'Cinema Vault';
   const activeIdx = playlist.findIndex((v) => v.id === item.id || v.url === item.url);
   const currentItemIndex = activeIdx >= 0 ? activeIdx + 1 : 1;
@@ -1269,7 +1283,51 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             }
           }}
           onEnded={handleVideoEnded}
+          onError={(e) => {
+            const v = e.currentTarget;
+            if (!v.error) return;
+            const itemKey = item.id || item.url || item.path || 'active';
+            if (!fallbackAttemptedRef.current[itemKey] && directHfUrl && streamUrl !== directHfUrl) {
+              fallbackAttemptedRef.current[itemKey] = true;
+              console.warn(`[CyberPlayer] Stream failed on ${streamUrl}, falling back to direct HF CDN: ${directHfUrl}`);
+              setSourceOverride(directHfUrl);
+              v.src = directHfUrl;
+              v.load();
+              return;
+            }
+            fallbackAttemptedRef.current[itemKey] = true;
+            console.warn('[CyberPlayer] Both primary and CDN fallback failed for:', itemKey, v.error.message);
+            setHasPlaybackError(true);
+          }}
         />
+
+        {hasPlaybackError && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-black/85 backdrop-blur-md">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mb-3 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-white mb-1">Playback Error</h3>
+            <p className="text-xs text-zinc-300 font-mono mb-4 max-w-xs">
+              Unable to stream video. The media file or network may be temporarily unavailable.
+            </p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const itemKey = item.id || item.url || item.path || 'active';
+                fallbackAttemptedRef.current[itemKey] = false;
+                setHasPlaybackError(false);
+                if (videoRef.current) {
+                  videoRef.current.src = directHfUrl || primaryStreamUrl;
+                  videoRef.current.load();
+                }
+              }}
+              className="py-1.5 px-4 rounded-xl bg-white/10 hover:bg-[#00f0ff]/20 border border-white/20 hover:border-[#00f0ff] text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95"
+            >
+              Retry Video
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 4. Floating HUD Controls (Bottom) */}

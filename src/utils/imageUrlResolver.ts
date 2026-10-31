@@ -33,6 +33,9 @@ export function normalizeRepoPath(path: string): string {
   // Strip trailing media playback fragment like #t=1.0 or query strings
   clean = clean.replace(/#t=[\d.,]+$/i, '').split('?')[0];
 
+  // Clean trailing spaces before file extensions: e.g. "Sh.Jacqueline .mp4" -> "Sh.Jacqueline.mp4"
+  clean = clean.replace(/\s+\.([a-zA-Z0-9]+)(?:$|\?|#)/g, '.$1');
+
   const isThumbnailPath = /^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i.test(clean);
 
   if (isThumbnailPath) {
@@ -122,13 +125,16 @@ export function encodeMediaPathSegments(path: string): string {
     .split('/')
     .filter(Boolean)
     .map((seg) => {
-      let decoded = seg;
+      let decoded = seg.trim();
       try {
-        decoded = decodeURIComponent(seg);
+        decoded = decodeURIComponent(seg).trim();
       } catch {
-        decoded = seg;
+        decoded = seg.trim();
       }
-      return encodeURIComponent(decoded)
+      // Remove any trailing whitespace before file extensions (e.g. "Sh.Jacqueline .mp4" -> "Sh.Jacqueline.mp4")
+      decoded = decoded.replace(/\s+\.([a-zA-Z0-9]+)$/, '.$1').trim();
+      const cleanFilename = encodeURIComponent(decoded.trim());
+      return cleanFilename
         .replace(/\(/g, '%28')
         .replace(/\)/g, '%29')
         .replace(/'/g, '%27')

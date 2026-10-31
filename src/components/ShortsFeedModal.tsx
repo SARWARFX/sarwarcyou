@@ -95,6 +95,7 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
   const wheelLockTimerRef = useRef<number | null>(null);
   const accumulatedWheelDeltaRef = useRef(0);
   const wheelResetTimerRef = useRef<number | null>(null);
+  const fallbackAttemptedRef = useRef<Record<string, boolean>>({});
 
   // Synchronous refs to prevent stale closure reads in event listeners
   const activeIndexRef = useRef(activeIndex);
@@ -125,9 +126,10 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
     setIsPlaying(true);
     setCurrentTime(0);
     setDuration(0);
-    setReadyVideos({});
-    setVideoSourceOverrides({});
-    setVideoErrors({});
+    setReadyVideos((prev) => (Object.keys(prev).length ? {} : prev));
+    setVideoSourceOverrides((prev) => (Object.keys(prev).length ? {} : prev));
+    setVideoErrors((prev) => (Object.keys(prev).length ? {} : prev));
+    fallbackAttemptedRef.current = {};
     resetControlsTimer();
   }
 
@@ -181,9 +183,10 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
         }
       }
     });
-    setReadyVideos({});
-    setVideoSourceOverrides({});
-    setVideoErrors({});
+    setReadyVideos((prev) => (Object.keys(prev).length ? {} : prev));
+    setVideoSourceOverrides((prev) => (Object.keys(prev).length ? {} : prev));
+    setVideoErrors((prev) => (Object.keys(prev).length ? {} : prev));
+    fallbackAttemptedRef.current = {};
     if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
     if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
     if (wheelLockTimerRef.current) window.clearTimeout(wheelLockTimerRef.current);
@@ -397,21 +400,29 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
         } else {
           activeVideoRef.current = video;
           video.muted = isMuted;
+
+          // Guard: if video already has error, do NOT attempt to play
+          if (video.error || videoErrors[idx]) {
+            return;
+          }
+
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
               .catch((err) => {
                 console.warn("Autoplay blocked, falling back to muted:", err);
-                video.muted = true;
-                setIsMuted(true);
-                video.play().then(() => setIsPlaying(true)).catch(console.error);
+                if (!isMutedRef.current) {
+                  video.muted = true;
+                  isMutedRef.current = true;
+                  setIsMuted(true);
+                }
               });
           }
         }
       }
     });
-  }, [activeIndex, isOpen, isMuted]);
+  }, [activeIndex, isOpen, isMuted, videoErrors]);
 
   // Smart Adjacent Pre-Fetching: while active video i is playing, silently pre-fetch i + 1
   useEffect(() => {
@@ -858,25 +869,8 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
                       <video
                         ref={(el) => {
                           videoRefs.current[idx] = el;
-                          if (el && el.videoWidth && el.videoHeight) {
-                            updateVideoOrientation(idx, el.videoWidth, el.videoHeight);
-                          }
                           if (idx === activeIndex) {
                             activeVideoRef.current = el;
-                            if (el && el.paused && isSnapped) {
-                              el.muted = isMuted;
-                              const playPromise = el.play();
-                              if (playPromise !== undefined) {
-                                playPromise
-                                  .then(() => setIsPlaying(true))
-                                  .catch((err) => {
-                                    console.warn("Autoplay blocked, falling back to muted:", err);
-                                    el.muted = true;
-                                    setIsMuted(true);
-                                    el.play().then(() => setIsPlaying(true)).catch(console.error);
-                                  });
-                              }
-                            }
                           }
                         }}
                         src={streamUrl}
@@ -903,9 +897,11 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
                                   .then(() => setIsPlaying(true))
                                   .catch((err) => {
                                     console.warn("Autoplay blocked, falling back to muted:", err);
-                                    v.muted = true;
-                                    setIsMuted(true);
-                                    v.play().then(() => setIsPlaying(true)).catch(console.error);
+                                    if (!isMutedRef.current) {
+                                      v.muted = true;
+                                      isMutedRef.current = true;
+                                      setIsMuted(true);
+                                    }
                                   });
                               }
                             }
@@ -980,21 +976,24 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
                             return;
                           }
 
-                          // If primary stream failed, attempt direct Hugging Face raw resolve endpoint fallback
-                          if (!videoSourceOverrides[idx] && directHfUrl && streamUrl !== directHfUrl) {
-                            console.warn(`[ShortsPlayer] Stream failed on ${streamUrl}, falling back to direct HF CDN: ${directHfUrl}`);
-                            setVideoSourceOverrides((prev) => ({ ...prev, [idx]: directHfUrl }));
-                            v.src = directHfUrl;
-                            v.load();
-                            if (isSnapped) {
-                              v.play().catch(console.error);
+                          const itemKey = item.id || item.url || String(idx);
+
+                          // If primary stream failed, attempt direct Hugging Face raw resolve endpoint fallback ONCE
+                          if (!fallbackAttemptedRef.current[itemKey]) {
+                            fallbackAttemptedRef.current[itemKey] = true;
+                            if (directHfUrl && streamUrl !== directHfUrl) {
+                              console.warn(`[ShortsPlayer] Stream failed on ${streamUrl}, falling back to direct HF CDN: ${directHfUrl}`);
+                              setVideoSourceOverrides((prev) => (prev[idx] === directHfUrl ? prev : { ...prev, [idx]: directHfUrl }));
+                              v.src = directHfUrl;
+                              v.load();
+                              return;
                             }
-                            return;
                           }
 
-                          // If fallback also failed or video.error is active after attempted load
-                          console.error(`[ShortsPlayer] Video load error code ${v.error.code} on index ${idx}:`, v.error.message);
-                          setVideoErrors((prev) => ({ ...prev, [idx]: true }));
+                          // Both primary and CDN fallback failed (or no fallback available). Do NOT call setState in a loop.
+                          fallbackAttemptedRef.current[itemKey] = true;
+                          console.warn('Both primary and CDN fallback failed for:', itemKey, v.error.message);
+                          setVideoErrors((prev) => (prev[idx] ? prev : { ...prev, [idx]: true }));
                         }}
                         className="relative z-10 w-full h-full select-none cursor-pointer"
                         style={{
@@ -1026,7 +1025,10 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            const itemKey = item.id || item.url || String(idx);
+                            fallbackAttemptedRef.current[itemKey] = false;
                             setVideoErrors((prev) => {
+                              if (!prev[idx]) return prev;
                               const next = { ...prev };
                               delete next[idx];
                               return next;
@@ -1035,7 +1037,6 @@ const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
                             if (v) {
                               v.src = directHfUrl || primaryStreamUrl;
                               v.load();
-                              v.play().catch(console.error);
                             }
                           }}
                           className="py-1.5 px-4 rounded-xl bg-white/10 hover:bg-[#00f0ff]/20 border border-white/20 hover:border-[#00f0ff] text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95"
