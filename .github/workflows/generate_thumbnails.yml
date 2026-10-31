@@ -1,4 +1,4 @@
-name: Generate Single-Frame Video Thumbnails (30% WebP)
+name: Generate Video Thumbnails (Hugging Face Dataset Storage)
 
 on:
   workflow_dispatch:
@@ -11,13 +11,9 @@ on:
 jobs:
   generate-thumbnails:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,7 +25,7 @@ jobs:
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install huggingface_hub
 
-      - name: Run Single-Frame 30% WebP Thumbnail Pipeline
+      - name: Generate 30% WebP Thumbnails & Upload to Hugging Face Dataset
         id: thumbnail_step
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -43,42 +39,37 @@ jobs:
 
           hf_token = os.environ.get("HF_TOKEN")
           if not hf_token:
-              print("WARNING: HF_TOKEN secret is not set! Dataset operations might fail.")
+              raise ValueError("HF_TOKEN secret is required for Hugging Face Dataset operations!")
 
           api = HfApi(token=hf_token)
           REPO_ID = "SARWARFX/stream-vault"
+          REPO_TYPE = "dataset"
           LOCAL_THUMB_DIR = "./temp_thumbnails"
           os.makedirs(LOCAL_THUMB_DIR, exist_ok=True)
 
-          print(f"Fetching current file manifest from {REPO_ID}...")
-          all_files = list_repo_files(repo_id=REPO_ID, repo_type="dataset", token=hf_token)
+          print(f"Fetching current file manifest from Hugging Face dataset: {REPO_ID}...")
+          all_files = list_repo_files(repo_id=REPO_ID, repo_type=REPO_TYPE, token=hf_token)
           existing_files_set = set(all_files)
 
+          # Find all video files in the Hugging Face dataset, strictly excluding thumbnails directories
           video_files = [
               f for f in all_files 
               if f.lower().endswith(('.mp4', '.mov', '.webm', '.mkv', '.avi'))
               and not f.lower().startswith(('thumbnails/', '.thumbnails/'))
           ]
 
-          print(f"Total video files found in vault: {len(video_files)}")
+          print(f"Total video files in vault: {len(video_files)}")
 
-          # Load existing thumbnails manifest if present
+          # Load existing manifest directly from Hugging Face dataset if available
           manifest = {}
-          if os.path.exists("public/thumbnails.json"):
+          if "thumbnails.json" in existing_files_set:
               try:
-                  with open("public/thumbnails.json", "r", encoding="utf-8") as mf:
-                      manifest = json.load(mf)
-                  print(f"Loaded existing manifest with {len(manifest)} items from public/thumbnails.json")
-              except Exception as e:
-                  print(f"Note: Could not parse local manifest: {e}")
-          elif "thumbnails.json" in existing_files_set:
-              try:
-                  manifest_path = hf_hub_download(repo_id=REPO_ID, filename="thumbnails.json", repo_type="dataset", token=hf_token)
+                  manifest_path = hf_hub_download(repo_id=REPO_ID, filename="thumbnails.json", repo_type=REPO_TYPE, token=hf_token)
                   with open(manifest_path, "r", encoding="utf-8") as mf:
                       manifest = json.load(mf)
-                  print(f"Loaded existing manifest with {len(manifest)} items from Hugging Face dataset")
+                  print(f"Loaded existing manifest with {len(manifest)} items from Hugging Face dataset.")
               except Exception as e:
-                  print(f"Note: Could not load remote manifest: {e}")
+                  print(f"Note: Could not parse remote thumbnails.json: {e}")
 
           def get_duration(url, token):
               quoted_path = urllib.parse.quote(url, safe=":/")
@@ -103,18 +94,18 @@ jobs:
 
           for idx, v in enumerate(video_files, 1):
               base_name = os.path.splitext(v)[0]
+              # Mirrors exact relative path under Thumbnails/ folder in the Hugging Face dataset
               thumb_rel_path = f"Thumbnails/{base_name}.webp"
               dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_rel_path)
 
-              # Incremental processing check: skip if thumbnail already exists in HF dataset or local destination
-              if thumb_rel_path in existing_files_set or os.path.exists(dest_path):
+              # Incremental processing: skip if thumbnail already exists in Hugging Face dataset
+              if thumb_rel_path in existing_files_set:
                   manifest[v] = thumb_rel_path
-                  print(f"[{idx}/{len(video_files)}] [SKIP] Thumbnail already exists: {thumb_rel_path}")
+                  print(f"[{idx}/{len(video_files)}] [SKIP] Exists on Hugging Face: {thumb_rel_path}")
                   continue
 
               print(f"[{idx}/{len(video_files)}] [PROCESSING] Capturing 30% frame for: {v}")
 
-              # Safely quote file path for URL resolution
               quoted_v = urllib.parse.quote(v, safe="/")
               video_url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{quoted_v}"
 
@@ -123,13 +114,11 @@ jobs:
                   print(f"  -> Using 10.0s fallback duration for {v}")
                   duration = 10.0
 
-              # Exactly 30% duration target
+              # Capture frame at exactly 30% duration
               seek_time = max(0.5, round(duration * 0.30, 2))
               os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
-              cmd = [
-                  "ffmpeg", "-y"
-              ]
+              cmd = ["ffmpeg", "-y"]
               if hf_token:
                   cmd.extend(["-headers", f"Authorization: Bearer {hf_token}\r\n"])
 
@@ -153,41 +142,27 @@ jobs:
 
           print(f"\nFinished extraction. Total new thumbnails generated: {generated_count}")
 
-          # Write updated manifest to temp thumb dir (for dataset upload) and public/ & src/data/ (for app)
+          # Update the mapping manifest directly in the Hugging Face dataset folder
           manifest_temp_path = os.path.join(LOCAL_THUMB_DIR, "thumbnails.json")
           with open(manifest_temp_path, "w", encoding="utf-8") as f:
-              json.dump(manifest, f, indent=2)
-
-          os.makedirs("public", exist_ok=True)
-          with open("public/thumbnails.json", "w", encoding="utf-8") as f:
-              json.dump(manifest, f, indent=2)
-
-          os.makedirs("src/data", exist_ok=True)
-          with open("src/data/thumbnails.json", "w", encoding="utf-8") as f:
               json.dump(manifest, f, indent=2)
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"generated_count={generated_count}\n")
 
+          # Upload generated thumbnails and updated manifest directly to Hugging Face dataset storage
           if generated_count > 0:
-              print(f"Committing and uploading generated thumbnails to {REPO_ID} (single atomic commit)...")
+              print(f"Directly uploading {generated_count} thumbnails and manifest to Hugging Face dataset {REPO_ID}...")
               api.upload_folder(
                   folder_path=LOCAL_THUMB_DIR,
                   repo_id=REPO_ID,
-                  repo_type="dataset",
-                  commit_message=f"feat(thumbnails): generate {generated_count} single-frame 30% WebP thumbnails (quality 80, 640px max)"
+                  repo_type=REPO_TYPE,
+                  commit_message=f"feat(thumbnails): upload {generated_count} single-frame 30% WebP thumbnails to Hugging Face dataset"
               )
-              print("Dataset upload complete!")
+              print("Direct Hugging Face dataset upload complete!")
           else:
               print("Hugging Face dataset repository is completely up-to-date. No new uploads needed.")
           EOF
-
-      - name: Commit Updated Thumbnails Manifest to Repository
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/thumbnails.json src/data/thumbnails.json
-          git diff --staged --quiet || (git commit -m "chore(manifest): update thumbnails.json [skip ci]" && git push origin main)
 
       - name: Purge Cloudflare Cache
         if: steps.thumbnail_step.outputs.generated_count != '0' && env.CLOUDFLARE_ZONE_ID != ''
@@ -195,7 +170,7 @@ jobs:
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          echo "New thumbnails uploaded, triggering Cloudflare Cache Purge..."
+          echo "New thumbnails uploaded to Hugging Face, triggering Cloudflare Cache Purge..."
           curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
                -H "Content-Type: application/json" \

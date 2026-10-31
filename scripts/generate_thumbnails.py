@@ -3,14 +3,14 @@ import sys
 import json
 import urllib.parse
 import subprocess
-from huggingface_hub import HfApi, list_repo_files
+from huggingface_hub import HfApi, list_repo_files, hf_hub_download
 
 REPO_ID = "SARWARFX/stream-vault"
 REPO_TYPE = "dataset"
 HF_TOKEN = os.environ.get("HF_TOKEN")
 
 if not HF_TOKEN:
-    print("Error: HF_TOKEN environment variable is missing.")
+    print("Error: HF_TOKEN environment variable is required.")
     sys.exit(1)
 
 api = HfApi(token=HF_TOKEN)
@@ -36,7 +36,7 @@ def get_duration(url, token):
         return None
 
 def main():
-    print(f"Fetching current file manifest from {REPO_ID}...")
+    print(f"Fetching current file manifest from Hugging Face dataset: {REPO_ID}...")
     all_files = list_repo_files(repo_id=REPO_ID, repo_type=REPO_TYPE, token=HF_TOKEN)
     existing_files_set = set(all_files)
 
@@ -46,15 +46,17 @@ def main():
         and not f.lower().startswith(('thumbnails/', '.thumbnails/'))
     ]
 
-    print(f"Total video files found in vault: {len(video_files)}")
+    print(f"Total video files in vault: {len(video_files)}")
 
     manifest = {}
-    if os.path.exists("public/thumbnails.json"):
+    if "thumbnails.json" in existing_files_set:
         try:
-            with open("public/thumbnails.json", "r", encoding="utf-8") as mf:
+            manifest_path = hf_hub_download(repo_id=REPO_ID, filename="thumbnails.json", repo_type=REPO_TYPE, token=HF_TOKEN)
+            with open(manifest_path, "r", encoding="utf-8") as mf:
                 manifest = json.load(mf)
-        except Exception:
-            pass
+            print(f"Loaded existing manifest with {len(manifest)} items from Hugging Face dataset.")
+        except Exception as e:
+            print(f"Note: Could not parse remote thumbnails.json: {e}")
 
     generated_count = 0
 
@@ -63,10 +65,10 @@ def main():
         thumb_rel_path = f"Thumbnails/{base_name}.webp"
         dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_rel_path)
 
-        # Incremental check
+        # Incremental check against Hugging Face dataset
         if thumb_rel_path in existing_files_set or os.path.exists(dest_path):
             manifest[v] = thumb_rel_path
-            print(f"[{idx}/{len(video_files)}] [SKIP] Already exists: {thumb_rel_path}")
+            print(f"[{idx}/{len(video_files)}] [SKIP] Already on Hugging Face: {thumb_rel_path}")
             continue
 
         print(f"[{idx}/{len(video_files)}] [PROCESSING] Capturing 30% frame for: {v}")
@@ -103,24 +105,17 @@ def main():
 
     print(f"\nTotal new thumbnails generated: {generated_count}")
 
+    # Save manifest directly to temporary directory for Hugging Face upload
     with open(os.path.join(LOCAL_THUMB_DIR, "thumbnails.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
-    os.makedirs("public", exist_ok=True)
-    with open("public/thumbnails.json", "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
-
-    os.makedirs("src/data", exist_ok=True)
-    with open("src/data/thumbnails.json", "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
-
     if generated_count > 0:
-        print(f"Committing and uploading generated thumbnails to {REPO_ID}...")
+        print(f"Directly uploading generated thumbnails and manifest to Hugging Face dataset {REPO_ID}...")
         api.upload_folder(
             folder_path=LOCAL_THUMB_DIR,
             repo_id=REPO_ID,
             repo_type=REPO_TYPE,
-            commit_message=f"feat(thumbnails): generate {generated_count} single-frame 30% WebP thumbnails (quality 80, 640px max)"
+            commit_message=f"feat(thumbnails): upload {generated_count} single-frame 30% WebP thumbnails to Hugging Face dataset"
         )
         print("Upload complete!")
 

@@ -1,7 +1,6 @@
 import type { StageMediaItem, HfMediaItem } from '../types';
-import { normalizeRepoPath, getMediaUrl } from './imageUrlResolver';
+import { normalizeRepoPath, getMediaUrl, HF_RESOLVE_BASE } from './imageUrlResolver';
 import { isVideoExtension } from './mediaTypeDetector';
-import thumbnailsManifest from '../data/thumbnails.json';
 import {
   preloadImageFrames,
   useThumbnailScrubber,
@@ -82,11 +81,64 @@ export function parseVideoPathInfo(urlOrPath: string): VideoPathInfo | null {
   return { relPath, parentDir, fileName, stem };
 }
 
-const manifestMap: Record<string, string> = (thumbnailsManifest as Record<string, string>) || {};
+// In-memory manifest cache fetched directly from the Hugging Face dataset storage / CDN
+let hfManifestMap: Record<string, string> = {};
+let isManifestFetching = false;
+
+/**
+ * Loads the unified thumbnails mapping manifest from the Hugging Face dataset.
+ */
+export function loadHfThumbnailManifest(): Promise<Record<string, string>> {
+  if (Object.keys(hfManifestMap).length > 0) {
+    return Promise.resolve(hfManifestMap);
+  }
+  if (typeof window === 'undefined' || !window.fetch) {
+    return Promise.resolve({});
+  }
+  if (isManifestFetching) {
+    return Promise.resolve(hfManifestMap);
+  }
+  isManifestFetching = true;
+
+  // 1. Try Hugging Face CDN edge proxy
+  const cdnUrl = getMediaUrl('thumbnails.json');
+  return fetch(cdnUrl)
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      if (data && typeof data === 'object') {
+        hfManifestMap = data;
+      }
+      isManifestFetching = false;
+      return hfManifestMap;
+    })
+    .catch(() => {
+      // 2. Direct fallback to Hugging Face dataset resolve endpoint
+      return fetch(`${HF_RESOLVE_BASE}/thumbnails.json`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && typeof data === 'object') {
+            hfManifestMap = data;
+          }
+          isManifestFetching = false;
+          return hfManifestMap;
+        })
+        .catch(() => {
+          isManifestFetching = false;
+          return {};
+        });
+    });
+}
+
+// Background sync in browser environments
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    loadHfThumbnailManifest();
+  }, 100);
+}
 
 /**
  * Resolves the single pre-generated high-quality 30% WebP static thumbnail URL
- * for any video or short item.
+ * from the Hugging Face Dataset storage (via CDN or raw resolve endpoint).
  */
 export function resolveStaticVideoThumbnail(
   itemOrPath?: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; poster?: string; posterUrl?: string; thumbnail?: string; thumbnails?: string[]; type?: string } | null
@@ -105,14 +157,14 @@ export function resolveStaticVideoThumbnail(
     }
   }
 
-  // 2. Extract clean relative path
+  // 2. Extract clean relative path within Hugging Face dataset
   const raw = typeof itemOrPath === 'string'
     ? itemOrPath
     : (('path' in itemOrPath && typeof itemOrPath.path === 'string') ? itemOrPath.path : (itemOrPath.url || ''));
 
   if (!raw) return '';
 
-  // 3. If raw path is already pointing directly to a thumbnail file
+  // 3. If raw path is already pointing directly to a thumbnail file in the dataset
   if (/^Thumbnails\//i.test(raw) || /\.(webp|jpg|jpeg|png)$/i.test(raw)) {
     return getMediaUrl(raw);
   }
@@ -120,19 +172,22 @@ export function resolveStaticVideoThumbnail(
   const relPath = extractHfRelativePath(raw);
   if (!relPath) return '';
 
-  // 4. Manifest lookup (full path, relative path, or filename)
-  if (manifestMap[relPath]) {
-    return getMediaUrl(manifestMap[relPath]);
+  // 4. Hugging Face dataset manifest lookup (if already populated from remote)
+  if (hfManifestMap[relPath]) {
+    return getMediaUrl(hfManifestMap[relPath]);
   }
-  if (manifestMap[raw]) {
-    return getMediaUrl(manifestMap[raw]);
+  if (hfManifestMap[raw]) {
+    return getMediaUrl(hfManifestMap[raw]);
   }
   const fileName = relPath.split('/').pop() || '';
-  if (fileName && manifestMap[fileName]) {
-    return getMediaUrl(manifestMap[fileName]);
+  if (fileName && hfManifestMap[fileName]) {
+    return getMediaUrl(hfManifestMap[fileName]);
   }
 
-  // 5. Predictable canonical single-frame WebP thumbnail location: Thumbnails/${basePathWithoutExtension}.webp
+  // 5. Predictable canonical single-frame 30% WebP thumbnail in Hugging Face dataset:
+  // Mirrors exact media folder hierarchy inside `Thumbnails/`:
+  // e.g. "Video Clips/Favorite/webmedia-serial-1.mp4" -> "Thumbnails/Video Clips/Favorite/webmedia-serial-1.webp"
+  // e.g. "Shorts/Shorts Classic/sample.mp4" -> "Thumbnails/Shorts/Shorts Classic/sample.webp"
   const basePathWithoutExtension = relPath.replace(/\.(mp4|mov|webm|mkv|m4v|avi|flv)$/i, '');
   if (!basePathWithoutExtension) return '';
 

@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated thumbnail artifacts (stored strictly in Hugging Face dataset)
+temp_thumbnails/
+temp_videos/
+generated_thumbs/
+thumbnails.json
+public/thumbnails.json
+src/data/thumbnails.json
