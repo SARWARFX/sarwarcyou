@@ -82,6 +82,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   } | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
 
+  // Desktop Mouse Drag & Pan State
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const isDraggingRef = useRef<boolean>(false);
+  const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number }>({ x: 0, y: 0, posX: 0, posY: 0 });
+  const hasDraggedRef = useRef<boolean>(false);
+
   // 2-Finger Pinch & Pan State Ref
   const pinchStateRef = useRef<{
     startDist: number;
@@ -125,6 +131,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setShowControls(true);
+    setIsDragging(false);
+    isDraggingRef.current = false;
+    hasDraggedRef.current = false;
   }
 
   // Determine active media item
@@ -139,6 +148,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setActiveIdx(next);
     setScale(1);
     setPosition({ x: 0, y: 0 });
+    setIsDragging(false);
+    isDraggingRef.current = false;
+    hasDraggedRef.current = false;
     onIndexChange?.(next);
   }, [hasItemList, activeIdx, items.length, onIndexChange]);
 
@@ -148,6 +160,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setActiveIdx(prev);
     setScale(1);
     setPosition({ x: 0, y: 0 });
+    setIsDragging(false);
+    isDraggingRef.current = false;
+    hasDraggedRef.current = false;
     onIndexChange?.(prev);
   }, [hasItemList, activeIdx, onIndexChange]);
 
@@ -284,6 +299,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       // ALWAYS RESET to natural default state when already zoomed
       setScale(1);
       setPosition({ x: 0, y: 0 });
+      setIsDragging(false);
+      isDraggingRef.current = false;
+      hasDraggedRef.current = false;
     } else {
       // Zoom in to 2.5x centered around natural view
       setScale(2.5);
@@ -513,9 +531,93 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   };
 
-  // Desktop Click handlers (with double-click protection)
+  // Desktop Mouse Drag & Pan Handlers (when scale > 1.05)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only handle primary mouse button drag when zoomed in (scale > 1.05) and viewing an image
+    if (e.pointerType !== 'mouse' || e.button !== 0 || scale <= 1.05 || type !== 'image') {
+      return;
+    }
+    // Prevent default browser image ghost drag or selection
+    e.preventDefault();
+
+    isDraggingRef.current = true;
+    hasDraggedRef.current = false;
+    setIsDragging(true);
+
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      posX: position.x,
+      posY: position.y,
+    };
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // In case setPointerCapture is unsupported or element disconnected
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current || e.pointerType !== 'mouse') return;
+
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+
+    // Movement threshold to distinguish drag from stationary click
+    if (Math.hypot(dx, dy) > 3) {
+      hasDraggedRef.current = true;
+    }
+
+    // Boundary clamp to keep the image visible within bounds
+    const maxPanX = Math.max(0, (window.innerWidth * (scale - 1)) / 2 + 50);
+    const maxPanY = Math.max(0, (window.innerHeight * (scale - 1)) / 2 + 50);
+
+    const nextX = Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.posX + dx));
+    const nextY = Math.max(-maxPanY, Math.min(maxPanY, dragStartRef.current.posY + dy));
+
+    setPosition({ x: nextX, y: nextY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse') return;
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse') return;
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  // Desktop Click handlers (with double-click and drag suppression)
   const handleStageClick = () => {
     if (Date.now() - lastTouchTimeRef.current < 600) {
+      return;
+    }
+
+    // Suppress controls toggle if the user just completed dragging
+    if (hasDraggedRef.current) {
+      hasDraggedRef.current = false;
       return;
     }
 
@@ -533,6 +635,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (Date.now() - lastTouchTimeRef.current < 600) {
       return;
     }
+    if (hasDraggedRef.current) {
+      hasDraggedRef.current = false;
+      return;
+    }
     handleDoubleTap(e);
   };
 
@@ -545,6 +651,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setScale(newScale);
     if (newScale <= 1.05) {
       setPosition({ x: 0, y: 0 });
+      setIsDragging(false);
+      isDraggingRef.current = false;
+    } else {
+      const maxPanX = Math.max(0, (window.innerWidth * (newScale - 1)) / 2 + 50);
+      const maxPanY = Math.max(0, (window.innerHeight * (newScale - 1)) / 2 + 50);
+      setPosition((prev) => ({
+        x: Math.max(-maxPanX, Math.min(maxPanX, prev.x)),
+        y: Math.max(-maxPanY, Math.min(maxPanY, prev.y)),
+      }));
     }
   };
 
@@ -904,13 +1019,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* Main Media Stage */}
         <div
           ref={mediaBoxRef}
-          className="flex-1 relative w-full h-full flex items-center justify-center p-3 sm:p-6 md:p-8 transition-all overflow-hidden cursor-pointer"
+          className={`flex-1 relative w-full h-full flex items-center justify-center p-3 sm:p-6 md:p-8 transition-all overflow-hidden ${
+            isZoomed
+              ? isDragging
+                ? 'cursor-grabbing'
+                : 'cursor-grab'
+              : 'cursor-pointer'
+          }`}
           onClick={handleStageClick}
           onDoubleClick={handleStageDoubleClick}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
         >
           {type === 'video' ? (
             <div className="w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center border border-white/10">
@@ -937,12 +1062,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                       ? `translateX(${touchDeltaX}px)`
                       : `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
                   transition:
-                    pinchStateRef.current.isPinching || pinchStateRef.current.isPanning || touchDeltaX !== 0
+                    pinchStateRef.current.isPinching || pinchStateRef.current.isPanning || isDragging || touchDeltaX !== 0
                       ? 'none'
                       : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
                 className={`max-w-full max-h-[82dvh] md:max-h-[85dvh] object-contain rounded-xl select-none will-change-transform ${
-                  isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
+                  isZoomed
+                    ? isDragging
+                      ? 'cursor-grabbing'
+                      : 'cursor-grab'
+                    : 'cursor-zoom-in'
                 } drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]`}
                 draggable={false}
               />

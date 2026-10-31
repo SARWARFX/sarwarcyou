@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { Camera, Film, Sparkles, Folder, ChevronRight, X, Play } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
+import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 
 export interface CyberMediaSidebarProps {
   items: StageMediaItem[];
@@ -17,6 +18,108 @@ export interface CyberMediaSidebarProps {
   className?: string;
   onClose?: () => void;
 }
+
+/**
+ * Thumbnail frame for individual queue cards with resolution, caching, and error fallback.
+ */
+const QueueCardThumbnail: React.FC<{
+  item: StageMediaItem;
+  mediaType: 'video' | 'image';
+  cleanTitle: string;
+}> = ({ item, mediaType, cleanTitle }) => {
+  const [imgError, setImgError] = useState(false);
+  const isVid = mediaType === 'video' || isVideoExtension(item.url || item.id);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [item.id, item.url]);
+
+  const thumbUrl = useMemo(() => {
+    if (isVid) {
+      const resolved = resolveStaticVideoThumbnail(item);
+      if (resolved) return resolved;
+      const fallback = item.thumbnail || item.poster;
+      return fallback ? getMediaUrl(fallback) : '';
+    }
+    const fallback = item.thumbnail || item.poster || item.url;
+    return fallback ? getMediaUrl(fallback) : '';
+  }, [item, isVid]);
+
+  if (!thumbUrl || imgError) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-black flex items-center justify-center">
+        {isVid ? (
+          <Play className="w-3.5 h-3.5 text-[#00E5FF] fill-current ml-0.5" />
+        ) : (
+          <Camera className="w-3.5 h-3.5 text-zinc-500" />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <img
+        src={thumbUrl}
+        alt={cleanTitle}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        onError={() => setImgError(true)}
+      />
+      {isVid && (
+        <div className="absolute inset-0 bg-black/35 flex items-center justify-center pointer-events-none group-hover:bg-black/20 transition-colors">
+          <Play className="w-3.5 h-3.5 text-[#00E5FF] fill-current ml-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+        </div>
+      )}
+    </>
+  );
+};
+
+/**
+ * Cover thumbnail for suggested folders.
+ */
+const FolderCoverThumbnail: React.FC<{
+  folder: MediaFolderEntry;
+  mediaType: 'video' | 'image';
+}> = ({ folder, mediaType }) => {
+  const [imgError, setImgError] = useState(false);
+  const coverItem = folder.items?.[0];
+  const isVid = mediaType === 'video' || (coverItem && isVideoExtension(coverItem.url || coverItem.id));
+
+  useEffect(() => {
+    setImgError(false);
+  }, [folder.id]);
+
+  const coverThumb = useMemo(() => {
+    if (!coverItem) return '';
+    if (isVid) {
+      const resolved = resolveStaticVideoThumbnail(coverItem);
+      if (resolved) return resolved;
+      const fallback = coverItem.thumbnail || coverItem.poster;
+      return fallback ? getMediaUrl(fallback) : '';
+    }
+    const fallback = coverItem.thumbnail || coverItem.poster || coverItem.url;
+    return fallback ? getMediaUrl(fallback) : '';
+  }, [coverItem, isVid]);
+
+  if (!coverThumb || imgError) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-black flex items-center justify-center">
+        <Folder className="w-4 h-4 text-zinc-500" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={coverThumb}
+      alt={folder.name}
+      className="w-full h-full object-cover"
+      loading="lazy"
+      onError={() => setImgError(true)}
+    />
+  );
+};
 
 export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
   items,
@@ -128,7 +231,6 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                 idx === activeIdx ||
                 it.id === activeItem?.id ||
                 it.url === activeItem?.url;
-              const thumbUrl = it.thumbnail || it.poster || it.url;
               const cleanTitle = sanitizeMediaTitle(it.title, it.category);
 
               return (
@@ -144,18 +246,11 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                 >
                   {/* Thumbnail Badge */}
                   <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
-                    {mediaType === 'video' || isVideoExtension(it.url || it.id) ? (
-                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-black flex items-center justify-center">
-                        <Play className="w-3.5 h-3.5 text-[#00E5FF] fill-current ml-0.5" />
-                      </div>
-                    ) : (
-                      <img
-                        src={getMediaUrl(thumbUrl)}
-                        alt={cleanTitle}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    )}
+                    <QueueCardThumbnail
+                      item={it}
+                      mediaType={mediaType}
+                      cleanTitle={cleanTitle}
+                    />
                     {isActive && (
                       <div className="absolute inset-0 bg-[#00E5FF]/20 flex items-center justify-center">
                         <div className="w-2 h-2 rounded-full bg-[#00E5FF] animate-ping" />
@@ -205,9 +300,6 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
 
             <div className="flex flex-col gap-2.5">
               {suggestedFolders.map((folder) => {
-                const coverItem = folder.items[0];
-                const coverThumb =
-                  coverItem?.thumbnail || coverItem?.poster || coverItem?.url;
                 return (
                   <div
                     key={folder.id}
@@ -215,15 +307,8 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                     className="group flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-[#00E5FF]/40 transition-all duration-200 cursor-pointer shadow-md hover:shadow-[0_4px_20px_rgba(0,229,255,0.15)]"
                   >
                     <div className="relative w-16 h-12 rounded-xl overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
-                      {coverThumb && (
-                        <img
-                          src={getMediaUrl(coverThumb)}
-                          alt={folder.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-1">
+                      <FolderCoverThumbnail folder={folder} mediaType={mediaType} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-1 pointer-events-none">
                         <Folder className="w-3 h-3 text-[#00E5FF]" />
                       </div>
                     </div>
