@@ -219,7 +219,13 @@ export function findMatchingFolder(
 
 export const normalizeComparisonString = (s?: string | null): string => {
   if (!s) return '';
-  return s.toLowerCase().replace(/[-_\s.]/g, '');
+  let str = s;
+  try {
+    str = decodeURIComponent(str.replace(/\+/g, ' '));
+  } catch {
+    // keep str if malformed
+  }
+  return str.toLowerCase().replace(/[-_\s.+]/g, '');
 };
 
 /**
@@ -237,6 +243,7 @@ export function isMediaMatch(item: StageMediaItem, mediaParam: string): boolean 
     item.id,
     item.path,
     item.path ? item.path.split('/').pop() : undefined,
+    item.url,
     item.url ? item.url.split('?')[0].split('#')[0].split('/').pop() : undefined,
   ];
 
@@ -244,7 +251,7 @@ export function isMediaMatch(item: StageMediaItem, mediaParam: string): boolean 
     if (!raw) continue;
     const c = normalizeComparisonString(raw);
     const cNoExt = normalizeComparisonString(raw.replace(/\.[a-z0-9]{2,5}$/i, ''));
-    if (c === target || cNoExt === target) return true;
+    if (c === target || cNoExt === target || c.endsWith(target) || cNoExt.endsWith(target)) return true;
   }
   return false;
 }
@@ -275,25 +282,27 @@ export function searchCatalogRecursively(
   let matchedItem: StageMediaItem | null = null;
   let matchedFolder: MediaFolderEntry | null = null;
 
+  const isShortsQuery = cleanAlbum === 'shorts' || cleanAlbum === 'reels' || cleanAlbum === 'short' || cleanAlbum.includes('short');
+
   // 1. If albumParam is provided, gather all matching subdirectories
   if (cleanAlbum) {
     let subfolderNodes: MediaFolderEntry[] = [];
-    if (cleanAlbum === 'shorts' || cleanAlbum === 'reels' || cleanAlbum === 'short') {
+    if (isShortsQuery) {
       subfolderNodes = folders.filter(
         (f) =>
           f.variant === 'shorts' ||
           clean(f.folderPath).includes('short') ||
           clean(f.name).includes('short') ||
+          clean(f.slug).includes('short') ||
           f.items.some((it) => it.mediaType === 'short')
       );
     } else {
       subfolderNodes = folders.filter(
         (f) =>
-          clean(f.folderPath).startsWith(cleanAlbum) ||
+          clean(f.folderPath).includes(cleanAlbum) ||
           clean(f.folderPath?.split('/')[0]) === cleanAlbum ||
-          clean(f.name) === cleanAlbum ||
-          clean(f.slug) === cleanAlbum ||
-          clean(f.name).includes(cleanAlbum)
+          clean(f.name).includes(cleanAlbum) ||
+          clean(f.slug).includes(cleanAlbum)
       );
     }
 
@@ -301,7 +310,7 @@ export function searchCatalogRecursively(
     if (cleanMedia) {
       for (const folder of subfolderNodes) {
         for (const it of folder.items) {
-          if (isMediaMatch(it, mediaParam!)) {
+          if (it && isMediaMatch(it, mediaParam!)) {
             matchedItem = it;
             matchedFolder = folder;
             break;
@@ -312,11 +321,11 @@ export function searchCatalogRecursively(
     }
 
     // If not found in those subfolders yet, also check shortsPool if album was shorts
-    if (!matchedItem && (cleanAlbum === 'shorts' || cleanAlbum === 'reels') && cleanMedia) {
+    if (!matchedItem && isShortsQuery && cleanMedia) {
       for (const it of shortsPool) {
-        if (isMediaMatch(it, mediaParam!)) {
+        if (it && isMediaMatch(it, mediaParam!)) {
           matchedItem = it;
-          matchedFolder = folders.find((f) => f.items.some((x) => x.id === it.id || x.url === it.url)) || null;
+          matchedFolder = folders.find((f) => f.items.some((x) => x && (x.id === it.id || x.url === it.url))) || null;
           break;
         }
       }
@@ -327,7 +336,7 @@ export function searchCatalogRecursively(
   if (!matchedItem && cleanMedia) {
     for (const folder of folders) {
       for (const it of folder.items) {
-        if (isMediaMatch(it, mediaParam!)) {
+        if (it && isMediaMatch(it, mediaParam!)) {
           matchedItem = it;
           matchedFolder = folder;
           break;
@@ -340,9 +349,9 @@ export function searchCatalogRecursively(
   // 3. Search allMediaPool as fallback search
   if (!matchedItem && cleanMedia) {
     for (const it of allPool) {
-      if (isMediaMatch(it, mediaParam!)) {
+      if (it && isMediaMatch(it, mediaParam!)) {
         matchedItem = it;
-        matchedFolder = folders.find((f) => f.items.some((x) => x.id === it.id || x.url === it.url)) || null;
+        matchedFolder = folders.find((f) => f.items.some((x) => x && (x.id === it.id || x.url === it.url))) || null;
         break;
       }
     }
@@ -350,19 +359,26 @@ export function searchCatalogRecursively(
 
   // 4. Safe fallback: if still no match found, fall back to first available video/short item
   if (!matchedItem) {
-    if (cleanAlbum === 'shorts' || cleanAlbum === 'reels') {
+    if (isShortsQuery) {
       matchedItem =
-        shortsPool[0] ||
-        allPool.find((it) => it.mediaType === 'short' || it.type === 'video') ||
-        allPool[0];
+        (shortsPool && shortsPool.length > 0 ? shortsPool[0] : null) ||
+        allPool.find((it) => it && (it.mediaType === 'short' || it.type === 'video')) ||
+        (allPool && allPool.length > 0 ? allPool[0] : null) ||
+        (folders.length > 0 && folders[0].items.length > 0 ? folders[0].items[0] : null);
     } else {
       matchedItem =
-        allPool.find((it) => it.type === 'video' || it.mediaType === 'clip' || it.mediaType === 'short') ||
-        allPool[0];
+        allPool.find((it) => it && (it.type === 'video' || it.mediaType === 'clip' || it.mediaType === 'short')) ||
+        (allPool && allPool.length > 0 ? allPool[0] : null) ||
+        (shortsPool && shortsPool.length > 0 ? shortsPool[0] : null) ||
+        (folders.length > 0 && folders[0].items.length > 0 ? folders[0].items[0] : null);
     }
   }
 
-  // 5. Populate full swipe playlist according to Task 3:
+  if (matchedItem && !matchedFolder) {
+    matchedFolder = folders.find((f) => f.items.some((x) => x && (x.id === matchedItem!.id || x.url === matchedItem!.url))) || null;
+  }
+
+  // 5. Populate full swipe playlist:
   // "Once the active short is found, populate the entire swipe playlist with all shorts from that subfolder
   // (or the combined shorts category) so scrolling/swiping down moves to the next short naturally."
   let playlist: StageMediaItem[] = [];
@@ -370,38 +386,49 @@ export function searchCatalogRecursively(
     matchedItem?.mediaType === 'short' ||
     matchedItem?.category?.toLowerCase().includes('short') ||
     matchedItem?.url?.toLowerCase().includes('/shorts/') ||
-    matchedItem?.id?.toLowerCase().includes('shorts')
+    matchedItem?.id?.toLowerCase().includes('shorts') ||
+    matchedFolder?.variant === 'shorts' ||
+    matchedFolder?.name?.toLowerCase().includes('short')
   );
 
   if (isShort) {
-    const folderShorts = matchedFolder?.items.filter((it) => it.mediaType === 'short') || [];
-    if (folderShorts.length > 1) {
+    const folderShorts = (matchedFolder?.items || []).filter((it) => it && it.mediaType === 'short');
+    if (folderShorts.length > 0) {
       playlist = folderShorts;
-    } else if (shortsPool.length > 0) {
-      playlist = shortsPool;
-    } else {
+    } else if (shortsPool && shortsPool.length > 0) {
+      playlist = shortsPool.filter(Boolean);
+    } else if (matchedItem) {
       playlist = [matchedItem];
     }
   } else {
-    playlist = matchedFolder?.items && matchedFolder.items.length > 0 ? matchedFolder.items : [matchedItem];
+    if (matchedFolder?.items && matchedFolder.items.length > 0) {
+      playlist = matchedFolder.items.filter(Boolean);
+    } else if (matchedItem) {
+      playlist = [matchedItem];
+    }
   }
 
-  let targetIndex = playlist.findIndex(
-    (it) => it.id === matchedItem?.id || it.url === matchedItem?.url || clean(it.name) === clean(matchedItem?.name)
-  );
-  if (targetIndex === -1) {
-    targetIndex = 0;
+  if (playlist.length === 0 && matchedItem) {
+    playlist = [matchedItem];
+  }
+
+  let targetIndex = 0;
+  if (matchedItem && playlist.length > 0) {
+    const idx = playlist.findIndex(
+      (it) => it && (it.id === matchedItem!.id || it.url === matchedItem!.url || clean(it.name) === clean(matchedItem!.name))
+    );
+    targetIndex = idx !== -1 ? idx : 0;
   }
 
   const preferredAlbum =
     matchedFolder?.name ||
     matchedItem?.category ||
-    (isShort ? 'shorts' : undefined) ||
+    (isShort ? 'Shorts' : undefined) ||
     albumParam ||
     'Featured';
 
   return {
-    matchedItem,
+    matchedItem: matchedItem || playlist[0],
     playlist,
     preferredAlbum,
     targetIndex,

@@ -12,7 +12,7 @@ export interface CyberCommandPaletteProps {
   allShorts: StageMediaItem[];
   onOpenPhoto: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
   onOpenVideo: (item: StageMediaItem, playlist: StageMediaItem[]) => void;
-  onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number) => void;
+  onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number, folderName?: string) => void;
 }
 
 type MediaFilter = 'ALL' | 'SHORTS' | 'VIDEOS' | 'PHOTOS';
@@ -85,7 +85,7 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
       // Find short index in shorts list
       const idx = allShorts.findIndex((s) => s.id === item.id || s.url === item.url);
       const targetIndex = idx >= 0 ? idx : 0;
-      onOpenShort(item, allShorts.length > 0 ? allShorts : [item], targetIndex);
+      onOpenShort(item, allShorts.length > 0 ? allShorts : [item], targetIndex, item.category || item.parentAlbum);
     } else if (item.type === 'video') {
       onOpenVideo(item, [item]);
     } else {

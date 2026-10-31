@@ -219,7 +219,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       const scrollTop = container.scrollTop;
       const targetIndex = Math.round(scrollTop / h);
 
-      if (targetIndex !== activeIndexRef.current && targetIndex >= 0 && targetIndex < shorts.length) {
+      if (shorts && targetIndex !== activeIndexRef.current && targetIndex >= 0 && targetIndex < shorts.length) {
         activeIndexRef.current = targetIndex;
 
         // Synchronously silence & pause all non-target videos immediately
@@ -260,7 +260,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         resetControlsTimer();
 
         // Prewarm next reel stream
-        if (shorts[targetIndex + 1]?.url) {
+        if (shorts && shorts[targetIndex + 1]?.url) {
           prewarmVideoStream(shorts[targetIndex + 1].url);
         }
       }
@@ -314,7 +314,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         const targetIndex = activeIndexRef.current + direction;
 
         // If at top or bottom boundaries, prevent browser window bounce
-        if (targetIndex < 0 || targetIndex >= shorts.length) {
+        if (!shorts || targetIndex < 0 || targetIndex >= shorts.length) {
           e.preventDefault();
           return;
         }
@@ -367,7 +367,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         wheelResetTimerRef.current = null;
       }
     };
-  }, [isOpen, shorts.length]);
+  }, [isOpen, shorts?.length]);
 
   // Autoplay currently snapped reel and guarantee all other videos are muted & paused
   useEffect(() => {
@@ -399,7 +399,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   // Smart Adjacent Pre-Fetching: while active video i is playing, silently pre-fetch i + 1
   useEffect(() => {
-    if (!isOpen || activeIndex >= shorts.length - 1) return;
+    if (!isOpen || !shorts || activeIndex >= shorts.length - 1) return;
     const nextItem = shorts[activeIndex + 1];
     if (!nextItem) return;
 
@@ -504,7 +504,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   // Sequential Navigation: Scroll Up / Down
   const handleScrollNext = useCallback(() => {
-    if (activeIndex < shorts.length - 1) {
+    if (shorts && activeIndex < shorts.length - 1) {
       const nextIdx = activeIndex + 1;
       videoRefs.current.forEach((v, i) => {
         if (v && i !== nextIdx) {
@@ -517,7 +517,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [activeIndex, shorts.length]);
+  }, [activeIndex, shorts?.length]);
 
   const handleScrollPrev = useCallback(() => {
     if (activeIndex > 0) {
@@ -612,7 +612,25 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     [activeIndex, duration, resetControlsTimer]
   );
 
-  if (!isOpen || !shorts || !shorts.length) return null;
+  if (!isOpen) return null;
+
+  if (!shorts || shorts.length === 0 || !shorts[activeIndex] || !shorts[0]) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Loading Shorts"
+        className="fixed inset-0 z-50 w-[100vw] h-[100dvh] flex items-center justify-center bg-black/90 backdrop-blur-md"
+      >
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-[#00f0ff] animate-spin" />
+          <span className="text-xs font-mono text-white/70 uppercase tracking-widest">
+            Loading Shorts...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -685,17 +703,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         }}
       >
         {shorts.map((rawItem, idx) => {
-          const item = rawItem || ({} as Partial<StageMediaItem>);
+          if (!rawItem) return null;
+          const item = rawItem;
           const isSnapped = idx === activeIndex;
           const isAdjacent = Math.abs(idx - activeIndex) <= 1;
-          const primaryStreamUrl = getVideoStreamUrl(item as StageMediaItem);
-          const directHfUrl = getDirectHfVideoUrl(item as StageMediaItem);
+          const primaryStreamUrl = getVideoStreamUrl(item);
+          const directHfUrl = getDirectHfVideoUrl(item);
           const streamUrl = videoSourceOverrides[idx] || primaryStreamUrl || directHfUrl;
           const rawPoster = (
             item.thumbnails?.[0] ||
             (item.url ? getCachedThumbnailSync(item.url) : '') ||
             (item.url ? getCachedVideoPoster(item.url) : '') ||
             item.thumbnail ||
+            item.poster ||
+            item.posterUrl ||
             ''
           );
           const shortPoster = rawPoster && !isVideoExtension(rawPoster) ? getMediaUrl(rawPoster) : '';
@@ -1297,7 +1318,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     <button
                       type="button"
                       onClick={handleScrollNext}
-                      disabled={activeIndex === shorts.length - 1}
+                      disabled={!shorts || activeIndex === shorts.length - 1}
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 border border-white/[0.12] hover:border-[#00f0ff] flex items-center justify-center text-white/80 hover:text-[#00f0ff] hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all disabled:opacity-20 disabled:pointer-events-none active:scale-90 cursor-pointer"
                       title="Next Reel (Down Arrow)"
                       aria-label="Next Reel"

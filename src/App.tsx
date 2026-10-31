@@ -245,14 +245,14 @@ function App() {
 
       if (isShort) {
         const fullShortsList =
-          playlistContext && playlistContext.length > 0
+          (playlistContext && playlistContext.length > 0
             ? playlistContext
             : rawFeed.shorts.length > 0
             ? rawFeed.shorts
-            : [item];
+            : [item]).filter(Boolean);
 
         let targetIdx = fullShortsList.findIndex(
-          (s) => (s.id && item.id && s.id === item.id) || (s.url && item.url && s.url === item.url)
+          (s) => s && ((s.id && item.id && s.id === item.id) || (s.url && item.url && s.url === item.url))
         );
 
         if (targetIdx === -1) {
@@ -263,9 +263,10 @@ function App() {
           }
         }
 
-        const targetIndex = targetIdx !== -1 ? targetIdx : 0;
+        const targetIndex = targetIdx >= 0 && targetIdx < fullShortsList.length ? targetIdx : 0;
         const targetItem = fullShortsList[targetIndex] || item;
-        const targetUrl = buildMediaUrl(targetItem, preferredAlbum || 'shorts');
+        const albumTarget = preferredAlbum || targetItem.category || targetItem.parentAlbum || 'Shorts';
+        const targetUrl = buildMediaUrl(targetItem, albumTarget);
         if (pushHistory) {
           pushModalState('shorts', targetUrl);
         }
@@ -358,8 +359,9 @@ function App() {
   );
 
   const handleOpenShort = useCallback(
-    (short: StageMediaItem, shorts: StageMediaItem[], _index: number) => {
-      openMediaItem(short, shorts, 'shorts', true);
+    (short: StageMediaItem, shorts: StageMediaItem[], _index: number, folderName?: string) => {
+      const albumTarget = folderName || short.category || short.parentAlbum || 'Shorts';
+      openMediaItem(short, shorts, albumTarget, true);
     },
     [openMediaItem]
   );
@@ -691,7 +693,8 @@ function App() {
               }));
               const currentShort = shortsState.shorts[idx];
               if (currentShort) {
-                const targetUrl = buildMediaUrl(currentShort, 'shorts');
+                const albumTarget = currentShort.category || currentShort.parentAlbum || 'Shorts';
+                const targetUrl = buildMediaUrl(currentShort, albumTarget);
                 window.history.replaceState({ modalOpen: true, view: 'shorts', id: currentShort.id }, '', targetUrl);
               }
             }}

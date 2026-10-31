@@ -11,7 +11,7 @@ export interface DeepSpaceTreeExplorerProps {
   items: StageMediaItem[];
   onOpenPhoto: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
   onOpenVideo: (item: StageMediaItem, playlist: StageMediaItem[]) => void;
-  onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number) => void;
+  onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number, folderName?: string) => void;
   initialAlbum?: string;
   isNavDisabled?: boolean;
 }
@@ -79,7 +79,7 @@ const ShortCardItem: React.FC<{
   short: StageMediaItem;
   allShorts: StageMediaItem[];
   index: number;
-  onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number) => void;
+  onOpenShort: (item: StageMediaItem, shorts: StageMediaItem[], index: number, folderName?: string) => void;
   folderName: string;
   isFocused?: boolean;
 }> = ({ short, allShorts, index, onOpenShort, folderName, isFocused }) => {
@@ -95,11 +95,11 @@ const ShortCardItem: React.FC<{
       id={`tree-item-2-${index}`}
       role="button"
       tabIndex={0}
-      onClick={() => onOpenShort(short, allShorts, index)}
+      onClick={() => onOpenShort(short, allShorts, index, folderName)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onOpenShort(short, allShorts, index);
+          onOpenShort(short, allShorts, index, folderName);
         }
       }}
       aria-label={`Play short: ${cleanTitle}`}
@@ -649,7 +649,7 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
             } else if (activeMediaFiles.type === 'video') {
               onOpenVideo(item, videoFiles);
             } else if (activeMediaFiles.type === 'short') {
-              onOpenShort(item, shortFiles, focusedIndex);
+              onOpenShort(item, shortFiles, focusedIndex, activeLeafNode?.name);
             }
           }
         }
