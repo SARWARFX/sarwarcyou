@@ -48,6 +48,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [readyVideos, setReadyVideos] = useState<Record<number, boolean>>({});
+
+  const markVideoReady = useCallback((index: number) => {
+    setReadyVideos((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
+  }, []);
 
   // Mobile Immersive Mode: Controls auto-hide during playback and reveal on user access
   const [showControls, setShowControls] = useState(true);
@@ -82,6 +87,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setIsPlaying(true);
     setCurrentTime(0);
     setDuration(0);
+    setReadyVideos({});
     resetControlsTimer();
   }
 
@@ -131,6 +137,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         }
       }
     });
+    setReadyVideos({});
     if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
     if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
   }, []);
@@ -180,6 +187,18 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         const targetVideo = videoRefs.current[targetIndex];
         if (targetVideo) {
           activeVideoRef.current = targetVideo;
+          targetVideo.muted = isMuted;
+          const playPromise = targetVideo.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => setIsPlaying(true))
+              .catch((err) => {
+                console.warn("Autoplay blocked, falling back to muted:", err);
+                targetVideo.muted = true;
+                setIsMuted(true);
+                targetVideo.play().then(() => setIsPlaying(true)).catch(console.error);
+              });
+          }
           setCurrentTime(targetVideo.currentTime);
           setDuration(
             targetVideo.duration && isFinite(targetVideo.duration) ? targetVideo.duration : 0
@@ -220,8 +239,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
-              .catch(() => {
-                // Fallback to muted playback if blocked by browser policy
+              .catch((err) => {
+                console.warn("Autoplay blocked, falling back to muted:", err);
                 video.muted = true;
                 setIsMuted(true);
                 video.play().then(() => setIsPlaying(true)).catch(console.error);
@@ -580,8 +599,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     className="relative w-full h-full md:aspect-[9/16] md:h-[86vh] md:max-h-[840px] md:w-auto md:rounded-3xl overflow-hidden bg-black flex items-center justify-center md:shadow-[0_20px_60px_rgba(0,0,0,0.95)] md:border md:border-white/10 group cursor-pointer"
                     onClick={isSnapped ? handleVideoClick : undefined}
                   >
-                    {/* Visual Poster / Backing Image */}
-                    {shortPoster && (
+                    {/* Visual Poster / Backing Image (Completely unmounted once video is ready) */}
+                    {shortPoster && !readyVideos[idx] && (
                       <img
                         src={shortPoster}
                         alt={displayTitle}
@@ -598,17 +617,51 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                           videoRefs.current[idx] = el;
                           if (idx === activeIndex) {
                             activeVideoRef.current = el;
+                            if (el && el.paused && isSnapped) {
+                              el.muted = isMuted;
+                              const playPromise = el.play();
+                              if (playPromise !== undefined) {
+                                playPromise
+                                  .then(() => setIsPlaying(true))
+                                  .catch((err) => {
+                                    console.warn("Autoplay blocked, falling back to muted:", err);
+                                    el.muted = true;
+                                    setIsMuted(true);
+                                    el.play().then(() => setIsPlaying(true)).catch(console.error);
+                                  });
+                              }
+                            }
                           }
                         }}
                         src={streamUrl}
-                        poster={shortPoster || undefined}
+                        poster={!readyVideos[idx] ? shortPoster || undefined : undefined}
                         autoPlay={isSnapped}
-                        preload={isSnapped || idx === activeIndex + 1 ? 'auto' : 'metadata'}
+                        preload={isSnapped ? 'auto' : (idx === activeIndex + 1 ? 'auto' : 'metadata')}
                         playsInline
                         {...({ 'webkit-playsinline': 'true' } as any)}
                         loop
                         muted={!isSnapped ? true : isMuted}
                         crossOrigin="anonymous"
+                        onCanPlay={(e) => {
+                          markVideoReady(idx);
+                          if (idx === activeIndex) {
+                            const v = e.currentTarget;
+                            if (v.paused) {
+                              v.muted = isMuted;
+                              const playPromise = v.play();
+                              if (playPromise !== undefined) {
+                                playPromise
+                                  .then(() => setIsPlaying(true))
+                                  .catch((err) => {
+                                    console.warn("Autoplay blocked, falling back to muted:", err);
+                                    v.muted = true;
+                                    setIsMuted(true);
+                                    v.play().then(() => setIsPlaying(true)).catch(console.error);
+                                  });
+                              }
+                            }
+                          }
+                        }}
                         onPlay={() => {
                           if (idx !== activeIndex) {
                             if (videoRefs.current[idx]) {
@@ -620,6 +673,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                           }
                         }}
                         onPlaying={(e) => {
+                          markVideoReady(idx);
                           if (idx === activeIndex) {
                             setIsPlaying(true);
                             const v = e.currentTarget;
@@ -663,7 +717,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                             }
                           }
                         }}
-                        className="w-full h-full object-cover select-none cursor-pointer"
+                        className="relative z-10 w-full h-full object-cover select-none cursor-pointer"
                       />
                     ) : (
                       <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center z-10 pointer-events-none">
