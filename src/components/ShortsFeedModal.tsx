@@ -33,7 +33,23 @@ export interface ShortsFeedModalProps {
   onIndexChange?: (newIndex: number) => void;
 }
 
-export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
+export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = (props) => {
+  if (!props.isOpen) return null;
+
+  // At the very beginning of ShortsFeedModal: check empty state
+  if (!props.shorts || props.shorts.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 text-cyan-400">
+        <Loader2 className="w-8 h-8 animate-spin mr-3 text-cyan-400" />
+        Loading shorts...
+      </div>
+    );
+  }
+
+  return <ShortsFeedModalContent {...props} />;
+};
+
+const ShortsFeedModalContent: React.FC<ShortsFeedModalProps> = ({
   isOpen,
   onClose,
   shorts,
@@ -614,20 +630,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   if (!isOpen) return null;
 
-  if (!shorts || shorts.length === 0 || !shorts[activeIndex] || !shorts[0]) {
+  if (!shorts || shorts.length === 0 || !shorts[activeIndex]) {
     return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Loading Shorts"
-        className="fixed inset-0 z-50 w-[100vw] h-[100dvh] flex items-center justify-center bg-black/90 backdrop-blur-md"
-      >
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 text-[#00f0ff] animate-spin" />
-          <span className="text-xs font-mono text-white/70 uppercase tracking-widest">
-            Loading Shorts...
-          </span>
-        </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 text-cyan-400">
+        <Loader2 className="w-8 h-8 animate-spin mr-3 text-cyan-400" />
+        Loading shorts...
       </div>
     );
   }

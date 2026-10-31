@@ -679,7 +679,7 @@ function App() {
       )}
 
       {/* 4. Single Global Shorts Feed Player (Reels) - Completely unmounted when closed */}
-      {shortsState.isOpen && shortsState.shorts.length > 0 && (
+      {shortsState.isOpen && (
         <PlayerErrorBoundary onClose={() => handleCloseModal('shorts')} fallbackTitle="Shorts Player Error">
           <ShortsFeedModal
             isOpen={shortsState.isOpen}

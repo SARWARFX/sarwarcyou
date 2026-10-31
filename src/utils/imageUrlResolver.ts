@@ -87,6 +87,8 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Thumbnails\/Images\/works\//i, 'Thumbnails/Photographs/Favourite Images/');
     clean = clean.replace(/^Thumbnails\/Images\/Classic(?:\s*)\//i, 'Thumbnails/Photographs/Classic Images/');
     clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
+    clean = clean.replace(/^Thumbnails\/Shorts[-_\s]Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
+    clean = clean.replace(/^Thumbnails\/Shorts\/Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
     clean = clean.replace(/^Thumbnails\/Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Thumbnails/Shorts/Shorts Classic/$1');
   } else {
     clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
@@ -102,6 +104,8 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Images\/works\//i, 'Photographs/Favourite Images/');
     clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
     clean = clean.replace(/^Images\//i, 'Photographs/');
+    clean = clean.replace(/^Shorts[-_\s]Classic\//i, 'Shorts/Shorts Classic/');
+    clean = clean.replace(/^Shorts\/Classic\//i, 'Shorts/Shorts Classic/');
     clean = clean.replace(/^Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Shorts/Shorts Classic/$1');
   }
 

@@ -138,23 +138,31 @@ export function findMatchingAlbum(
 ): { album: AlbumData; index: number } | null {
   if (!query || !albums || albums.length === 0) return null;
 
+  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s]/g, '');
+
   let rawQuery = query.trim().toLowerCase();
   try {
-    rawQuery = decodeURIComponent(rawQuery).trim().toLowerCase();
+    rawQuery = decodeURIComponent(rawQuery.replace(/\+/g, ' ')).trim().toLowerCase();
   } catch {
     // keep rawQuery if malformed
   }
+  const cleanTarget = clean(rawQuery);
   const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-  // 1. Match by slug
+  // 1. Loose normalization: hyphens, underscores, spaces, and case differences match
+  // clean(albumParam) === clean(folder.name)
   let idx = albums.findIndex((a) => {
-    const slug = getAlbumSlug(a.name);
-    return slug === slugQuery;
+    if (!a) return false;
+    return (
+      clean(a.name) === cleanTarget ||
+      clean(getAlbumSlug(a.name)) === cleanTarget ||
+      clean(a.id) === cleanTarget
+    );
   });
   if (idx !== -1) return { album: albums[idx], index: idx };
 
-  // 2. Match by exact or lowercased name
-  idx = albums.findIndex((a) => a.name.toLowerCase() === rawQuery);
+  // 2. Match by exact or lowercased name or slug
+  idx = albums.findIndex((a) => a.name.toLowerCase() === rawQuery || getAlbumSlug(a.name) === slugQuery);
   if (idx !== -1) return { album: albums[idx], index: idx };
 
   // 3. Match by ID
@@ -174,6 +182,7 @@ export function findMatchingAlbum(
 
 /**
  * Finds a matching folder entry from Video/Photo Vault folders using slug, name, or ID.
+ * Uses loose normalization so hyphens, underscores, spaces, and case differences match cleanly.
  */
 export function findMatchingFolder(
   folders: MediaFolderEntry[],
@@ -181,15 +190,40 @@ export function findMatchingFolder(
 ): { folder: MediaFolderEntry; index: number } | null {
   if (!query || !folders || folders.length === 0) return null;
 
+  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s]/g, '');
+
   let rawQuery = query.trim().toLowerCase();
   try {
-    rawQuery = decodeURIComponent(rawQuery).trim().toLowerCase();
+    rawQuery = decodeURIComponent(rawQuery.replace(/\+/g, ' ')).trim().toLowerCase();
   } catch {
     // keep rawQuery if malformed
   }
+  const cleanTarget = clean(rawQuery);
   const slugQuery = rawQuery.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+  // 1. Loose normalization matching: hyphens, underscores, spaces, and case
+  // e.g. clean(albumParam) === clean(folder.name) ("shorts-classic" -> "Shorts Classic")
   let idx = folders.findIndex((f) => {
+    if (!f) return false;
+    const cleanName = clean(f.name);
+    const cleanLeaf = clean(f.folderPath ? f.folderPath.split('/').pop() : '');
+    const cleanSlug = clean(f.slug);
+    const cleanId = clean(f.id);
+    const cleanPath = clean(f.folderPath);
+    return (
+      cleanName === cleanTarget ||
+      cleanLeaf === cleanTarget ||
+      cleanSlug === cleanTarget ||
+      cleanId === cleanTarget ||
+      cleanPath === cleanTarget ||
+      (cleanPath.length > cleanTarget.length && cleanPath.endsWith(cleanTarget))
+    );
+  });
+  if (idx !== -1) return { folder: folders[idx], index: idx };
+
+  // 2. Slug matching
+  idx = folders.findIndex((f) => {
+    if (!f) return false;
     const slug = f.slug || getAlbumSlug(f.name);
     const idSlug = getAlbumSlug(f.id);
     const pathSlug = f.folderPath ? getAlbumSlug(f.folderPath) : '';
@@ -198,19 +232,12 @@ export function findMatchingFolder(
   });
   if (idx !== -1) return { folder: folders[idx], index: idx };
 
+  // 3. Substring matching
   idx = folders.findIndex((f) => {
-    const nameMatch = f.name.toLowerCase() === rawQuery;
-    const idMatch = f.id.toLowerCase() === rawQuery;
-    const pathMatch = f.folderPath ? f.folderPath.toLowerCase() === rawQuery : false;
-    const leafMatch = f.folderPath ? (f.folderPath.split('/').pop() || '').toLowerCase() === rawQuery : false;
-    return nameMatch || idMatch || pathMatch || leafMatch;
-  });
-  if (idx !== -1) return { folder: folders[idx], index: idx };
-
-  idx = folders.findIndex((f) => {
-    const nameSub = f.name.toLowerCase().includes(rawQuery);
-    const pathSub = f.folderPath ? f.folderPath.toLowerCase().includes(rawQuery) : false;
-    return nameSub || pathSub;
+    if (!f) return false;
+    const cleanName = clean(f.name);
+    const cleanPath = clean(f.folderPath);
+    return cleanName.includes(cleanTarget) || cleanPath.includes(cleanTarget) || cleanTarget.includes(cleanName);
   });
   if (idx !== -1) return { folder: folders[idx], index: idx };
 
@@ -284,8 +311,49 @@ export function searchCatalogRecursively(
 
   const isShortsQuery = cleanAlbum === 'shorts' || cleanAlbum === 'reels' || cleanAlbum === 'short' || cleanAlbum.includes('short');
 
-  // 1. If albumParam is provided, gather all matching subdirectories
-  if (cleanAlbum) {
+  // 1. If albumParam is provided, resolve folder using loose normalization
+  if (albumParam) {
+    const directFolderMatch = findMatchingFolder(folders, albumParam);
+    if (directFolderMatch) {
+      matchedFolder = directFolderMatch.folder;
+    }
+  }
+
+  // 2. Inside the matched album, resolve mediaParam using clean() normalization
+  if (matchedFolder && matchedFolder.items && matchedFolder.items.length > 0) {
+    if (cleanMedia) {
+      for (const it of matchedFolder.items) {
+        if (!it) continue;
+        const itClean = clean(it.name || it.title || it.id);
+        const itTitle = clean(it.title);
+        const itName = clean(it.name);
+        const itId = clean(it.id);
+        const itPath = clean(it.path ? it.path.split('/').pop() : '');
+        const itPathNoExt = clean(it.path ? it.path.split('/').pop()?.replace(/\.[a-z0-9]{2,5}$/i, '') : '');
+
+        if (
+          itClean === cleanMedia ||
+          itTitle === cleanMedia ||
+          itName === cleanMedia ||
+          itId === cleanMedia ||
+          itPath === cleanMedia ||
+          itPathNoExt === cleanMedia ||
+          isMediaMatch(it, mediaParam!)
+        ) {
+          matchedItem = it;
+          break;
+        }
+      }
+    }
+
+    // If the resolved album contains items but the specific mediaParam is not found, fallback to items[0]
+    if (!matchedItem && matchedFolder.items.length > 0) {
+      matchedItem = matchedFolder.items[0];
+    }
+  }
+
+  // 3. If not matched in direct folder, search through subdirectories and pools
+  if (!matchedItem && cleanAlbum) {
     let subfolderNodes: MediaFolderEntry[] = [];
     if (isShortsQuery) {
       subfolderNodes = folders.filter(
@@ -457,7 +525,24 @@ export function findMatchingMediaItem(
   const normQuery = normalizeComparisonString(rawQuery);
   const normStem = normalizeComparisonString(queryStem);
 
-  // 0. Instant normalized match
+  // 0. Loose clean normalization match: clean(item.name || item.title || item.id) === clean(mediaParam)
+  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s]/g, '');
+  const cleanTarget = clean(rawQuery);
+  if (cleanTarget) {
+    const cleanIdx = items.findIndex((it) => {
+      if (!it) return false;
+      return (
+        clean(it.name || it.title || it.id) === cleanTarget ||
+        clean(it.name) === cleanTarget ||
+        clean(it.title) === cleanTarget ||
+        clean(it.id) === cleanTarget ||
+        clean(it.path ? it.path.split('/').pop()?.replace(/\.[a-z0-9]{2,5}$/i, '') : '') === cleanTarget
+      );
+    });
+    if (cleanIdx !== -1) return { item: items[cleanIdx], index: cleanIdx };
+  }
+
+  // 1. Instant normalized match
   const directIdx = items.findIndex((it) => isMediaMatch(it, rawQuery));
   if (directIdx !== -1) return { item: items[directIdx], index: directIdx };
 
