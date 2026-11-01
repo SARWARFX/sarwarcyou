@@ -138,7 +138,7 @@ export function findMatchingAlbum(
 ): { album: AlbumData; index: number } | null {
   if (!query || !albums || albums.length === 0) return null;
 
-  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s]/g, '');
+  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s.]/g, '');
 
   let rawQuery = query.trim().toLowerCase();
   try {
@@ -190,7 +190,7 @@ export function findMatchingFolder(
 ): { folder: MediaFolderEntry; index: number } | null {
   if (!query || !folders || folders.length === 0) return null;
 
-  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s]/g, '');
+  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s.]/g, '');
 
   let rawQuery = query.trim().toLowerCase();
   try {
@@ -451,6 +451,9 @@ export function searchCatalogRecursively(
   // (or the combined shorts category) so scrolling/swiping down moves to the next short naturally."
   let playlist: StageMediaItem[] = [];
   const isShort = Boolean(
+    cleanAlbum === 'shorts' ||
+    cleanAlbum === 'reels' ||
+    cleanAlbum.includes('short') ||
     matchedItem?.mediaType === 'short' ||
     matchedItem?.category?.toLowerCase().includes('short') ||
     matchedItem?.url?.toLowerCase().includes('/shorts/') ||
@@ -459,12 +462,16 @@ export function searchCatalogRecursively(
     matchedFolder?.name?.toLowerCase().includes('short')
   );
 
-  if (isShort) {
-    const folderShorts = (matchedFolder?.items || []).filter((it) => it && it.mediaType === 'short');
+  if (cleanAlbum === 'shorts' && shortsPool && shortsPool.length > 0) {
+    playlist = shortsPool.filter(Boolean);
+  } else if (isShort) {
+    const folderShorts = (matchedFolder?.items || []).filter((it) => it && (it.mediaType === 'short' || it.type === 'video'));
     if (folderShorts.length > 0) {
       playlist = folderShorts;
     } else if (shortsPool && shortsPool.length > 0) {
       playlist = shortsPool.filter(Boolean);
+    } else if (matchedFolder?.items && matchedFolder.items.length > 0) {
+      playlist = matchedFolder.items.filter(Boolean);
     } else if (matchedItem) {
       playlist = [matchedItem];
     }
@@ -478,6 +485,16 @@ export function searchCatalogRecursively(
 
   if (playlist.length === 0 && matchedItem) {
     playlist = [matchedItem];
+  }
+
+  if (!matchedItem && playlist.length > 0) {
+    matchedItem = playlist[0];
+  } else if (!matchedItem) {
+    const fallback = (shortsPool && shortsPool.length > 0 ? shortsPool[0] : null) || (allPool && allPool.length > 0 ? allPool[0] : null);
+    if (fallback) {
+      matchedItem = fallback;
+      playlist = [fallback];
+    }
   }
 
   let targetIndex = 0;
@@ -526,7 +543,7 @@ export function findMatchingMediaItem(
   const normStem = normalizeComparisonString(queryStem);
 
   // 0. Loose clean normalization match: clean(item.name || item.title || item.id) === clean(mediaParam)
-  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s]/g, '');
+  const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[-_\s.]/g, '');
   const cleanTarget = clean(rawQuery);
   if (cleanTarget) {
     const cleanIdx = items.findIndex((it) => {
