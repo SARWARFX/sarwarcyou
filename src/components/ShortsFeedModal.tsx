@@ -218,7 +218,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   return (
     <div
       onMouseMove={handleMouseMove}
-      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col items-center select-none overflow-hidden font-sans"
+      className="fixed inset-0 z-[9999] bg-black md:bg-slate-950/45 md:backdrop-blur-lg flex flex-col items-center select-none overflow-hidden font-sans"
     >
       {/* Top HUD Controls - Auto-hides on mobile during playback */}
       <header
@@ -296,14 +296,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               ref={(el) => { slideRefs.current[idx] = el; }}
               data-index={idx}
               data-reel-index={idx}
-              className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4"
+              className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent"
             >
               <div
                 onClick={() => handleScreenTap(idx)}
-                className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none ${
+                className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
                   isLandscape
-                    ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh]'
-                    : 'w-full md:max-w-[480px] h-full md:max-h-[92vh]'
+                    ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh] md:bg-black/50 md:backdrop-blur-xl md:border md:border-cyan-500/20 md:shadow-[0_0_50px_-12px_rgba(6,182,212,0.25)] md:rounded-2xl'
+                    : 'w-full md:max-w-[480px] h-full md:max-h-[92vh] md:bg-black/50 md:backdrop-blur-xl md:border md:border-cyan-500/20 md:shadow-[0_0_50px_-12px_rgba(6,182,212,0.25)] md:rounded-2xl'
                 }`}
               >
                 {!failedPermanently[idx] ? (
@@ -316,7 +316,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       loop
                       muted={isMuted}
                       preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-                      className="w-full h-full object-contain rounded-none md:rounded-2xl shadow-2xl bg-black"
+                      className="w-full h-full object-contain rounded-none md:rounded-2xl shadow-2xl bg-black md:bg-transparent"
                       onLoadedMetadata={(e) => {
                         const v = e.currentTarget;
                         if (v.videoWidth && v.videoHeight) {
