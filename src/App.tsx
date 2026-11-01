@@ -451,7 +451,7 @@ function App() {
           mediaQuery
         );
         if (resolved && resolved.matchedItem) {
-          openMediaItem(resolved.matchedItem, resolved.playlist, resolved.preferredAlbum, false);
+          openMediaItem(resolved.matchedItem, resolved.playlist, resolved.preferredAlbum, false, resolved.targetIndex);
           return;
         }
       }
@@ -548,7 +548,7 @@ function App() {
         window.history.pushState({ media: matchedItem.id, album: preferredAlbum }, '', mediaUrl);
         historyDepthRef.current++;
 
-        openMediaItem(matchedItem, matchedContext, preferredAlbum, false);
+        openMediaItem(matchedItem, matchedContext, preferredAlbum, false, resolved.targetIndex);
         return;
       }
     }

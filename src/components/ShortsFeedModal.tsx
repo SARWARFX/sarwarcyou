@@ -222,21 +222,57 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     >
       {/* Top HUD Controls - Auto-hides on mobile during playback */}
       <header
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
         className={`absolute top-0 inset-x-0 z-30 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
           showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
-        <span className="text-xs font-mono font-semibold px-3 py-1 rounded-full bg-white/10 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md">
+        <span
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="text-xs font-mono font-semibold px-3 py-1 rounded-full bg-white/10 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md"
+        >
           {activeIndex + 1} / {shorts.length}
         </span>
         <div className="flex items-center gap-2 pointer-events-auto">
-          <button type="button" onClick={() => setIsMuted((prev) => !prev)} className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#00f0ff]/20 text-white hover:text-[#00f0ff] border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95" title={isMuted ? 'Unmute (M)' : 'Mute (M)'}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMuted((prev) => !prev);
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#00f0ff]/20 text-white hover:text-[#00f0ff] border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+          >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <button type="button" onClick={handleShare} className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#00f0ff]/20 text-white hover:text-[#00f0ff] border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95" title="Share Short">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShare();
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#00f0ff]/20 text-white hover:text-[#00f0ff] border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            title="Share Short"
+          >
             {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
           </button>
-          <button type="button" onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400 border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95" title="Close (Esc)">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400 border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            title="Close (Esc)"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>

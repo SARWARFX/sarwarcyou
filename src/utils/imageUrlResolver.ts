@@ -97,8 +97,8 @@ export function normalizeRepoPath(path: string): string {
 
   const isThumbnailPath = /^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i.test(clean);
 
-  // Map any "Sh.Jacqueline" references to canonical dataset path "Shorts/Shorts 2027/Jacqueline .mp4"
-  if (/Sh\.Jacqueline/i.test(clean)) {
+  // Map any "Jacqueline" references (e.g. Sh.Jacqueline, Jacqueline .mp4) to canonical dataset path "Shorts/Shorts 2027/Jacqueline .mp4"
+  if (/Jacqueline/i.test(clean)) {
     clean = isThumbnailPath
       ? 'Thumbnails/Shorts/Shorts 2027/Jacqueline .webp'
       : 'Shorts/Shorts 2027/Jacqueline .mp4';
