@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2 } from 'lucide-react';
+import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause } from 'lucide-react';
 import type { StageMediaItem } from '../types';
-import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -21,57 +20,29 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [failedPermanently, setFailedPermanently] = useState<Record<number, boolean>>({});
   const [landscapeMap, setLandscapeMap] = useState<Record<number, boolean>>({});
   const [copiedLink, setCopiedLink] = useState(false);
+  const [centerIcon, setCenterIcon] = useState<{ idx: number; type: 'play' | 'pause'; id: number } | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const failedItemsRef = useRef(new Set<string>());
+  const hasInitialScrolledRef = useRef(false);
+  const iconTimerRef = useRef<number | null>(null);
 
-  if (!isOpen) return null;
-  if (!shorts || shorts.length === 0) {
-    return (
-      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md text-white p-6 select-none">
-        <Loader2 className="w-10 h-10 animate-spin text-[#00f0ff] mb-4" />
-        <p className="text-sm font-mono text-zinc-300 mb-6">No shorts available in this archive.</p>
-        <button type="button" onClick={onClose} className="px-5 py-2 rounded-xl bg-white/10 hover:bg-[#00f0ff]/20 border border-white/20 hover:border-[#00f0ff] text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95">
-          Return to Explorer
-        </button>
-      </div>
-    );
-  }
-
-  // Scroll to initial index on open
-  useEffect(() => {
-    if (isOpen && containerRef.current && shorts.length > 0) {
-      const targetIdx = Math.max(0, Math.min(initialIndex || 0, shorts.length - 1));
-      slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'auto', block: 'start' });
+  // Play / pause toggle on tap
+  const handleTogglePlay = useCallback((idx: number) => {
+    const v = videoRefs.current[idx];
+    if (!v) return;
+    if (v.paused) {
+      v.play().catch(() => {});
+      setCenterIcon({ idx, type: 'play', id: Date.now() });
+    } else {
+      v.pause();
+      setCenterIcon({ idx, type: 'pause', id: Date.now() });
     }
-  }, [isOpen, initialIndex, shorts.length]);
-
-  // Clean Native CSS Scroll-Snap Observer (threshold: 0.6)
-  useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const idxAttr = entry.target.getAttribute('data-reel-index');
-          if (idxAttr !== null) {
-            const idx = parseInt(idxAttr, 10);
-            if (!isNaN(idx)) {
-              setActiveIndex(idx);
-              onIndexChange?.(idx);
-              videoRefs.current.forEach((v, i) => {
-                if (!v) return;
-                if (i !== idx) { v.pause(); v.currentTime = 0; }
-                else { v.muted = isMuted; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
-              });
-            }
-          }
-        }
-      });
-    }, { root: containerRef.current, threshold: 0.6 });
-    slideRefs.current.forEach((el) => { if (el) observer.observe(el); });
-    return () => observer.disconnect();
-  }, [isOpen, shorts.length, onIndexChange, isMuted]);
+    if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
+    iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
+  }, []);
 
   // Break the infinite fallback loop (Single-shot fallback per itemKey)
   const handleVideoError = useCallback((idx: number, item: StageMediaItem, currentSrc: string) => {
@@ -103,10 +74,75 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       if (e.key === 'm' || e.key === 'M') setIsMuted((prev) => !prev);
+      if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        handleTogglePlay(activeIndex);
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, activeIndex, onClose]);
+  }, [isOpen, activeIndex, onClose, handleTogglePlay]);
+
+  // Initial index accurate scrolling and playback on mount
+  useEffect(() => {
+    if (!isOpen || !containerRef.current || shorts.length === 0) return;
+    hasInitialScrolledRef.current = false;
+    const targetIdx = Math.max(0, Math.min(initialIndex || 0, shorts.length - 1));
+    setActiveIndex(targetIdx);
+
+    const targetElement =
+      containerRef.current.querySelector<HTMLElement>(`[data-index="${targetIdx}"]`) ||
+      slideRefs.current[targetIdx];
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: 'instant', block: 'center' });
+    }
+
+    videoRefs.current.forEach((v, i) => {
+      if (!v) return;
+      if (i !== targetIdx) {
+        v.pause();
+        v.currentTime = 0;
+      } else {
+        v.muted = isMuted;
+        v.play().catch(() => {
+          v.muted = true;
+          v.play().catch(() => {});
+        });
+      }
+    });
+
+    const timer = setTimeout(() => {
+      hasInitialScrolledRef.current = true;
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [isOpen, initialIndex, shorts.length]);
+
+  // Clean Native CSS Scroll-Snap Observer (threshold: 0.6)
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (!hasInitialScrolledRef.current) return;
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const idxAttr = entry.target.getAttribute('data-reel-index');
+          if (idxAttr !== null) {
+            const idx = parseInt(idxAttr, 10);
+            if (!isNaN(idx)) {
+              setActiveIndex(idx);
+              onIndexChange?.(idx);
+              videoRefs.current.forEach((v, i) => {
+                if (!v) return;
+                if (i !== idx) { v.pause(); v.currentTime = 0; }
+                else { v.muted = isMuted; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
+              });
+            }
+          }
+        }
+      });
+    }, { root: containerRef.current, threshold: 0.6 });
+    slideRefs.current.forEach((el) => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, [isOpen, shorts.length, onIndexChange, isMuted]);
 
   const handleShare = async () => {
     const currentItem = shorts[activeIndex];
@@ -114,6 +150,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const shareUrl = createShareableMediaUrl(currentItem, currentItem.category || 'shorts');
     if (await copyToClipboard(shareUrl)) { setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); }
   };
+
+  if (!isOpen) return null;
+  if (!shorts || shorts.length === 0) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md text-white p-6 select-none">
+        <Loader2 className="w-10 h-10 animate-spin text-[#00f0ff] mb-4" />
+        <p className="text-sm font-mono text-zinc-300 mb-6">No shorts available in this archive.</p>
+        <button type="button" onClick={onClose} className="px-5 py-2 rounded-xl bg-white/10 hover:bg-[#00f0ff]/20 border border-white/20 hover:border-[#00f0ff] text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95">
+          Return to Explorer
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col items-center select-none overflow-hidden font-sans">
@@ -144,48 +193,64 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           if (!item) return null;
           const streamUrl = overrides[idx] || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
           const posterUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
-          const cleanTitle = sanitizeMediaTitle(item.title || item.name, item.category || 'Shorts');
           const isLandscape = landscapeMap[idx];
 
           return (
-            <div key={item.id || idx} ref={(el) => { slideRefs.current[idx] = el; }} data-reel-index={idx} className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4">
-              <div className={`relative w-full h-full flex items-center justify-center transition-all duration-300 ${isLandscape ? 'max-w-[85vw]' : 'max-w-[480px]'}`}>
+            <div
+              key={item.id || idx}
+              ref={(el) => { slideRefs.current[idx] = el; }}
+              data-index={idx}
+              data-reel-index={idx}
+              className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4"
+            >
+              <div
+                onClick={() => handleTogglePlay(idx)}
+                className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none ${
+                  isLandscape
+                    ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh]'
+                    : 'w-full md:max-w-[480px] h-full md:max-h-[92vh]'
+                }`}
+              >
                 {!failedPermanently[idx] ? (
-                  <video
-                    ref={(el) => { videoRefs.current[idx] = el; }}
-                    src={streamUrl}
-                    poster={posterUrl || undefined}
-                    playsInline
-                    loop
-                    muted={isMuted}
-                    preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-                    className="w-full h-full object-contain rounded-none md:rounded-2xl shadow-2xl bg-black"
-                    onLoadedMetadata={(e) => {
-                      const v = e.currentTarget;
-                      if (v.videoWidth && v.videoHeight && v.videoWidth > v.videoHeight) {
-                        setLandscapeMap((prev) => (prev[idx] ? prev : { ...prev, [idx]: true }));
-                      }
-                    }}
-                    onError={() => handleVideoError(idx, item, streamUrl)}
-                  />
+                  <>
+                    <video
+                      ref={(el) => { videoRefs.current[idx] = el; }}
+                      src={streamUrl}
+                      poster={posterUrl || undefined}
+                      playsInline
+                      loop
+                      muted={isMuted}
+                      preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
+                      className="w-full h-full object-contain rounded-none md:rounded-2xl shadow-2xl bg-black"
+                      onLoadedMetadata={(e) => {
+                        const v = e.currentTarget;
+                        if (v.videoWidth && v.videoHeight) {
+                          const isWide = v.videoWidth > v.videoHeight;
+                          setLandscapeMap((prev) => (prev[idx] === isWide ? prev : { ...prev, [idx]: isWide }));
+                        }
+                      }}
+                      onError={() => handleVideoError(idx, item, streamUrl)}
+                    />
+                    {centerIcon && centerIcon.idx === idx && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-out fade-out zoom-out duration-700">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-2xl">
+                          {centerIcon.type === 'play' ? (
+                            <Play className="w-8 h-8 sm:w-10 sm:h-10 text-[#00f0ff] fill-current ml-1" />
+                          ) : (
+                            <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-zinc-950/90 rounded-2xl p-6 text-center border border-white/10">
                     <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mb-3 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
                       <AlertTriangle className="w-6 h-6" />
                     </div>
                     <h3 className="text-base font-bold text-white mb-1">Video Unavailable</h3>
-                    <p className="text-xs text-zinc-400 font-mono line-clamp-2 max-w-xs">{cleanTitle}</p>
                   </div>
                 )}
-
-                <div className="absolute bottom-6 inset-x-4 md:inset-x-6 z-20 pointer-events-none">
-                  <div className="p-3 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 max-w-md">
-                    <p className="text-xs font-bold text-white truncate drop-shadow-md">{cleanTitle}</p>
-                    <span className="text-[10px] font-mono text-[#00f0ff] uppercase tracking-wider block mt-0.5">
-                      {item.category || item.parentAlbum || 'Shorts'}
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
           );

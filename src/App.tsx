@@ -81,10 +81,12 @@ function App() {
     isOpen: boolean;
     shorts: StageMediaItem[];
     initialIndex: number;
+    activeIndex?: number;
   }>({
     isOpen: false,
     shorts: [],
     initialIndex: 0,
+    activeIndex: 0,
   });
 
   const [lightboxState, setLightboxState] = useState<{
@@ -229,7 +231,13 @@ function App() {
 
   // Universal Media Player / Lightbox Dispatcher with strict mutual exclusivity
   const openMediaItem = useCallback(
-    (item: StageMediaItem, playlistContext?: StageMediaItem[], preferredAlbum?: string, pushHistory = true) => {
+    (
+      item: StageMediaItem,
+      playlistContext?: StageMediaItem[],
+      preferredAlbum?: string,
+      pushHistory = true,
+      indexHint?: number
+    ) => {
       const isShort = Boolean(
         item.mediaType === 'short' ||
         item.category?.toLowerCase().includes('short') ||
@@ -252,19 +260,42 @@ function App() {
             ? rawFeed.shorts
             : [item]).filter(Boolean);
 
-        let targetIdx = fullShortsList.findIndex(
-          (s) => s && ((s.id && item.id && s.id === item.id) || (s.url && item.url && s.url === item.url))
-        );
-
-        if (targetIdx === -1) {
-          const itemQuery = item.title || item.name || item.id || '';
-          const matchResult = findMatchingMediaItem(fullShortsList, itemQuery);
-          if (matchResult) {
-            targetIdx = matchResult.index;
+        // Find exact index within the folder's shorts array:
+        let clickedIndex = -1;
+        if (indexHint !== undefined && indexHint >= 0 && indexHint < fullShortsList.length) {
+          const candidate = fullShortsList[indexHint];
+          if (
+            candidate &&
+            (candidate.id === item.id ||
+              candidate.name === item.name ||
+              candidate.url === item.url ||
+              candidate.path === item.path)
+          ) {
+            clickedIndex = indexHint;
           }
         }
 
-        const targetIndex = targetIdx >= 0 && targetIdx < fullShortsList.length ? targetIdx : 0;
+        if (clickedIndex === -1) {
+          clickedIndex = fullShortsList.findIndex(
+            (s) =>
+              s &&
+              ((item.id && (s.id || s.name) === item.id) ||
+                (item.id && s.id === item.id) ||
+                (item.name && (s.name || s.id) === item.name) ||
+                (item.url && s.url === item.url) ||
+                (item.path && s.path === item.path))
+          );
+        }
+
+        if (clickedIndex === -1) {
+          const itemQuery = item.title || item.name || item.id || '';
+          const matchResult = findMatchingMediaItem(fullShortsList, itemQuery);
+          if (matchResult) {
+            clickedIndex = matchResult.index;
+          }
+        }
+
+        const targetIndex = clickedIndex >= 0 && clickedIndex < fullShortsList.length ? clickedIndex : 0;
         const targetItem = fullShortsList[targetIndex] || item;
         const albumTarget = preferredAlbum || targetItem.category || targetItem.parentAlbum || 'Shorts';
         const targetUrl = buildMediaUrl(targetItem, albumTarget);
@@ -280,6 +311,7 @@ function App() {
           isOpen: true,
           shorts: fullShortsList,
           initialIndex: targetIndex,
+          activeIndex: targetIndex,
         });
         return;
       }
@@ -360,9 +392,9 @@ function App() {
   );
 
   const handleOpenShort = useCallback(
-    (short: StageMediaItem, shorts: StageMediaItem[], _index: number, folderName?: string) => {
+    (short: StageMediaItem, shorts: StageMediaItem[], index: number, folderName?: string) => {
       const albumTarget = folderName || short.category || short.parentAlbum || 'Shorts';
-      openMediaItem(short, shorts, albumTarget, true);
+      openMediaItem(short, shorts, albumTarget, true, index);
     },
     [openMediaItem]
   );
