@@ -24,6 +24,68 @@ export function extractDriveFileId(id?: string, url?: string, thumbnail?: string
 }
 
 /**
+ * Safely joins a base folder path and a sub path without duplicating parent folder segments.
+ * e.g. sanitizePath('Shorts/Shorts Classic', 'Shorts Classic/video.mp4') -> 'Shorts/Shorts Classic/video.mp4'
+ * e.g. sanitizePath('Shorts', 'Shorts Classic/video.mp4') -> 'Shorts/Shorts Classic/video.mp4'
+ */
+export function sanitizePath(base: string, sub: string): string {
+  if (!sub) return base;
+  if (!base) return sub;
+  const cleanBase = base.replace(/\\/g, '/').replace(/\/+$/, '');
+  const cleanSub = sub.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (cleanSub === cleanBase || cleanSub.startsWith(cleanBase + '/')) return cleanSub;
+
+  // Prevent duplicating parent folder (e.g. Shorts Classic / Shorts Classic)
+  const baseParts = cleanBase.split('/');
+  const lastBaseSegment = baseParts[baseParts.length - 1];
+  if (cleanSub.startsWith(lastBaseSegment + '/')) {
+    return cleanBase + '/' + cleanSub.slice(lastBaseSegment.length + 1);
+  }
+
+  // Also check decoded and normalized comparison to prevent %20 vs space duplicates
+  let decodedLast = lastBaseSegment;
+  let decodedFirst = cleanSub.split('/')[0];
+  try { decodedLast = decodeURIComponent(lastBaseSegment); } catch {}
+  try { decodedFirst = decodeURIComponent(decodedFirst); } catch {}
+
+  const norm = (s: string) => s.toLowerCase().replace(/[-_\s]/g, '');
+  if (norm(decodedLast) === norm(decodedFirst)) {
+    const remaining = cleanSub.split('/').slice(1).join('/');
+    return remaining ? `${cleanBase}/${remaining}` : cleanBase;
+  }
+
+  return `${cleanBase}/${cleanSub}`;
+}
+
+/**
+ * Deduplicates adjacent or duplicated identical folder segments in a path.
+ * e.g. "Shorts/Shorts Classic/Shorts Classic/video.mp4" -> "Shorts/Shorts Classic/video.mp4"
+ * e.g. "Thumbnails/Shorts/Shorts%20Classic/Shorts Classic/video.webp" -> "Thumbnails/Shorts/Shorts Classic/video.webp"
+ */
+export function deduplicatePathSegments(path: string): string {
+  if (!path) return '';
+  const clean = path.replace(/\\/g, '/');
+  const segments = clean.split('/').filter(Boolean);
+  const deduped: string[] = [];
+  const norm = (s: string) => {
+    let dec = s;
+    try { dec = decodeURIComponent(s); } catch {}
+    return dec.toLowerCase().replace(/[-_\s]/g, '');
+  };
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const prev = deduped.length > 0 ? deduped[deduped.length - 1] : null;
+    if (prev && norm(seg) === norm(prev)) {
+      continue;
+    }
+    deduped.push(seg);
+  }
+  let result = deduped.join('/');
+  result = result.replace(/(?:^|\/)(Shorts(?:\/|%20|\s+)Classic)\/(?:\1|Shorts Classic|Shorts%20Classic)(?=\/|$)/gi, '/$1');
+  return result.replace(/^\/+/, '');
+}
+
+/**
  * Normalizes legacy, relocated, or mismatched dataset paths to their canonical locations
  * in the SARWARFX/stream-vault Hugging Face repository.
  */
@@ -76,6 +138,8 @@ export function normalizeRepoPath(path: string): string {
   }
 
   // 2. Folder mappings
+  clean = deduplicatePathSegments(clean);
+
   if (isThumbnailPath) {
     clean = clean.replace(/^Thumbnails\/Clips\/H2025\//i, 'Thumbnails/Video Clips/Clips 2025/');
     clean = clean.replace(/^Thumbnails\/Clips\/H2026\//i, 'Thumbnails/Video Clips/Clips 2026/');
@@ -90,11 +154,12 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Thumbnails\/Images\/works\//i, 'Thumbnails/Photographs/Favourite Images/');
     clean = clean.replace(/^Thumbnails\/Images\/Classic(?:\s*)\//i, 'Thumbnails/Photographs/Classic Images/');
     clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
-    clean = clean.replace(/^Thumbnails\/Shorts[-_\s]Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
+
+    clean = clean.replace(/^Thumbnails\/Shorts[-_\s%20]+Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
     clean = clean.replace(/^Thumbnails\/Shorts\/Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
-    clean = clean.replace(/^Thumbnails\/Shorts[-_\s](\d{4})\//i, 'Thumbnails/Shorts/Shorts $1/');
+    clean = clean.replace(/^Thumbnails\/Shorts[-_\s%20]+(\d{4})\//i, 'Thumbnails/Shorts/Shorts $1/');
     clean = clean.replace(/^Thumbnails\/Shorts\/(\d{4})\//i, 'Thumbnails/Shorts/Shorts $1/');
-    clean = clean.replace(/^Thumbnails\/Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Thumbnails/Shorts/Shorts Classic/$1');
+    clean = clean.replace(/^Thumbnails\/Shorts\/(?!Shorts(?:[-_\s%]|%20)|REALTube|Classic\/)(.+)$/i, 'Thumbnails/Shorts/Shorts Classic/$1');
   } else {
     clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
     clean = clean.replace(/^Clips\/H2026\//i, 'Video Clips/Clips 2026/');
@@ -109,12 +174,17 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Images\/works\//i, 'Photographs/Favourite Images/');
     clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
     clean = clean.replace(/^Images\//i, 'Photographs/');
-    clean = clean.replace(/^Shorts[-_\s]Classic\//i, 'Shorts/Shorts Classic/');
+
+    clean = clean.replace(/^Shorts[-_\s%20]+Classic\//i, 'Shorts/Shorts Classic/');
     clean = clean.replace(/^Shorts\/Classic\//i, 'Shorts/Shorts Classic/');
-    clean = clean.replace(/^Shorts[-_\s](\d{4})\//i, 'Shorts/Shorts $1/');
+    clean = clean.replace(/^Shorts[-_\s%20]+(\d{4})\//i, 'Shorts/Shorts $1/');
     clean = clean.replace(/^Shorts\/(\d{4})\//i, 'Shorts/Shorts $1/');
-    clean = clean.replace(/^Shorts\/(?!Shorts\s|REALTube)(.+)$/i, 'Shorts/Shorts Classic/$1');
+    clean = clean.replace(/^Shorts\/(?!Shorts(?:[-_\s%]|%20)|REALTube|Classic\/)(.+)$/i, 'Shorts/Shorts Classic/$1');
   }
+
+  clean = deduplicatePathSegments(clean);
+
+  return clean;
 
   return clean;
 }
@@ -202,7 +272,7 @@ export function getMediaUrl(relativePath?: string | null): string {
   path = path.replace(/^https?:\/\/media\.sarwar\.cyou\//i, '');
 
   const normalized = normalizeRepoPath(path);
-  const cleanPath = normalized.replace(/^\/+/, '');
+  const cleanPath = deduplicatePathSegments(normalized.replace(/^\/+/, ''));
   if (!cleanPath) return '';
 
   const encodedPath = encodeMediaPathSegments(cleanPath);
@@ -220,13 +290,13 @@ export function getMediaUrl(relativePath?: string | null): string {
  * Resolves the primary streaming URL for a video (via Cloudflare edge proxy).
  */
 export function getVideoStreamUrl(
-  itemOrPath?: string | { url?: string; path?: string; id?: string } | null
+  itemOrPath?: string | { url?: string; path?: string; id?: string; name?: string; category?: string; parentAlbum?: string } | null
 ): string {
   if (!itemOrPath) return '';
   if (typeof itemOrPath === 'string') {
     return getMediaUrl(itemOrPath);
   }
-  const rawPath = itemOrPath.url || itemOrPath.path || itemOrPath.id || '';
+  const rawPath = itemOrPath.path || itemOrPath.url || itemOrPath.id || itemOrPath.name || '';
   return getMediaUrl(rawPath);
 }
 
@@ -310,47 +380,72 @@ export function getThumbnailUrl(
 ): string {
   if (!itemOrPath) return '';
 
-  // 1. Explicit non-video poster or thumbnail
-  if (typeof itemOrPath === 'object' && itemOrPath !== null) {
-    const poster = itemOrPath.poster || itemOrPath.posterUrl || itemOrPath.thumbnail;
-    if (poster && !isVideoExtension(poster)) {
-      return getMediaUrl(poster);
+  let raw = '';
+  let folderHint = '';
+
+  if (typeof itemOrPath === 'string') {
+    raw = itemOrPath.trim();
+  } else if (typeof itemOrPath === 'object' && itemOrPath !== null) {
+    folderHint = itemOrPath.parentAlbum || itemOrPath.category || '';
+    const explicitPoster = itemOrPath.poster || itemOrPath.posterUrl || itemOrPath.thumbnail;
+
+    // Check if explicit poster already exists as an external or full image URL
+    if (explicitPoster && !isVideoExtension(explicitPoster)) {
+      if (
+        /^https?:\/\//i.test(explicitPoster) &&
+        !explicitPoster.includes('media.sarwar.cyou') &&
+        !explicitPoster.includes('huggingface.co')
+      ) {
+        return explicitPoster;
+      }
+      raw = explicitPoster;
+    } else {
+      raw = itemOrPath.path || itemOrPath.url || itemOrPath.id || itemOrPath.name || '';
     }
   }
 
-  // 2. Extract raw path or URL
-  const raw = typeof itemOrPath === 'string'
-    ? itemOrPath
-    : (itemOrPath.path || itemOrPath.url || itemOrPath.id || '');
   if (!raw) return '';
 
-  // If raw points directly to a pre-generated thumbnail
-  if (/^Thumbnails\//i.test(raw) || /\.(webp|jpg|jpeg|png)$/i.test(raw)) {
-    return getMediaUrl(raw);
-  }
+  // Strip trailing media fragment like #t=1.0 or query parameters
+  let clean = raw.replace(/#t=[\d.,]+$/i, '').split('?')[0].trim();
 
-  // 3. If file path has no folder slashes but category or parentAlbum is available
-  let fullPath = raw;
-  if (!raw.includes('/') && typeof itemOrPath === 'object' && itemOrPath !== null) {
-    const cat = itemOrPath.category || itemOrPath.parentAlbum || '';
-    if (cat) {
-      const prefix = cat.toLowerCase().includes('shorts') && !cat.toLowerCase().startsWith('shorts/')
-        ? `Shorts/${cat}`
-        : cat;
-      fullPath = `${prefix}/${raw}`;
-    }
-  }
-
-  // 4. Strip CDN / HF resolve base to obtain clean relative path
-  let clean = fullPath.replace(/#t=[\d.,]+$/i, '').split('?')[0].trim();
+  // Strip Hugging Face dataset base URL if present
   if (clean.includes('/resolve/main/')) {
     clean = clean.split('/resolve/main/')[1] || clean;
   } else if (clean.includes('media.sarwar.cyou/')) {
     clean = clean.split('media.sarwar.cyou/')[1] || clean;
   }
 
-  const normalized = normalizeRepoPath(clean);
-  const basePathWithoutExt = normalized.replace(/\.(mp4|mov|webm|mkv|avi|m4v)$/i, '');
+  try { clean = decodeURIComponent(clean); } catch {}
+
+  // If already pointing to an existing Thumbnails/ directory path
+  if (/^Thumbnails\//i.test(clean) && /\.(webp|jpg|jpeg|png)$/i.test(clean)) {
+    return getMediaUrl(deduplicatePathSegments(clean));
+  }
+
+  // If clean does not have a folder slash and does not start with Thumbnails/:
+  if (!clean.includes('/') && !/^Thumbnails\//i.test(clean)) {
+    if (folderHint) {
+      let folder = folderHint;
+      if (folder.toLowerCase().includes('shorts') && !folder.toLowerCase().startsWith('shorts/')) {
+        folder = `Shorts/${folder}`;
+      }
+      clean = sanitizePath(folder, clean);
+    } else if (/webmedia[-_\s]serial/i.test(clean)) {
+      clean = `Shorts/Shorts Classic/${clean}`;
+    }
+  }
+
+  let normalized = normalizeRepoPath(clean);
+  normalized = deduplicatePathSegments(normalized);
+
+  if (/^Thumbnails\//i.test(normalized)) {
+    const withoutExt = normalized.replace(/\.(mp4|mov|webm|mkv|avi|m4v)$/i, '');
+    const webpPath = withoutExt.endsWith('.webp') ? withoutExt : `${withoutExt}.webp`;
+    return getMediaUrl(webpPath);
+  }
+
+  const basePathWithoutExt = normalized.replace(/\.(mp4|mov|webm|mkv|avi|m4v|webp|jpg|jpeg|png)$/i, '');
   if (!basePathWithoutExt) return '';
 
   return getMediaUrl(`Thumbnails/${basePathWithoutExt}.webp`);

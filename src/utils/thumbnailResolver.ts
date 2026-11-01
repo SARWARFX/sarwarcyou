@@ -1,5 +1,13 @@
 import type { StageMediaItem, HfMediaItem } from '../types';
-import { normalizeRepoPath, getMediaUrl, getThumbnailUrl, getImageUrl, HF_RESOLVE_BASE } from './imageUrlResolver';
+import {
+  normalizeRepoPath,
+  getMediaUrl,
+  getThumbnailUrl,
+  getImageUrl,
+  HF_RESOLVE_BASE,
+  sanitizePath,
+  deduplicatePathSegments,
+} from './imageUrlResolver';
 import { isVideoExtension } from './mediaTypeDetector';
 import {
   preloadImageFrames,
@@ -14,6 +22,8 @@ export {
   useThumbnailScrubber as useHoverThumbnailScrub,
   getThumbnailUrl,
   getImageUrl,
+  sanitizePath,
+  deduplicatePathSegments,
   type UseThumbnailScrubberOptions,
   type UseThumbnailScrubberResult,
 };
@@ -85,7 +95,30 @@ export function parseVideoPathInfo(urlOrPath: string): VideoPathInfo | null {
 
 // In-memory manifest cache fetched directly from the Hugging Face dataset storage / CDN
 let hfManifestMap: Record<string, string> = {};
+let hfNormalizedMap: Record<string, string> = {};
 let isManifestFetching = false;
+
+function populateManifestIndex(data: Record<string, string>) {
+  hfManifestMap = data;
+  hfNormalizedMap = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (typeof val !== 'string') continue;
+    const cleanKey = key.replace(/\\/g, '/');
+    const fileName = cleanKey.split('/').pop() || '';
+    const stem = fileName.replace(/\.[^/.]+$/, '');
+    const normStem = stem.toLowerCase().replace(/[-_\s.]/g, '');
+
+    hfNormalizedMap[cleanKey.toLowerCase()] = val;
+    if (fileName) {
+      hfNormalizedMap[fileName.toLowerCase()] = val;
+      const fileStem = fileName.replace(/\.[^/.]+$/, '');
+      hfNormalizedMap[fileStem.toLowerCase()] = val;
+    }
+    if (normStem) {
+      hfNormalizedMap[normStem] = val;
+    }
+  }
+}
 
 /**
  * Loads the unified thumbnails mapping manifest from the Hugging Face dataset.
@@ -108,7 +141,7 @@ export function loadHfThumbnailManifest(): Promise<Record<string, string>> {
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
       if (data && typeof data === 'object') {
-        hfManifestMap = data;
+        populateManifestIndex(data);
       }
       isManifestFetching = false;
       return hfManifestMap;
@@ -119,7 +152,7 @@ export function loadHfThumbnailManifest(): Promise<Record<string, string>> {
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data && typeof data === 'object') {
-            hfManifestMap = data;
+            populateManifestIndex(data);
           }
           isManifestFetching = false;
           return hfManifestMap;
@@ -143,19 +176,24 @@ if (typeof window !== 'undefined') {
  * from the Hugging Face Dataset storage (via CDN or raw resolve endpoint).
  */
 export function resolveStaticVideoThumbnail(
-  itemOrPath?: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; poster?: string; posterUrl?: string; thumbnail?: string; thumbnails?: string[]; type?: string } | null
+  itemOrPath?: string | StageMediaItem | HfMediaItem | { url?: string; path?: string; poster?: string; posterUrl?: string; thumbnail?: string; thumbnails?: string[]; type?: string; category?: string; parentAlbum?: string } | null
 ): string {
   if (!itemOrPath) return '';
 
+  let folderHint = '';
+
   // 1. Check if item object already has an explicit non-video poster or thumbnail
   if (typeof itemOrPath === 'object' && itemOrPath !== null) {
-    const itemObj = itemOrPath as { posterUrl?: string; poster?: string; thumbnail?: string; thumbnails?: string[] };
+    const itemObj = itemOrPath as { posterUrl?: string; poster?: string; thumbnail?: string; thumbnails?: string[]; category?: string; parentAlbum?: string };
+    folderHint = itemObj.parentAlbum || itemObj.category || '';
     const poster = itemObj.posterUrl || itemObj.poster || itemObj.thumbnails?.[0];
     if (poster && !isVideoExtension(poster)) {
-      return getMediaUrl(poster);
-    }
-    if (itemObj.thumbnail && !isVideoExtension(itemObj.thumbnail)) {
-      return getMediaUrl(itemObj.thumbnail);
+      if (/^https?:\/\//i.test(poster) && !poster.includes('media.sarwar.cyou') && !poster.includes('huggingface.co')) {
+        return poster;
+      }
+      if (/^(?:Thumbnails|Photographs|Images)\//i.test(poster)) {
+        return getMediaUrl(poster);
+      }
     }
   }
 
@@ -166,31 +204,43 @@ export function resolveStaticVideoThumbnail(
 
   if (!raw) return '';
 
-  // 3. If raw path is already pointing directly to a thumbnail file in the dataset
-  if (/^Thumbnails\//i.test(raw) || /\.(webp|jpg|jpeg|png)$/i.test(raw)) {
-    return getMediaUrl(raw);
+  // 3. If raw path is already pointing directly to a thumbnail file in the dataset under Thumbnails/
+  if (/^Thumbnails\//i.test(raw)) {
+    return getMediaUrl(deduplicatePathSegments(raw));
   }
 
   const relPath = extractHfRelativePath(raw);
-  if (!relPath) return '';
+  const fileName = (relPath || raw).split('/').pop() || '';
+  const stem = fileName.replace(/\.[^/.]+$/, '');
+  const normStem = stem.toLowerCase().replace(/[-_\s.]/g, '');
 
-  // 4. Hugging Face dataset manifest lookup (if already populated from remote)
-  if (hfManifestMap[relPath]) {
-    return getMediaUrl(hfManifestMap[relPath]);
-  }
-  if (hfManifestMap[raw]) {
-    return getMediaUrl(hfManifestMap[raw]);
-  }
-  const fileName = relPath.split('/').pop() || '';
-  if (fileName && hfManifestMap[fileName]) {
-    return getMediaUrl(hfManifestMap[fileName]);
-  }
+  // 4. Hugging Face dataset manifest lookup (exact path, raw, filename, or normalized slug)
+  if (relPath && hfManifestMap[relPath]) return getMediaUrl(hfManifestMap[relPath]);
+  if (hfManifestMap[raw]) return getMediaUrl(hfManifestMap[raw]);
+  if (fileName && hfManifestMap[fileName]) return getMediaUrl(hfManifestMap[fileName]);
+  if (hfNormalizedMap[stem.toLowerCase()]) return getMediaUrl(hfNormalizedMap[stem.toLowerCase()]);
+  if (hfNormalizedMap[normStem]) return getMediaUrl(hfNormalizedMap[normStem]);
 
   // 5. Predictable canonical single-frame 30% WebP thumbnail in Hugging Face dataset:
   // Mirrors exact media folder hierarchy inside `Thumbnails/`:
   // e.g. "Video Clips/Favorite/webmedia-serial-1.mp4" -> "Thumbnails/Video Clips/Favorite/webmedia-serial-1.webp"
   // e.g. "Shorts/Shorts Classic/sample.mp4" -> "Thumbnails/Shorts/Shorts Classic/sample.webp"
-  const basePathWithoutExtension = relPath.replace(/\.(mp4|mov|webm|mkv|m4v|avi|flv)$/i, '');
+  let basePath = relPath || raw;
+  if (!basePath.includes('/') && !/^Thumbnails\//i.test(basePath)) {
+    if (folderHint) {
+      let folder = folderHint;
+      if (folder.toLowerCase().includes('shorts') && !folder.toLowerCase().startsWith('shorts/')) {
+        folder = `Shorts/${folder}`;
+      }
+      basePath = sanitizePath(folder, basePath);
+    } else if (/webmedia[-_\s]serial/i.test(basePath)) {
+      basePath = `Shorts/Shorts Classic/${basePath}`;
+    }
+  }
+
+  basePath = normalizeRepoPath(basePath);
+  basePath = deduplicatePathSegments(basePath);
+  const basePathWithoutExtension = basePath.replace(/\.(mp4|mov|webm|mkv|m4v|avi|flv|webp|jpg|jpeg|png)$/i, '');
   if (!basePathWithoutExtension) return '';
 
   return getMediaUrl(`Thumbnails/${basePathWithoutExtension}.webp`);

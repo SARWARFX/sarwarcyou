@@ -24,6 +24,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const [isInViewport, setIsInViewport] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Viewport observer to pause cycling & control offscreen media
   useEffect(() => {
@@ -59,6 +60,11 @@ export const CyberCard: React.FC<CyberCardProps> = ({
 
     return () => clearInterval(intervalId);
   }, [isInViewport, totalAlbumItems]);
+
+  useEffect(() => {
+    setImageError(false);
+    setImageLoaded(false);
+  }, [currentPreviewIndex]);
 
   const activeItem = useMemo(() => {
     if (albumItems && albumItems.length > 0) {
@@ -133,7 +139,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
       }}
     >
       {/* 1. Visual Thumbnail Layer (Captured canvas frame or photo image) */}
-      {displayImageSrc ? (
+      {displayImageSrc && !imageError ? (
         <img
           key={displayImageSrc}
           src={displayImageSrc}
@@ -141,6 +147,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
           loading="lazy"
           decoding="async"
           onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 z-10 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
