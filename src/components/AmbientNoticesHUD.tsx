@@ -22,17 +22,17 @@ const NOTICES: { prefix: string; email: string; suffix: string }[] = [
 export interface AmbientNoticesHUDProps {
   className?: string;
   style?: React.CSSProperties;
-  visibleDurationMs?: number; // Duration to remain visible (~8.5s)
-  intervalMs?: number;        // Interval between notifications (~90s / 1.5 min)
-  initialDelayMs?: number;    // Delay before the first notification (~7s)
+  visibleDurationMs?: number; // Duration to remain visible (2s)
+  intervalMs?: number;        // Interval between notifications (5 min / 300,000ms)
+  initialDelayMs?: number;    // Delay before the first notification (5 min / 300,000ms)
 }
 
 export const AmbientNoticesHUD: React.FC<AmbientNoticesHUDProps> = ({
   className = '',
   style,
-  visibleDurationMs = 8500,
-  intervalMs = 90000,
-  initialDelayMs = 7000,
+  visibleDurationMs = 2000,
+  intervalMs = 300000,
+  initialDelayMs = 300000,
 }) => {
   const [index, setIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
@@ -110,7 +110,7 @@ export const AmbientNoticesHUD: React.FC<AmbientNoticesHUDProps> = ({
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => {
         dismissNotice();
-      }, 3500);
+      }, 2000);
     }
   };
 
