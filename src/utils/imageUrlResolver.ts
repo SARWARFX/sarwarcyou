@@ -95,10 +95,14 @@ export function normalizeRepoPath(path: string): string {
   // Strip trailing media playback fragment like #t=1.0 or query strings
   clean = clean.replace(/#t=[\d.,]+$/i, '').split('?')[0];
 
-  // Clean trailing spaces before file extensions: e.g. "Sh.Jacqueline .mp4" -> "Sh.Jacqueline.mp4"
-  clean = clean.replace(/\s+\.([a-zA-Z0-9]+)(?:$|\?|#)/g, '.$1');
-
   const isThumbnailPath = /^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i.test(clean);
+
+  // Map any "Sh.Jacqueline" references to canonical dataset path "Shorts/Shorts 2027/Jacqueline .mp4"
+  if (/Sh\.Jacqueline/i.test(clean)) {
+    clean = isThumbnailPath
+      ? 'Thumbnails/Shorts/Shorts 2027/Jacqueline .webp'
+      : 'Shorts/Shorts 2027/Jacqueline .mp4';
+  }
 
   if (isThumbnailPath) {
     // Canonicalize thumbnail prefix to 'Thumbnails/'
@@ -199,15 +203,14 @@ export function encodeMediaPathSegments(path: string): string {
     .split('/')
     .filter(Boolean)
     .map((seg) => {
-      let decoded = seg.trim();
+      let decoded = seg;
       try {
-        decoded = decodeURIComponent(seg).trim();
+        decoded = decodeURIComponent(seg);
       } catch {
-        decoded = seg.trim();
+        decoded = seg;
       }
-      // Remove any trailing whitespace before file extensions (e.g. "Sh.Jacqueline .mp4" -> "Sh.Jacqueline.mp4")
-      decoded = decoded.replace(/\s+\.([a-zA-Z0-9]+)$/, '.$1').trim();
-      const cleanFilename = encodeURIComponent(decoded.trim());
+      // Preserve exact spacing from catalog manifest (preserve trailing space before file extension)
+      const cleanFilename = encodeURIComponent(decoded);
       return cleanFilename
         .replace(/\(/g, '%28')
         .replace(/\)/g, '%29')

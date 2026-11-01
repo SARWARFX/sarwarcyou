@@ -21,6 +21,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [landscapeMap, setLandscapeMap] = useState<Record<number, boolean>>({});
   const [copiedLink, setCopiedLink] = useState(false);
   const [centerIcon, setCenterIcon] = useState<{ idx: number; type: 'play' | 'pause'; id: number } | null>(null);
+  const [showControls, setShowControls] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -28,21 +29,58 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const failedItemsRef = useRef(new Set<string>());
   const hasInitialScrolledRef = useRef(false);
   const iconTimerRef = useRef<number | null>(null);
+  const hideControlsTimerRef = useRef<number | null>(null);
 
-  // Play / pause toggle on tap
-  const handleTogglePlay = useCallback((idx: number) => {
+  // Auto-hide HUD controls after 2.5s of inactivity while playing
+  const scheduleAutoHide = useCallback(() => {
+    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    hideControlsTimerRef.current = window.setTimeout(() => {
+      const currentVideo = videoRefs.current[activeIndex];
+      if (currentVideo && !currentVideo.paused) {
+        setShowControls(false);
+      }
+    }, 2500);
+  }, [activeIndex]);
+
+  // Keep controls visible on activeIndex change and schedule idle auto-hide
+  useEffect(() => {
+    setShowControls(true);
+    scheduleAutoHide();
+  }, [activeIndex, scheduleAutoHide]);
+
+  // Desktop mouse movement reveals HUD and resets 2.5s idle timer
+  const handleMouseMove = useCallback(() => {
+    setShowControls(true);
+    scheduleAutoHide();
+  }, [scheduleAutoHide]);
+
+  // Screen tap handler:
+  // - If controls are hidden: reveals controls and starts 2.5s auto-hide timer
+  // - If controls are visible: toggles play / pause
+  const handleScreenTap = useCallback((idx: number) => {
     const v = videoRefs.current[idx];
     if (!v) return;
+
+    if (!showControls) {
+      setShowControls(true);
+      scheduleAutoHide();
+      return;
+    }
+
     if (v.paused) {
       v.play().catch(() => {});
       setCenterIcon({ idx, type: 'play', id: Date.now() });
+      scheduleAutoHide();
     } else {
       v.pause();
       setCenterIcon({ idx, type: 'pause', id: Date.now() });
+      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+      setShowControls(true);
     }
+
     if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
     iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
-  }, []);
+  }, [showControls, scheduleAutoHide]);
 
   // Break the infinite fallback loop (Single-shot fallback per itemKey)
   const handleVideoError = useCallback((idx: number, item: StageMediaItem, currentSrc: string) => {
@@ -76,12 +114,25 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       if (e.key === 'm' || e.key === 'M') setIsMuted((prev) => !prev);
       if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
         e.preventDefault();
-        handleTogglePlay(activeIndex);
+        const v = videoRefs.current[activeIndex];
+        if (!v) return;
+        if (v.paused) {
+          v.play().catch(() => {});
+          setCenterIcon({ idx: activeIndex, type: 'play', id: Date.now() });
+          scheduleAutoHide();
+        } else {
+          v.pause();
+          setCenterIcon({ idx: activeIndex, type: 'pause', id: Date.now() });
+          if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+          setShowControls(true);
+        }
+        if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
+        iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, activeIndex, onClose, handleTogglePlay]);
+  }, [isOpen, activeIndex, onClose, scheduleAutoHide]);
 
   // Initial index accurate scrolling and playback on mount
   useEffect(() => {
@@ -165,8 +216,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col items-center select-none overflow-hidden font-sans">
-      <header className="absolute top-0 inset-x-0 z-30 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+    <div
+      onMouseMove={handleMouseMove}
+      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col items-center select-none overflow-hidden font-sans"
+    >
+      {/* Top HUD Controls - Auto-hides on mobile during playback */}
+      <header
+        className={`absolute top-0 inset-x-0 z-30 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
+          showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
         <span className="text-xs font-mono font-semibold px-3 py-1 rounded-full bg-white/10 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md">
           {activeIndex + 1} / {shorts.length}
         </span>
@@ -204,7 +263,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4"
             >
               <div
-                onClick={() => handleTogglePlay(idx)}
+                onClick={() => handleScreenTap(idx)}
                 className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none ${
                   isLandscape
                     ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh]'
