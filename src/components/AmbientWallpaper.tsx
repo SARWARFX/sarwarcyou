@@ -157,13 +157,13 @@ export const AmbientWallpaper: React.FC<AmbientWallpaperProps> = ({
 
   return (
     <>
-      {/* 1. Dynamic Zero-Gap Multi-Slot Ambient Background Engine */}
+      {/* 1. Dynamic Zero-Gap Multi-Slot Ambient Background Engine (Raw, Full Brightness, Zero Scrims) */}
       <div
         aria-hidden="true"
         className="fixed inset-0 pointer-events-none -z-20 overflow-hidden grid grid-cols-1 md:grid-cols-2 w-full h-full select-none"
       >
         {/* Slot 0: Primary pane (Full viewport on mobile, Left 50% on desktop) */}
-        <div className="relative w-full h-full overflow-hidden bg-neutral-950">
+        <div className="relative w-full h-full overflow-hidden">
           {slot0.currentUrl && (
             <img
               src={slot0.currentUrl}
@@ -171,6 +171,7 @@ export const AmbientWallpaper: React.FC<AmbientWallpaperProps> = ({
               loading="eager"
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+              style={{ filter: 'none' }}
             />
           )}
           {slot0.incomingUrl && (
@@ -196,12 +197,13 @@ export const AmbientWallpaper: React.FC<AmbientWallpaperProps> = ({
               className={`absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-opacity duration-1000 ease-in-out ${
                 slot0.incomingReady ? 'opacity-100' : 'opacity-0'
               }`}
+              style={{ filter: 'none' }}
             />
           )}
         </div>
 
         {/* Slot 1: Secondary pane (Right 50% on desktop, Hidden on mobile) */}
-        <div className="relative w-full h-full overflow-hidden bg-neutral-950 hidden md:block">
+        <div className="relative w-full h-full overflow-hidden hidden md:block">
           {slot1.currentUrl && (
             <img
               src={slot1.currentUrl}
@@ -209,6 +211,7 @@ export const AmbientWallpaper: React.FC<AmbientWallpaperProps> = ({
               loading="eager"
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+              style={{ filter: 'none' }}
             />
           )}
           {slot1.incomingUrl && (
@@ -234,16 +237,11 @@ export const AmbientWallpaper: React.FC<AmbientWallpaperProps> = ({
               className={`absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-opacity duration-1000 ease-in-out ${
                 slot1.incomingReady ? 'opacity-100' : 'opacity-0'
               }`}
+              style={{ filter: 'none' }}
             />
           )}
         </div>
       </div>
-
-      {/* 2. Editorial Readability Scrim Layer */}
-      <div
-        aria-hidden="true"
-        className="fixed inset-0 pointer-events-none -z-10 bg-neutral-950/75 backdrop-blur-[2px]"
-      />
     </>
   );
 };

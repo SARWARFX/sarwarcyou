@@ -170,8 +170,8 @@ const ShortCardItem: React.FC<{
 
       {/* Title beneath the thumbnail */}
       <span
-        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors ${
-          isFocused ? 'text-white font-semibold' : 'text-neutral-300 group-hover:text-white'
+        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+          isFocused ? 'text-white font-semibold' : 'text-neutral-100 group-hover:text-white'
         }`}
       >
         {cleanTitle}
@@ -322,8 +322,8 @@ const VideoCardItem: React.FC<{
 
       {/* Title */}
       <span
-        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors ${
-          isFocused ? 'text-white font-semibold' : 'text-neutral-300 group-hover:text-white'
+        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+          isFocused ? 'text-white font-semibold' : 'text-neutral-100 group-hover:text-white'
         }`}
       >
         {cleanTitle}
@@ -718,71 +718,75 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
 
   return (
     <div className="w-full h-[100dvh] overflow-x-auto overflow-y-hidden flex flex-row items-stretch p-6 sm:p-10 md:p-14 gap-6 sm:gap-10 md:gap-12 no-scrollbar select-none">
-      {/* COLUMN 0: Root Folders (Clean Text with Subtle Underline, NO Icons) */}
-      <div className="flex-shrink-0 flex flex-col min-w-[130px] sm:min-w-[160px] md:min-w-[190px] max-w-[240px] h-full overflow-y-auto space-scrollbar gap-5 py-4">
-        {rootFolders.map((node, idx) => {
-          const isActive = selectedPath[0] === node.name;
-          const isFocused = focusedCol === 0 && focusedIndex === idx;
-          return (
-            <button
-              key={node.name}
-              id={`tree-item-0-${idx}`}
-              type="button"
-              onClick={() => {
-                handleSelectRoot(node.name);
-                setFocusedCol(1);
-                setFocusedIndex(0);
-              }}
-              onMouseEnter={() => {
-                setFocusedCol(0);
-                setFocusedIndex(idx);
-              }}
-              className={`text-left text-base sm:text-lg md:text-xl font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 ${
-                isFocused ? 'ring-1 ring-white/40 bg-white/5 ' : ''
-              }${
-                isActive
-                  ? 'text-white font-semibold border-white'
-                  : 'text-neutral-400 border-neutral-700 hover:text-white hover:border-neutral-400'
-              }`}
-            >
-              {node.name}
-            </button>
-          );
-        })}
+      {/* COLUMN 0: Root Folders (Clean Text with Subtle Underline, local dark pill container for legibility against raw wallpaper) */}
+      <div className="flex-shrink-0 flex flex-col min-w-[140px] sm:min-w-[170px] md:min-w-[200px] max-w-[250px] h-full overflow-y-auto space-scrollbar py-4">
+        <div className="bg-black/40 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 shadow-xl flex flex-col gap-4">
+          {rootFolders.map((node, idx) => {
+            const isActive = selectedPath[0] === node.name;
+            const isFocused = focusedCol === 0 && focusedIndex === idx;
+            return (
+              <button
+                key={node.name}
+                id={`tree-item-0-${idx}`}
+                type="button"
+                onClick={() => {
+                  handleSelectRoot(node.name);
+                  setFocusedCol(1);
+                  setFocusedIndex(0);
+                }}
+                onMouseEnter={() => {
+                  setFocusedCol(0);
+                  setFocusedIndex(idx);
+                }}
+                className={`text-left text-base sm:text-lg md:text-xl font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                  isFocused ? 'ring-1 ring-white/40 bg-white/10 ' : ''
+                }${
+                  isActive
+                    ? 'text-white font-semibold border-white'
+                    : 'text-neutral-300 border-neutral-600 hover:text-white hover:border-neutral-300'
+                }`}
+              >
+                {node.name}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* COLUMN 1: Subfolders in Horizontal Tree Column Layout (Only visible when a root folder is clicked) */}
       {selectedPath[0] && rootMap.get(selectedPath[0]) && (
-        <div className="flex-shrink-0 flex flex-col min-w-[130px] sm:min-w-[160px] md:min-w-[190px] max-w-[240px] h-full overflow-y-auto space-scrollbar gap-4 py-4">
-          {currentSubfolders.map((subNode, idx) => {
-            const isSubActive = selectedPath[1] === subNode.name;
-            const isFocused = focusedCol === 1 && focusedIndex === idx;
-            return (
-              <button
-                key={subNode.name}
-                id={`tree-item-1-${idx}`}
-                type="button"
-                onClick={() => {
-                  handleSelectSubfolder(subNode.name);
-                  setFocusedCol(2);
-                  setFocusedIndex(0);
-                }}
-                onMouseEnter={() => {
-                  setFocusedCol(1);
-                  setFocusedIndex(idx);
-                }}
-                className={`text-left text-sm sm:text-base md:text-lg font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 ${
-                  isFocused ? 'ring-1 ring-white/40 bg-white/5 ' : ''
-                }${
-                  isSubActive
-                    ? 'text-white font-semibold border-white'
-                    : 'text-neutral-400 border-neutral-700 hover:text-white hover:border-neutral-400'
-                }`}
-              >
-                {subNode.name}
-              </button>
-            );
-          })}
+        <div className="flex-shrink-0 flex flex-col min-w-[140px] sm:min-w-[170px] md:min-w-[200px] max-w-[250px] h-full overflow-y-auto space-scrollbar py-4">
+          <div className="bg-black/40 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 shadow-xl flex flex-col gap-3.5">
+            {currentSubfolders.map((subNode, idx) => {
+              const isSubActive = selectedPath[1] === subNode.name;
+              const isFocused = focusedCol === 1 && focusedIndex === idx;
+              return (
+                <button
+                  key={subNode.name}
+                  id={`tree-item-1-${idx}`}
+                  type="button"
+                  onClick={() => {
+                    handleSelectSubfolder(subNode.name);
+                    setFocusedCol(2);
+                    setFocusedIndex(0);
+                  }}
+                  onMouseEnter={() => {
+                    setFocusedCol(1);
+                    setFocusedIndex(idx);
+                  }}
+                  className={`text-left text-sm sm:text-base md:text-lg font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                    isFocused ? 'ring-1 ring-white/40 bg-white/10 ' : ''
+                  }${
+                    isSubActive
+                      ? 'text-white font-semibold border-white'
+                      : 'text-neutral-300 border-neutral-600 hover:text-white hover:border-neutral-300'
+                  }`}
+                >
+                  {subNode.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
