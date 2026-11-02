@@ -11,7 +11,7 @@ import { AmbientNoticesHUD } from './components/AmbientNoticesHUD';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
-import galaxyBg from './assets/galaxy.jpg';
+import { AmbientWallpaper } from './components/AmbientWallpaper';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -152,57 +152,6 @@ function App() {
 
   // Cyberpunk Command Palette State
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-
-  // Subtle Mouse Parallax Canvas on desktop (pointer: fine)
-  const galaxyBgRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const isFinePointer = window.matchMedia('(pointer: fine)').matches;
-    if (!isFinePointer) return;
-
-    let rafId: number | null = null;
-    let targetX = 0;
-    let targetY = 0;
-    let currentX = 0;
-    let currentY = 0;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const halfW = window.innerWidth / 2;
-      const halfH = window.innerHeight / 2;
-      const normX = (e.clientX - halfW) / halfW;
-      const normY = (e.clientY - halfH) / halfH;
-
-      // Subtle hardware-accelerated shift clamped to max 14px
-      targetX = -normX * 14;
-      targetY = -normY * 14;
-
-      if (!rafId) {
-        rafId = requestAnimationFrame(updateParallax);
-      }
-    };
-
-    const updateParallax = () => {
-      currentX += (targetX - currentX) * 0.1;
-      currentY += (targetY - currentY) * 0.1;
-
-      if (galaxyBgRef.current) {
-        galaxyBgRef.current.style.transform = `translate3d(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px, 0) scale(1.05)`;
-      }
-
-      if (Math.abs(targetX - currentX) > 0.05 || Math.abs(targetY - currentY) > 0.05) {
-        rafId = requestAnimationFrame(updateParallax);
-      } else {
-        rafId = null;
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, []);
 
   // Global Command Palette Shortcut (Ctrl+K / Cmd+K, or "/" when no input is focused)
   useEffect(() => {
@@ -648,26 +597,17 @@ function App() {
   }, []);
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent">
+    <div
+      className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
+      style={{ isolation: 'isolate' }}
+    >
       {/* 0. Opening Public Domain Compliance Splash Screen */}
       <ComplianceSplashScreen />
 
-      {/* 1. High-resolution cosmic galaxy background fixed full viewport with cursor parallax */}
-      <img
-        ref={galaxyBgRef}
-        src={galaxyBg}
-        alt="Deep Space Cosmic Background"
-        className="fixed inset-0 w-[100vw] h-[100dvh] object-cover pointer-events-none select-none transition-transform duration-300 ease-out"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          width: '100vw',
-          height: '100dvh',
-          objectFit: 'cover',
-          zIndex: -1,
-          transform: 'translate3d(0, 0, 0) scale(1.05)',
-          willChange: 'transform',
-        }}
+      {/* 1. Dynamic Zero-Gap Multi-Slot Ambient Background Engine with Editorial Scrim */}
+      <AmbientWallpaper
+        items={rawFeed.allMediaPool}
+        isPaused={theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen}
       />
 
       {/* 2. Deep Space Tree Explorer (Pure Underlined Text Horizontal Directory) */}

@@ -87,6 +87,7 @@ html, body {
   position: relative;
   overflow-x: hidden;
   background-color: transparent !important;
+  isolation: isolate;
   color: #ededed;
   font-family: "Times New Roman", Times, Georgia, serif !important;
 }
