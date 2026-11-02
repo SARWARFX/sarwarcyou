@@ -28,14 +28,14 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     <div className={`inline-flex items-center gap-2.5 select-none font-brand font-black cursor-pointer group/logo ${className}`}>
       {/* Modern, Glowing Play Button Icon inside minimalist frame */}
       <div
-        className={`relative ${iconFrameSizes} bg-black/70 border border-white/20 p-1 flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.35),inset_0_0_8px_rgba(0,229,255,0.2)] transition-all duration-300 group-hover/logo:scale-105 group-hover/logo:border-[#00E5FF]/60 group-hover/logo:shadow-[0_0_20px_rgba(0,229,255,0.5)]`}
+        className={`relative ${iconFrameSizes} bg-black/70 border border-white/20 p-1 flex items-center justify-center shadow-md transition-all duration-300 group-hover/logo:scale-105 group-hover/logo:border-white/50`}
       >
-        <div className="absolute inset-0 rounded-inherit bg-gradient-to-br from-[#60a5fa]/20 via-[#3b82f6]/20 to-[#8b5cf6]/20 blur-xs" />
+        <div className="absolute inset-0 rounded-inherit bg-gradient-to-br from-white/10 via-white/5 to-transparent blur-xs" />
         <svg
           viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full relative z-10 drop-shadow-[0_0_6px_rgba(0,229,255,0.8)]"
+          className="w-full h-full relative z-10 drop-shadow-sm"
         >
           <defs>
             <linearGradient id="brand-play-tri" x1="0%" y1="0%" x2="100%" y2="100%">

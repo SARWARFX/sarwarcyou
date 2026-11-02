@@ -53,13 +53,13 @@ export const HomeFilterChips: React.FC<HomeFilterChipsProps> = ({
               aria-pressed={isActive}
               className={`relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer backdrop-blur-xl border ${
                 isActive
-                  ? 'bg-[#00E5FF]/15 text-[#00E5FF] border-[#00E5FF]/60 shadow-[0_0_20px_rgba(0,229,255,0.35)] scale-[1.02]'
+                  ? 'bg-white text-black font-semibold border-white shadow-sm scale-[1.02]'
                   : 'bg-white/[0.04] text-zinc-300 hover:text-white hover:bg-white/[0.08] border-white/10 hover:border-white/20'
               }`}
             >
               <Icon
                 className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${
-                  isActive ? 'text-[#00E5FF] scale-110' : 'text-zinc-400 group-hover:text-zinc-200'
+                  isActive ? 'text-black scale-110' : 'text-zinc-400 group-hover:text-zinc-200'
                 }`}
               />
               <span className="tracking-wide">{chip.label}</span>
@@ -67,7 +67,7 @@ export const HomeFilterChips: React.FC<HomeFilterChipsProps> = ({
                 <span
                   className={`text-[10px] sm:text-xs font-mono px-1.5 py-0.2 rounded-full transition-colors ${
                     isActive
-                      ? 'bg-[#00E5FF]/25 text-[#00E5FF]'
+                      ? 'bg-black/20 text-black'
                       : 'bg-white/10 text-zinc-400'
                   }`}
                 >

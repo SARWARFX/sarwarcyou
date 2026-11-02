@@ -35,7 +35,7 @@ const VideoAlbumCard: React.FC<{
         }
       }}
       aria-label={`Open video album: ${album.name}`}
-      className="group relative w-full aspect-video rounded-2xl overflow-hidden cursor-pointer select-none bg-zinc-950 border border-white/10 hover:border-[#00E5FF]/60 shadow-lg hover:shadow-[0_0_25px_rgba(0,229,255,0.25)] transition-all duration-300 transform hover:-translate-y-1 text-left"
+      className="group relative w-full aspect-video rounded-2xl overflow-hidden cursor-pointer select-none bg-zinc-950 border border-white/10 hover:border-white/40 shadow-md transition-all duration-300 transform hover:-translate-y-1 text-left"
     >
       {/* Cover Thumbnail Image */}
       {displayImage ? (
@@ -58,25 +58,25 @@ const VideoAlbumCard: React.FC<{
 
       {/* Top Video Count Badge */}
       <div className="absolute top-2.5 right-2.5 z-10">
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md text-[#00E5FF] text-[11px] font-mono font-semibold border border-[#00E5FF]/30 shadow">
-          <Film className="w-3 h-3 text-[#00E5FF]" />
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md text-white text-[11px] font-serif font-semibold border border-white/20 shadow">
+          <Film className="w-3 h-3 text-white/80" />
           <span>{count} Videos</span>
         </span>
       </div>
 
       {/* Center Play Icon on Hover */}
       <div className="absolute inset-0 flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-        <div className="w-12 h-12 rounded-full bg-[#00E5FF]/90 text-black flex items-center justify-center shadow-[0_0_20px_rgba(0,229,255,0.8)] transform scale-90 group-hover:scale-100 transition-transform">
+        <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-md transform scale-90 group-hover:scale-100 transition-transform">
           <Play className="w-5 h-5 fill-current ml-0.5" />
         </div>
       </div>
 
       {/* Bottom Translucent Title Gradient */}
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black via-black/60 to-transparent z-10 flex flex-col justify-end p-3 sm:p-4 pointer-events-none">
-        <h3 className="text-white font-bold text-sm sm:text-base line-clamp-1 group-hover:text-[#00E5FF] transition-colors drop-shadow">
+        <h3 className="text-white font-bold text-sm sm:text-base line-clamp-1 group-hover:text-white/80 transition-colors drop-shadow">
           {album.name}
         </h3>
-        <p className="text-[11px] text-zinc-400 font-mono mt-0.5 flex items-center gap-1.5">
+        <p className="text-[11px] text-zinc-400 font-serif mt-0.5 flex items-center gap-1.5">
           <Layers className="w-3 h-3 text-zinc-500" />
           <span>Video Album • Tap to Explore</span>
         </p>
@@ -97,7 +97,7 @@ export const VideoAlbumShowcase: React.FC<VideoAlbumShowcaseProps> = ({
       {/* Section Header */}
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#00E5FF]">
+          <div className="p-1.5 rounded-lg bg-white/10 border border-white/20 text-white">
             <Film className="w-4 h-4" />
           </div>
           <div>

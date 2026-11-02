@@ -955,7 +955,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               {albumName}
             </span>
             {totalCount > 0 && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-[#00f0ff] font-mono font-bold border border-[#00f0ff]/30 flex-shrink-0">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white font-mono font-bold border border-white/20 flex-shrink-0">
                 {currentItemIndex} / {totalCount}
               </span>
             )}
@@ -972,14 +972,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               }}
               className={`md:hidden flex items-center justify-center p-2 rounded-full backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
                 shareSuccess
-                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
-                  : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
+                  ? 'bg-white/20 text-white border-white/40 shadow-sm'
+                  : 'bg-white/[0.06] hover:bg-white/10 text-zinc-300 hover:text-white border-white/10 hover:border-white/20'
               }`}
               title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
               aria-label="Share Video Link"
             >
               {shareSuccess ? (
-                <Check className="w-3.5 h-3.5 text-[#00f0ff]" />
+                <Check className="w-3.5 h-3.5 text-white" />
               ) : (
                 <Share2 className="w-3.5 h-3.5" />
               )}
@@ -994,8 +994,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
                 showTelemetry
-                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
-                  : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
+                  ? 'bg-white/20 text-white border-white/40 shadow-sm'
+                  : 'bg-white/[0.06] hover:bg-white/10 text-zinc-300 hover:text-white border-white/10 hover:border-white/20'
               }`}
               title={showTelemetry ? 'Hide Stream Telemetry' : 'Show Stream Telemetry'}
               aria-label="Stream Telemetry HUD"
@@ -1013,8 +1013,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-sans tracking-wider backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
                 showSidebar
-                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/40 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
-                  : 'bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
+                  ? 'bg-white/20 text-white border-white/40 shadow-sm'
+                  : 'bg-white/[0.06] hover:bg-white/10 text-zinc-300 hover:text-white border-white/10 hover:border-white/20'
               }`}
               title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
               aria-label="Queue & Suggestions"
@@ -1035,7 +1035,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 e.stopPropagation();
                 onClose();
               }}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 backdrop-blur-md border border-white/[0.12] hover:border-[#00f0ff] text-white/90 hover:text-[#00f0ff] hover:shadow-[0_0_16px_rgba(0,240,255,0.5)] flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ml-1"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-md flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ml-1"
               title="Close (Esc)"
               aria-label="Close"
             >
@@ -1048,7 +1048,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
       {showTelemetry && (
         <div
-          className="fixed top-16 left-4 sm:top-20 sm:left-8 z-50 p-4 rounded-xl border border-[#00f0ff]/40 font-mono text-xs text-cyan-200 select-text max-w-sm pointer-events-auto shadow-[0_0_24px_rgba(0,240,255,0.2)] animate-fade-in"
+          className="fixed top-16 left-4 sm:top-20 sm:left-8 z-50 p-4 rounded-xl border border-white/40 font-mono text-xs text-neutral-300 select-text max-w-sm pointer-events-auto shadow-xl animate-fade-in"
           style={{
             background: 'rgba(4, 8, 16, 0.78)',
             backdropFilter: 'blur(16px)',
@@ -1057,15 +1057,15 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between border-b border-[#00f0ff]/30 pb-2 mb-2.5">
-            <span className="text-[#00f0ff] font-bold tracking-widest text-[11px] flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-ping" />
+          <div className="flex items-center justify-between border-b border-white/20 pb-2 mb-2.5">
+            <span className="text-white font-bold tracking-widest text-[11px] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
               STREAM // TELEMETRY HUD
             </span>
             <button
               type="button"
               onClick={() => setShowTelemetry(false)}
-              className="text-white/60 hover:text-[#00f0ff] text-xs font-sans px-1"
+              className="text-white/60 hover:text-white text-xs font-sans px-1"
             >
               ✕
             </button>
@@ -1079,7 +1079,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-white/50">RESOLUTION:</span>
-              <span className="text-[#00f0ff] font-bold">
+              <span className="text-white font-bold">
                 {videoResolution ? `${videoResolution.width} × ${videoResolution.height}` : 'Detecting...'}
               </span>
             </div>
@@ -1099,7 +1099,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-white/50">STORAGE REPO:</span>
-              <span className="text-cyan-300 truncate max-w-[180px]">SARWARFX/stream-vault</span>
+              <span className="text-neutral-300 truncate max-w-[180px]">SARWARFX/stream-vault</span>
             </div>
             <div className="flex flex-col gap-0.5 pt-1 border-t border-white/10">
               <span className="text-white/50 text-[10px]">SOURCE URL:</span>
@@ -1132,24 +1132,24 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               />
 
               {/* Direction Pulse Badge */}
-              <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[11px] font-mono text-[#00E5FF]">
+              <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[11px] font-mono text-white">
                 {gestureSeek.icon === 'forward' ? (
-                  <ChevronsRight className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse" />
+                  <ChevronsRight className="w-3.5 h-3.5 text-white animate-pulse" />
                 ) : (
-                  <ChevronsLeft className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse" />
+                  <ChevronsLeft className="w-3.5 h-3.5 text-white animate-pulse" />
                 )}
                 <span className="font-bold tracking-wider">{gestureSeek.icon === 'forward' ? 'FORWARD' : 'REWIND'}</span>
               </div>
 
               {/* Live Delta Pill */}
               <div className="absolute bottom-2 right-2 z-10 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/10 text-xs font-mono font-bold text-white shadow">
-                <span className="text-[#00E5FF]">{formatDelta(gestureSeek.deltaSeconds)}</span>
+                <span className="text-white">{formatDelta(gestureSeek.deltaSeconds)}</span>
               </div>
             </div>
 
             {/* Target Timestamp / Total Duration */}
             <div className="flex items-center justify-between w-full px-1 text-xs font-mono font-bold tracking-wider text-zinc-300">
-              <span className="text-[#00E5FF] text-sm">{formatTime(gestureSeek.targetTime)}</span>
+              <span className="text-white text-sm">{formatTime(gestureSeek.targetTime)}</span>
               <span className="text-zinc-500 font-normal">/ {formatTime(duration)}</span>
             </div>
 
@@ -1157,7 +1157,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {duration > 0 && (
               <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#00E5FF] shadow-[0_0_10px_#00E5FF] transition-all duration-75"
+                  className="h-full bg-white shadow-sm transition-all duration-75"
                   style={{ width: `${Math.max(0, Math.min(100, (gestureSeek.targetTime / duration) * 100))}%` }}
                 />
               </div>
@@ -1322,7 +1322,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   videoRef.current.load();
                 }
               }}
-              className="py-1.5 px-4 rounded-xl bg-white/10 hover:bg-[#00f0ff]/20 border border-white/20 hover:border-[#00f0ff] text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95"
+              className="py-1.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95"
             >
               Retry Video
             </button>
@@ -1370,7 +1370,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
               {/* Bottom Timestamp Badge Overlay */}
               <div className="absolute bottom-1.5 px-2 py-0.5 rounded-md bg-black/85 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold text-white shadow flex items-center gap-1.5">
-                <span className="text-[#00E5FF]">{formatTime(seekHover.hoverTime)}</span>
+                <span className="text-white">{formatTime(seekHover.hoverTime)}</span>
                 <span className="text-zinc-400 text-[10px]">
                   ({formatDelta(seekHover.hoverTime - currentTime)})
                 </span>
@@ -1399,7 +1399,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
             {/* Active Progress with Neon Cyan Glow */}
             <div
-              className="absolute left-0 top-0 bottom-0 bg-[#00f0ff] rounded-full transition-all"
+              className="absolute left-0 top-0 bottom-0 bg-white rounded-full transition-all"
               style={{
                 width: `${progressPct}%`,
                 filter: 'drop-shadow(0 0 6px rgba(0, 240, 255, 0.6))',
@@ -1408,7 +1408,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
             {/* Scrubber handle: Neon cyan circle */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-[#00f0ff] border border-white shadow-[0_0_10px_#00f0ff] transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border border-white shadow-md transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
               style={{
                 left: `${progressPct}%`,
                 filter: 'drop-shadow(0 0 6px rgba(0, 240, 255, 0.6))',
@@ -1426,7 +1426,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* A-B Loop Locked Interval Shading */}
             {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
               <div
-                className="absolute top-0 bottom-0 bg-[#00f0ff]/20 border-x-2 border-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.5)] z-10 pointer-events-none"
+                className="absolute top-0 bottom-0 bg-white/20 border-x-2 border-white/40 shadow-md z-10 pointer-events-none"
                 style={{
                   left: `${(loopA / duration) * 100}%`,
                   width: `${((loopB - loopA) / duration) * 100}%`,
@@ -1445,7 +1445,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* Marker B */}
             {duration > 0 && loopB !== null && (
               <div
-                className="absolute top-0 bottom-0 w-1 bg-[#00f0ff] shadow-[0_0_8px_#00f0ff] z-20 pointer-events-none"
+                className="absolute top-0 bottom-0 w-1 bg-white shadow-sm z-20 pointer-events-none"
                 style={{ left: `${(loopB / duration) * 100}%` }}
               />
             )}
@@ -1468,7 +1468,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={togglePlay}
-              className="p-1.5 sm:p-2 rounded-lg text-white/90 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
@@ -1502,8 +1502,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               }}
               className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
                 repeatMode !== 'off'
-                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
-                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10'
+                  ? 'bg-white/20 text-white border border-white/40 shadow-sm'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
               }`}
               title={
                 repeatMode === 'off'
@@ -1515,9 +1515,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               aria-label={`Repeat mode: ${repeatMode}`}
             >
               {repeatMode === 'one' ? (
-                <Repeat1 className="w-4 h-4 text-[#00f0ff]" />
+                <Repeat1 className="w-4 h-4 text-white" />
               ) : (
-                <Repeat className={`w-4 h-4 ${repeatMode === 'all' ? 'text-[#00f0ff]' : ''}`} />
+                <Repeat className={`w-4 h-4 ${repeatMode === 'all' ? 'text-white' : ''}`} />
               )}
             </button>
 
@@ -1527,10 +1527,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               onClick={handleToggleLoop}
               className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 flex-shrink-0 ${
                 loopA !== null && loopB !== null
-                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/30 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
+                  ? 'bg-white/20 text-white border border-white/20 shadow-sm'
                   : loopA !== null
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
-                  : 'p-1.5 sm:p-2 text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 border border-transparent'
+                  : 'p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
               title={
                 loopA !== null && loopB !== null
@@ -1544,7 +1544,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <Repeat
                 className={`w-3.5 h-3.5 ${
                   loopA !== null && loopB !== null
-                    ? 'text-[#00f0ff]'
+                    ? 'text-white'
                     : loopA !== null
                     ? 'text-amber-400 animate-pulse'
                     : 'text-current'
@@ -1568,8 +1568,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               }}
               className={`px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer border flex-shrink-0 active:scale-95 ${
                 fitMode === 'cover'
-                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border-[#00f0ff]/50 shadow-[0_0_8px_rgba(0,240,255,0.3)]'
-                  : 'bg-white/5 hover:bg-[#00f0ff]/10 text-white/80 hover:text-[#00f0ff] border-white/10 hover:border-[#00f0ff]/30'
+                  ? 'bg-white/20 text-white border-white/50 shadow-sm'
+                  : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border-white/10 hover:border-white/20'
               }`}
               title={
                 fitMode === 'cover'
@@ -1589,7 +1589,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
                 downloadSuccess
                   ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
               } disabled:opacity-40`}
               title={downloadSuccess ? 'Video Clip Saved' : isDownloading ? 'Downloading Video...' : 'Download Video Clip'}
               aria-label="Download Video"
@@ -1597,7 +1597,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               {downloadSuccess ? (
                 <Check className="w-4 h-4 text-emerald-400" />
               ) : isDownloading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-[#00f0ff]" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
@@ -1609,14 +1609,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               onClick={handleShareMedia}
               className={`hidden md:inline-flex p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer flex-shrink-0 active:scale-95 ${
                 shareSuccess
-                  ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
-                  : 'text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10'
+                  ? 'bg-white/20 text-white border border-white/40 shadow-sm'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
               }`}
               title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
               aria-label="Share Video Link"
             >
               {shareSuccess ? (
-                <Check className="w-4 h-4 text-[#00f0ff]" />
+                <Check className="w-4 h-4 text-white" />
               ) : (
                 <Share2 className="w-4 h-4" />
               )}
@@ -1630,14 +1630,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 onClick={toggleSpeedMenu}
                 className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-[10px] sm:text-xs font-mono font-bold tracking-wider transition-colors cursor-pointer active:scale-95 flex-shrink-0 ${
                   playbackSpeed !== 1
-                    ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_8px_rgba(0,240,255,0.3)]'
-                    : 'hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff]'
+                    ? 'bg-white/20 text-white border border-white/40 shadow-sm'
+                    : 'hover:bg-white/10 text-zinc-300 hover:text-white'
                 }`}
                 title="Playback Speed (< / >)"
                 aria-haspopup="true"
                 aria-expanded={showSpeedMenu}
               >
-                <Gauge className={`w-3.5 h-3.5 ${playbackSpeed !== 1 ? 'text-[#00f0ff]' : 'text-zinc-400'}`} />
+                <Gauge className={`w-3.5 h-3.5 ${playbackSpeed !== 1 ? 'text-white' : 'text-zinc-400'}`} />
                 <span>{playbackSpeed}x</span>
               </button>
 
@@ -1671,12 +1671,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                         }}
                         className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
                           isSelected
-                            ? 'bg-[#00f0ff]/20 text-[#00f0ff] font-semibold shadow-[0_0_10px_rgba(0,240,255,0.25)] border border-[#00f0ff]/30'
+                            ? 'bg-white/20 text-white font-semibold shadow-sm border border-white/20'
                             : 'text-zinc-400 hover:text-white hover:bg-white/10 active:bg-white/15'
                         }`}
                       >
                         <span>{label}</span>
-                        {isSelected && <Check className="w-3 h-3 text-[#00f0ff]" />}
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
                       </button>
                     );
                   })}
@@ -1688,18 +1688,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleToggleMute}
-              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title={isMuted ? 'Unmute' : 'Mute'}
               aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-[#00f0ff]" />}
+              {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-white" />}
             </button>
 
             {/* Fullscreen */}
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-[#00f0ff] hover:bg-[#00f0ff]/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
               title="Fullscreen (F)"
               aria-label="Toggle Fullscreen"
             >

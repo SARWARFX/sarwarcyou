@@ -10,6 +10,7 @@ import { CyberCommandPalette } from './components/CyberCommandPalette';
 import { AmbientNoticesHUD } from './components/AmbientNoticesHUD';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
+import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
 import galaxyBg from './assets/galaxy.jpg';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
@@ -648,6 +649,9 @@ function App() {
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent">
+      {/* 0. Opening Public Domain Compliance Splash Screen */}
+      <ComplianceSplashScreen />
+
       {/* 1. High-resolution cosmic galaxy background fixed full viewport with cursor parallax */}
       <img
         ref={galaxyBgRef}

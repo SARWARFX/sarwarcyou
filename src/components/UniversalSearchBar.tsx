@@ -317,8 +317,8 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                 >
                   <div className="relative w-20 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
                     {entry.isVideo ? (
-                      <div className="w-full h-full bg-gradient-to-br from-[#13141c] to-black flex items-center justify-center">
-                        <Play className="w-4 h-4 text-[#00E5FF] fill-current ml-0.5" />
+                      <div className="w-full h-full bg-gradient-to-br from-neutral-900 to-black flex items-center justify-center">
+                        <Play className="w-4 h-4 text-white fill-current ml-0.5" />
                       </div>
                     ) : (
                       <img
@@ -353,7 +353,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                             ? 'bg-rose-950/80 text-rose-300 border border-rose-500/30'
                             : entry.isVideo
                             ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-500/30'
-                            : 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/30'
+                            : 'bg-neutral-800 text-neutral-300 border border-white/10'
                         }`}
                       >
                         {entry.isShort ? 'SHORTS' : entry.isVideo ? 'VIDEO' : 'PHOTO'}
@@ -413,8 +413,8 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                     {/* Thumbnail */}
                     <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0">
                       {entry.isVideo ? (
-                        <div className="w-full h-full bg-gradient-to-br from-[#13141c] to-black flex items-center justify-center">
-                          <Play className="w-4 h-4 text-[#00E5FF] fill-current ml-0.5" />
+                        <div className="w-full h-full bg-gradient-to-br from-neutral-900 to-black flex items-center justify-center">
+                          <Play className="w-4 h-4 text-white fill-current ml-0.5" />
                         </div>
                       ) : (
                         <img
@@ -434,7 +434,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
 
                     {/* Metadata */}
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs text-zinc-100 font-medium truncate block group-hover:text-cyan-300 transition-colors">
+                      <span className="text-xs text-zinc-100 font-medium truncate block group-hover:text-white/80 transition-colors">
                         {entry.cleanTitle}
                       </span>
                       <div className="flex items-center gap-2 mt-1">
@@ -456,7 +456,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({
                               ? 'bg-rose-950/60 text-rose-300'
                               : entry.isVideo
                               ? 'bg-indigo-950/60 text-indigo-300'
-                              : 'bg-cyan-950/60 text-cyan-300'
+                              : 'bg-neutral-800 text-neutral-300'
                           }`}
                         >
                           {entry.isShort ? (

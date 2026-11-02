@@ -35,7 +35,7 @@ export const CyberHeader: React.FC<CyberHeaderProps> = ({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search vault..."
-            className="w-full pl-8 pr-7 py-1.5 rounded-full bg-white/5 hover:bg-white/10 focus:bg-white/10 text-xs text-white placeholder-zinc-500 font-sans outline-none border border-transparent focus:border-[#00E5FF]/40 transition-all duration-200"
+            className="w-full pl-8 pr-7 py-1.5 rounded-full bg-white/5 hover:bg-white/10 focus:bg-white/10 text-xs text-white placeholder-zinc-500 font-serif outline-none border border-transparent focus:border-white/40 transition-all duration-200"
           />
           {searchQuery && (
             <button
@@ -59,7 +59,7 @@ export const CyberHeader: React.FC<CyberHeaderProps> = ({
                 onClick={() => onFilterChange(f.id)}
                 className={`px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold font-sans tracking-wider transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? 'bg-white/15 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_12px_rgba(0,229,255,0.35)]'
+                    ? 'bg-white text-black font-semibold shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
               >

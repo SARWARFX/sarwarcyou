@@ -49,7 +49,7 @@ const QueueCardThumbnail: React.FC<{
     return (
       <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-black flex items-center justify-center">
         {isVid ? (
-          <Play className="w-3.5 h-3.5 text-[#00E5FF] fill-current ml-0.5" />
+          <Play className="w-3.5 h-3.5 text-white fill-current ml-0.5" />
         ) : (
           <Camera className="w-3.5 h-3.5 text-zinc-500" />
         )}
@@ -68,7 +68,7 @@ const QueueCardThumbnail: React.FC<{
       />
       {isVid && (
         <div className="absolute inset-0 bg-black/35 flex items-center justify-center pointer-events-none group-hover:bg-black/20 transition-colors">
-          <Play className="w-3.5 h-3.5 text-[#00E5FF] fill-current ml-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+          <Play className="w-3.5 h-3.5 text-white fill-current ml-0.5 drop-shadow-sm" />
         </div>
       )}
     </>
@@ -182,16 +182,16 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {mediaType === 'video' ? (
-              <Film className="w-4 h-4 text-[#00f0ff]" />
+              <Film className="w-4 h-4 text-white" />
             ) : (
-              <Camera className="w-4 h-4 text-[#00f0ff]" />
+              <Camera className="w-4 h-4 text-white" />
             )}
-            <h2 className="text-sm font-bold font-sans text-white uppercase tracking-wider">
+            <h2 className="text-sm font-bold font-serif text-white uppercase tracking-wider">
               {mediaType === 'video' ? 'Video Queue' : 'Photo Gallery'}
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-white/5 text-[#00f0ff] border border-[#00f0ff]/20">
+            <span className="text-[10px] font-serif font-semibold px-2 py-0.5 rounded-full bg-white/5 text-white/90 border border-white/20">
               {activeIdx + 1} / {items.length}
             </span>
             {onClose && (
@@ -201,7 +201,7 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   e.stopPropagation();
                   onClose();
                 }}
-                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all cursor-pointer border border-white/15 flex items-center justify-center active:scale-95"
+                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/10 text-zinc-300 hover:text-white hover:border-white/40 transition-all cursor-pointer border border-white/15 flex items-center justify-center active:scale-95"
                 title="Close Queue (Esc)"
               >
                 <X className="w-4 h-4" />
@@ -240,7 +240,7 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   onClick={() => onSelectItem(it, idx)}
                   className={`group flex items-center gap-3 p-2 rounded-xl transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? 'bg-[#00E5FF]/15 border border-[#00E5FF]/50 shadow-[0_0_15px_rgba(0,229,255,0.2)]'
+                      ? 'bg-white/15 border border-white/40 shadow-sm'
                       : 'bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/20'
                   }`}
                 >
@@ -252,8 +252,8 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                       cleanTitle={cleanTitle}
                     />
                     {isActive && (
-                      <div className="absolute inset-0 bg-[#00E5FF]/20 flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-[#00E5FF] animate-ping" />
+                      <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-white animate-ping" />
                       </div>
                     )}
                   </div>
@@ -261,21 +261,21 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   {/* Clean Title & Meta */}
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`text-xs font-bold font-sans truncate transition-colors ${
+                      className={`text-xs font-bold font-serif truncate transition-colors ${
                         isActive
-                          ? 'text-[#00E5FF]'
+                          ? 'text-white'
                           : 'text-zinc-200 group-hover:text-white'
                       }`}
                     >
                       {cleanTitle}
                     </p>
-                    <span className="text-[10px] font-mono text-zinc-500 block">
+                    <span className="text-[10px] font-serif text-zinc-500 block">
                       #{idx + 1}
                     </span>
                   </div>
 
                   {isActive && (
-                    <span className="text-[9px] font-mono font-bold text-[#00E5FF] bg-[#00E5FF]/10 px-1.5 py-0.5 rounded border border-[#00E5FF]/30 flex-shrink-0">
+                    <span className="text-[9px] font-serif font-bold text-white bg-white/20 px-1.5 py-0.5 rounded border border-white/30 flex-shrink-0">
                       PLAYING
                     </span>
                   )}
@@ -289,11 +289,11 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
         {suggestedFolders.length > 0 && (
           <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
             <div className="flex items-center gap-2 px-1">
-              <Sparkles className="w-3.5 h-3.5 text-[#00E5FF]" />
-              <h3 className="text-xs font-bold font-sans tracking-wider text-zinc-300 uppercase">
+              <Sparkles className="w-3.5 h-3.5 text-white/80" />
+              <h3 className="text-xs font-bold font-serif tracking-wider text-zinc-300 uppercase">
                 Explore More
               </h3>
-              <span className="text-[10px] font-mono text-zinc-500 uppercase ml-auto">
+              <span className="text-[10px] font-serif text-zinc-500 uppercase ml-auto">
                 Suggested Archives
               </span>
             </div>
@@ -304,26 +304,26 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   <div
                     key={folder.id}
                     onClick={() => onSelectFolder?.(folder)}
-                    className="group flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-[#00E5FF]/40 transition-all duration-200 cursor-pointer shadow-md hover:shadow-[0_4px_20px_rgba(0,229,255,0.15)]"
+                    className="group flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/30 transition-all duration-200 cursor-pointer shadow-sm"
                   >
                     <div className="relative w-16 h-12 rounded-xl overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
                       <FolderCoverThumbnail folder={folder} mediaType={mediaType} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-1 pointer-events-none">
-                        <Folder className="w-3 h-3 text-[#00E5FF]" />
+                        <Folder className="w-3 h-3 text-white/80" />
                       </div>
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold font-sans text-zinc-100 group-hover:text-white truncate">
+                      <h4 className="text-xs font-bold font-serif text-zinc-100 group-hover:text-white truncate">
                         {folder.name}
                       </h4>
-                      <span className="text-[10px] font-mono text-zinc-400 block mt-0.5">
+                      <span className="text-[10px] font-serif text-zinc-400 block mt-0.5">
                         {folder.count || folder.items.length}{' '}
                         {mediaType === 'video' ? 'Videos' : 'Photos'}
                       </span>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-[#00E5FF] group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                   </div>
                 );
               })}

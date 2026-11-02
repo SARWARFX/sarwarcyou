@@ -199,7 +199,7 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
             ) : isVideo ? (
               <Play className="w-3 h-3 text-amber-400 ml-0.5" />
             ) : (
-              <Camera className="w-3 h-3 text-cyan-400" />
+              <Camera className="w-3 h-3 text-white/80" />
             )}
           </div>
           <span className="text-[8px] font-mono tracking-widest font-semibold uppercase brand-unified-wordmark">
@@ -269,8 +269,8 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
             VIDEO
           </span>
         ) : (
-          <span className="px-2 py-0.5 rounded-full bg-cyan-950/85 border border-cyan-500/40 text-cyan-300 font-mono text-[8px] sm:text-[9px] font-bold tracking-wider uppercase backdrop-blur-md shadow-lg flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+          <span className="px-2 py-0.5 rounded-full bg-neutral-900 border border-white/20 text-white font-mono text-[8px] sm:text-[9px] font-bold tracking-wider uppercase backdrop-blur-md shadow-lg flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
             PHOTO
           </span>
         )}
@@ -405,7 +405,7 @@ export const DynamicMediaCarousel: React.FC<DynamicMediaCarouselProps> = ({
         <div className="flex items-center gap-2.5 sm:gap-3">
           <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-zinc-900 flex items-center justify-center text-zinc-300">
             {icon === 'recent' ? (
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <Sparkles className="w-3.5 h-3.5 text-white/80" />
             ) : (
               <Film className="w-3.5 h-3.5 text-amber-400" />
             )}

@@ -92,7 +92,7 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
                   }}
                   className={`group/btn relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_16px_rgba(0,229,255,0.4)]'
+                      ? 'bg-white text-black font-semibold border-white shadow-sm'
                       : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
                   }`}
                   title={item.label}
@@ -112,7 +112,7 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
               onClick={() => setShowSearchInput(!showSearchInput)}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                 showSearchInput || searchQuery
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_16px_rgba(0,229,255,0.4)]'
+                  ? 'bg-white text-black font-semibold border-white shadow-sm'
                   : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
               title="Search Vault"
@@ -161,7 +161,7 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
         <button
           type="button"
           onClick={onShuffle}
-          className="p-2 rounded-full bg-black/60 text-zinc-300 hover:text-[#00E5FF] border border-white/10 cursor-pointer"
+          className="p-2 rounded-full bg-black/60 text-zinc-300 hover:text-white border border-white/10 cursor-pointer"
           title="Random Media"
         >
           <Shuffle className="w-4 h-4" />
@@ -171,7 +171,7 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
           onClick={() => setShowSearchInput(!showSearchInput)}
           className={`p-2 rounded-full border transition-all cursor-pointer ${
             showSearchInput || searchQuery
-              ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40'
+              ? 'bg-white text-black font-semibold border-white'
               : 'bg-black/60 text-zinc-300 border-white/10'
           }`}
           title="Search"
@@ -205,7 +205,7 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
             <button
               type="button"
               onClick={() => setShowSearchInput(false)}
-              className="ml-2 text-xs font-mono text-[#00E5FF]"
+              className="ml-2 text-xs font-mono text-white"
             >
               Cancel
             </button>
@@ -240,7 +240,7 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
                 }}
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_14px_rgba(0,229,255,0.4)]'
+                    ? 'bg-white text-black font-semibold border-white shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
                 }`}
                 title={item.label}
@@ -261,7 +261,7 @@ export const NetflixNav: React.FC<NetflixNavProps> = ({
             }}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
               showSearchInput || searchQuery
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/40 shadow-[0_0_14px_rgba(0,229,255,0.4)]'
+                ? 'bg-white text-black font-semibold border-white shadow-sm'
                 : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
             }`}
             title="Search"

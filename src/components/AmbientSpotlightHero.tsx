@@ -134,8 +134,8 @@ export const AmbientSpotlightHero: React.FC<AmbientSpotlightHeroProps> = ({
         <div className="max-w-xl sm:max-w-2xl flex flex-col gap-3 sm:gap-4.5">
           {/* Top Category Badge */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xl border border-[#00E5FF]/40 text-[#00E5FF] text-xs font-mono font-semibold tracking-wider shadow-[0_0_15px_rgba(0,229,255,0.25)]">
-              <Sparkles className="w-3.5 h-3.5 text-[#00E5FF]" />
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white text-xs font-serif font-semibold tracking-wider shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-white/80" />
               <span className="uppercase">{albumName}</span>
             </div>
 
@@ -169,7 +169,7 @@ export const AmbientSpotlightHero: React.FC<AmbientSpotlightHeroProps> = ({
             <button
               type="button"
               onClick={() => onPlay(item, playlistContext)}
-              className="px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-blue-600 text-black font-bold text-xs sm:text-sm font-sans flex items-center gap-2.5 shadow-[0_0_25px_rgba(0,229,255,0.4)] hover:shadow-[0_0_35px_rgba(0,229,255,0.65)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-xl bg-white text-black font-semibold text-xs sm:text-sm font-serif flex items-center gap-2.5 shadow-md hover:bg-neutral-200 hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
               <span>Watch Now</span>

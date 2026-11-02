@@ -109,19 +109,19 @@ const ShortCardItem: React.FC<{
     >
       {/* 9:16 Vertical Poster Container */}
       <div
-        className={`relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-black/40 backdrop-blur-sm transition-all duration-300 ${
+        className={`relative w-full aspect-[9/16] rounded-md overflow-hidden bg-neutral-900/60 backdrop-blur-sm transition-all duration-200 ${
           isFocused
-            ? 'border-2 border-[#00f0ff] shadow-[0_0_24px_rgba(0,240,255,0.75)] ring-1 ring-[#00f0ff]'
-            : 'border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)]'
+            ? 'border-2 border-neutral-200 shadow-xl ring-1 ring-neutral-400'
+            : 'border border-neutral-800 group-hover:border-neutral-400 shadow-sm group-hover:shadow-md'
         }`}
       >
         {/* Dark gradient fallback background when loading or onError so cards never appear broken */}
         {(!imgLoaded || imgError || !thumbnailSrc) && (
-          <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/90 via-black to-zinc-950 flex flex-col items-center justify-center p-3 text-center">
-            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-2 shadow-inner">
-              <Play className="w-4 h-4 text-[#00f0ff]/60 fill-current ml-0.5" />
+          <div className="absolute inset-0 bg-neutral-950 flex flex-col items-center justify-center p-3 text-center">
+            <div className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-2 shadow-inner">
+              <Play className="w-4 h-4 text-neutral-400 fill-current ml-0.5" />
             </div>
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest line-clamp-1">
+            <span className="text-[10px] text-neutral-500 uppercase tracking-widest line-clamp-1">
               {cleanTitle || 'Short'}
             </span>
           </div>
@@ -162,20 +162,17 @@ const ShortCardItem: React.FC<{
 
         {/* Play Icon Badge / Overlay */}
         <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <div className="w-10 h-10 rounded-full bg-[#00f0ff]/90 text-black flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.8)]">
+          <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
             <Play className="w-4 h-4 fill-current ml-0.5" />
           </div>
         </div>
       </div>
 
-      {/* Title beneath the thumbnail with high-contrast text shadow */}
+      {/* Title beneath the thumbnail */}
       <span
-        className={`text-xs sm:text-sm font-mono line-clamp-2 leading-snug transition-colors ${
-          isFocused ? 'text-[#00f0ff] font-bold' : 'text-white/95 group-hover:text-[#00f0ff]'
+        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors ${
+          isFocused ? 'text-white font-semibold' : 'text-neutral-300 group-hover:text-white'
         }`}
-        style={{
-          textShadow: '0 1px 4px #000, 0 0 8px #000',
-        }}
       >
         {cleanTitle}
       </span>
@@ -250,19 +247,19 @@ const VideoCardItem: React.FC<{
     >
       {/* 16:9 Widescreen Frame */}
       <div
-        className={`relative w-full aspect-video rounded-xl overflow-hidden bg-transparent transition-all duration-300 ${
+        className={`relative w-full aspect-video rounded-md overflow-hidden bg-neutral-900/60 backdrop-blur-sm transition-all duration-200 ${
           isFocused
-            ? 'border-2 border-[#00f0ff] shadow-[0_0_24px_rgba(0,240,255,0.75)] ring-1 ring-[#00f0ff]'
-            : 'border border-white/20 group-hover:border-[#00f0ff] shadow-none group-hover:shadow-[0_0_20px_rgba(0,240,255,0.45)]'
+            ? 'border-2 border-neutral-200 shadow-xl ring-1 ring-neutral-400'
+            : 'border border-neutral-800 group-hover:border-neutral-400 shadow-sm group-hover:shadow-md'
         }`}
       >
         {/* Dark gradient fallback background when loading or onError so cards never appear broken */}
         {(!imgLoaded || imgError || !thumbnailSrc) && (
-          <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/90 via-black to-zinc-950 flex flex-col items-center justify-center p-3 text-center">
-            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
-              <Film className="w-4 h-4 text-[#00f0ff]/60" />
+          <div className="absolute inset-0 bg-neutral-950 flex flex-col items-center justify-center p-3 text-center">
+            <div className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-1.5 shadow-inner">
+              <Film className="w-4 h-4 text-neutral-400" />
             </div>
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest line-clamp-1">
+            <span className="text-[10px] text-neutral-500 uppercase tracking-widest line-clamp-1">
               {cleanTitle || 'Video'}
             </span>
           </div>
@@ -310,27 +307,24 @@ const VideoCardItem: React.FC<{
 
         {/* Duration / HD Badge */}
         <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 pointer-events-none">
-          <span className="px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-md text-[10px] sm:text-[11px] font-mono font-medium text-white border border-white/10 shadow">
+          <span className="px-1.5 py-0.5 rounded bg-black/85 backdrop-blur-md text-[10px] sm:text-[11px] font-serif font-normal text-neutral-300 border border-neutral-700/80 shadow">
             {videoDuration || 'HD'}
           </span>
         </div>
 
         {/* Play Pulse Overlay on Hover */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <div className="w-11 h-11 rounded-full bg-[#00f0ff]/90 text-black flex items-center justify-center shadow-[0_0_18px_rgba(0,240,255,0.8)] transform scale-90 group-hover:scale-100 transition-transform">
+          <div className="w-11 h-11 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
             <Play className="w-4 h-4 fill-current ml-0.5" />
           </div>
         </div>
       </div>
 
-      {/* Title with high-contrast text shadow */}
+      {/* Title */}
       <span
-        className={`text-xs sm:text-sm font-mono line-clamp-2 leading-snug transition-colors ${
-          isFocused ? 'text-[#00f0ff] font-bold' : 'text-white/95 group-hover:text-[#00f0ff]'
+        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors ${
+          isFocused ? 'text-white font-semibold' : 'text-neutral-300 group-hover:text-white'
         }`}
-        style={{
-          textShadow: '0 1px 4px #000, 0 0 8px #000',
-        }}
       >
         {cleanTitle}
       </span>
@@ -743,12 +737,12 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                 setFocusedCol(0);
                 setFocusedIndex(idx);
               }}
-              className={`text-left text-base sm:text-lg md:text-xl font-mono tracking-wider transition-all duration-300 cursor-pointer pb-1.5 w-fit border-b-[1.5px] rounded px-1 -mx-1 ${
-                isFocused ? 'ring-1 ring-[#00f0ff] bg-[#00f0ff]/10 ' : ''
+              className={`text-left text-base sm:text-lg md:text-xl font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 ${
+                isFocused ? 'ring-1 ring-white/40 bg-white/5 ' : ''
               }${
                 isActive
-                  ? 'text-[#00f0ff] font-bold border-[#00f0ff] shadow-[0_2px_10px_rgba(0,240,255,0.4)] [text-shadow:0_0_15px_rgba(0,240,255,0.8)]'
-                  : 'text-white/80 border-white/40 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_2px_8px_rgba(0,240,255,0.35)] hover:[text-shadow:0_0_12px_rgba(0,240,255,0.7)]'
+                  ? 'text-white font-semibold border-white'
+                  : 'text-neutral-400 border-neutral-700 hover:text-white hover:border-neutral-400'
               }`}
             >
               {node.name}
@@ -777,12 +771,12 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                   setFocusedCol(1);
                   setFocusedIndex(idx);
                 }}
-                className={`text-left text-sm sm:text-base md:text-lg font-mono tracking-wide transition-all duration-300 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded px-1 -mx-1 ${
-                  isFocused ? 'ring-1 ring-[#00f0ff] bg-[#00f0ff]/10 ' : ''
+                className={`text-left text-sm sm:text-base md:text-lg font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 ${
+                  isFocused ? 'ring-1 ring-white/40 bg-white/5 ' : ''
                 }${
                   isSubActive
-                    ? 'text-[#00f0ff] font-bold border-[#00f0ff] shadow-[0_2px_8px_rgba(0,240,255,0.35)] [text-shadow:0_0_12px_rgba(0,240,255,0.75)]'
-                    : 'text-white/80 border-white/40 hover:text-[#00f0ff] hover:border-[#00f0ff] hover:shadow-[0_2px_8px_rgba(0,240,255,0.35)] hover:[text-shadow:0_0_12px_rgba(0,240,255,0.7)]'
+                    ? 'text-white font-semibold border-white'
+                    : 'text-neutral-400 border-neutral-700 hover:text-white hover:border-neutral-400'
                 }`}
               >
                 {subNode.name}
@@ -813,10 +807,10 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                       setFocusedCol(2);
                       setFocusedIndex(idx);
                     }}
-                    className={`relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-transparent transition-all duration-300 transform ${
+                    className={`relative aspect-square cursor-pointer overflow-hidden rounded-md group bg-neutral-900/40 backdrop-blur-sm transition-all duration-200 transform ${
                       isFocused
-                        ? 'border-2 border-[#00f0ff] shadow-[0_0_24px_rgba(0,240,255,0.75)] scale-[1.04] ring-1 ring-[#00f0ff]'
-                        : 'border border-white/15 hover:border-[#00f0ff] p-0 shadow-none hover:shadow-[0_0_20px_rgba(0,240,255,0.45)] hover:scale-[1.03]'
+                        ? 'border-2 border-white shadow-xl scale-[1.03] ring-1 ring-white/40'
+                        : 'border border-neutral-800 hover:border-neutral-400 p-0 shadow-sm hover:shadow-md hover:scale-[1.02]'
                     }`}
                   >
                     <img
@@ -828,10 +822,10 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                         e.currentTarget.style.display = 'none';
                         const parent = e.currentTarget.parentElement;
                         if (parent) {
-                          parent.classList.add('bg-gradient-to-b', 'from-zinc-900', 'to-black');
+                          parent.classList.add('bg-neutral-900');
                         }
                       }}
-                      className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
+                      className="w-full h-full object-cover rounded-md transition-all duration-300 group-hover:brightness-110"
                     />
                   </div>
                 );

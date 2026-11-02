@@ -205,10 +205,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   if (!isOpen) return null;
   if (!shorts || shorts.length === 0) {
     return (
-      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md text-white p-6 select-none">
-        <Loader2 className="w-10 h-10 animate-spin text-[#00f0ff] mb-4" />
-        <p className="text-sm font-mono text-zinc-300 mb-6">No shorts available in this archive.</p>
-        <button type="button" onClick={onClose} className="px-5 py-2 rounded-xl bg-white/10 hover:bg-[#00f0ff]/20 border border-white/20 hover:border-[#00f0ff] text-white text-xs font-mono font-semibold transition-all cursor-pointer active:scale-95">
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md text-white p-6 select-none font-serif">
+        <Loader2 className="w-10 h-10 animate-spin text-neutral-400 mb-4" />
+        <p className="text-sm text-neutral-400 mb-6">No shorts available in this archive.</p>
+        <button type="button" onClick={onClose} className="px-5 py-2 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 text-xs font-serif transition-all cursor-pointer active:scale-95">
           Return to Explorer
         </button>
       </div>
@@ -218,7 +218,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   return (
     <div
       onMouseMove={handleMouseMove}
-      className="fixed inset-0 z-[9999] bg-black md:bg-slate-950/45 md:backdrop-blur-lg flex flex-col items-center select-none overflow-hidden font-sans"
+      className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif"
     >
       {/* Top HUD Controls - Auto-hides on mobile during playback */}
       <header
@@ -231,7 +231,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         <span
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="text-xs font-mono font-semibold px-3 py-1 rounded-full bg-white/10 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md"
+          className="text-xs font-serif font-normal px-3 py-1 rounded-full bg-neutral-900/80 text-neutral-200 border border-neutral-700/80 backdrop-blur-md"
         >
           {activeIndex + 1} / {shorts.length}
         </span>
@@ -244,7 +244,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#00f0ff]/20 text-white hover:text-[#00f0ff] border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            className="w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700/80 flex items-center justify-center transition-all cursor-pointer active:scale-95"
             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -257,7 +257,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#00f0ff]/20 text-white hover:text-[#00f0ff] border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            className="w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700/80 flex items-center justify-center transition-all cursor-pointer active:scale-95"
             title="Share Short"
           >
             {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
@@ -270,7 +270,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400 border border-white/15 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            className="w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700/80 flex items-center justify-center transition-all cursor-pointer active:scale-95"
             title="Close (Esc)"
           >
             <X className="w-4 h-4" />
@@ -302,8 +302,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 onClick={() => handleScreenTap(idx)}
                 className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
                   isLandscape
-                    ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh] md:bg-black/50 md:backdrop-blur-xl md:border md:border-cyan-500/20 md:shadow-[0_0_50px_-12px_rgba(6,182,212,0.25)] md:rounded-2xl'
-                    : 'w-full md:max-w-[480px] h-full md:max-h-[92vh] md:bg-black/50 md:backdrop-blur-xl md:border md:border-cyan-500/20 md:shadow-[0_0_50px_-12px_rgba(6,182,212,0.25)] md:rounded-2xl'
+                    ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
+                    : 'w-full md:max-w-[480px] h-full md:max-h-[92vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
                 }`}
               >
                 {!failedPermanently[idx] ? (
@@ -316,7 +316,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       loop
                       muted={isMuted}
                       preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-                      className="w-full h-full object-contain rounded-none md:rounded-2xl shadow-2xl bg-black md:bg-transparent"
+                      className="w-full h-full object-contain rounded-none md:rounded-lg shadow-2xl bg-black md:bg-transparent"
                       onLoadedMetadata={(e) => {
                         const v = e.currentTarget;
                         if (v.videoWidth && v.videoHeight) {
@@ -328,9 +328,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     />
                     {centerIcon && centerIcon.idx === idx && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-out fade-out zoom-out duration-700">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-2xl">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center text-white border border-neutral-700 shadow-2xl">
                           {centerIcon.type === 'play' ? (
-                            <Play className="w-8 h-8 sm:w-10 sm:h-10 text-[#00f0ff] fill-current ml-1" />
+                            <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current ml-1" />
                           ) : (
                             <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
                           )}
@@ -339,11 +339,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     )}
                   </>
                 ) : (
-                  <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-zinc-950/90 rounded-2xl p-6 text-center border border-white/10">
-                    <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mb-3 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                  <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-neutral-950/95 rounded-lg p-6 text-center border border-neutral-800">
+                    <div className="w-12 h-12 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center text-neutral-300 mb-3 shadow">
                       <AlertTriangle className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-white mb-1">Video Unavailable</h3>
+                    <h3 className="text-base font-normal text-neutral-200 mb-1 font-serif">Video Unavailable</h3>
                   </div>
                 )}
               </div>

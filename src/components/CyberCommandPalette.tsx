@@ -160,63 +160,62 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
       className="fixed inset-0 z-[100] flex items-start justify-center pt-14 sm:pt-20 md:pt-24 px-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
-      {/* Centered Glass Command Panel */}
+      {/* Centered Command Panel */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col transition-all border animate-in zoom-in-95 duration-200"
+        className="w-full max-w-2xl rounded-lg overflow-hidden shadow-2xl flex flex-col transition-all border border-neutral-800 animate-in zoom-in-95 duration-200"
         style={{
-          background: 'rgba(4, 6, 12, 0.75)',
+          background: 'rgba(12, 14, 18, 0.95)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(0, 240, 255, 0.3)',
-          boxShadow: '0 0 35px rgba(0, 240, 255, 0.18), 0 20px 40px rgba(0,0,0,0.8)',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
         }}
       >
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">
-          <Search className="w-5 h-5 text-[#00f0ff] flex-shrink-0 animate-pulse" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-neutral-800 bg-white/[0.02]">
+          <Search className="w-5 h-5 text-neutral-400 flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type to search clips, shorts, photographs, or albums..."
-            className="flex-1 bg-transparent text-white placeholder-white/40 font-mono text-sm sm:text-base outline-none tracking-wide"
+            placeholder="Type to search clips, shorts, photographs, or archives..."
+            className="flex-1 bg-transparent text-white placeholder-neutral-500 font-serif text-sm sm:text-base outline-none tracking-normal"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="text-white/40 hover:text-white transition-colors p-1"
+              className="text-neutral-400 hover:text-white transition-colors p-1"
               title="Clear"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/[0.08] text-white/50 border border-white/10 font-mono text-[10px]">
+          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700 font-serif text-[10px]">
             ESC
           </kbd>
         </div>
 
         {/* Filter Badges & Quick Stats */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-black/30 text-xs font-mono">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800/80 bg-black/40 text-xs font-serif">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {(['ALL', 'SHORTS', 'VIDEOS', 'PHOTOS'] as MediaFilter[]).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setFilter(tab)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-wider transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded text-[11px] font-normal tracking-wider transition-all cursor-pointer ${
                   filter === tab
-                    ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.25)]'
-                    : 'text-white/50 hover:text-white hover:bg-white/[0.05] border border-transparent'
+                    ? 'bg-neutral-800 text-white border border-neutral-600'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900 border border-transparent'
                 }`}
               >
                 {tab}
               </button>
             ))}
           </div>
-          <span className="text-white/40 text-[11px] flex-shrink-0">
+          <span className="text-neutral-500 text-[11px] flex-shrink-0">
             {filteredItems.length} {filteredItems.length === 1 ? 'match' : 'matches'}
           </span>
         </div>
@@ -224,7 +223,7 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
         {/* Search Result List */}
         <div
           ref={resultsContainerRef}
-          className="max-h-[60vh] sm:max-h-[380px] overflow-y-auto space-scrollbar divide-y divide-white/[0.04]"
+          className="max-h-[60vh] sm:max-h-[380px] overflow-y-auto space-scrollbar divide-y divide-neutral-850"
         >
           {filteredItems.length > 0 ? (
             filteredItems.map((item, idx) => {
@@ -234,7 +233,7 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
               const isPhoto = item.type === 'image';
 
               const cleanTitle = sanitizeMediaTitle(item.title || item.name, item.category);
-              const folderLabel = item.parentAlbum || item.category || 'Vault';
+              const folderLabel = item.parentAlbum || item.category || 'Archive';
               const thumbnailSrc = isPhoto ? getMediaUrl(item.url) : resolveStaticVideoThumbnail(item);
 
               return (
@@ -244,8 +243,8 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center gap-3.5 px-4 py-2.5 cursor-pointer transition-colors text-left ${
                     isSelected
-                      ? 'bg-[#00f0ff]/15 border-l-2 border-[#00f0ff] shadow-[inset_0_0_15px_rgba(0,240,255,0.12)]'
-                      : 'hover:bg-white/[0.04] border-l-2 border-transparent'
+                      ? 'bg-neutral-800/80 border-l-2 border-white'
+                      : 'hover:bg-neutral-900/60 border-l-2 border-transparent'
                   }`}
                 >
                   {/* Thumbnail / Poster */}
@@ -268,14 +267,13 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
                   {/* Title & Folder Path */}
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                     <span
-                      className={`text-sm font-mono truncate leading-snug transition-colors ${
-                        isSelected ? 'text-[#00f0ff] font-semibold' : 'text-white/90'
+                      className={`text-sm font-serif truncate leading-snug transition-colors ${
+                        isSelected ? 'text-white font-semibold' : 'text-neutral-200'
                       }`}
-                      style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
                     >
                       {cleanTitle}
                     </span>
-                    <span className="text-xs font-mono text-white/40 truncate">
+                    <span className="text-xs font-serif text-neutral-400 truncate">
                       {folderLabel}
                     </span>
                   </div>
@@ -283,48 +281,42 @@ export const CyberCommandPalette: React.FC<CyberCommandPaletteProps> = ({
                   {/* Type Badge */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase border ${
-                        isShort
-                          ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                          : isVideo
-                          ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-                          : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                      }`}
+                      className="px-2 py-0.5 rounded text-[10px] font-serif font-normal tracking-wider uppercase border bg-neutral-800 text-neutral-300 border-neutral-700"
                     >
                       {isShort ? 'SHORT' : isVideo ? 'VIDEO' : 'PHOTO'}
                     </span>
 
                     {/* Enter indicator on selected */}
                     {isSelected && (
-                      <CornerDownLeft className="w-4 h-4 text-[#00f0ff] animate-pulse hidden sm:inline" />
+                      <CornerDownLeft className="w-4 h-4 text-white hidden sm:inline" />
                     )}
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="p-8 text-center text-white/40 font-mono text-xs sm:text-sm flex flex-col items-center gap-2">
-              <Sparkles className="w-5 h-5 text-white/20" />
+            <div className="p-8 text-center text-neutral-400 font-serif text-xs sm:text-sm flex flex-col items-center gap-2">
+              <Sparkles className="w-5 h-5 text-neutral-500" />
               <span>No matching media items found in catalog.</span>
             </div>
           )}
         </div>
 
         {/* Footer shortcuts helper */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06] bg-black/40 text-[11px] font-mono text-white/40">
+        <div className="flex items-center justify-between px-4 py-2 border-t border-neutral-800 bg-black/50 text-[11px] font-serif text-neutral-400">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.2 bg-white/10 rounded text-[9px]"><ArrowUp className="w-2.5 h-2.5 inline" /></kbd>
-              <kbd className="px-1 py-0.2 bg-white/10 rounded text-[9px]"><ArrowDown className="w-2.5 h-2.5 inline" /></kbd> Navigate
+              <kbd className="px-1 py-0.2 bg-neutral-800 rounded text-[9px]"><ArrowUp className="w-2.5 h-2.5 inline" /></kbd>
+              <kbd className="px-1 py-0.2 bg-neutral-800 rounded text-[9px]"><ArrowDown className="w-2.5 h-2.5 inline" /></kbd> Navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.2 bg-white/10 rounded text-[9px]">↵</kbd> Select
+              <kbd className="px-1 py-0.2 bg-neutral-800 rounded text-[9px]">↵</kbd> Select
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.2 bg-white/10 rounded text-[9px]">ESC</kbd> Close
+              <kbd className="px-1 py-0.2 bg-neutral-800 rounded text-[9px]">ESC</kbd> Close
             </span>
           </div>
-          <span className="text-[#00f0ff]/60 hidden sm:inline">SARWARCYOU // STREAM VAULT</span>
+          <span className="text-neutral-400 hidden sm:inline uppercase tracking-widest text-[10px]">SARWARCYOU ARCHIVE</span>
         </div>
       </div>
     </div>

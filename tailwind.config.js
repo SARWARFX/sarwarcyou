@@ -7,10 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Rajdhani', 'sans-serif'],
-        rajdhani: ['Rajdhani', 'sans-serif'],
-        brand: ['Orbitron', 'sans-serif'],
-        futuristic: ['Orbitron', 'sans-serif'],
+        serif: ['"Times New Roman"', 'Times', 'Georgia', 'serif'],
+        sans: ['"Times New Roman"', 'Times', 'Georgia', 'serif'],
+        mono: ['"Times New Roman"', 'Times', 'Georgia', 'serif'],
       },
     },
   },

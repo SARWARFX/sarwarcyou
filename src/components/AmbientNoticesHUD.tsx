@@ -126,32 +126,30 @@ export const AmbientNoticesHUD: React.FC<AmbientNoticesHUDProps> = ({
       aria-live="polite"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`pointer-events-auto select-text font-mono text-xs text-white/95 max-w-sm sm:max-w-md transition-all duration-450 ease-out transform ${
+      className={`pointer-events-auto select-text font-serif text-xs text-neutral-200 max-w-sm sm:max-w-md transition-all duration-300 ease-out transform ${
         fade
           ? 'opacity-100 translate-y-0 scale-100'
           : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
       } ${className}`}
       style={{
-        background: 'rgba(4, 7, 15, 0.75)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(0, 240, 255, 0.25)',
-        borderLeft: '3px solid #00f0ff',
-        borderRadius: '6px',
+        background: 'rgba(12, 13, 16, 0.9)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '4px',
         padding: '9px 12px 9px 14px',
-        textShadow: '0 1px 4px #000, 0 0 8px #000',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 240, 255, 0.18)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.75)',
         ...style,
       }}
     >
       <div className="flex items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff] animate-pulse flex-shrink-0" />
-          <span className="leading-relaxed text-[11px] sm:text-xs text-zinc-100 break-words">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 flex-shrink-0" />
+          <span className="leading-relaxed text-[11px] sm:text-xs text-neutral-300 break-words font-serif">
             {current.prefix}
             <a
               href={`mailto:${current.email}`}
-              className="text-[#00f0ff] hover:underline font-semibold transition-colors"
+              className="text-neutral-100 underline hover:text-white font-normal transition-colors"
             >
               {current.email}
             </a>
@@ -163,7 +161,7 @@ export const AmbientNoticesHUD: React.FC<AmbientNoticesHUDProps> = ({
         <button
           type="button"
           onClick={dismissNotice}
-          className="text-zinc-400 hover:text-[#00f0ff] hover:bg-white/10 rounded p-1 transition-all flex-shrink-0 active:scale-90"
+          className="text-neutral-400 hover:text-white hover:bg-white/10 rounded p-1 transition-all flex-shrink-0 active:scale-90"
           title="Dismiss notice"
           aria-label="Dismiss notice"
         >

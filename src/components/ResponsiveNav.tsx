@@ -103,9 +103,9 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             aria-label="SARWARCYOU Home"
             className="flex items-center gap-2.5 py-1.5 px-2 rounded-xl hover:bg-white/5 active:scale-95 transition-all cursor-pointer group"
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] shadow-[0_0_10px_#00E5FF] group-hover:scale-125 transition-transform" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm group-hover:scale-125 transition-transform" />
             <span
-              className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-white group-hover:text-[#00E5FF] transition-colors"
+              className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-white group-hover:text-white/80 transition-colors"
               style={{ fontFamily: "'Orbitron', 'Syne', monospace, sans-serif" }}
             >
               SARWARCYOU
@@ -123,7 +123,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               onClick={handleHomeClick}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                 activeFilter === 'all'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+                  ? 'bg-white text-black font-semibold border-white shadow-sm'
                   : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
             >
@@ -137,7 +137,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               onClick={() => onFilterChange('clips')}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                 activeFilter === 'clips'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+                  ? 'bg-white text-black font-semibold border-white shadow-sm'
                   : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
             >
@@ -156,7 +156,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               onClick={() => onFilterChange('shorts')}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                 activeFilter === 'shorts'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+                  ? 'bg-white text-black font-semibold border-white shadow-sm'
                   : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
             >
@@ -173,7 +173,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               onClick={() => onFilterChange('images')}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                 activeFilter === 'images'
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_15px_rgba(0,229,255,0.3)]'
+                  ? 'bg-white text-black font-semibold border-white shadow-sm'
                   : 'text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
               }`}
             >
@@ -194,13 +194,13 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               onClick={() => setOpenCategory((prev) => (prev ? null : 'all'))}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all cursor-pointer border active:scale-95 ${
                 openCategory
-                  ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                  ? 'bg-white text-black font-semibold border-white shadow-sm'
                   : 'bg-white/[0.04] text-zinc-300 hover:text-white hover:bg-white/[0.08] border-white/10'
               }`}
               title="Browse Collections"
               aria-label="Browse Collections"
             >
-              <Folder className="w-3.5 h-3.5 text-[#00E5FF]" />
+              <Folder className="w-3.5 h-3.5 text-white" />
               <span className="hidden sm:inline">Collections</span>
               {totalAlbums > 0 && (
                 <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded-full text-zinc-400 font-mono">
@@ -209,7 +209,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               )}
               <ChevronDown
                 className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${
-                  openCategory ? 'rotate-180 text-[#00E5FF]' : ''
+                  openCategory ? 'rotate-180 text-white' : ''
                 }`}
               />
             </button>
@@ -221,7 +221,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                 onClick={onScrollToTop}
                 title="Back to Top"
                 aria-label="Scroll back to top"
-                className="hidden md:flex p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#00E5FF] transition-all cursor-pointer active:scale-90"
+                className="hidden md:flex p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white transition-all cursor-pointer active:scale-90"
               >
                 <ChevronUp className="w-4 h-4" />
               </button>
@@ -238,8 +238,8 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               >
                 {/* Header */}
                 <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#00E5FF] uppercase">
-                    <Folder className="w-4 h-4 text-[#00E5FF]" />
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
+                    <Folder className="w-4 h-4 text-white" />
                     <span>Collections</span>
                   </div>
                   <button
@@ -258,7 +258,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                     onClick={() => setSelectedSubTab('clips')}
                     className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all ${
                       selectedSubTab === 'clips'
-                        ? 'bg-[#00E5FF]/20 text-[#00E5FF] font-semibold'
+                        ? 'bg-white/15 text-white font-semibold'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -269,7 +269,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                     onClick={() => setSelectedSubTab('images')}
                     className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all ${
                       selectedSubTab === 'images'
-                        ? 'bg-[#00E5FF]/20 text-[#00E5FF] font-semibold'
+                        ? 'bg-white/15 text-white font-semibold'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -280,7 +280,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                     onClick={() => setSelectedSubTab('shorts')}
                     className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all ${
                       selectedSubTab === 'shorts'
-                        ? 'bg-[#00E5FF]/20 text-[#00E5FF] font-semibold'
+                        ? 'bg-white/15 text-white font-semibold'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -348,7 +348,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             aria-label="Home"
             className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-90 ${
               activeFilter === 'all'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
+                ? 'bg-white text-black font-semibold border-white shadow-sm'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
@@ -363,13 +363,13 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             aria-label="Videos"
             className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center relative active:scale-90 ${
               activeFilter === 'clips'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
+                ? 'bg-white text-black font-semibold border-white shadow-sm'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
             <Film className="w-4 h-4" />
             {videoAlbums.length > 0 && (
-              <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-[#00E5FF]" />
+              <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-white" />
             )}
           </button>
 
@@ -381,7 +381,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             aria-label="Shorts"
             className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center relative active:scale-90 ${
               activeFilter === 'shorts'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
+                ? 'bg-white text-black font-semibold border-white shadow-sm'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
@@ -399,13 +399,13 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             aria-label="Photographs"
             className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center relative active:scale-90 ${
               activeFilter === 'images'
-                ? 'bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 shadow-[0_0_10px_rgba(0,229,255,0.35)]'
+                ? 'bg-white text-black font-semibold border-white shadow-sm'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
             <Camera className="w-4 h-4" />
             {imageAlbums.length > 0 && (
-              <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-[#00E5FF]" />
+              <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-white" />
             )}
           </button>
 
@@ -420,7 +420,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             aria-label="Scroll back to top"
             className={`w-9 h-9 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-90 ${
               showBackToTop
-                ? 'text-[#00E5FF] bg-[#00E5FF]/15 border border-[#00E5FF]/40 shadow-[0_0_10px_rgba(0,229,255,0.3)] animate-pulse'
+                ? 'text-white bg-white/15 border border-white/30 animate-pulse'
                 : 'text-zinc-400 hover:text-white border border-transparent'
             }`}
           >
@@ -451,7 +451,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <Folder className="w-4 h-4 text-[#00E5FF]" />
+                <Folder className="w-4 h-4 text-white" />
                 <h3 className="text-sm font-sans font-bold tracking-wide uppercase">
                   Collections
                 </h3>
@@ -475,7 +475,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                 onClick={() => setSelectedSubTab('clips')}
                 className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all ${
                   selectedSubTab === 'clips'
-                    ? 'bg-[#00E5FF]/20 text-[#00E5FF] font-semibold'
+                    ? 'bg-white/15 text-white font-semibold'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -486,7 +486,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                 onClick={() => setSelectedSubTab('images')}
                 className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all ${
                   selectedSubTab === 'images'
-                    ? 'bg-[#00E5FF]/20 text-[#00E5FF] font-semibold'
+                    ? 'bg-white/15 text-white font-semibold'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -497,7 +497,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                 onClick={() => setSelectedSubTab('shorts')}
                 className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all ${
                   selectedSubTab === 'shorts'
-                    ? 'bg-[#00E5FF]/20 text-[#00E5FF] font-semibold'
+                    ? 'bg-white/15 text-white font-semibold'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -522,7 +522,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                     }}
                     className="w-full text-left pt-2 pb-1.5 px-2 rounded-xl flex items-center justify-between hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer group"
                   >
-                    <span className="text-xs font-sans font-medium text-white group-hover:text-[#00E5FF] transition-colors truncate pr-3">
+                    <span className="text-xs font-sans font-medium text-white group-hover:text-white/80 transition-colors truncate pr-3">
                       {album.name}
                     </span>
                     <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-2 py-0.5 rounded-full flex-shrink-0">

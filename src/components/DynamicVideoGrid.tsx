@@ -89,7 +89,7 @@ const VideoCardItem: React.FC<{
       className="group flex flex-col gap-2.5 cursor-pointer select-none text-left"
     >
       {/* 16:9 Thumbnail Frame */}
-      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-[#00E5FF]/60 shadow-md group-hover:shadow-[0_0_25px_rgba(0,229,255,0.25)] transition-all duration-300 transform group-hover:-translate-y-1">
+      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/40 shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
         {/* High-res Poster / Thumbnail */}
         {displayImage ? (
           <img
@@ -134,7 +134,7 @@ const VideoCardItem: React.FC<{
 
         {/* Play Pulse Overlay on Hover */}
         <div className="absolute inset-0 flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <div className="w-12 h-12 rounded-full bg-[#00E5FF]/90 text-black flex items-center justify-center shadow-[0_0_20px_rgba(0,229,255,0.8)] transform scale-90 group-hover:scale-100 transition-transform">
+          <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-md transform scale-90 group-hover:scale-100 transition-transform">
             <Play className="w-5 h-5 fill-current ml-0.5" />
           </div>
         </div>
@@ -142,13 +142,13 @@ const VideoCardItem: React.FC<{
 
       {/* Video Metadata */}
       <div className="flex flex-col gap-1 px-0.5">
-        <h3 className="text-sm font-bold text-white group-hover:text-[#00E5FF] transition-colors line-clamp-2 leading-snug">
+        <h3 className="text-sm font-bold text-white group-hover:text-white/80 transition-colors line-clamp-2 leading-snug">
           {cleanTitle}
         </h3>
 
         <div className="flex items-center gap-2 text-xs text-zinc-400 font-mono">
           {item.category && (
-            <span className="uppercase text-[11px] text-[#00E5FF]/80 truncate">
+            <span className="uppercase text-[11px] text-white/80 truncate">
               {item.category}
             </span>
           )}
@@ -186,7 +186,7 @@ export const DynamicVideoGrid: React.FC<DynamicVideoGridProps> = ({
       {/* Section Header */}
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#00E5FF]">
+          <div className="p-1.5 rounded-lg bg-white/10 border border-white/20 text-white">
             <Film className="w-4 h-4" />
           </div>
           <h2 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-white flex items-center gap-2">

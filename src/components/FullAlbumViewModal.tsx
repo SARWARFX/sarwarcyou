@@ -250,31 +250,31 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-[#00f0ff]/10 text-zinc-300 hover:text-[#00f0ff] border border-white/15 hover:border-[#00f0ff] hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all duration-200 cursor-pointer text-xs font-mono font-medium hover:scale-105 active:scale-95 flex-shrink-0"
-            title="Back to Vault (Esc)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/15 text-neutral-300 hover:text-white border border-white/15 hover:border-white/40 transition-all duration-200 cursor-pointer text-xs font-serif font-normal hover:scale-105 active:scale-95 flex-shrink-0"
+            title="Back to Archive (Esc)"
           >
-            <ArrowLeft className="w-4 h-4 text-[#00f0ff]" />
+            <ArrowLeft className="w-4 h-4 text-white" />
             <span className="hidden xs:inline">Back</span>
           </button>
 
           <div className="flex items-center gap-2.5 min-w-0">
-            <h1 className="text-base sm:text-xl font-bold font-sans tracking-wide text-white uppercase truncate">
+            <h1 className="text-base sm:text-xl font-normal font-serif tracking-normal text-white uppercase truncate">
               {title}
             </h1>
           </div>
         </div>
 
         {/* Right: Sub-filter tabs & Subtle Share button (No redundant X close button) */}
-        <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0 font-serif">
           {showFilters && (
-            <div className="hidden sm:flex items-center gap-1 bg-white/[0.05] p-1 rounded-full border border-white/10">
+            <div className="hidden sm:flex items-center gap-1 bg-white/[0.05] p-1 rounded-full border border-white/10 font-serif">
               <button
                 type="button"
                 onClick={() => setSubFilter('all')}
-                className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-serif font-normal transition-all cursor-pointer ${
                   subFilter === 'all'
-                    ? 'bg-[#00E5FF] text-black font-bold shadow-[0_0_12px_rgba(0,229,255,0.4)]'
-                    : 'text-zinc-400 hover:text-white'
+                    ? 'bg-white text-black font-semibold shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 All ({sortedItems.length})
@@ -283,10 +283,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSubFilter('photos')}
-                  className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  className={`px-3 py-1 rounded-full text-xs font-serif font-normal transition-all cursor-pointer flex items-center gap-1 ${
                     subFilter === 'photos'
-                      ? 'bg-cyan-400 text-black font-bold shadow-[0_0_12px_rgba(34,211,238,0.4)]'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-white text-black font-semibold shadow-sm'
+                      : 'text-neutral-400 hover:text-white'
                   }`}
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
@@ -297,10 +297,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSubFilter('clips')}
-                  className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  className={`px-3 py-1 rounded-full text-xs font-serif font-normal transition-all cursor-pointer flex items-center gap-1 ${
                     subFilter === 'clips'
-                      ? 'bg-amber-400 text-black font-bold shadow-[0_0_12px_rgba(251,191,36,0.4)]'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-white text-black font-semibold shadow-sm'
+                      : 'text-neutral-400 hover:text-white'
                   }`}
                 >
                   <Film className="w-3.5 h-3.5" />
@@ -311,10 +311,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSubFilter('shorts')}
-                  className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  className={`px-3 py-1 rounded-full text-xs font-serif font-normal transition-all cursor-pointer flex items-center gap-1 ${
                     subFilter === 'shorts'
-                      ? 'bg-fuchsia-400 text-black font-bold shadow-[0_0_12px_rgba(232,121,249,0.4)]'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-white text-black font-semibold shadow-sm'
+                      : 'text-neutral-400 hover:text-white'
                   }`}
                 >
                   <Smartphone className="w-3.5 h-3.5" />
@@ -325,12 +325,12 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
           )}
 
           {/* Sort Dropdown Control */}
-          <div className="flex items-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.08] px-2.5 py-1 rounded-full border border-white/10 transition-colors text-xs font-mono">
-            <ArrowUpDown className="w-3.5 h-3.5 text-[#00E5FF] flex-shrink-0" />
+          <div className="flex items-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.08] px-2.5 py-1 rounded-full border border-white/10 transition-colors text-xs font-serif">
+            <ArrowUpDown className="w-3.5 h-3.5 text-neutral-300 flex-shrink-0" />
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-              className="bg-transparent text-zinc-300 hover:text-white font-medium text-[11px] focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-neutral-300 hover:text-white font-normal text-[11px] focus:outline-none cursor-pointer pr-1"
               aria-label="Sort album media"
             >
               <option value="newest" className="bg-[#0b0c10] text-white">Newest First</option>
@@ -343,22 +343,22 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
           <button
             type="button"
             onClick={handleShareAlbum}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer text-xs font-mono font-medium hover:scale-105 active:scale-95 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer text-xs font-serif font-normal hover:scale-105 active:scale-95 ${
               copied
-                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                : 'bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border-white/15'
+                ? 'bg-neutral-800 text-white border-neutral-600'
+                : 'bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white border-white/15'
             }`}
             title="Share / Copy Link to this Album"
             aria-label="Share album direct link"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <Check className="w-3.5 h-3.5 text-neutral-200" />
                 <span>COPIED</span>
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5 text-[#00E5FF]" />
+                <Share2 className="w-3.5 h-3.5 text-neutral-200" />
                 <span className="hidden xs:inline">SHARE</span>
               </>
             )}
@@ -368,14 +368,14 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
 
       {/* Mobile Sub-filter Pills Bar (shown only on small screens if multi-type) */}
       {showFilters && (
-        <div className="sm:hidden px-4 py-2 bg-[#0c0c12]/95 border-b border-white/10 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="sm:hidden px-4 py-2 bg-neutral-950/95 border-b border-white/10 flex items-center gap-1.5 overflow-x-auto no-scrollbar font-serif">
           <button
             type="button"
             onClick={() => setSubFilter('all')}
-            className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono whitespace-nowrap cursor-pointer ${
+            className={`px-2.5 py-0.5 rounded-full text-[12px] font-serif whitespace-nowrap cursor-pointer transition-colors ${
               subFilter === 'all'
-                ? 'bg-[#00E5FF] text-black font-bold'
-                : 'bg-white/5 text-zinc-400'
+                ? 'bg-white text-black font-semibold'
+                : 'bg-white/10 text-neutral-300'
             }`}
           >
             All ({items.length})
@@ -384,10 +384,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             <button
               type="button"
               onClick={() => setSubFilter('photos')}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-0.5 rounded-full text-[12px] font-serif whitespace-nowrap cursor-pointer flex items-center gap-1 transition-colors ${
                 subFilter === 'photos'
-                  ? 'bg-cyan-400 text-black font-bold'
-                  : 'bg-white/5 text-zinc-400'
+                  ? 'bg-white text-black font-semibold'
+                  : 'bg-white/10 text-neutral-300'
               }`}
             >
               Photos ({counts.photos})
@@ -397,10 +397,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             <button
               type="button"
               onClick={() => setSubFilter('clips')}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-0.5 rounded-full text-[12px] font-serif whitespace-nowrap cursor-pointer flex items-center gap-1 transition-colors ${
                 subFilter === 'clips'
-                  ? 'bg-amber-400 text-black font-bold'
-                  : 'bg-white/5 text-zinc-400'
+                  ? 'bg-white text-black font-semibold'
+                  : 'bg-white/10 text-neutral-300'
               }`}
             >
               Clips ({counts.clips})
@@ -410,10 +410,10 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             <button
               type="button"
               onClick={() => setSubFilter('shorts')}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-0.5 rounded-full text-[12px] font-serif whitespace-nowrap cursor-pointer flex items-center gap-1 transition-colors ${
                 subFilter === 'shorts'
-                  ? 'bg-fuchsia-400 text-black font-bold'
-                  : 'bg-white/5 text-zinc-400'
+                  ? 'bg-white text-black font-semibold'
+                  : 'bg-white/10 text-neutral-300'
               }`}
             >
               Shorts ({counts.shorts})

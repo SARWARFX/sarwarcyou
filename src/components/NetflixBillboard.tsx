@@ -78,7 +78,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
           />
         ) : (
           <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
-            <div className="absolute w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute w-[500px] h-[500px] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute w-[350px] h-[350px] bg-blue-600/10 rounded-full blur-[80px] pointer-events-none translate-x-28 -translate-y-16" />
           </div>
         )}
@@ -99,8 +99,8 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
         <div className="max-w-xl sm:max-w-2xl flex flex-col gap-3 sm:gap-4">
           {/* Top Pill / Brand Label */}
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-widest text-[#00E5FF] bg-black/60 backdrop-blur-md border border-[#00E5FF]/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
-              <Sparkles className="w-3 h-3 text-[#00E5FF]" />
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-widest text-white bg-black/60 backdrop-blur-md border border-white/20 shadow-sm">
+              <Sparkles className="w-3 h-3 text-white" />
               SARWARCYOU SPOTLIGHT
             </span>
             <span className="text-[10px] sm:text-xs font-mono font-semibold text-zinc-400 uppercase tracking-widest">
@@ -115,7 +115,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
 
           {/* Badges / Rating Row */}
           <div className="flex items-center gap-2.5 sm:gap-3 text-xs font-mono text-zinc-300">
-            <span className="text-[#00E5FF] font-bold">99% MATCH</span>
+            <span className="text-white font-bold">99% MATCH</span>
             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/20 text-white border border-white/20">
               4K ULTRA HD
             </span>
@@ -149,7 +149,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
               className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold font-sans text-xs sm:text-sm tracking-wider uppercase backdrop-blur-xl border border-white/20 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer group/album"
               title={currentItem.category ? `Open ${currentItem.category} Album` : 'Open Album'}
             >
-              <Folder className="w-4 h-4 text-[#00E5FF] transition-transform duration-200 group-hover/album:scale-110" />
+              <Folder className="w-4 h-4 text-white transition-transform duration-200 group-hover/album:scale-110" />
               <span>OPEN ALBUM</span>
             </button>
           </div>
@@ -165,7 +165,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
                     onClick={() => handleSelectIndex(idx)}
                     className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                       idx === safeIndex
-                        ? 'w-7 sm:w-9 bg-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.8)]'
+                        ? 'w-7 sm:w-9 bg-white shadow-sm'
                         : 'w-2 sm:w-2.5 bg-white/30 hover:bg-white/60'
                     }`}
                     title={`Spotlight video ${idx + 1} of ${playlist.length}: ${it.title || it.name}`}
@@ -174,7 +174,7 @@ export const NetflixBillboard: React.FC<NetflixBillboardProps> = ({
                 ))}
               </div>
               <span className="text-[10px] font-mono font-bold text-zinc-400">
-                <span className="text-[#00E5FF]">{safeIndex + 1}</span> / {playlist.length}
+                <span className="text-white">{safeIndex + 1}</span> / {playlist.length}
               </span>
             </div>
           )}

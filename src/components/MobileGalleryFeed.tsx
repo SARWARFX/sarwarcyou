@@ -81,7 +81,7 @@ const MobileCard: React.FC<MobileCardProps> = ({ item, album, idx, onSelectItem 
             </>
           ) : (
             <>
-              <Camera className="w-3 h-3 text-cyan-400" />
+              <Camera className="w-3 h-3 text-white/80" />
               <span>PHOTO</span>
             </>
           )}
@@ -121,7 +121,7 @@ export const MobileGalleryFeed: React.FC<MobileGalleryFeedProps> = ({
         <section id="mobile-album-recent" className="mb-5">
           <div className="px-3 pt-2 pb-1.5 flex items-center justify-between">
             <h2 className="text-base xs:text-lg font-black font-brand uppercase text-white tracking-wide flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+              <Sparkles className="w-4 h-4 text-white/80 flex-shrink-0" />
               Recently Opened
               <span className="text-sm font-medium text-zinc-400 font-mono ml-1.5">({recentItems.length})</span>
             </h2>

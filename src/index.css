@@ -1,46 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Rajdhani', sans-serif;
-  --font-brand: 'Orbitron', sans-serif;
-  --font-orbitron: 'Orbitron', sans-serif;
-  --font-rajdhani: 'Rajdhani', sans-serif;
+  --font-serif: "Times New Roman", Times, Georgia, serif;
+  --font-sans: "Times New Roman", Times, Georgia, serif;
+  --font-mono: "Times New Roman", Times, Georgia, serif;
+  --font-brand: "Times New Roman", Times, Georgia, serif;
+  --font-orbitron: "Times New Roman", Times, Georgia, serif;
+  --font-rajdhani: "Times New Roman", Times, Georgia, serif;
 
-  --color-cyber-cyan: #00E5FF;
-  --color-cyber-blue: #3B82F6;
-  --color-cyber-violet: #8B5CF6;
+  --color-neutral-border: rgba(255, 255, 255, 0.12);
+  --color-neutral-hover: rgba(255, 255, 255, 0.08);
 }
 
 :root {
-  --bg-page: #ffffff;
-  --text-primary: #000000;
-  --text-secondary: #52525b;
-  --card-bg: #f4f4f5;
-  --nav-bg: #ffffff;
-  --nav-border: rgba(0, 0, 0, 0.15);
-  --nav-btn-text: #27272a;
-  --nav-btn-hover: rgba(0, 0, 0, 0.06);
-  --nav-active-bg: #000000;
+  --bg-page: #08090c;
+  --text-primary: #ededed;
+  --text-secondary: #a3a3a3;
+  --card-bg: #121318;
+  --nav-bg: #0c0d12;
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --nav-btn-text: #d4d4d8;
+  --nav-btn-hover: rgba(255, 255, 255, 0.08);
+  --nav-active-bg: #262626;
   --nav-active-text: #ffffff;
-  --footer-border: rgba(0, 0, 0, 0.08);
-  --footer-text: #71717a;
-  color-scheme: light dark;
+  --footer-border: rgba(255, 255, 255, 0.08);
+  --footer-text: #737373;
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-page: #000000;
-    --text-primary: #ffffff;
-    --text-secondary: #a1a1aa;
-    --card-bg: #0c0d12;
-    --nav-bg: #000000;
-    --nav-border: rgba(255, 255, 255, 0.2);
+    --bg-page: #08090c;
+    --text-primary: #ededed;
+    --text-secondary: #a3a3a3;
+    --card-bg: #121318;
+    --nav-bg: #0c0d12;
+    --nav-border: rgba(255, 255, 255, 0.1);
     --nav-btn-text: #d4d4d8;
-    --nav-btn-hover: rgba(255, 255, 255, 0.1);
-    --nav-active-bg: #ffffff;
-    --nav-active-text: #000000;
+    --nav-btn-hover: rgba(255, 255, 255, 0.08);
+    --nav-active-bg: #262626;
+    --nav-active-text: #ffffff;
     --footer-border: rgba(255, 255, 255, 0.08);
-    --footer-text: #71717a;
+    --footer-text: #737373;
   }
 }
 
@@ -54,10 +55,9 @@
   outline: none !important;
 }
 
-/* Media Cards: Strictly zero border, zero outline, zero box-shadow */
+/* Media Cards: Clean minimal borders */
 .media-card,
 [data-media-card="true"] {
-  border: none !important;
   outline: none !important;
   box-shadow: none !important;
 }
@@ -70,13 +70,13 @@ html, body {
   min-height: 100%;
   overflow-x: hidden;
   position: relative;
-  background-color: transparent !important;
-  color: #ffffff;
+  background-color: #08090c !important;
+  color: #ededed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
-  font-family: 'Rajdhani', sans-serif;
-  letter-spacing: 0.025em;
+  font-family: "Times New Roman", Times, Georgia, serif !important;
+  letter-spacing: normal;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -87,32 +87,40 @@ html, body {
   position: relative;
   overflow-x: hidden;
   background-color: transparent !important;
-  color: #ffffff;
+  color: #ededed;
+  font-family: "Times New Roman", Times, Georgia, serif !important;
 }
 
-/* Style 3: Smoked Frosted Glass UI */
-.cyber-glass {
-  background: rgba(15, 15, 20, 0.65) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+/* Global Serif Typography Overrides */
+*, .font-sans, .font-mono, .font-serif, [class*="font-mono"], [class*="font-sans"] {
+  font-family: "Times New Roman", Times, Georgia, serif !important;
 }
 
-.cyber-pill {
-  background: rgba(15, 15, 20, 0.65) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+/* Neutral Minimal Glass UI */
+.cyber-glass,
+.editorial-glass {
+  background: rgba(12, 14, 18, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.cyber-pill,
+.editorial-pill {
+  background: rgba(12, 14, 18, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 9999px !important;
 }
 
 /* Dynamic Album Jump Highlight Effect */
 @keyframes albumJumpPulse {
   0% {
-    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.9), 0 0 30px rgba(0, 229, 255, 0.4);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
   }
   50% {
-    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.6), 0 0 18px rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
   }
   100% {
     box-shadow: none;
@@ -120,45 +128,21 @@ html, body {
 }
 
 .album-jump-highlight {
-  animation: albumJumpPulse 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  border-radius: 0.75rem;
-}
-
-/* Dynamic Animated Brand Gradient */
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  animation: albumJumpPulse 1.4s ease forwards;
+  border-radius: 0.5rem;
 }
 
 .brand-gradient-text {
-  background: linear-gradient(-45deg, #ffffff, #60a5fa, #3b82f6, #8b5cf6, #ffffff);
-  background-size: 300% 300%;
-  animation: gradientShift 6s ease infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: #ffffff;
+  font-family: "Times New Roman", Times, Georgia, serif !important;
 }
 
 .cyber-wordmark {
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 900;
-  letter-spacing: 0.18em;
+  font-family: "Times New Roman", Times, Georgia, serif !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  background: linear-gradient(-45deg, #ffffff, #60a5fa, #3b82f6, #8b5cf6, #ffffff);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-  animation: gradientShift 6s ease infinite;
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
 }
@@ -205,8 +189,7 @@ html, body {
   transition: background-color 0.2s ease;
 }
 .space-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 240, 255, 0.6);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+  background: rgba(255, 255, 255, 0.45);
 }
 .space-scrollbar {
   scrollbar-width: thin;
@@ -236,9 +219,9 @@ html, body {
 }
 
 .footer-mailto-link:hover {
-  color: #00e5ff !important;
-  text-decoration-color: #00e5ff !important;
-  text-shadow: 0 0 12px rgba(0, 229, 255, 0.6) !important;
+  color: #ffffff !important;
+  text-decoration-color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4) !important;
 }
 
 

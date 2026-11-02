@@ -1276,7 +1276,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             ) : (
               <>
                 {isDownloading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
                 ) : (
                   <Download className="w-4 h-4" />
                 )}
@@ -1295,12 +1295,12 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           >
             {isFullscreen ? (
               <>
-                <Minimize className="w-4 h-4 text-cyan-400" />
+                <Minimize className="w-4 h-4 text-white" />
                 <span className="hidden sm:inline">EXIT FULLSCREEN</span>
               </>
             ) : (
               <>
-                <Maximize className="w-4 h-4 text-cyan-400" />
+                <Maximize className="w-4 h-4 text-white" />
                 <span className="hidden sm:inline">VIEW FULL SCREEN</span>
               </>
             )}
@@ -1342,7 +1342,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   className="fixed top-4 right-4 z-[100000] px-3.5 py-1.5 rounded-full bg-black/85 hover:bg-black text-white text-xs font-mono backdrop-blur-md border border-white/20 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xl"
                   title="Exit Fullscreen"
                 >
-                  <Minimize className="w-3.5 h-3.5 text-cyan-400" />
+                  <Minimize className="w-3.5 h-3.5 text-white" />
                   <span>EXIT FULLSCREEN</span>
                 </button>
               )}
@@ -1568,7 +1568,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                               handleDownload();
                             }}
                             disabled={isDownloading}
-                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-semibold text-xs font-mono flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50"
+                            className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs font-serif flex items-center gap-2 shadow-lg shadow-sm transition-all cursor-pointer disabled:opacity-50"
                           >
                             {isDownloading ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1628,7 +1628,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     {swipeSeek && swipeSeek.isActive && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 animate-fade-in">
                         <div className="flex flex-col items-center gap-1.5 px-6 py-4 rounded-2xl bg-black/85 backdrop-blur-xl border border-white/20 shadow-2xl select-none">
-                          <div className="flex items-center gap-2 text-cyan-400">
+                          <div className="flex items-center gap-2 text-white">
                             <span className="text-xl sm:text-2xl font-black font-brand tracking-wider">
                               {swipeSeek.deltaSeconds >= 0
                                 ? `+${formatTime(swipeSeek.deltaSeconds)}`
@@ -1804,7 +1804,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                         {downloadSuccess ? (
                           <Check className="w-4 h-4 text-emerald-400" />
                         ) : isDownloading ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
                         ) : (
                           <Download className="w-4 h-4" />
                         )}
@@ -1846,7 +1846,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           )}
                           {/* Active Played Progress */}
                           <div
-                            className="h-full bg-cyan-400 group-hover/seekbar:bg-cyan-300 transition-all duration-75 relative pointer-events-none"
+                            className="h-full bg-white group-hover/seekbar:bg-white transition-all duration-75 relative pointer-events-none"
                             style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                           />
                           {/* A-B Loop Visualizer on seekbar */}
@@ -1963,10 +1963,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60'
                 }`}
               >
-                <Film className="w-3.5 h-3.5 text-cyan-400" />
+                <Film className="w-3.5 h-3.5 text-white" />
                 <span>Suggested</span>
                 {suggestedAlbums.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 text-cyan-400 font-mono">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 text-white font-mono">
                     {suggestedAlbums.length}
                   </span>
                 )}
@@ -2048,7 +2048,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
                     {currentItem.type === 'video' ? (
-                      <Film className="w-4 h-4 text-cyan-400" />
+                      <Film className="w-4 h-4 text-white" />
                     ) : (
                       <Camera className="w-4 h-4 text-emerald-400" />
                     )}
@@ -2096,7 +2096,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             <div className="flex items-center justify-between pb-1">
               <div className="flex items-center gap-2.5">
                 {currentItem.type === 'video' ? (
-                  <Film className="w-4 h-4 text-cyan-400" />
+                  <Film className="w-4 h-4 text-white" />
                 ) : (
                   <Camera className="w-4 h-4 text-emerald-400" />
                 )}
@@ -2171,10 +2171,10 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
               setMobileTab('suggested');
               suggestedAlbumsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-950/85 hover:bg-zinc-900 backdrop-blur-xl border border-white/10 hover:border-cyan-500/40 text-zinc-300 hover:text-white text-xs sm:text-sm font-['Rajdhani',sans-serif] tracking-wider transition-all duration-200 cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.85)] group"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-950/85 hover:bg-zinc-900 backdrop-blur-xl border border-white/10 hover:border-white/40 text-zinc-300 hover:text-white text-xs sm:text-sm font-serif tracking-wider transition-all duration-200 cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.85)] group"
           >
             <span>Scroll down to see suggested albums</span>
-            <ChevronDown className="w-4 h-4 text-cyan-400 group-hover:translate-y-0.5 transition-transform animate-bounce" />
+            <ChevronDown className="w-4 h-4 text-white group-hover:translate-y-0.5 transition-transform animate-bounce" />
           </button>
         </div>
       )}
