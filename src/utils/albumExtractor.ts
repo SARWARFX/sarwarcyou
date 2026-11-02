@@ -46,7 +46,7 @@ export function extractTimestampFromPath(str: string): number {
 
   // 3. Date with optional time (YYYYMMDD_HHMMSS or YYYY-MM-DD-HH-MM-SS or ISO)
   const dateTimeMatch = str.match(
-    /(202[0-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])[-_T ]?([0-2][0-9])[-_:]?([0-5][0-9])(?:[-_:]?([0-5][0-9]))?/
+    /(20[1-3][0-9])[-_.]?([0-1][0-9])[-_.]?([0-3][0-9])[-_T ]?([0-2][0-9])[-_.:]?([0-5][0-9])(?:[-_.:]?([0-5][0-9]))?/
   );
   if (dateTimeMatch) {
     const y = parseInt(dateTimeMatch[1], 10);
@@ -59,8 +59,8 @@ export function extractTimestampFromPath(str: string): number {
     if (!isNaN(dt) && dt > 0) return dt;
   }
 
-  // 4. Date only (YYYYMMDD or YYYY-MM-DD)
-  const dateMatch = str.match(/(202[0-9])[-_]?([0-1][0-9])[-_]?([0-3][0-9])/);
+  // 4. Date only (YYYYMMDD or YYYY-MM-DD or YYYY.MM.DD)
+  const dateMatch = str.match(/(20[1-3][0-9])[-_.]?([0-1][0-9])[-_.]?([0-3][0-9])/);
   if (dateMatch) {
     const y = parseInt(dateMatch[1], 10);
     const m = parseInt(dateMatch[2], 10) - 1;
@@ -70,7 +70,7 @@ export function extractTimestampFromPath(str: string): number {
   }
 
   // 5. Year in path or filename (e.g. H2027 -> 2027, 2026 -> 2026, 2025 -> 2025)
-  const yearMatch = str.match(/(?:H|Year)?(202[0-9])/i);
+  const yearMatch = str.match(/(?:H|Year)?(20[1-3][0-9])/i);
   if (yearMatch) {
     return new Date(parseInt(yearMatch[1], 10), 0, 1).getTime();
   }
@@ -81,8 +81,9 @@ export function extractTimestampFromPath(str: string): number {
 /**
  * Returns the effective timestamp for any media item, prioritizing:
  * 1. dateModified / modified / uploadDate / timestamp
- * 2. item.date / item.lastCommit.date
- * 3. Filename/path numeric timestamp patterns (YYYYMMDD, Unix epochs, etc.)
+ * 2. High-precision filename timestamp (capture/creation date embedded in filename)
+ * 3. Explicit item.date / item.lastCommit.date
+ * 4. Path/folder year patterns (e.g. H2027, 2026, 2025)
  */
 export function getItemTimestamp(item: {
   date?: number;
@@ -107,12 +108,21 @@ export function getItemTimestamp(item: {
     const parsed = new Date(dm).getTime();
     if (!isNaN(parsed) && parsed > 0) return parsed;
   }
+
+  // Prioritize specific capture/creation date embedded directly in filename
+  const filename = item.name || item.title || (item.path ? item.path.split('/').pop() : '') || '';
+  const fnTime = extractTimestampFromPath(filename);
+  if (fnTime > 0) {
+    return fnTime;
+  }
+
   if (item.date && item.date > 0) return item.date;
   if (item.lastCommit?.date) {
     const parsed = new Date(item.lastCommit.date).getTime();
     if (!isNaN(parsed) && parsed > 0) return parsed;
   }
-  const rawStr = item.path || item.name || item.title || item.url || item.id || '';
+
+  const rawStr = item.path || item.url || item.id || '';
   return extractTimestampFromPath(rawStr);
 }
 
@@ -126,6 +136,7 @@ export interface SerialInfo {
  * Extracts a numerical serial number or sequence number from a filename or title.
  * Handles patterns like:
  * - "Webmedia Serial 496" -> serial 496, isExplicitSerial: true
+ * - "webmedia-serial-427-tejashwini-4k" -> serial 427, isExplicitSerial: true
  * - "webmedia-serial-45" -> serial 45, isExplicitSerial: true
  * - "Serial 1" -> serial 1, isExplicitSerial: true
  * - "Borsha (2)" -> serial 2, isExplicitSerial: false
@@ -136,13 +147,12 @@ export function extractSerialNumber(str: string): SerialInfo | null {
   if (!str) return null;
   const clean = str.replace(/\.[a-z0-9]{2,5}$/i, '').trim();
 
-  // 1. Explicit 'serial', 'part', 'ep', 'episode', or 'no' keyword:
-  const explicitMatch = clean.match(/^(.*?)(?:webmedia[-_ ]*)?(?:serial|part|episode|ep|no)[-_ #]*(\d+)(?:\D*)$/i);
+  // 1. Explicit 'serial', 'part', 'ep', 'episode', or 'no' keyword anywhere in name:
+  const explicitMatch = clean.match(/(?:webmedia[-_ ]*)?(?:serial|part|episode|ep|no)[-_ #]*(\d+)/i);
   if (explicitMatch) {
-    const rawPrefix = explicitMatch[1].toLowerCase().replace(/[^a-z0-9]/g, '');
-    const serial = parseInt(explicitMatch[2], 10);
+    const serial = parseInt(explicitMatch[1], 10);
     if (!isNaN(serial)) {
-      return { prefix: rawPrefix || 'serial', serial, isExplicitSerial: true };
+      return { prefix: 'serial', serial, isExplicitSerial: true };
     }
   }
 
@@ -211,6 +221,17 @@ export function compareMediaItemsDescending(
   if (timeB > 0 && timeA <= 0) return 1;
   if (timeA > 0 && timeB <= 0) return -1;
 
+  // Secondary timestamp check: filename timestamp tiebreaker if commit dates were identical
+  const fnA = a.name || a.title || (a.path ? a.path.split('/').pop() : '') || '';
+  const fnB = b.name || b.title || (b.path ? b.path.split('/').pop() : '') || '';
+  const fnTimeA = extractTimestampFromPath(fnA);
+  const fnTimeB = extractTimestampFromPath(fnB);
+  if (fnTimeA > 0 && fnTimeB > 0 && fnTimeA !== fnTimeB) {
+    return fnTimeB - fnTimeA;
+  }
+  if (fnTimeB > 0 && fnTimeA <= 0) return 1;
+  if (fnTimeA > 0 && fnTimeB <= 0) return -1;
+
   // Priority 2: Numerical serial extraction if filenames contain numbers
   const strA = (a.name || a.title || a.path || a.id || '').trim();
   const strB = (b.name || b.title || b.path || b.id || '').trim();
@@ -220,12 +241,14 @@ export function compareMediaItemsDescending(
   if (sA && sB) {
     if (sA.isExplicitSerial && sB.isExplicitSerial) {
       if (sB.serial !== sA.serial) return sB.serial - sA.serial;
-    } else if (sA.prefix === sB.prefix) {
+    } else if (sA.prefix && sB.prefix && sA.prefix === sB.prefix) {
+      if (sB.serial !== sA.serial) return sB.serial - sA.serial;
+    } else if (!sA.prefix && !sB.prefix) {
       if (sB.serial !== sA.serial) return sB.serial - sA.serial;
     }
   }
 
-  // Priority 3: Natural alphanumeric sort descending as fallback
+  // Priority 3: Natural alphanumeric sort descending as fallback (e.g. higher numbers / letters first)
   return strB.localeCompare(strA, undefined, { numeric: true, sensitivity: 'base' });
 }
 

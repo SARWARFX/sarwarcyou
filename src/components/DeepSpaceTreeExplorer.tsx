@@ -5,7 +5,7 @@ import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isPhotoExtension } from '../utils/mediaTypeDetector';
 import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
-import { sortMediaItemsDescending } from '../utils/albumExtractor';
+import { sortMediaItemsDescending, getItemTimestamp } from '../utils/albumExtractor';
 
 export interface DeepSpaceTreeExplorerProps {
   items: StageMediaItem[];
@@ -357,7 +357,7 @@ export function sortSubfolderNodesDescending(nodes: DirectoryNode[]): DirectoryN
     const getLatestFileDate = (node: DirectoryNode): number => {
       let maxTime = 0;
       for (const f of node.files) {
-        const t = f.date || 0;
+        const t = getItemTimestamp(f);
         if (t > maxTime) maxTime = t;
       }
       for (const sub of node.subfolders.values()) {
@@ -509,9 +509,9 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     return sortSubfolderNodesDescending(rawSubs);
   }, [selectedPath, rootMap]);
 
-  // The active leaf folder node (only active when user has drilled down into an actual media folder)
+  // The active leaf folder node (active whenever a directory node containing media files is selected)
   const activeLeafNode = useMemo(() => {
-    if (selectedNodeChain.length < 2) return null;
+    if (selectedNodeChain.length === 0) return null;
     const leaf = selectedNodeChain[selectedNodeChain.length - 1];
     return leaf && leaf.files.length > 0 ? leaf : null;
   }, [selectedNodeChain]);
