@@ -455,20 +455,6 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     });
   }, [rootMap]);
 
-  // Gather all shorts items for direct 1-click modal launch
-  const allShortsList = useMemo(() => {
-    const shorts: StageMediaItem[] = [];
-    for (const item of items) {
-      const isShort =
-        item.mediaType === 'short' ||
-        item.path?.toLowerCase().includes('short') ||
-        item.url?.toLowerCase().includes('short') ||
-        item.category?.toLowerCase().includes('short');
-      if (isShort) shorts.push(item);
-    }
-    return sortMediaItemsDescending(shorts);
-  }, [items]);
-
   // Clean uppercase category labels
   const getCategoryLabel = (name: string): string => {
     const lower = name.toLowerCase();
@@ -668,14 +654,9 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
           e.preventDefault();
           const rootNode = rootFolders[focusedIndex];
           if (rootNode) {
-            if (rootNode.name.toLowerCase() === 'shorts' && allShortsList.length > 0) {
-              handleSelectRoot(rootNode.name);
-              onOpenShort(allShortsList[0], allShortsList, 0, 'Shorts');
-            } else {
-              handleSelectRoot(rootNode.name);
-              setFocusedCol(1);
-              setFocusedIndex(0);
-            }
+            handleSelectRoot(rootNode.name);
+            setFocusedCol(1);
+            setFocusedIndex(0);
           }
         } else if (focusedCol === 1) {
           e.preventDefault();
@@ -734,7 +715,6 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     focusedCol,
     focusedIndex,
     rootFolders,
-    allShortsList,
     currentSubfolders,
     activeMediaFiles,
     photoFiles,
@@ -760,13 +740,6 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                 id={`tree-item-0-${idx}`}
                 type="button"
                 onClick={() => {
-                  if (node.name.toLowerCase() === 'shorts') {
-                    handleSelectRoot(node.name);
-                    if (allShortsList.length > 0) {
-                      onOpenShort(allShortsList[0], allShortsList, 0, 'Shorts');
-                    }
-                    return;
-                  }
                   handleSelectRoot(node.name);
                   setFocusedCol(1);
                   setFocusedIndex(0);

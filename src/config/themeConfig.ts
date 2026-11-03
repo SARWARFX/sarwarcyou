@@ -15,3 +15,6 @@ export const ENABLE_AURA_FLOW = false;
 export const ENABLE_CASCADE_SHELL = false;
 export const ENABLE_SILENT_HILL_SHELL = false;
 export const ENABLE_WINXP_SHELL = false;
+
+// Frosted Snowy Background Engine
+export const ENABLE_FROSTED_SNOW = true;

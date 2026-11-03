@@ -16,6 +16,7 @@ import { WinXPDesktop } from './components/winxp/WinXPDesktop';
 import { SilentHillShell } from './components/silenthill/SilentHillShell';
 import { ModernCascadeExplorer } from './components/ModernCascadeExplorer';
 import { AmbientFogCanvas } from './components/AmbientFogCanvas';
+import { FrostedSnowCanvas } from './components/FrostedSnowCanvas';
 import { AuraCanvas } from './components/aura/AuraCanvas';
 import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
 import {
@@ -24,6 +25,7 @@ import {
   ENABLE_CASCADE_SHELL,
   ENABLE_SILENT_HILL_SHELL,
   ENABLE_WINXP_SHELL,
+  ENABLE_FROSTED_SNOW,
 } from './config/themeConfig';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
@@ -687,11 +689,15 @@ function App() {
           {/* 0. Opening Public Domain Compliance Splash Screen */}
           <ComplianceSplashScreen />
 
-          {/* 1. Dynamic Zero-Gap Multi-Slot Ambient Background Engine with Editorial Scrim */}
-          <AmbientWallpaper
-            items={rawFeed.allMediaPool}
-            isPaused={theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen}
-          />
+          {/* 1. Frosted Snowy Background Canvas (or Ambient Wallpaper fallback) */}
+          {ENABLE_FROSTED_SNOW ? (
+            <FrostedSnowCanvas />
+          ) : (
+            <AmbientWallpaper
+              items={rawFeed.allMediaPool}
+              isPaused={theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen}
+            />
+          )}
 
           {/* 2. Deep Space Tree Explorer (Pure Underlined Text Horizontal Directory) */}
           {isLoading && !data ? (
