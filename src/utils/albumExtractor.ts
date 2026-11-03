@@ -69,12 +69,6 @@ export function extractTimestampFromPath(str: string): number {
     if (!isNaN(dt) && dt > 0) return dt;
   }
 
-  // 5. Year in path or filename (e.g. H2027 -> 2027, 2026 -> 2026, 2025 -> 2025)
-  const yearMatch = str.match(/(?:H|Year)?(20[1-3][0-9])/i);
-  if (yearMatch) {
-    return new Date(parseInt(yearMatch[1], 10), 0, 1).getTime();
-  }
-
   return 0;
 }
 
@@ -83,7 +77,6 @@ export function extractTimestampFromPath(str: string): number {
  * 1. dateModified / modified / uploadDate / timestamp
  * 2. High-precision filename timestamp (capture/creation date embedded in filename)
  * 3. Explicit item.date / item.lastCommit.date
- * 4. Path/folder year patterns (e.g. H2027, 2026, 2025)
  */
 export function getItemTimestamp(item: {
   date?: number;
@@ -122,8 +115,7 @@ export function getItemTimestamp(item: {
     if (!isNaN(parsed) && parsed > 0) return parsed;
   }
 
-  const rawStr = item.path || item.url || item.id || '';
-  return extractTimestampFromPath(rawStr);
+  return 0;
 }
 
 export interface SerialInfo {

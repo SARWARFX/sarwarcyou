@@ -27,7 +27,7 @@ export const HF_REALTUBE_TREE_API_URL =
 // Backwards-compatibility alias
 export const HUGGINGFACE_CATALOG_URL = HF_RAW_MEDIA_JSON_URL;
 
-export const CACHE_STORAGE_KEY = 'sarwarcyou_hf_catalog_cache';
+export const CACHE_STORAGE_KEY = 'sarwarcyou_hf_catalog_cache_v3';
 export const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
 
 export interface HfTreeItem {
@@ -141,13 +141,13 @@ export function extractCommitMetadata(commits: any[]): Map<string, CommitInfo> {
 
     const combinedText = `${c.title || ''}\n${c.message || ''}`;
 
-    // 1. Direct file matches: (Clips|Images|Shorts)/...ext
+    // 1. Direct file matches: (Photographs|Video Clips|REALTube|Clips|Images|Shorts)/...ext
     const fileMatches = combinedText.matchAll(
-      /((?:Clips|Images|Shorts)\/[^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/gi
+      /((?:Photographs|Video Clips|REALTube|Clips|Images|Shorts)\/[^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/gi
     );
     for (const m of fileMatches) {
       const matched = m[1].trim().replace(/^\/+/, '');
-      const filename = matched.split('/').pop() || matched;
+      const filename = matched.split('/').pop()?.trim() || matched;
       if (!metadata.has(matched.toLowerCase())) {
         metadata.set(matched.toLowerCase(), info);
       }
@@ -156,9 +156,9 @@ export function extractCommitMetadata(commits: any[]): Map<string, CommitInfo> {
       }
     }
 
-    // 2. Folder mentions (e.g. Images/Bandhobis or Images/Bandhobis/Video Clips)
+    // 2. Folder mentions (e.g. Photographs/Images 2027 or Video Clips/Clips 2027)
     const folderMatches = combinedText.matchAll(
-      /((?:Clips|Images|Shorts)\/[a-zA-Z0-9_\s]+(?:\/[a-zA-Z0-9_\s]+)?)/gi
+      /((?:Photographs|Video Clips|REALTube|Clips|Images|Shorts)\/[a-zA-Z0-9_\s]+(?:\/[a-zA-Z0-9_\s]+)?)/gi
     );
     for (const m of folderMatches) {
       const folderKey = m[1].trim().toLowerCase().replace(/^\/+|\/+$/g, '');
@@ -169,11 +169,11 @@ export function extractCommitMetadata(commits: any[]): Map<string, CommitInfo> {
 
     // 3. Simple upload / moved filename pattern
     const uploadMatches = combinedText.matchAll(
-      /(?:Upload|optimize|manifest|Moved|add)\s*[:\-]?\s*\(?([^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/gi
+      /(?:Upload|optimize|manifest|Moved|add|delete|remove)\s*[:\-]?\s*\(?([^\r\n()]+\.(?:mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|avif))/gi
     );
     for (const m of uploadMatches) {
       const fname = m[1].trim();
-      const filename = fname.split('/').pop() || fname;
+      const filename = fname.split('/').pop()?.trim() || fname;
       if (!metadata.has(filename.toLowerCase())) {
         metadata.set(filename.toLowerCase(), info);
       }
@@ -232,7 +232,7 @@ export function parseTreeToCatalog(
     }
 
     if (!itemDate) {
-      itemDate = extractTimestampFromPath(path);
+      itemDate = extractTimestampFromPath(name);
     }
 
     const parsedPath = parseMediaPath(path);
@@ -414,7 +414,7 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
             commitMetadata.get(name.toLowerCase());
           let date = cInfo ? cInfo.date : x.date;
           if (!date) {
-            date = extractTimestampFromPath(path || name);
+            date = extractTimestampFromPath(name);
           }
           const lastCommit = cInfo
             ? { date: new Date(cInfo.date).toISOString(), title: cInfo.title, id: cInfo.id }
@@ -486,21 +486,21 @@ const getNormalizedFallbackCatalog = (): HfMediaCatalog => {
   const clips = sortItems(
     (FALLBACK_HF_CATALOG.clips || []).map((x) => ({
       ...x,
-      date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+      date: x.date || extractTimestampFromPath(x.name || (x.path ? x.path.split('/').pop() : '') || ''),
       url: getMediaUrl(x.url || x.path || x.name),
     }))
   );
   const shorts = sortItems(
     (FALLBACK_HF_CATALOG.shorts || []).map((x) => ({
       ...x,
-      date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+      date: x.date || extractTimestampFromPath(x.name || (x.path ? x.path.split('/').pop() : '') || ''),
       url: getMediaUrl(x.url || x.path || x.name),
     }))
   );
   const images = sortItems(
     (FALLBACK_HF_CATALOG.images || []).map((x) => ({
       ...x,
-      date: x.date || extractTimestampFromPath(x.path || x.name || x.url),
+      date: x.date || extractTimestampFromPath(x.name || (x.path ? x.path.split('/').pop() : '') || ''),
       url: getMediaUrl(x.url || x.path || x.name),
     }))
   );
