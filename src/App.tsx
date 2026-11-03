@@ -13,7 +13,8 @@ import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
 import { WinXPDesktop } from './components/winxp/WinXPDesktop';
-import { ENABLE_WINXP_SHELL } from './config/themeConfig';
+import { SilentHillShell } from './components/silenthill/SilentHillShell';
+import { ACTIVE_INTERFACE, ENABLE_SILENT_HILL_SHELL, ENABLE_WINXP_SHELL } from './config/themeConfig';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -603,7 +604,21 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {ENABLE_WINXP_SHELL ? (
+      {ENABLE_SILENT_HILL_SHELL || ACTIVE_INTERFACE === 'SILENT_HILL' ? (
+        <SilentHillShell
+          items={rawFeed.allMediaPool}
+          isModalOpen={
+            theaterState.isOpen ||
+            shortsState.isOpen ||
+            lightboxState.isOpen ||
+            viewAllState.isOpen ||
+            isCommandPaletteOpen
+          }
+          onOpenPhoto={handleOpenPhoto}
+          onOpenVideo={handleOpenVideo}
+          onOpenShort={handleOpenShort}
+        />
+      ) : ENABLE_WINXP_SHELL || ACTIVE_INTERFACE === 'WINXP' ? (
         <WinXPDesktop
           items={rawFeed.allMediaPool}
           isModalOpen={
