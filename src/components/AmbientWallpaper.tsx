@@ -16,41 +16,99 @@ interface SlotState {
 }
 
 /**
- * Extracts a unique, verified pool of image URLs from the catalog manifest.
+ * Extracts a unique, verified pool of image URLs strictly scoped to "Images/Images 2025".
+ * Includes defensive fallback to all "Images/" items if no 2025 items match.
  */
 function extractImageUrls(items?: StageMediaItem[]): string[] {
-  const urls: string[] = [];
   const seen = new Set<string>();
 
-  const add = (rawUrl?: string | null) => {
-    if (!rawUrl) return;
-    const resolved = getMediaUrl(rawUrl);
-    if (!resolved || resolved.includes('ustream_thumb') || seen.has(resolved)) return;
-    seen.add(resolved);
-    urls.push(resolved);
+  const isImageItem = (item: StageMediaItem | { type?: string; name?: string; path?: string; url?: string; mediaType?: string }): boolean => {
+    if (item.type === 'image' || (item as any).mediaType === 'photo') return true;
+    const name = item.name || '';
+    const path = item.path || '';
+    const url = item.url || '';
+    return (
+      /\.(jpe?g|png|webp|avif)$/i.test(name) ||
+      isPhotoExtension(path) ||
+      isPhotoExtension(url)
+    );
   };
+
+  const isImages2025 = (item: StageMediaItem | { path?: string; url?: string; name?: string; folder?: string; parentAlbum?: string; category?: string }): boolean => {
+    const fullPath = (
+      item.path ||
+      (item as any).folder ||
+      item.url ||
+      (item as any).parentAlbum ||
+      (item as any).category ||
+      ''
+    ).toLowerCase();
+    return (
+      fullPath.includes('images 2025') ||
+      fullPath.includes('images%202025') ||
+      fullPath.includes('images/images 2025') ||
+      fullPath.includes('images/h2025') ||
+      fullPath.includes('/h2025/') ||
+      fullPath.includes('h2025 photos') ||
+      fullPath.includes('h2025')
+    );
+  };
+
+  const toResolvedUrl = (rawUrl?: string | null): string | null => {
+    if (!rawUrl) return null;
+    const resolved = getMediaUrl(rawUrl);
+    if (!resolved || resolved.includes('ustream_thumb')) return null;
+    return resolved;
+  };
+
+  const allCandidateItems: Array<StageMediaItem | { path: string; url: string; name?: string; type?: string }> = [];
 
   if (items && items.length > 0) {
     for (const item of items) {
-      if (item.type === 'image' || item.mediaType === 'photo') {
-        add(item.url || item.path);
-        continue;
+      allCandidateItems.push(item);
+    }
+  }
+
+  // Also include FALLBACK_HF_CATALOG images as candidate sources
+  if (FALLBACK_HF_CATALOG?.images) {
+    for (const img of FALLBACK_HF_CATALOG.images) {
+      allCandidateItems.push(img);
+    }
+  }
+
+  // 1. Primary Filter: Strictly Images/Images 2025
+  const scoped2025Urls: string[] = [];
+  for (const item of allCandidateItems) {
+    if (isImageItem(item) && isImages2025(item)) {
+      const url = toResolvedUrl(item.url || item.path);
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        scoped2025Urls.push(url);
       }
+    }
+  }
+
+  if (scoped2025Urls.length > 0) {
+    return scoped2025Urls;
+  }
+
+  // 2. Defensive Fallback: If 0 items matched Images 2025, warn and fall back to all images under Images/
+  console.warn('[AmbientWallpaper] No images found matching Images 2025; falling back to all catalog images under Images/');
+  const fallbackUrls: string[] = [];
+  for (const item of allCandidateItems) {
+    if (isImageItem(item)) {
       const p = (item.path || item.url || item.name || '').toLowerCase();
       if (p.includes('/images/') || p.startsWith('images/') || isPhotoExtension(p)) {
-        add(item.url || item.path);
+        const url = toResolvedUrl(item.url || item.path);
+        if (url && !seen.has(url)) {
+          seen.add(url);
+          fallbackUrls.push(url);
+        }
       }
     }
   }
 
-  // Fallback to static catalog images if live pool is not yet populated
-  if (urls.length < 5 && FALLBACK_HF_CATALOG?.images) {
-    for (const img of FALLBACK_HF_CATALOG.images) {
-      add(img.url || img.path);
-    }
-  }
-
-  return urls;
+  return fallbackUrls;
 }
 
 function getRandomItem<T>(arr: T[], exclude: T[] = []): T | null {
