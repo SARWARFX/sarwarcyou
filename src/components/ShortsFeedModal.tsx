@@ -30,6 +30,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const hasInitialScrolledRef = useRef(false);
   const iconTimerRef = useRef<number | null>(null);
   const hideControlsTimerRef = useRef<number | null>(null);
+  const lastTouchTimeRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
+  const isSwipingRef = useRef<boolean>(false);
 
   // Auto-hide HUD controls after 2.5s of inactivity while playing
   const scheduleAutoHide = useCallback(() => {
@@ -42,22 +45,51 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }, 2500);
   }, [activeIndex]);
 
-  // Keep controls visible on activeIndex change and schedule idle auto-hide
+  // Initial cold mount controls display & auto-hide
   useEffect(() => {
-    setShowControls(true);
-    scheduleAutoHide();
-  }, [activeIndex, scheduleAutoHide]);
+    if (!hasInitialScrolledRef.current) {
+      setShowControls(true);
+      scheduleAutoHide();
+    }
+  }, [scheduleAutoHide]);
 
-  // Desktop mouse movement reveals HUD and resets 2.5s idle timer
+  // When swiping to a new short, strictly keep controls hidden while playing
+  useEffect(() => {
+    if (hasInitialScrolledRef.current) {
+      setShowControls(false);
+      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    }
+  }, [activeIndex]);
+
+  // Desktop mouse movement reveals HUD and resets 2.5s idle timer (suppressed on touch gestures)
   const handleMouseMove = useCallback(() => {
+    if (Date.now() - lastTouchTimeRef.current < 800) return;
     setShowControls(true);
     scheduleAutoHide();
   }, [scheduleAutoHide]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    lastTouchTimeRef.current = Date.now();
+    touchStartYRef.current = e.touches[0].clientY;
+    isSwipingRef.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    lastTouchTimeRef.current = Date.now();
+    if (Math.abs(e.touches[0].clientY - touchStartYRef.current) > 10) {
+      isSwipingRef.current = true;
+    }
+  };
+
   // Screen tap handler:
-  // - If controls are hidden: reveals controls and starts 2.5s auto-hide timer
-  // - If controls are visible: toggles play / pause
+  // - If swiping: ignore tap
+  // - If controls are hidden: reveals controls on ongoing short and starts auto-hide timer
+  // - If controls are visible: pauses (stops) video and keeps controls visible
   const handleScreenTap = useCallback((idx: number) => {
+    if (isSwipingRef.current) {
+      isSwipingRef.current = false;
+      return;
+    }
     const v = videoRefs.current[idx];
     if (!v) return;
 
@@ -181,6 +213,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             if (!isNaN(idx)) {
               setActiveIndex(idx);
               onIndexChange?.(idx);
+              // Swiping up/down to next short: strictly keep controls hidden
+              setShowControls(false);
+              if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
               videoRefs.current.forEach((v, i) => {
                 if (!v) return;
                 if (i !== idx) { v.pause(); v.currentTime = 0; }
@@ -218,6 +253,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   return (
     <div
       onMouseMove={handleMouseMove}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif"
     >
       {/* Top HUD Controls - Auto-hides on mobile during playback */}
@@ -322,6 +359,17 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                         if (v.videoWidth && v.videoHeight) {
                           const isWide = v.videoWidth > v.videoHeight;
                           setLandscapeMap((prev) => (prev[idx] === isWide ? prev : { ...prev, [idx]: isWide }));
+                        }
+                      }}
+                      onPause={() => {
+                        if (idx === activeIndex) {
+                          if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+                          setShowControls(true);
+                        }
+                      }}
+                      onPlay={() => {
+                        if (idx === activeIndex) {
+                          scheduleAutoHide();
                         }
                       }}
                       onError={() => handleVideoError(idx, item, streamUrl)}
