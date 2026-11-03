@@ -16,8 +16,11 @@ import { WinXPDesktop } from './components/winxp/WinXPDesktop';
 import { SilentHillShell } from './components/silenthill/SilentHillShell';
 import { ModernCascadeExplorer } from './components/ModernCascadeExplorer';
 import { AmbientFogCanvas } from './components/AmbientFogCanvas';
+import { AuraCanvas } from './components/aura/AuraCanvas';
+import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
 import {
   ACTIVE_INTERFACE,
+  ENABLE_AURA_FLOW,
   ENABLE_CASCADE_SHELL,
   ENABLE_SILENT_HILL_SHELL,
   ENABLE_WINXP_SHELL,
@@ -611,7 +614,27 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {ENABLE_CASCADE_SHELL || ACTIVE_INTERFACE === 'CASCADE' ? (
+      {ENABLE_AURA_FLOW || ACTIVE_INTERFACE === 'AURA_FLOW' ? (
+        <>
+          {/* Atmospheric Obsidian Canvas with Living Ambient Depth */}
+          <AuraCanvas />
+
+          {/* Proprietary Aura Flow 3-Tier Progressive Cascade Explorer */}
+          <AuraCascadeExplorer
+            items={rawFeed.allMediaPool}
+            isNavDisabled={
+              isCommandPaletteOpen ||
+              theaterState.isOpen ||
+              shortsState.isOpen ||
+              lightboxState.isOpen ||
+              viewAllState.isOpen
+            }
+            onOpenPhoto={handleOpenPhoto}
+            onOpenVideo={handleOpenVideo}
+            onOpenShort={handleOpenShort}
+          />
+        </>
+      ) : ENABLE_CASCADE_SHELL || ACTIVE_INTERFACE === 'CASCADE' ? (
         <>
           {/* Preserved Ambient Rolling Fog Background */}
           <AmbientFogCanvas />
