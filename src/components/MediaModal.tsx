@@ -641,7 +641,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       return;
     }
     // Prevent default browser image ghost drag or selection
-    e.preventDefault();
+    if (e.cancelable) {
+      e.preventDefault();
+    }
 
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
@@ -747,7 +749,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Wheel zoom on desktop
   const handleWheel = (e: React.WheelEvent) => {
     if (type !== 'image') return;
-    e.preventDefault();
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     const zoomFactor = e.deltaY < 0 ? 1.2 : 0.8;
     const newScale = Math.max(1, Math.min(6, scale * zoomFactor));
     setScale(newScale);

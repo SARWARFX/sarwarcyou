@@ -182,7 +182,7 @@ export const Album3BentoStage: React.FC<Album3BentoStageProps> = ({
 
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 22) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         if (wheelCooldownRef.current) return;
         wheelCooldownRef.current = true;
         if (e.deltaX > 0) {

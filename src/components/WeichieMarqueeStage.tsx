@@ -490,7 +490,7 @@ export const WeichieMarqueeStage: React.FC<WeichieMarqueeStageProps> = ({
 
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         animStateRef.current.scrollPos += e.deltaX * 0.002;
         animStateRef.current.velocity = (e.deltaX * 0.002) * 0.2;
         animStateRef.current.programmaticTarget = null;
