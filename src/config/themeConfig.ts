@@ -8,10 +8,10 @@
  * - 'WINXP': Windows XP Luna OS desktop navigation shell
  * - 'CLASSIC': Standard horizontal DeepSpace catalog explorer
  */
-export const ACTIVE_INTERFACE: 'AURA_FLOW' | 'CASCADE' | 'SILENT_HILL' | 'WINXP' | 'CLASSIC' = 'AURA_FLOW';
+export const ACTIVE_INTERFACE: 'AURA_FLOW' | 'CASCADE' | 'SILENT_HILL' | 'WINXP' | 'CLASSIC' = 'CLASSIC';
 
 // Feature Flag aliases for instant single-variable zero-risk rollback
-export const ENABLE_AURA_FLOW = true;
+export const ENABLE_AURA_FLOW = false;
 export const ENABLE_CASCADE_SHELL = false;
 export const ENABLE_SILENT_HILL_SHELL = false;
 export const ENABLE_WINXP_SHELL = false;

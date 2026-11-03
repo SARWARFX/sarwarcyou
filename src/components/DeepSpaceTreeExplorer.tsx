@@ -170,7 +170,7 @@ const ShortCardItem: React.FC<{
 
       {/* Title beneath the thumbnail */}
       <span
-        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+        className={`text-xs sm:text-sm font-sans line-clamp-2 leading-snug transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
           isFocused ? 'text-white font-semibold' : 'text-neutral-100 group-hover:text-white'
         }`}
       >
@@ -322,7 +322,7 @@ const VideoCardItem: React.FC<{
 
       {/* Title */}
       <span
-        className={`text-xs sm:text-sm font-serif line-clamp-2 leading-snug transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+        className={`text-xs sm:text-sm font-sans line-clamp-2 leading-snug transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
           isFocused ? 'text-white font-semibold' : 'text-neutral-100 group-hover:text-white'
         }`}
       >
@@ -454,6 +454,30 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
       return a.name.localeCompare(b.name);
     });
   }, [rootMap]);
+
+  // Gather all shorts items for direct 1-click modal launch
+  const allShortsList = useMemo(() => {
+    const shorts: StageMediaItem[] = [];
+    for (const item of items) {
+      const isShort =
+        item.mediaType === 'short' ||
+        item.path?.toLowerCase().includes('short') ||
+        item.url?.toLowerCase().includes('short') ||
+        item.category?.toLowerCase().includes('short');
+      if (isShort) shorts.push(item);
+    }
+    return sortMediaItemsDescending(shorts);
+  }, [items]);
+
+  // Clean uppercase category labels
+  const getCategoryLabel = (name: string): string => {
+    const lower = name.toLowerCase();
+    if (lower === 'realtube') return 'REALTUBE';
+    if (lower === 'clips') return 'CLIPS';
+    if (lower === 'shorts') return 'SHORTS';
+    if (lower === 'images') return 'IMAGES';
+    return name.toUpperCase();
+  };
 
   // Active path selection chain (starts completely empty [] on root homepage)
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
@@ -644,9 +668,14 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
           e.preventDefault();
           const rootNode = rootFolders[focusedIndex];
           if (rootNode) {
-            handleSelectRoot(rootNode.name);
-            setFocusedCol(1);
-            setFocusedIndex(0);
+            if (rootNode.name.toLowerCase() === 'shorts' && allShortsList.length > 0) {
+              handleSelectRoot(rootNode.name);
+              onOpenShort(allShortsList[0], allShortsList, 0, 'Shorts');
+            } else {
+              handleSelectRoot(rootNode.name);
+              setFocusedCol(1);
+              setFocusedIndex(0);
+            }
           }
         } else if (focusedCol === 1) {
           e.preventDefault();
@@ -705,6 +734,7 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
     focusedCol,
     focusedIndex,
     rootFolders,
+    allShortsList,
     currentSubfolders,
     activeMediaFiles,
     photoFiles,
@@ -717,10 +747,10 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
   ]);
 
   return (
-    <div className="w-full h-[100dvh] overflow-x-auto overflow-y-hidden flex flex-row items-stretch p-6 sm:p-10 md:p-14 gap-6 sm:gap-10 md:gap-12 no-scrollbar select-none">
-      {/* COLUMN 0: Root Folders (Clean Text with Subtle Underline, local dark pill container for legibility against raw wallpaper) */}
-      <div className="flex-shrink-0 flex flex-col min-w-[140px] sm:min-w-[170px] md:min-w-[200px] max-w-[250px] h-full overflow-y-auto space-scrollbar py-4">
-        <div className="bg-black/40 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 shadow-xl flex flex-col gap-4">
+    <div className="w-full h-[100dvh] overflow-x-auto overflow-y-hidden flex flex-row items-center p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 no-scrollbar select-none z-20">
+      {/* COLUMN 0: Root Categories (Clean Uppercase Sans-Serif, Frosted Glass with ZERO borders) */}
+      <div className="flex-shrink-0 flex flex-col justify-center">
+        <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-6 md:p-8 flex flex-col space-y-6 shadow-2xl">
           {rootFolders.map((node, idx) => {
             const isActive = selectedPath[0] === node.name;
             const isFocused = focusedCol === 0 && focusedIndex === idx;
@@ -730,6 +760,13 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                 id={`tree-item-0-${idx}`}
                 type="button"
                 onClick={() => {
+                  if (node.name.toLowerCase() === 'shorts') {
+                    handleSelectRoot(node.name);
+                    if (allShortsList.length > 0) {
+                      onOpenShort(allShortsList[0], allShortsList, 0, 'Shorts');
+                    }
+                    return;
+                  }
                   handleSelectRoot(node.name);
                   setFocusedCol(1);
                   setFocusedIndex(0);
@@ -738,25 +775,23 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                   setFocusedCol(0);
                   setFocusedIndex(idx);
                 }}
-                className={`text-left text-base sm:text-lg md:text-xl font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
-                  isFocused ? 'ring-1 ring-white/40 bg-white/10 ' : ''
-                }${
-                  isActive
-                    ? 'text-white font-semibold border-white'
-                    : 'text-neutral-300 border-neutral-600 hover:text-white hover:border-neutral-300'
+                className={`text-left font-sans select-none transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none focus:outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                  isActive || isFocused
+                    ? 'text-white font-bold tracking-widest text-2xl uppercase'
+                    : 'text-neutral-300 font-semibold tracking-wider text-xl uppercase hover:text-white'
                 }`}
               >
-                {node.name}
+                {getCategoryLabel(node.name)}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* COLUMN 1: Subfolders in Horizontal Tree Column Layout (Only visible when a root folder is clicked) */}
+      {/* COLUMN 1: Subfolders in Horizontal Tree Column Layout (Frosted Glass with ZERO borders) */}
       {selectedPath[0] && rootMap.get(selectedPath[0]) && (
-        <div className="flex-shrink-0 flex flex-col min-w-[140px] sm:min-w-[170px] md:min-w-[200px] max-w-[250px] h-full overflow-y-auto space-scrollbar py-4">
-          <div className="bg-black/40 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 shadow-xl flex flex-col gap-3.5">
+        <div className="flex-shrink-0 flex flex-col justify-center min-w-[160px] sm:min-w-[190px] md:min-w-[220px] max-w-[280px]">
+          <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 md:p-6 flex flex-col space-y-3.5 max-h-[75vh] overflow-y-auto no-scrollbar shadow-2xl">
             {currentSubfolders.map((subNode, idx) => {
               const isSubActive = selectedPath[1] === subNode.name;
               const isFocused = focusedCol === 1 && focusedIndex === idx;
@@ -774,12 +809,10 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
                     setFocusedCol(1);
                     setFocusedIndex(idx);
                   }}
-                  className={`text-left text-sm sm:text-base md:text-lg font-serif tracking-normal transition-all duration-200 cursor-pointer pb-1 w-fit border-b-[1.5px] rounded-none px-1 -mx-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
-                    isFocused ? 'ring-1 ring-white/40 bg-white/10 ' : ''
-                  }${
-                    isSubActive
-                      ? 'text-white font-semibold border-white'
-                      : 'text-neutral-300 border-neutral-600 hover:text-white hover:border-neutral-300'
+                  className={`text-left font-sans select-none transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none focus:outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                    isSubActive || isFocused
+                      ? 'text-white font-bold tracking-wide text-base md:text-lg'
+                      : 'text-neutral-300 font-medium tracking-wide text-base md:text-lg hover:text-white'
                   }`}
                 >
                   {subNode.name}
@@ -790,9 +823,9 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
         </div>
       )}
 
-      {/* COLUMN 2 (Column 3 in Explorer): Files in the Active Leaf Folder (ONLY visible when user drills down into an actual media folder) */}
+      {/* COLUMN 2: Files in the Active Leaf Folder */}
       {activeLeafNode && (
-        <div className="flex-1 min-w-[300px] sm:min-w-[420px] md:min-w-[540px] h-full overflow-y-auto space-scrollbar py-4 pl-2 pr-4 sm:pr-8 flex flex-col gap-6">
+        <div className="flex-1 min-w-[300px] sm:min-w-[420px] md:min-w-[540px] flex flex-col justify-center h-full py-4 pl-2 pr-4 sm:pr-8 overflow-y-auto space-scrollbar">
           {/* 1. Photos: Floating transparent grid directly over galaxy background */}
           {photoFiles.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
