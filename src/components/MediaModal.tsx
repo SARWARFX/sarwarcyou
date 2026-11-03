@@ -901,9 +901,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       aria-modal="true"
       className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row select-none animate-fade-in touch-none touch-action-none overscroll-contain"
       style={{
-        background: 'rgba(3, 5, 10, 0.55)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: isZoomed ? '#000000' : 'rgba(3, 5, 10, 0.55)',
+        backdropFilter: isZoomed ? 'none' : 'blur(12px)',
+        WebkitBackdropFilter: isZoomed ? 'none' : 'blur(12px)',
       }}
       onClick={(e) => {
         if (showSidebar) {
@@ -920,7 +920,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* Top Bar Header */}
         <header
           className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-b from-black/60 via-transparent to-transparent transition-opacity duration-300 ${
-            showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            showControls && !isZoomed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1198,10 +1198,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                       ? 'none'
                       : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
-                className={`max-w-full max-h-[82dvh] md:max-h-[85dvh] object-contain select-none will-change-transform ${
+                className={`w-auto h-auto object-contain select-none will-change-transform ${
                   isZoomed
-                    ? `rounded-none drop-shadow-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
-                    : 'rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-zoom-in'
+                    ? `max-w-none max-h-none rounded-none drop-shadow-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
+                    : 'max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-zoom-in'
                 }`}
                 draggable={false}
               />

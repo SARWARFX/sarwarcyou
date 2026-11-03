@@ -12,6 +12,8 @@ import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
+import { WinXPDesktop } from './components/winxp/WinXPDesktop';
+import { ENABLE_WINXP_SHELL } from './config/themeConfig';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -601,38 +603,62 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {/* 0. Opening Public Domain Compliance Splash Screen */}
-      <ComplianceSplashScreen />
-
-      {/* 1. Dynamic Zero-Gap Multi-Slot Ambient Background Engine with Editorial Scrim */}
-      <AmbientWallpaper
-        items={rawFeed.allMediaPool}
-        isPaused={theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen}
-      />
-
-      {/* 2. Deep Space Tree Explorer (Pure Underlined Text Horizontal Directory) */}
-      {isLoading && !data ? (
-        <div className="flex items-center justify-center w-full h-full text-white/50 font-mono text-sm tracking-widest uppercase">
-          Loading...
-        </div>
-      ) : (
-        <DeepSpaceTreeExplorer
+      {ENABLE_WINXP_SHELL ? (
+        <WinXPDesktop
           items={rawFeed.allMediaPool}
-          initialAlbum={initialAlbumTarget}
-          isNavDisabled={isCommandPaletteOpen || theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen}
+          isModalOpen={
+            theaterState.isOpen ||
+            shortsState.isOpen ||
+            lightboxState.isOpen ||
+            viewAllState.isOpen ||
+            isCommandPaletteOpen
+          }
           onOpenPhoto={handleOpenPhoto}
           onOpenVideo={handleOpenVideo}
           onOpenShort={handleOpenShort}
         />
+      ) : (
+        <>
+          {/* 0. Opening Public Domain Compliance Splash Screen */}
+          <ComplianceSplashScreen />
+
+          {/* 1. Dynamic Zero-Gap Multi-Slot Ambient Background Engine with Editorial Scrim */}
+          <AmbientWallpaper
+            items={rawFeed.allMediaPool}
+            isPaused={theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen}
+          />
+
+          {/* 2. Deep Space Tree Explorer (Pure Underlined Text Horizontal Directory) */}
+          {isLoading && !data ? (
+            <div className="flex items-center justify-center w-full h-full text-white/50 font-mono text-sm tracking-widest uppercase">
+              Loading...
+            </div>
+          ) : (
+            <DeepSpaceTreeExplorer
+              items={rawFeed.allMediaPool}
+              initialAlbum={initialAlbumTarget}
+              isNavDisabled={
+                isCommandPaletteOpen ||
+                theaterState.isOpen ||
+                shortsState.isOpen ||
+                lightboxState.isOpen ||
+                viewAllState.isOpen
+              }
+              onOpenPhoto={handleOpenPhoto}
+              onOpenVideo={handleOpenVideo}
+              onOpenShort={handleOpenShort}
+            />
+          )}
+
+          {/* Intermittent / Periodic Ambient Notices HUD (fades in for ~8s every couple of minutes across all viewports) */}
+          <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
+            <AmbientNoticesHUD />
+          </div>
+
+          {/* Global Network Connectivity Indicator (Online/Offline HUD) */}
+          <NetworkStatusHUD />
+        </>
       )}
-
-      {/* Intermittent / Periodic Ambient Notices HUD (fades in for ~8s every couple of minutes across all viewports) */}
-      <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
-        <AmbientNoticesHUD />
-      </div>
-
-      {/* Global Network Connectivity Indicator (Online/Offline HUD) */}
-      <NetworkStatusHUD />
 
       {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
       {theaterState.isOpen && theaterState.item && (
