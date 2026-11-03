@@ -1,12 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Times New Roman", Times, Georgia, serif;
-  --font-sans: "Times New Roman", Times, Georgia, serif;
-  --font-mono: "Times New Roman", Times, Georgia, serif;
-  --font-brand: "Times New Roman", Times, Georgia, serif;
-  --font-orbitron: "Times New Roman", Times, Georgia, serif;
-  --font-rajdhani: "Times New Roman", Times, Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Plus Jakarta Sans', system-ui, -apple-system, monospace;
+  --font-brand: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-orbitron: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-rajdhani: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
   --color-neutral-border: rgba(255, 255, 255, 0.12);
   --color-neutral-hover: rgba(255, 255, 255, 0.08);

@@ -14,7 +14,14 @@ import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
 import { WinXPDesktop } from './components/winxp/WinXPDesktop';
 import { SilentHillShell } from './components/silenthill/SilentHillShell';
-import { ACTIVE_INTERFACE, ENABLE_SILENT_HILL_SHELL, ENABLE_WINXP_SHELL } from './config/themeConfig';
+import { ModernCascadeExplorer } from './components/ModernCascadeExplorer';
+import { AmbientFogCanvas } from './components/AmbientFogCanvas';
+import {
+  ACTIVE_INTERFACE,
+  ENABLE_CASCADE_SHELL,
+  ENABLE_SILENT_HILL_SHELL,
+  ENABLE_WINXP_SHELL,
+} from './config/themeConfig';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import {
@@ -604,7 +611,27 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {ENABLE_SILENT_HILL_SHELL || ACTIVE_INTERFACE === 'SILENT_HILL' ? (
+      {ENABLE_CASCADE_SHELL || ACTIVE_INTERFACE === 'CASCADE' ? (
+        <>
+          {/* Preserved Ambient Rolling Fog Background */}
+          <AmbientFogCanvas />
+
+          {/* Modern 3-Tier Cascading Progressive Catalog Explorer */}
+          <ModernCascadeExplorer
+            items={rawFeed.allMediaPool}
+            isNavDisabled={
+              isCommandPaletteOpen ||
+              theaterState.isOpen ||
+              shortsState.isOpen ||
+              lightboxState.isOpen ||
+              viewAllState.isOpen
+            }
+            onOpenPhoto={handleOpenPhoto}
+            onOpenVideo={handleOpenVideo}
+            onOpenShort={handleOpenShort}
+          />
+        </>
+      ) : ENABLE_SILENT_HILL_SHELL || ACTIVE_INTERFACE === 'SILENT_HILL' ? (
         <SilentHillShell
           items={rawFeed.allMediaPool}
           isModalOpen={
