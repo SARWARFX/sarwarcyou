@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Menu, X, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -77,9 +77,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Navigation states: default to Idle Home Overview (null)
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
-
-  // Mobile navigation drawer toggle
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Build directory tree
   const rootMap = useMemo(() => {
@@ -293,14 +290,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const handleSelectSubfolder = (albumKey: string, subfolderName: string) => {
     setSelectedAlbum(albumKey);
     setSelectedSubfolder(subfolderName);
-    setIsMobileMenuOpen(false);
   };
 
   // Idle reset handler: returns to Home Overview stage
   const handleSelectIdle = () => {
     setSelectedAlbum(null);
     setSelectedSubfolder(null);
-    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -315,70 +310,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* 1. Seamless Midnight Obsidian Canvas */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
-      {/* 2. Unified Left Sidebar Navigation (Desktop Fixed / Borderless Floating) */}
-      <div className="hidden md:flex flex-shrink-0 w-[240px] lg:w-[280px] h-full flex-col justify-start p-8 md:p-10 z-20 overflow-y-auto no-scrollbar bg-transparent border-0">
-        <SidebarAccordionNav
-          rootMap={rootMap}
-          selectedAlbum={selectedAlbum}
-          selectedSubfolder={selectedSubfolder}
-          onSelectSubfolder={handleSelectSubfolder}
-          onSelectIdle={handleSelectIdle}
-          className="w-full bg-transparent border-0"
-        />
-      </div>
+      {/* 2. Responsive Navigation (Desktop Left Sidebar + Mobile Compact Top Rails) */}
+      <SidebarAccordionNav
+        rootMap={rootMap}
+        selectedAlbum={selectedAlbum}
+        selectedSubfolder={selectedSubfolder}
+        onSelectSubfolder={handleSelectSubfolder}
+        onSelectIdle={handleSelectIdle}
+      />
 
-      {/* Mobile Sidebar Overlay Drawer (< md) */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          <div
-            className="w-[280px] h-full bg-[#03060a] p-6 shadow-2xl relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10"
-              aria-label="Close menu"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <SidebarAccordionNav
-              rootMap={rootMap}
-              selectedAlbum={selectedAlbum}
-              selectedSubfolder={selectedSubfolder}
-              onSelectSubfolder={handleSelectSubfolder}
-              onSelectIdle={handleSelectIdle}
-              className="flex w-full h-full p-0 border-r-0 bg-transparent"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 3. Main Stage Container */}
-      <main className="flex-1 h-full overflow-y-auto space-scrollbar p-6 sm:p-8 md:p-12 z-20 flex flex-col bg-transparent border-0">
-        {/* Mobile Header Bar */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/8 md:hidden">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={handleSelectIdle}
-            className="font-['Google_Sans'] font-bold text-sm tracking-[0.22em] uppercase text-white cursor-pointer"
-          >
-            SARWAR.CYOU
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer border border-white/10"
-            aria-label="Open directory navigation"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-        </div>
-
+      {/* 3. Media Grid Recovery: Main Stage Container */}
+      <main className="flex-1 w-full h-full overflow-y-auto space-scrollbar px-3 py-4 md:p-8 lg:p-12 z-20 flex flex-col bg-transparent border-0">
         {/* ========================================================================= */}
         {/* A. IDLE STAGE: LATEST UPLOADS (TOP) + SESSION TELEMETRY GRAPH (BOTTOM)   */}
         {/* ========================================================================= */}
@@ -386,7 +328,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <div className="flex-1 flex flex-col justify-between animate-fade-in">
             {/* TOP SECTION: LATEST UPLOADS // CROSS-DIRECTORY */}
             <section aria-label="Latest Uploads" className="flex-1">
-              <div className="border-b border-white/8 pb-3 mb-5 flex justify-between items-baseline">
+              <div className="border-b border-white/8 pb-2 mb-3 md:pb-3 md:mb-5 flex justify-between items-baseline">
                 <h2 className="font-['Google_Sans'] font-bold text-xs md:text-sm tracking-[0.2em] uppercase text-white flex items-center gap-2">
                   <span>LATEST UPLOADS // CROSS-DIRECTORY</span>
                 </h2>
@@ -395,8 +337,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 </span>
               </div>
 
-              {/* Responsive Media Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+              {/* Responsive Media Grid: Full available vertical height on mobile (2 cols, gap-3.5) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 md:gap-4">
                 {latestUploads.map((item, idx) => {
                   const isPhoto =
                     item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
@@ -484,10 +426,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           /* B. SUBFOLDER VIEW: FULL-CANVAS MEDIA GRID                                 */
           /* ========================================================================= */
           <div className="flex-1 flex flex-col animate-fade-in">
-            {/* Subfolder Header Banner */}
-            <div className="flex items-center justify-between pb-3.5 mb-6 border-b border-white/8">
+            {/* Subfolder Header Banner: Compact for mobile */}
+            <div className="flex items-center justify-between pb-2 mb-3 md:pb-3.5 md:mb-6 border-b border-white/8">
               <h2 className="font-['Google_Sans'] font-bold text-xs sm:text-sm tracking-[0.2em] uppercase text-white flex items-center gap-2">
-                <span className="text-slate-400">{activeAlbumConfig?.label} //</span>
+                <span className="text-slate-400 hidden sm:inline">{activeAlbumConfig?.label} //</span>
                 <span className="text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
                   {activeDirectoryNode?.name}
                 </span>
@@ -496,17 +438,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <button
                 type="button"
                 onClick={handleSelectIdle}
-                className="font-['Google_Sans'] text-xs tracking-wider uppercase text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0 outline-none flex items-center gap-1.5"
+                className="font-['Google_Sans'] text-[11px] md:text-xs tracking-wider uppercase text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0 outline-none flex items-center gap-1.5"
               >
                 ← RETURN TO OVERVIEW
               </button>
             </div>
 
-            {/* Subfolder Media Grid */}
+            {/* Subfolder Media Grid: Full available vertical height on mobile (2 cols, gap-3.5) */}
             <div className="flex flex-col gap-6 w-full">
               {/* Photos */}
               {subfolderPhotos.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 md:gap-4 p-0.5">
                   {subfolderPhotos.map((photo, idx) => {
                     const cleanTitle = sanitizeMediaTitle(photo.title || photo.name || '', selectedSubfolder || '');
                     const imageSrc =
@@ -546,7 +488,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
               {/* Videos */}
               {subfolderVideos.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 p-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 md:gap-4 p-0.5">
                   {subfolderVideos.map((video, idx) => {
                     const cleanTitle = sanitizeMediaTitle(video.title || video.name, selectedSubfolder || '');
                     const rawVideoFallback =
@@ -595,7 +537,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
               {/* Shorts */}
               {subfolderShorts.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 md:gap-4 p-0.5">
                   {subfolderShorts.map((short, idx) => {
                     const cleanTitle = sanitizeMediaTitle(short.title || short.name, selectedSubfolder || '');
                     const rawShortFallback =
