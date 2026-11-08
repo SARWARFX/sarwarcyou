@@ -105,6 +105,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     startDist: number;
     startScale: number;
     startPosition: { x: number; y: number };
+    startMidX: number;
+    startMidY: number;
     lastTouchX: number;
     lastTouchY: number;
     isPinching: boolean;
@@ -113,6 +115,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     startDist: 0,
     startScale: 1,
     startPosition: { x: 0, y: 0 },
+    startMidX: 0,
+    startMidY: 0,
     lastTouchX: 0,
     lastTouchY: 0,
     isPinching: false,
@@ -447,9 +451,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       pinchStateRef.current = {
-        startDist: dist,
+        startDist: Math.max(10, dist),
         startScale: scaleRef.current,
         startPosition: { ...positionRef.current },
+        startMidX: midX,
+        startMidY: midY,
         lastTouchX: midX,
         lastTouchY: midY,
         isPinching: true,
@@ -512,35 +518,53 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     lastTouchTimeRef.current = Date.now();
     wakeFullscreenClose();
 
-    // Multi-touch: Two-finger continuous pinch zooming (clamped 1x to 5x)
+    // Multi-touch: Two-finger continuous focal-point pinch zooming (clamped 0.85x to 6x)
     if (e.touches.length === 2 && pinchStateRef.current.isPinching) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
       if (pinchStateRef.current.startDist > 0) {
-        const factor = dist / pinchStateRef.current.startDist;
-        const newScale = Math.max(1, Math.min(5, pinchStateRef.current.startScale * factor));
-        scaleRef.current = newScale;
-        setScale(newScale);
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scaleFactor = dist / pinchStateRef.current.startDist;
+        const rawScale = pinchStateRef.current.startScale * scaleFactor;
+        const newScale = Math.max(0.85, Math.min(6, rawScale));
 
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        const dMidX = midX - pinchStateRef.current.lastTouchX;
-        const dMidY = midY - pinchStateRef.current.lastTouchY;
-        pinchStateRef.current.lastTouchX = midX;
-        pinchStateRef.current.lastTouchY = midY;
 
-        if (newScale <= 1.05) {
-          positionRef.current = { x: 0, y: 0 };
-          setPosition({ x: 0, y: 0 });
-        } else {
+        const startPos = pinchStateRef.current.startPosition;
+        const startMidX = pinchStateRef.current.startMidX;
+        const startMidY = pinchStateRef.current.startMidY;
+
+        const focalX = startMidX - (vw / 2 + startPos.x);
+        const focalY = startMidY - (vh / 2 + startPos.y);
+        const ratio = newScale / Math.max(0.01, pinchStateRef.current.startScale);
+
+        let newX = midX - vw / 2 - focalX * ratio;
+        let newY = midY - vh / 2 - focalY * ratio;
+
+        if (newScale > 1.05) {
           const { maxPanX, maxPanY } = calculatePanLimits(newScale);
-          const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x + dMidX));
-          const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y + dMidY));
-          positionRef.current = { x: nextX, y: nextY };
-          setPosition({ x: nextX, y: nextY });
+          newX = Math.max(-maxPanX, Math.min(maxPanX, newX));
+          newY = Math.max(-maxPanY, Math.min(maxPanY, newY));
+        } else {
+          newX = 0;
+          newY = 0;
         }
+
+        scaleRef.current = newScale;
+        positionRef.current = { x: newX, y: newY };
+
+        // Instant GPU transform for 60/120fps hardware-accelerated fluid pinch
+        if (imgRef.current) {
+          imgRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale(${newScale})`;
+          imgRef.current.style.transition = 'none';
+        }
+
+        setScale(newScale);
+        setPosition({ x: newX, y: newY });
       }
       return;
     }
@@ -575,6 +599,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x + dx));
       const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y + dy));
       positionRef.current = { x: nextX, y: nextY };
+
+      if (imgRef.current) {
+        imgRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0) scale(${scaleRef.current})`;
+        imgRef.current.style.transition = 'none';
+      }
+
       setPosition({ x: nextX, y: nextY });
       return;
     }
@@ -608,12 +638,26 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setIsDragging(false);
       isDraggingRef.current = false;
 
-      // Snap back if pinched below 1.05x (CRITICAL: check scaleRef.current, NOT stale scale state!)
+      // Snap back if pinched below 1.05x (smooth spring back to 1.0)
       if (scaleRef.current <= 1.05) {
         scaleRef.current = 1;
         positionRef.current = { x: 0, y: 0 };
+        if (imgRef.current) {
+          imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          imgRef.current.style.transform = `translate3d(0px, 0px, 0) scale(1)`;
+        }
         setScale(1);
         setPosition({ x: 0, y: 0 });
+      } else {
+        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+        const finalX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
+        const finalY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
+        positionRef.current = { x: finalX, y: finalY };
+        if (imgRef.current) {
+          imgRef.current.style.transition = 'transform 0.2s ease-out';
+          imgRef.current.style.transform = `translate3d(${finalX}px, ${finalY}px, 0) scale(${scaleRef.current})`;
+        }
+        setPosition({ x: finalX, y: finalY });
       }
     } else if (e.touches.length === 1 && pinchStateRef.current.isPinching) {
       pinchStateRef.current.isPinching = false;
@@ -682,6 +726,42 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
     setTouchDeltaX(0);
   };
+
+  // Native non-passive touch interceptor for seamless two-finger pinch-to-zoom & panning
+  useEffect(() => {
+    const el = mediaBoxRef.current;
+    if (!el || !isOpen || type !== 'image') return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      // 2 fingers: prevent browser default page zoom immediately
+      if (e.touches.length >= 2) {
+        if (e.cancelable) e.preventDefault();
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      // 2-finger pinch OR 1-finger pan while zoomed: prevent native page scroll/zoom
+      if (e.touches.length >= 2 || (e.touches.length === 1 && scaleRef.current > 1.05)) {
+        if (e.cancelable) e.preventDefault();
+      }
+    };
+
+    const onGesture = (e: Event) => {
+      if (e.cancelable) e.preventDefault();
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('gesturestart', onGesture, { passive: false });
+    el.addEventListener('gesturechange', onGesture, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('gesturestart', onGesture);
+      el.removeEventListener('gesturechange', onGesture);
+    };
+  }, [isOpen, activeIdx, type]);
 
   // Desktop Mouse Drag & Pan Handlers (Pan when scale > 1.05, Swipe when scale <= 1.05)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -903,6 +983,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   if (isFullscreen && type === 'image') {
     return (
       <div
+        ref={mediaBoxRef}
         role="dialog"
         aria-modal="true"
         className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] select-none touch-none flex items-center justify-center animate-fade-in cursor-pointer"
@@ -910,6 +991,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           background: 'rgba(3, 5, 10, 0.65)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
+          touchAction: 'none',
         }}
         onClick={handleStageClick}
         onDoubleClick={handleStageDoubleClick}
@@ -924,7 +1006,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         onPointerCancel={handlePointerCancel}
       >
         {/* Edge-to-Edge Pure Photo */}
-        <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+        <div
+          className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
+          style={{ touchAction: 'none' }}
+        >
           <img
             key={currentItem?.id || activeUrl || activeIdx}
             ref={imgRef}
@@ -1268,7 +1353,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               />
             </div>
           ) : (
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            <div
+              className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
+              style={{ touchAction: 'none' }}
+            >
               <img
                 key={currentItem?.id || activeUrl || activeIdx}
                 ref={imgRef}
