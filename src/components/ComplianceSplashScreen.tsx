@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export const COMPLIANCE_STORAGE_KEY = 'public_access_disclaimer_accepted';
+export const COMPLIANCE_STORAGE_KEY = 'public_access_disclaimer_v2';
 
 export interface ComplianceSplashScreenProps {
   onDismiss?: () => void;
@@ -49,7 +49,7 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Public Domain and Open Access Notice"
+      aria-label="Public Source & Open Access Disclaimer"
       className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center p-6 sm:p-10 select-none bg-black text-white transition-opacity duration-350 ease-out ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
@@ -57,11 +57,11 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
     >
       <div className="max-w-2xl w-full flex flex-col items-center text-center border border-white/20 bg-black p-8 sm:p-14 shadow-2xl">
         <h1 className="text-base sm:text-lg md:text-xl font-normal tracking-[0.2em] uppercase text-white border-b border-white/20 pb-4 mb-6 w-full text-center">
-          PUBLIC DOMAIN & OPEN ACCESS NOTICE
+          PUBLIC SOURCE & OPEN ACCESS DISCLAIMER
         </h1>
 
         <p className="text-sm sm:text-base leading-relaxed text-white font-normal mb-8 max-w-xl text-center">
-          All media, images, and video materials indexed on this platform are aggregated strictly from publicly accessible online repositories and open databases. This site does not host, broadcast, or distribute proprietary, restricted, or private personal data. All cataloged materials are indexed solely from publicly available sources on the internet.
+          All content featured across this platform—including videos, photographs, and shorts—has been collected exclusively from publicly available sources across the internet. No private, confidential, or personal video, image, or short has been published or hosted on this site.
         </p>
 
         <button

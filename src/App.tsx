@@ -671,6 +671,9 @@ function App() {
         </>
       ) : ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE' ? (
         <>
+          {/* 0. Public Source & Open Access Start Screen */}
+          <ComplianceSplashScreen />
+
           {/* 1. Direct Data Monolith Bars Vault Gate with SARWAR.CYOU Signature */}
           <MonolithBarGate
             items={rawFeed.allMediaPool}
