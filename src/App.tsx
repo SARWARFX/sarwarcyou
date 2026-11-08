@@ -20,8 +20,10 @@ import { AuraCanvas } from './components/aura/AuraCanvas';
 import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
 import { CinematicGate } from './components/gate/CinematicGate';
 import { FrequencyGate } from './components/gate/FrequencyGate';
+import { MonolithBarGate } from './components/gate/MonolithBarGate';
 import {
   ACTIVE_INTERFACE,
+  ENABLE_MONOLITH_GATE,
   ENABLE_FREQUENCY_GATE,
   ENABLE_CINEMATIC_GATE,
   ENABLE_AURA_FLOW,
@@ -619,7 +621,31 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {ENABLE_FREQUENCY_GATE || ACTIVE_INTERFACE === 'FREQUENCY_GATE' ? (
+      {ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE' ? (
+        <>
+          {/* 0. Opening Public Domain Compliance Splash Screen */}
+          <ComplianceSplashScreen />
+
+          {/* 1. Direct Data Monolith Bars Vault Gate with SARWAR.CYOU Signature */}
+          <MonolithBarGate
+            items={rawFeed.allMediaPool}
+            initialAlbum={initialAlbumTarget}
+            isModalOpen={
+              theaterState.isOpen ||
+              shortsState.isOpen ||
+              lightboxState.isOpen ||
+              viewAllState.isOpen ||
+              isCommandPaletteOpen
+            }
+            onOpenPhoto={handleOpenPhoto}
+            onOpenVideo={handleOpenVideo}
+            onOpenShort={handleOpenShort}
+          />
+
+          {/* Global Network Connectivity Indicator */}
+          <NetworkStatusHUD />
+        </>
+      ) : ENABLE_FREQUENCY_GATE || ACTIVE_INTERFACE === 'FREQUENCY_GATE' ? (
         <>
           {/* 0. Opening Public Domain Compliance Splash Screen */}
           <ComplianceSplashScreen />
