@@ -76,14 +76,28 @@ const ScrambledAlbumItem: React.FC<{
   label: string;
   isActive: boolean;
   isUnlocked: boolean;
-  onClick: (e: React.MouseEvent) => void;
+  onClick: (e: React.MouseEvent | React.TouchEvent) => void;
 }> = ({ label, isActive, isUnlocked, onClick }) => {
   const scrambled = useScrambleText(label, isUnlocked, 350);
+  const lastActionTimeRef = useRef<number>(0);
+
+  const handleAction = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    const now = performance.now();
+    if (now - lastActionTimeRef.current < 350) {
+      return;
+    }
+    lastActionTimeRef.current = now;
+    onClick(e);
+  };
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleAction}
+      onTouchEnd={(e) => {
+        e.stopPropagation();
+      }}
       className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-300 cursor-pointer select-none border-0 outline-none p-0 bg-transparent flex items-center gap-3 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] ${
         isActive
           ? 'text-white font-black tracking-[0.28em] text-2xl md:text-3xl scale-[1.03] origin-left'
@@ -272,10 +286,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isUnlocked, isModalOpen]);
 
-  // Backdrop Click: clicking screen when locked unlocks; clicking empty backdrop when unlocked conceals
+  // Backdrop Click: clicking screen when locked unlocks; clicking empty backdrop directly when unlocked conceals
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (isModalOpen) return;
-    if (menuContainerRef.current && menuContainerRef.current.contains(e.target as Node)) {
+    if (e.target !== e.currentTarget) {
       return;
     }
     if (isUnlocked) {
@@ -328,7 +342,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* 4. Progressive Navigation Stage (Desktop 3-Tier Cascade + Mobile Adaptive Drill-Down) */}
       <div
         ref={menuContainerRef}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setIsUnlocked(false);
+            setSelectedAlbum(null);
+            setSelectedSubfolder(null);
+          }
+        }}
         className={`w-full h-full select-none z-30 transition-all duration-500 ${
           isUnlocked
             ? 'opacity-100 pointer-events-auto'
@@ -338,7 +358,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* ========================================================= */}
         {/* DESKTOP 3-TIER HORIZONTAL CASCADE (md: and up)            */}
         {/* ========================================================= */}
-        <div className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsUnlocked(false);
+              setSelectedAlbum(null);
+              setSelectedSubfolder(null);
+            }
+          }}
+          className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar"
+        >
           {/* TIER 1: 4 Major Album Names - Clean Floating Typography, No Dark Background */}
           <div className="flex-shrink-0 flex flex-col justify-center py-6 px-4">
             <div className="flex flex-col space-y-7">
@@ -348,7 +377,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   label={album.label}
                   isActive={selectedAlbum === album.key}
                   isUnlocked={isUnlocked}
-                  onClick={() => handleSelectAlbum(album.key, album.rawName)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectAlbum(album.key, album.rawName);
+                  }}
                 />
               ))}
             </div>
@@ -364,7 +396,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     <button
                       key={subNode.name}
                       type="button"
-                      onClick={() => setSelectedSubfolder(subNode.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSubfolder(subNode.name);
+                      }}
                       className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)] ${
                         isSubActive
                           ? 'text-white font-bold tracking-wider text-base md:text-lg'
@@ -389,7 +424,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     {photoFiles.map((photo, idx) => (
                       <div
                         key={photo.id || idx}
-                        onClick={() => onOpenPhoto(photo, photoFiles, idx)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenPhoto(photo, photoFiles, idx);
+                        }}
                         className="relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-neutral-900/40 backdrop-blur-sm transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
                       >
                         <img
@@ -420,7 +458,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                           key={video.id || video.url}
                           role="button"
                           tabIndex={0}
-                          onClick={() => onOpenVideo(video, videoFiles)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenVideo(video, videoFiles);
+                          }}
                           className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
                           <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
@@ -463,7 +504,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                           key={short.id || short.url}
                           role="button"
                           tabIndex={0}
-                          onClick={() => onOpenShort(short, shortFiles, idx, activeDirectoryNode.name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenShort(short, shortFiles, idx, activeDirectoryNode.name);
+                          }}
                           className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
                           <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
@@ -502,48 +546,85 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* ========================================================= */}
         {/* MOBILE ADAPTIVE VIEW (< md, 418px mobile screens)         */}
         {/* ========================================================= */}
-        <div className="md:hidden flex flex-col w-full h-full pt-14 pb-4 px-4 overflow-hidden">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsUnlocked(false);
+              setSelectedAlbum(null);
+              setSelectedSubfolder(null);
+            }
+          }}
+          className="md:hidden flex flex-col w-full h-full pt-12 sm:pt-14 pb-3 sm:pb-4 px-3 sm:px-4 overflow-hidden min-w-0"
+        >
           {!selectedAlbum ? (
             /* Mobile Step 1: Centered 4 Major Album Names - Pure Floating Text, No Dark Box */
-            <div className="flex-1 flex flex-col justify-center items-center">
-              <div className="flex flex-col items-center space-y-8 py-8">
+            <div 
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsUnlocked(false);
+                  setSelectedAlbum(null);
+                  setSelectedSubfolder(null);
+                }
+              }}
+              className="flex-1 flex flex-col justify-center items-center"
+            >
+              <div 
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setIsUnlocked(false);
+                    setSelectedAlbum(null);
+                    setSelectedSubfolder(null);
+                  }
+                }}
+                className="flex flex-col items-center space-y-7 sm:space-y-8 py-6 sm:py-8"
+              >
                 {ALBUMS.map((album) => (
                   <ScrambledAlbumItem
                     key={album.key}
                     label={album.label}
                     isActive={selectedAlbum === album.key}
                     isUnlocked={isUnlocked}
-                    onClick={() => handleSelectAlbum(album.key, album.rawName)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectAlbum(album.key, album.rawName);
+                    }}
                   />
                 ))}
               </div>
             </div>
           ) : (
             /* Mobile Step 2: Top Subfolder Switcher & Full-Width Media Grid */
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
               {/* Mobile Header Bar with Back Button & Subfolder Pills */}
-              <div className="flex-shrink-0 flex items-center gap-2 pb-3 mb-2 border-b border-white/10">
+              <div className="flex-shrink-0 flex items-center gap-2 pb-2.5 mb-2 border-b border-white/10 w-full min-w-0">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelectedAlbum(null);
                     setSelectedSubfolder(null);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-['Roboto',sans-serif] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-transform flex-shrink-0"
+                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/25 text-white text-[11px] font-['Roboto',sans-serif] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
                 >
                   ← BACK
                 </button>
 
                 {/* Horizontal Scrollable Subfolder Selector */}
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 py-1">
+                <div 
+                  className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 py-1 min-w-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {currentSubfolders.map((subNode) => {
                     const isSubActive = selectedSubfolder === subNode.name;
                     return (
                       <button
                         key={subNode.name}
                         type="button"
-                        onClick={() => setSelectedSubfolder(subNode.name)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-['Roboto',sans-serif] uppercase whitespace-nowrap transition-all duration-200 flex-shrink-0 ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSubfolder(subNode.name);
+                        }}
+                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-['Roboto',sans-serif] uppercase whitespace-nowrap transition-all duration-200 flex-shrink-0 cursor-pointer ${
                           isSubActive
                             ? 'bg-white/20 text-white font-bold shadow-md'
                             : 'bg-black/40 text-neutral-400 hover:text-white'
@@ -557,16 +638,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               </div>
 
               {/* Full-Width Mobile Media Stage */}
-              <div className="flex-1 overflow-y-auto space-scrollbar py-2">
+              <div className="flex-1 overflow-y-auto space-scrollbar py-1">
                 {activeDirectoryNode && (
-                  <div className="flex flex-col gap-5 pb-8">
+                  <div className="flex flex-col gap-4 sm:gap-5 pb-8">
                     {/* Photos Grid */}
                     {photoFiles.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                         {photoFiles.map((photo, idx) => (
                           <div
                             key={photo.id || idx}
-                            onClick={() => onOpenPhoto(photo, photoFiles, idx)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenPhoto(photo, photoFiles, idx);
+                            }}
                             className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md active:scale-95 transition-transform"
                           >
                             <img
@@ -588,7 +672,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
                     {/* Videos Grid */}
                     {videoFiles.length > 0 && (
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 gap-3.5 sm:gap-4">
                         {videoFiles.map((video) => {
                           const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
                           const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
@@ -597,7 +681,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                               key={video.id || video.url}
                               role="button"
                               tabIndex={0}
-                              onClick={() => onOpenVideo(video, videoFiles)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenVideo(video, videoFiles);
+                              }}
                               className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
                               <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
@@ -631,7 +718,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
                     {/* Shorts Grid */}
                     {shortFiles.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                         {shortFiles.map((short, idx) => {
                           const cleanTitle = sanitizeMediaTitle(short.title || short.name, activeDirectoryNode.name);
                           const thumb = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
@@ -640,7 +727,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                               key={short.id || short.url}
                               role="button"
                               tabIndex={0}
-                              onClick={() => onOpenShort(short, shortFiles, idx, activeDirectoryNode.name)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenShort(short, shortFiles, idx, activeDirectoryNode.name);
+                              }}
                               className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
                               <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">

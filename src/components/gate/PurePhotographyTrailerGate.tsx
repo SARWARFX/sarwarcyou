@@ -136,14 +136,28 @@ const ScrambledHubItem: React.FC<{
   label: string;
   isActive: boolean;
   isUnlocked: boolean;
-  onClick: (e: React.MouseEvent) => void;
+  onClick: (e: React.MouseEvent | React.TouchEvent) => void;
 }> = ({ label, isActive, isUnlocked, onClick }) => {
   const scrambled = useScrambleText(label, isUnlocked, 350);
+  const lastActionTimeRef = useRef<number>(0);
+
+  const handleAction = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    const now = performance.now();
+    if (now - lastActionTimeRef.current < 350) {
+      return;
+    }
+    lastActionTimeRef.current = now;
+    onClick(e);
+  };
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleAction}
+      onTouchEnd={(e) => {
+        e.stopPropagation();
+      }}
       className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer select-none border-0 outline-none p-0 bg-transparent flex items-center gap-2.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
         isActive
           ? 'text-white font-bold tracking-[0.25em] text-xl md:text-2xl scale-[1.02] origin-left'
@@ -575,7 +589,7 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
 
   // Dismiss: Clicking any empty space outside the panels smoothly conceals the overlay
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (menuContainerRef.current && menuContainerRef.current.contains(e.target as Node)) {
+    if (e.target !== e.currentTarget) {
       return;
     }
     if (isUnlocked) {
@@ -600,7 +614,13 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
       {/* 2. Three-Tier Frosted Obsidian Vault Cascade Overlay */}
       <div
         ref={menuContainerRef}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setIsUnlocked(false);
+            setSelectedHub(null);
+            setSelectedSubfolder(null);
+          }
+        }}
         className={`fixed inset-0 w-full h-full select-none z-30 transition-all duration-500 flex flex-col justify-center items-center ${
           isUnlocked
             ? 'opacity-100 pointer-events-auto bg-black/85 backdrop-blur-3xl'
@@ -610,7 +630,16 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
         {/* ========================================================= */}
         {/* DESKTOP 3-TIER HORIZONTAL CASCADE (md: and up)            */}
         {/* ========================================================= */}
-        <div className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsUnlocked(false);
+              setSelectedHub(null);
+              setSelectedSubfolder(null);
+            }
+          }}
+          className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar"
+        >
           {/* TIER 1: Left-Middle Navigation Menu (4 Major Hubs with Scramble Effect) */}
           <div className="flex-shrink-0 flex flex-col justify-center">
             <div className="bg-black/60 backdrop-blur-2xl rounded-2xl p-6 md:p-8 flex flex-col space-y-6 shadow-2xl border border-white/5">
@@ -620,7 +649,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                   label={hub.label}
                   isActive={selectedHub === hub.key}
                   isUnlocked={isUnlocked}
-                  onClick={() => handleSelectHub(hub.key, hub.rawName)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectHub(hub.key, hub.rawName);
+                  }}
                 />
               ))}
             </div>
@@ -636,7 +668,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                     <button
                       key={subNode.name}
                       type="button"
-                      onClick={() => setSelectedSubfolder(subNode.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSubfolder(subNode.name);
+                      }}
                       className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
                         isSubActive
                           ? 'text-white font-bold tracking-wider text-base md:text-lg'
@@ -661,7 +696,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                     {photoFiles.map((photo, idx) => (
                       <div
                         key={photo.id || idx}
-                        onClick={() => onOpenPhoto(photo, photoFiles, idx)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenPhoto(photo, photoFiles, idx);
+                        }}
                         className="relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-neutral-900/40 backdrop-blur-sm transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
                       >
                         <img
@@ -692,7 +730,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                           key={video.id || video.url}
                           role="button"
                           tabIndex={0}
-                          onClick={() => onOpenVideo(video, videoFiles)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenVideo(video, videoFiles);
+                          }}
                           className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
                           <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
@@ -735,7 +776,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                           key={short.id || short.url}
                           role="button"
                           tabIndex={0}
-                          onClick={() => onOpenShort(short, shortFiles, idx, activeDirectoryNode.name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenShort(short, shortFiles, idx, activeDirectoryNode.name);
+                          }}
                           className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
                           <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
@@ -774,11 +818,32 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
         {/* ========================================================= */}
         {/* MOBILE ADAPTIVE VIEW (< md, 418px mobile screens)         */}
         {/* ========================================================= */}
-        <div className="md:hidden flex flex-col w-full h-full pt-14 pb-4 px-4 overflow-hidden">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsUnlocked(false);
+              setSelectedHub(null);
+              setSelectedSubfolder(null);
+            }
+          }}
+          className="md:hidden flex flex-col w-full h-full pt-12 sm:pt-14 pb-3 sm:pb-4 px-3 sm:px-4 overflow-hidden min-w-0"
+        >
           {!selectedHub ? (
             /* Mobile Step 1: Centered 4 Major Hubs */
-            <div className="flex-1 flex flex-col justify-center items-center">
-              <div className="w-full max-w-xs bg-black/60 backdrop-blur-2xl rounded-2xl p-6 flex flex-col space-y-6 shadow-2xl border border-white/5">
+            <div 
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsUnlocked(false);
+                  setSelectedHub(null);
+                  setSelectedSubfolder(null);
+                }
+              }}
+              className="flex-1 flex flex-col justify-center items-center"
+            >
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-xs bg-black/60 backdrop-blur-2xl rounded-2xl p-6 flex flex-col space-y-6 shadow-2xl border border-white/5"
+              >
                 <div className="text-[10px] font-['Roboto',sans-serif] tracking-[0.25em] text-neutral-400 uppercase pb-2 border-b border-white/10 text-center">
                   SELECT HUB
                 </div>
@@ -788,37 +853,47 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                     label={hub.label}
                     isActive={selectedHub === hub.key}
                     isUnlocked={isUnlocked}
-                    onClick={() => handleSelectHub(hub.key, hub.rawName)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectHub(hub.key, hub.rawName);
+                    }}
                   />
                 ))}
               </div>
             </div>
           ) : (
             /* Mobile Step 2: Top Subfolder Switcher & Full-Width Media Grid */
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
               {/* Mobile Header Bar with Back Button & Subfolder Pills */}
-              <div className="flex-shrink-0 flex items-center gap-2 pb-3 mb-2 border-b border-white/10">
+              <div className="flex-shrink-0 flex items-center gap-2 pb-2.5 mb-2 border-b border-white/10 w-full min-w-0">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelectedHub(null);
                     setSelectedSubfolder(null);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-['Roboto',sans-serif] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-transform flex-shrink-0"
+                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/25 text-white text-[11px] font-['Roboto',sans-serif] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
                 >
                   ← HUBS
                 </button>
 
                 {/* Horizontal Scrollable Subfolder Selector */}
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 py-1">
+                <div 
+                  className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 py-1 min-w-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {currentSubfolders.map((subNode) => {
                     const isSubActive = selectedSubfolder === subNode.name;
                     return (
                       <button
                         key={subNode.name}
                         type="button"
-                        onClick={() => setSelectedSubfolder(subNode.name)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-['Roboto',sans-serif] uppercase whitespace-nowrap transition-all duration-200 flex-shrink-0 ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSubfolder(subNode.name);
+                        }}
+                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-['Roboto',sans-serif] uppercase whitespace-nowrap transition-all duration-200 flex-shrink-0 cursor-pointer ${
                           isSubActive
                             ? 'bg-white/20 text-white font-bold shadow-md'
                             : 'bg-black/40 text-neutral-400 hover:text-white'
@@ -832,16 +907,19 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
               </div>
 
               {/* Full-Width Mobile Media Stage */}
-              <div className="flex-1 overflow-y-auto space-scrollbar py-2">
+              <div className="flex-1 overflow-y-auto space-scrollbar py-1">
                 {activeDirectoryNode && (
-                  <div className="flex flex-col gap-5 pb-8">
+                  <div className="flex flex-col gap-4 sm:gap-5 pb-8">
                     {/* Photos Grid */}
                     {photoFiles.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                         {photoFiles.map((photo, idx) => (
                           <div
                             key={photo.id || idx}
-                            onClick={() => onOpenPhoto(photo, photoFiles, idx)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenPhoto(photo, photoFiles, idx);
+                            }}
                             className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md active:scale-95 transition-transform"
                           >
                             <img
@@ -863,7 +941,7 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
 
                     {/* Videos Grid */}
                     {videoFiles.length > 0 && (
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 gap-3.5 sm:gap-4">
                         {videoFiles.map((video) => {
                           const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
                           const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
@@ -872,7 +950,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                               key={video.id || video.url}
                               role="button"
                               tabIndex={0}
-                              onClick={() => onOpenVideo(video, videoFiles)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenVideo(video, videoFiles);
+                              }}
                               className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
                               <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
@@ -906,7 +987,7 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
 
                     {/* Shorts Grid */}
                     {shortFiles.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                         {shortFiles.map((short, idx) => {
                           const cleanTitle = sanitizeMediaTitle(short.title || short.name, activeDirectoryNode.name);
                           const thumb = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
@@ -915,7 +996,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                               key={short.id || short.url}
                               role="button"
                               tabIndex={0}
-                              onClick={() => onOpenShort(short, shortFiles, idx, activeDirectoryNode.name)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenShort(short, shortFiles, idx, activeDirectoryNode.name);
+                              }}
                               className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
                               <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
