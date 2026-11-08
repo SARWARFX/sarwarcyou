@@ -70,8 +70,8 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
       aria-label="Major Folders Navigation"
       className={
         isDesktop
-          ? `hidden md:flex w-[260px] h-screen flex-col justify-center pl-12 gap-7 flex-shrink-0 z-30 pointer-events-auto bg-transparent select-none ${className}`
-          : `relative z-30 pointer-events-auto flex flex-col justify-center gap-7 select-none w-full ${className}`
+          ? `hidden md:flex w-[260px] h-screen flex-col justify-start pt-[28vh] pl-12 gap-7 flex-shrink-0 z-30 pointer-events-auto bg-transparent select-none ${className}`
+          : `relative z-30 pointer-events-auto flex flex-col justify-start pt-[26vh] md:pt-[28vh] pl-8 md:pl-12 gap-7 select-none w-full ${className}`
       }
     >
       {MAJOR_FOLDERS.map((folder) => {
@@ -111,10 +111,10 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
 
             {/* Subfolder list with smooth max-height accordion expansion */}
             <div
-              className={`transition-all duration-300 ease-out ${
+              className={`transition-all duration-300 ease-out overflow-hidden ${
                 isAccordionOpen
-                  ? 'max-h-60 opacity-100 overflow-visible mt-1.5'
-                  : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'
+                  ? 'max-h-60 opacity-100 mt-1.5'
+                  : 'max-h-0 opacity-0 pointer-events-none'
               }`}
             >
               {subfolderNodes.length > 0 && (

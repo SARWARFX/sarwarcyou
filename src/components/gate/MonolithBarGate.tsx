@@ -529,8 +529,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           aria-label="Mobile Navigation and Telemetry"
           className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between relative bg-[#020408] flex-none snap-start shrink-0 z-30 pointer-events-auto"
         >
-          {/* Middle-Left Folders: Vertically centered */}
-          <div className="flex-1 flex flex-col justify-center pl-8 md:pl-12 gap-7 z-20 select-none relative pointer-events-auto">
+          {/* Middle-Left Folders: Top-anchored downward-only expansion */}
+          <div className="flex-1 flex flex-col justify-start z-20 select-none relative pointer-events-auto">
             <SidebarAccordionNav
               variant="mobile"
               rootMap={rootMap}
