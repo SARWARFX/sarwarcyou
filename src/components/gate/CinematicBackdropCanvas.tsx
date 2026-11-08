@@ -64,11 +64,11 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
       ctx.fillStyle = '#03060a';
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Radial Glow Overlay: circle at 50% 40%, rgba(8, 20, 38, 0.6) 0%, #020408 80%
+      // 2. Radial Glow Overlay: circle at 50% 40%, rgba(8, 20, 38, 0.65) 0%, #020408 80%
       const cx = width * 0.5;
       const cy = height * 0.4;
       const radialGlow = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(width, height) * 0.68);
-      radialGlow.addColorStop(0, 'rgba(8, 20, 38, 0.6)');
+      radialGlow.addColorStop(0, 'rgba(8, 20, 38, 0.65)');
       radialGlow.addColorStop(0.5, 'rgba(5, 12, 24, 0.75)');
       radialGlow.addColorStop(0.8, '#020408');
       radialGlow.addColorStop(1, '#03060a');

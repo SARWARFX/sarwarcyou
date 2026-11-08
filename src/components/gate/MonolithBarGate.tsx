@@ -394,7 +394,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isUnlocked, isModalOpen]);
 
-  // Backdrop Auto-Conceal: clicking empty backdrop hides the vault
+  // Backdrop Click: clicking screen when locked unlocks; clicking empty backdrop when unlocked conceals
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (isModalOpen) return;
     if (menuContainerRef.current && menuContainerRef.current.contains(e.target as Node)) {
@@ -404,16 +404,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setIsUnlocked(false);
       setSelectedHub(null);
       setSelectedSubfolder(null);
+    } else {
+      setIsUnlocked(true);
     }
   };
 
   return (
     <div
       onClick={handleBackdropClick}
-      className="relative w-full h-[100dvh] overflow-hidden select-none text-white font-['Roboto',sans-serif] bg-[#03060a]"
+      className={`relative w-full h-[100dvh] overflow-hidden select-none text-white font-['Roboto',sans-serif] bg-[#03060a] ${
+        isUnlocked ? 'cursor-default' : 'cursor-pointer'
+      }`}
       style={{
         isolation: 'isolate',
-        background: 'radial-gradient(circle at 50% 40%, rgba(8, 20, 38, 0.6) 0%, #020408 80%)',
+        background: 'radial-gradient(circle at 50% 40%, rgba(8, 20, 38, 0.65) 0%, #020408 80%)',
         backgroundColor: '#03060a',
       }}
     >
@@ -511,9 +515,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       </div>
 
       {/* 3. Fixed Required Signature at Bottom-Right: "SARWAR.CYOU" */}
-      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-10 z-20 pointer-events-none select-none font-['Roboto',sans-serif] font-bold text-xs sm:text-sm tracking-[0.28em] text-white uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsUnlocked(true);
+        }}
+        className="fixed bottom-6 right-6 md:bottom-8 md:right-10 z-20 cursor-pointer select-none font-['Roboto',sans-serif] font-bold text-xs sm:text-sm tracking-[0.28em] text-white uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] bg-transparent border-0 outline-none p-0"
+      >
         SARWAR.CYOU
-      </div>
+      </button>
 
       {/* 4. Progressive Navigation Stage (Desktop 3-Tier Cascade + Mobile Adaptive Drill-Down) */}
       <div
@@ -531,7 +542,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         <div className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar">
           {/* TIER 1: Left-Middle Navigation Menu (4 Major Hubs) */}
           <div className="flex-shrink-0 flex flex-col justify-center">
-            <div className="bg-black/40 backdrop-blur-2xl rounded-2xl p-6 md:p-8 flex flex-col space-y-6 shadow-2xl">
+            <div className="bg-black/85 backdrop-blur-3xl border border-white/10 rounded-2xl p-6 md:p-8 flex flex-col space-y-6 shadow-2xl">
               {HUBS.map((hub) => (
                 <ScrambledHubItem
                   key={hub.key}
@@ -547,7 +558,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           {/* TIER 2: Subfolders Column (Smoothly slides open on choosing major hub) */}
           {selectedHub && currentSubfolders.length > 0 && (
             <div className="flex-shrink-0 flex flex-col justify-center min-w-[170px] sm:min-w-[200px] md:min-w-[230px] max-w-[290px] animate-fade-in">
-              <div className="bg-black/40 backdrop-blur-2xl rounded-2xl p-5 md:p-6 flex flex-col space-y-3.5 max-h-[75vh] overflow-y-auto no-scrollbar shadow-2xl">
+              <div className="bg-black/85 backdrop-blur-3xl border border-white/10 rounded-2xl p-5 md:p-6 flex flex-col space-y-3.5 max-h-[75vh] overflow-y-auto no-scrollbar shadow-2xl">
                 {currentSubfolders.map((subNode) => {
                   const isSubActive = selectedSubfolder === subNode.name;
                   return (
@@ -696,7 +707,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           {!selectedHub ? (
             /* Mobile Step 1: Centered 4 Major Hubs */
             <div className="flex-1 flex flex-col justify-center items-center">
-              <div className="w-full max-w-xs bg-black/50 backdrop-blur-2xl rounded-2xl p-6 flex flex-col space-y-6 shadow-2xl">
+              <div className="w-full max-w-xs bg-black/85 backdrop-blur-3xl border border-white/10 rounded-2xl p-6 flex flex-col space-y-6 shadow-2xl">
                 <div className="text-[10px] font-['Roboto',sans-serif] tracking-[0.25em] text-neutral-400 uppercase pb-2 border-b border-white/10 text-center">
                   SELECT HUB
                 </div>
