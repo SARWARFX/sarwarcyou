@@ -293,32 +293,36 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const calculatePanLimits = useCallback((currentScale: number) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let baseW = baseDimensionsRef.current.w;
-    let baseH = baseDimensionsRef.current.h;
+    let baseW = imgRef.current?.offsetWidth || baseDimensionsRef.current.w;
+    let baseH = imgRef.current?.offsetHeight || baseDimensionsRef.current.h;
 
     if (baseW <= 0 || baseH <= 0) {
-      if (imgRef.current && imgRef.current.offsetWidth > 0 && imgRef.current.offsetHeight > 0) {
-        baseW = imgRef.current.offsetWidth;
-        baseH = imgRef.current.offsetHeight;
-        baseDimensionsRef.current = { w: baseW, h: baseH };
-      } else if (imgDimensions?.width && imgDimensions?.height) {
+      if (imgDimensions?.width && imgDimensions?.height) {
         const availW = isZoomed ? vw : vw - 64;
         const availH = isZoomed ? vh : vh * 0.85;
         const fit = Math.min(availW / imgDimensions.width, availH / imgDimensions.height);
         baseW = imgDimensions.width * fit;
         baseH = imgDimensions.height * fit;
       } else {
-        baseW = vw;
-        baseH = vh;
+        baseW = vw * 0.8;
+        baseH = vh * 0.8;
       }
     }
 
     const scaledW = baseW * currentScale;
     const scaledH = baseH * currentScale;
 
-    // Pan limits guarantee image edges never pull inside the viewport borders
-    const maxPanX = Math.max(0, (scaledW - vw) / 2);
-    const maxPanY = Math.max(0, (scaledH - vh) / 2);
+    // Generous, free pan limits so every detail, corner, and edge can be moved freely across the screen
+    const maxPanX = Math.max(
+      Math.max(0, (scaledW - vw) / 2) + vw * 0.35,
+      scaledW * 0.45,
+      vw * 0.4
+    );
+    const maxPanY = Math.max(
+      Math.max(0, (scaledH - vh) / 2) + vh * 0.35,
+      scaledH * 0.45,
+      vh * 0.4
+    );
 
     return { maxPanX, maxPanY, baseW, baseH };
   }, [imgDimensions, isZoomed]);
@@ -404,10 +408,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const tapOffsetX = clientX - vw / 2;
       const tapOffsetY = clientY - vh / 2;
 
-      const scaledW = baseW * targetScale;
-      const scaledH = baseH * targetScale;
-      const maxPanX = Math.max(0, (scaledW - vw) / 2);
-      const maxPanY = Math.max(0, (scaledH - vh) / 2);
+      const { maxPanX, maxPanY } = calculatePanLimits(targetScale);
 
       const initialX = Math.max(-maxPanX, Math.min(maxPanX, -tapOffsetX * (targetScale - 1) * 0.5));
       const initialY = Math.max(-maxPanY, Math.min(maxPanY, -tapOffsetY * (targetScale - 1) * 0.5));
@@ -471,6 +472,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         pinchStateRef.current.isPinching = false;
         pinchStateRef.current.lastTouchX = t.clientX;
         pinchStateRef.current.lastTouchY = t.clientY;
+        setIsDragging(true);
+        isDraggingRef.current = true;
         touchStateRef.current = {
           startX: t.clientX,
           startY: t.clientY,
@@ -529,19 +532,31 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
 
     // Drag / Pan with 1 finger when zoomed in (scale > 1.05)
-    if (e.touches.length === 1 && scale > 1.05 && pinchStateRef.current.isPanning) {
+    if (e.touches.length === 1 && scale > 1.05) {
       const t = e.touches[0];
+      if (!pinchStateRef.current.isPanning) {
+        pinchStateRef.current.isPanning = true;
+        pinchStateRef.current.lastTouchX = t.clientX;
+        pinchStateRef.current.lastTouchY = t.clientY;
+        setIsDragging(true);
+        isDraggingRef.current = true;
+        return;
+      }
       const dx = t.clientX - pinchStateRef.current.lastTouchX;
       const dy = t.clientY - pinchStateRef.current.lastTouchY;
       pinchStateRef.current.lastTouchX = t.clientX;
       pinchStateRef.current.lastTouchY = t.clientY;
+
+      if (!isDraggingRef.current) {
+        setIsDragging(true);
+        isDraggingRef.current = true;
+      }
 
       if (touchStateRef.current) {
         touchStateRef.current.currentX = t.clientX;
         touchStateRef.current.currentY = t.clientY;
       }
 
-      // Boundary clamp to inspect every corner without losing image or leaving gaps
       const { maxPanX, maxPanY } = calculatePanLimits(scale);
 
       setPosition((prev) => ({
@@ -629,6 +644,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     // When scale > 1, horizontal swipe navigation is strictly disabled to allow free panning
     if (scale > 1.05) {
       setTouchDeltaX(0);
+      setIsDragging(false);
+      isDraggingRef.current = false;
       return;
     }
 
@@ -1260,7 +1277,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 }}
                 className={`w-auto h-auto object-contain select-none will-change-transform animate-fade-in ${
                   isZoomed
-                    ? `max-w-none max-h-none rounded-none drop-shadow-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
+                    ? `max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-none drop-shadow-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
                     : `max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${isDragging ? 'cursor-grabbing' : 'cursor-grab md:cursor-zoom-in'}`
                 }`}
                 draggable={false}
