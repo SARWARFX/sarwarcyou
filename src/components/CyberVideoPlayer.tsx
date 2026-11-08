@@ -19,6 +19,7 @@ import {
   Info,
   X,
   AlertTriangle,
+  MoreHorizontal,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -80,6 +81,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(false);
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
 
   // Playback Fallback & Error State
@@ -193,10 +195,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   const toggleSpeedMenu = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    const targetEl = (e.currentTarget as HTMLElement) || speedBtnRef.current;
     setShowSpeedMenu((prev) => {
       const next = !prev;
-      if (next && speedBtnRef.current) {
-        const rect = speedBtnRef.current.getBoundingClientRect();
+      if (next && targetEl) {
+        const rect = targetEl.getBoundingClientRect();
         setSpeedMenuPos({
           bottom: Math.max(16, window.innerHeight - rect.top + 8),
           right: Math.max(8, window.innerWidth - rect.right),
@@ -678,15 +681,80 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   };
 
-  // Toggle Fullscreen
-  const toggleFullscreen = useCallback(() => {
+  // Toggle Fullscreen with Landscape Auto-Rotate via Screen Orientation API
+  const handleFullscreenToggle = useCallback(async () => {
+    const container = playerContainerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+
     if (!document.fullscreenElement) {
-      playerContainerRef.current?.requestFullscreen().catch(() => {});
+      try {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        }
+      } catch (err) {
+        console.warn('Fullscreen request notice:', err);
+      }
+
+      // Auto-rotate if video is landscape (width > height)
+      const isLandscape = video.videoWidth > video.videoHeight;
+      if ('orientation' in screen && 'lock' in (screen.orientation as any)) {
+        try {
+          if (isLandscape) {
+            await (screen.orientation as any).lock('landscape');
+          } else {
+            await (screen.orientation as any).lock('portrait');
+          }
+        } catch (err) {
+          console.warn('Orientation lock notice:', err);
+        }
+      }
     } else {
-      document.exitFullscreen().catch(() => {});
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        }
+      } catch (err) {
+        console.warn('Fullscreen exit notice:', err);
+      }
+
+      if ('orientation' in screen && 'unlock' in (screen.orientation as any)) {
+        try {
+          (screen.orientation as any).unlock();
+        } catch (err) {}
+      }
     }
     resetHudTimer();
   }, [resetHudTimer]);
+
+  // Listen to fullscreenchange to unlock orientation if user exits via hardware gestures
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        if ('orientation' in screen && 'unlock' in (screen.orientation as any)) {
+          try {
+            (screen.orientation as any).unlock();
+          } catch (_) {}
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      if ('orientation' in screen && 'unlock' in (screen.orientation as any)) {
+        try {
+          (screen.orientation as any).unlock();
+        } catch (_) {}
+      }
+    };
+  }, []);
 
   // Handle Mute Toggle
   const handleToggleMute = useCallback(() => {
@@ -738,6 +806,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   }, []);
 
   const handleClose = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    if ('orientation' in screen && 'unlock' in (screen.orientation as any)) {
+      try {
+        (screen.orientation as any).unlock();
+      } catch (_) {}
+    }
     releaseVideoResources();
     onClose();
   }, [onClose, releaseVideoResources]);
@@ -775,7 +851,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       } else if (e.key === 'ArrowLeft') {
         seekBy(-10);
       } else if (e.key === 'f' || e.key === 'F') {
-        toggleFullscreen();
+        handleFullscreenToggle();
       } else if (e.key === 'm' || e.key === 'M') {
         handleToggleMute();
       } else if (e.key === '>' || (e.shiftKey && e.key === '.') || e.key === ']') {
@@ -801,7 +877,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose, togglePlay, seekBy, toggleFullscreen, handleToggleMute, playbackSpeed, applyPlaybackSpeed, resetHudTimer]);
+  }, [isOpen, onClose, togglePlay, seekBy, handleFullscreenToggle, handleToggleMute, playbackSpeed, applyPlaybackSpeed, resetHudTimer]);
 
   // Handle Download
   const handleDownload = async () => {
@@ -919,11 +995,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-[9999] text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-50 bg-black/95 text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
       style={{
-        background: 'rgba(3, 5, 10, 0.55)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(2, 4, 8, 0.96)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
       }}
     >
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
@@ -1419,8 +1495,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           </div>
         </div>
 
-        {/* HUD Controls Row: Left and Right Clusters */}
-        <div className="flex items-center justify-between gap-2 w-full max-w-full overflow-visible">
+        {/* Desktop Controls Row (md:flex) */}
+        <div className="hidden md:flex items-center justify-between gap-2 w-full max-w-full overflow-visible">
           {/* Left Cluster: Play/Pause button + Current Time / Total Duration timecode */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <button
@@ -1648,8 +1724,184 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* Fullscreen */}
             <button
               type="button"
-              onClick={toggleFullscreen}
+              onClick={handleFullscreenToggle}
               className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Google_Sans'] flex-shrink-0"
+              title="Fullscreen (F)"
+              aria-label="Toggle Fullscreen"
+            >
+              {document.fullscreenElement ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Controls Row (< md): Guaranteed Left (Play/Time), Center (FIT/Speed/⋯), Right (Mute/Fullscreen) */}
+        <div className="flex md:hidden items-center justify-between gap-1 w-full relative z-10">
+          {/* Left: Play/Pause button + compact Timecode */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="bg-transparent border-none outline-none text-slate-300 hover:text-white cursor-pointer p-1.5 flex items-center justify-center flex-shrink-0"
+              title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4 fill-current" />
+              ) : (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              )}
+            </button>
+
+            <span
+              className="text-[10px] font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+            >
+              {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
+            </span>
+          </div>
+
+          {/* Center: FIT toggle, Speed button, and Overflow Menu */}
+          <div className="flex items-center gap-1 overflow-x-hidden min-w-0 justify-end">
+            {/* Aspect Ratio Fit */}
+            <button
+              type="button"
+              onClick={() => {
+                setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
+                resetHudTimer();
+              }}
+              className={`bg-transparent border-none outline-none p-1 text-[10px] font-['Google_Sans'] font-medium tracking-wider cursor-pointer flex-shrink-0 ${
+                fitMode === 'cover'
+                  ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title={fitMode === 'cover' ? 'Fill Screen' : 'Fit Screen'}
+            >
+              {fitMode === 'cover' ? 'FILL' : 'FIT'}
+            </button>
+
+            {/* Speed Selector */}
+            <button
+              type="button"
+              onClick={toggleSpeedMenu}
+              className={`bg-transparent border-none outline-none p-1 text-[10px] font-mono font-medium cursor-pointer flex-shrink-0 ${
+                playbackSpeed !== 1 ? 'text-[#38bdf8] font-bold' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Speed"
+            >
+              {playbackSpeed}x
+            </button>
+
+            {/* Overflow (⋯) Button for Loop, A-B, Download, Share */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMobileMore((prev) => !prev);
+                  resetHudTimer();
+                }}
+                className={`bg-transparent border-none outline-none p-1 text-slate-400 hover:text-white cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                  showMobileMore ? 'text-[#38bdf8]' : ''
+                }`}
+                title="More options"
+                aria-label="More options"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+
+              {/* Overflow Popover Menu */}
+              {showMobileMore && (
+                <div
+                  style={{
+                    background: 'rgba(4, 7, 12, 0.94)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                  }}
+                  className="fixed bottom-16 right-12 py-2 px-2.5 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.95)] flex flex-col gap-2 z-[10000] min-w-[140px] animate-fade-in pointer-events-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Loop Option */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
+                      resetHudTimer();
+                    }}
+                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                  >
+                    {repeatMode === 'one' ? <Repeat1 className="w-3.5 h-3.5 text-[#38bdf8]" /> : <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#38bdf8]' : ''}`} />}
+                    <span>Loop: {repeatMode.toUpperCase()}</span>
+                  </button>
+
+                  {/* A-B Loop Option */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleLoop();
+                    }}
+                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                  >
+                    <Repeat className="w-3.5 h-3.5" />
+                    <span>A-B: {loopA !== null && loopB !== null ? 'Active' : loopA !== null ? 'Set B' : 'Set A'}</span>
+                  </button>
+
+                  {/* Download Option */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload();
+                    }}
+                    disabled={isDownloading}
+                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1 disabled:opacity-40"
+                  >
+                    {downloadSuccess ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : isDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    <span>Download</span>
+                  </button>
+
+                  {/* Share Option */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShareMedia();
+                    }}
+                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                  >
+                    {shareSuccess ? <Check className="w-3.5 h-3.5 text-[#38bdf8]" /> : <Share2 className="w-3.5 h-3.5" />}
+                    <span>Share</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Mute & Fullscreen ALWAYS pinned to the right edge with flex-shrink-0 z-10 */}
+          <div className="flex items-center gap-1 z-10 flex-shrink-0">
+            {/* Mute / Unmute Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleMute}
+              className="bg-transparent border-none outline-none text-slate-300 hover:text-white cursor-pointer p-1.5 flex items-center justify-center flex-shrink-0 z-10"
+              title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-white" />}
+            </button>
+
+            {/* Fullscreen */}
+            <button
+              type="button"
+              onClick={handleFullscreenToggle}
+              className="bg-transparent border-none outline-none text-slate-300 hover:text-white cursor-pointer p-1.5 flex items-center justify-center flex-shrink-0 z-10"
               title="Fullscreen (F)"
               aria-label="Toggle Fullscreen"
             >
