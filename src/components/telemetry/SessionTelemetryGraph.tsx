@@ -111,7 +111,7 @@ export const SessionTelemetryGraph: React.FC<{ className?: string }> = ({ classN
   return (
     <div className={`w-full h-full flex items-end select-none bg-transparent border-none p-0 shrink-0 ${className}`}>
       {/* 7-Day Monolith Historical Bar Track without outer containers or header text */}
-      <div className="grid grid-cols-7 gap-2 sm:gap-3 md:gap-4 w-full h-full items-end pb-0.5">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 md:gap-3 w-full h-full items-end pb-0.5">
         {dayStats.map((day) => {
           // Height percentage with minimum 4% baseline tick for 0 values
           const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
@@ -120,7 +120,7 @@ export const SessionTelemetryGraph: React.FC<{ className?: string }> = ({ classN
             <div key={day.dateKey} className="flex flex-col items-center h-full justify-end group">
               {/* Tip: Duration in H.MM */}
               <span
-                className={`font-mono text-[9px] sm:text-[10px] mb-1 transition-all ${
+                className={`font-mono text-[7px] xs:text-[8px] sm:text-[10px] mb-0.5 sm:mb-1 transition-all ${
                   day.isToday
                     ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)] scale-105'
                     : 'text-slate-400 group-hover:text-white'
@@ -130,7 +130,7 @@ export const SessionTelemetryGraph: React.FC<{ className?: string }> = ({ classN
               </span>
 
               {/* Monolith Pillar Bar */}
-              <div className="w-full max-w-[28px] sm:max-w-[36px] h-9 sm:h-11 flex items-end justify-center">
+              <div className="w-full max-w-[16px] xs:max-w-[20px] sm:max-w-[30px] md:max-w-[36px] h-6 xs:h-7 sm:h-9 md:h-11 flex items-end justify-center">
                 <div
                   style={{ height: `${heightPct}%` }}
                   className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
@@ -145,7 +145,7 @@ export const SessionTelemetryGraph: React.FC<{ className?: string }> = ({ classN
 
               {/* Bottom: Date Label */}
               <span
-                className={`mt-1 font-['Google_Sans'] text-[8px] sm:text-[9px] tracking-wider uppercase text-center truncate w-full ${
+                className={`mt-0.5 sm:mt-1 font-['Google_Sans'] text-[6px] xs:text-[7px] sm:text-[8px] md:text-[9px] tracking-wider uppercase text-center truncate w-full ${
                   day.isToday
                     ? 'text-white font-bold drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]'
                     : 'text-slate-500 group-hover:text-slate-300'

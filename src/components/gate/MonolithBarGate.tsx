@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Play, ArrowLeft } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -76,38 +76,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Navigation states: default to Idle Home Overview (null)
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
-
-  // Outer horizontal track ref for mobile horizontal snap & swipe-back
-  const outerTrackRef = useRef<HTMLDivElement>(null);
-
-  // Touch tracking for instant left-to-right swipe back on mobile
-  const touchStartXRef = useRef<number | null>(null);
-  const touchStartYRef = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
-
-    // Swiping left-to-right: positive deltaX (finger moved right)
-    // Instant snap-back triggered if horizontal delta exceeds threshold & dominates vertical
-    if (deltaX > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
-      if (outerTrackRef.current) {
-        outerTrackRef.current.scrollTo({
-          left: 0,
-          behavior: 'smooth',
-        });
-      }
-    }
-
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-  };
 
   // Build directory tree
   const rootMap = useMemo(() => {
@@ -291,40 +259,21 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     onOpenVideo(item, videoPool.length > 0 ? videoPool : [item]);
   };
 
-  // Subfolder select handler: loads category assets & smoothly snaps outer track to Pane 2 on mobile
+  // Subfolder select handler: selects subfolder to display its media assets
   const handleSelectSubfolder = (albumKey: string, subfolderName: string) => {
     setSelectedAlbum(albumKey);
     setSelectedSubfolder(subfolderName);
-
-    // Smooth scroll/snap to Pane 2 on mobile screens (< 768px)
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (outerTrackRef.current && window.innerWidth < 768) {
-          outerTrackRef.current.scrollTo({
-            left: outerTrackRef.current.clientWidth,
-            behavior: 'smooth',
-          });
-        }
-      }, 50);
-    });
   };
 
-  // Idle reset handler: returns to Pane 1
+  // Idle reset handler: returns to Home Overview (Latest Uploads)
   const handleSelectIdle = () => {
     setSelectedAlbum(null);
     setSelectedSubfolder(null);
-    if (outerTrackRef.current) {
-      outerTrackRef.current.scrollTo({
-        left: 0,
-        behavior: 'smooth',
-      });
-    }
   };
 
   return (
     <div
-      ref={outerTrackRef}
-      className="w-screen h-screen flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory md:overflow-x-hidden md:snap-none no-scrollbar bg-transparent select-none text-white font-['Google_Sans']"
+      className="w-screen h-screen overflow-hidden flex flex-row bg-transparent select-none text-white font-['Google_Sans']"
       style={{
         isolation: 'isolate',
         background: 'radial-gradient(circle at 50% 35%, rgba(8, 20, 38, 0.6) 0%, #020408 85%)',
@@ -335,13 +284,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
       {/* ========================================================================= */}
-      {/* PANE 1: MIDDLE-LEFT FOLDERS & TELEMETRY GRAPH                            */}
+      {/* LEFT-MIDDLE FOLDER NAVIGATION & BOUND TELEMETRY GRAPH (Desktop & Mobile)  */}
       {/* ========================================================================= */}
-      <section
+      <aside
         aria-label="Folder Navigation and Telemetry"
-        className="flex-none w-screen md:w-[320px] h-screen snap-start shrink-0 relative flex flex-col justify-center pl-8 md:pl-14 pb-24 z-20 select-none bg-transparent"
+        className="w-[130px] xs:w-[150px] sm:w-[190px] md:w-[260px] lg:w-[280px] h-screen relative flex flex-col justify-center pl-3 xs:pl-5 sm:pl-7 md:pl-10 lg:pl-12 pb-16 sm:pb-22 z-20 select-none bg-transparent shrink-0 border-r border-white/5"
       >
-        {/* Folder list vertically centered on the left: CLIPS, SHORTS, PHOTOGRAPHY, REALTUBE */}
+        {/* Vertically centered in the middle of the screen on both desktop and mobile */}
         <SidebarAccordionNav
           rootMap={rootMap}
           selectedAlbum={selectedAlbum}
@@ -350,47 +299,40 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           onSelectIdle={handleSelectIdle}
         />
 
-        {/* Anchored at bottom: 7-day telemetry ledger graph across the bottom width */}
-        <div className="absolute bottom-6 left-6 right-6 md:left-14 md:right-10 h-20 flex items-end">
+        {/* Anchored at bottom: 7-day telemetry ledger graph */}
+        <div className="absolute bottom-3 sm:bottom-5 left-2 sm:left-5 right-2 sm:right-5 md:left-9 md:right-7 h-12 sm:h-16 md:h-18 flex items-end">
           <SessionTelemetryGraph />
         </div>
-      </section>
+      </aside>
 
       {/* ========================================================================= */}
-      {/* PANE 2: VERTICAL UP-DOWN SCROLLABLE MEDIA GRID                           */}
+      {/* RIGHT CANVAS: VERTICAL MEDIA GRID (Desktop & Mobile)                      */}
       {/* ========================================================================= */}
       <main
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
         aria-label="Media Gallery"
-        className="flex-none w-screen md:flex-1 md:w-auto h-screen snap-start relative overflow-y-auto overflow-x-hidden p-4 md:p-8 space-scrollbar z-20 bg-transparent border-0"
+        className="flex-1 h-screen overflow-y-auto space-scrollbar p-2.5 xs:p-3 sm:p-6 md:p-8 z-20 bg-transparent border-0"
         style={{
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Mobile Header Bar: Instant tap-to-return (clean icon only) and current folder title */}
-        <div className="md:hidden flex items-center justify-between pb-2 mb-3 border-b border-white/8">
-          <button
-            type="button"
-            onClick={() => {
-              if (outerTrackRef.current) {
-                outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-              }
-            }}
-            aria-label="Back to folders"
-            className="text-slate-400 hover:text-white p-1 -ml-1 cursor-pointer bg-transparent border-0 outline-none transition-colors flex items-center justify-center"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
-          </button>
-          {selectedSubfolder && (
-            <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate max-w-[180px]">
+        {/* Selected subfolder indicator if a category is open */}
+        {selectedSubfolder && (
+          <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/8">
+            <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate">
               {selectedSubfolder}
             </span>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={handleSelectIdle}
+              className="text-slate-400 hover:text-white font-['Google_Sans'] text-[11px] uppercase tracking-wider cursor-pointer bg-transparent border-0 outline-none"
+            >
+              SHOW ALL
+            </button>
+          </div>
+        )}
 
         {/* Vertical Up-Down Scrollable Media Grid: 2 columns on mobile, 3-5 on larger screens */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 pb-20">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3.5 pb-20">
           {activeMediaList.map((item, idx) => {
             const isPhoto =
               item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
