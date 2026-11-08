@@ -7,7 +7,6 @@ import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { CyberCommandPalette } from './components/CyberCommandPalette';
-import { AmbientNoticesHUD } from './components/AmbientNoticesHUD';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
@@ -641,11 +640,6 @@ function App() {
             onOpenShort={handleOpenShort}
           />
 
-          {/* Intermittent Ambient Notices HUD */}
-          <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
-            <AmbientNoticesHUD />
-          </div>
-
           {/* Global Network Connectivity Indicator */}
           <NetworkStatusHUD />
         </>
@@ -669,11 +663,6 @@ function App() {
             onOpenVideo={handleOpenVideo}
             onOpenShort={handleOpenShort}
           />
-
-          {/* Intermittent Ambient Notices HUD */}
-          <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
-            <AmbientNoticesHUD />
-          </div>
 
           {/* Global Network Connectivity Indicator */}
           <NetworkStatusHUD />
@@ -782,11 +771,6 @@ function App() {
               onOpenShort={handleOpenShort}
             />
           )}
-
-          {/* Intermittent / Periodic Ambient Notices HUD (fades in for ~8s every couple of minutes across all viewports) */}
-          <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
-            <AmbientNoticesHUD />
-          </div>
 
           {/* Global Network Connectivity Indicator (Online/Offline HUD) */}
           <NetworkStatusHUD />
