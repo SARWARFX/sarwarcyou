@@ -339,19 +339,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         />
       </div>
 
-      {/* 3. Fixed Required Signature at Bottom-Right: "SARWAR.CYOU" */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsUnlocked(true);
-        }}
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-10 z-20 cursor-pointer select-none font-['Audiowide',cursive,sans-serif] text-xs sm:text-sm tracking-[0.24em] text-white uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] bg-transparent border-0 outline-none p-0"
-      >
-        SARWAR.CYOU
-      </button>
-
-      {/* 4. Progressive Navigation Stage (Desktop 3-Tier Cascade + Mobile Adaptive Drill-Down) */}
+      {/* 3. Progressive Navigation Stage (Desktop 3-Tier Cascade + Mobile Adaptive Drill-Down) */}
       <div
         ref={menuContainerRef}
         onClick={(e) => e.stopPropagation()}
