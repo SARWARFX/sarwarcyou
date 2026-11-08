@@ -505,42 +505,48 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* ========================================================================= */}
       <div
         ref={outerTrackRef}
-        className="md:hidden w-screen h-screen flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar bg-transparent select-none relative z-20"
+        className="md:hidden w-screen h-screen flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar relative select-none z-20"
+        style={{
+          scrollSnapType: 'x mandatory',
+        }}
       >
-        {/* PANE 1: MIDDLE-LEFT FOLDERS & ATTACHED TELEMETRY GRAPH */}
+        {/* SCREEN 1 (100vw): HOME / FOLDERS & FULL-WIDTH BOTTOM GRAPH */}
         <section
-          aria-label="Folder Navigation and Telemetry"
-          className="flex-none w-screen h-screen snap-start shrink-0 relative flex flex-col justify-center pl-8 pb-24 z-20 select-none bg-transparent"
+          aria-label="Mobile Navigation and Telemetry"
+          className="flex-none w-screen h-screen snap-start flex flex-col justify-between overflow-hidden relative shrink-0"
         >
-          <SidebarAccordionNav
-            variant="mobile"
-            rootMap={rootMap}
-            selectedAlbum={selectedAlbum}
-            selectedSubfolder={selectedSubfolder}
-            openFolder={openFolder}
-            onToggleFolder={handleToggleFolder}
-            onSelectSubfolder={handleMobileSelectSubfolder}
-            onSelectIdle={handleSelectIdle}
-          />
+          {/* Middle-Left Folders: Vertically centered */}
+          <div className="flex-1 flex flex-col justify-center pl-8 md:pl-12 gap-6 select-none">
+            <SidebarAccordionNav
+              variant="mobile"
+              rootMap={rootMap}
+              selectedAlbum={selectedAlbum}
+              selectedSubfolder={selectedSubfolder}
+              openFolder={openFolder}
+              onToggleFolder={handleToggleFolder}
+              onSelectSubfolder={handleMobileSelectSubfolder}
+              onSelectIdle={handleSelectIdle}
+            />
+          </div>
 
-          {/* Anchored at bottom: 7-day telemetry ledger graph */}
-          <div className="absolute bottom-6 left-6 right-6 h-20 flex items-end">
-            <SessionTelemetryGraph variant="compact" />
+          {/* Full-Width Bottom Graph Dock */}
+          <div className="w-full px-5 pb-6 pt-2 flex flex-col justify-end flex-shrink-0">
+            <SessionTelemetryGraph variant="mobile" />
           </div>
         </section>
 
-        {/* PANE 2: VERTICAL UP-DOWN SCROLLABLE MEDIA GRID WITH SWIPE-BACK */}
+        {/* SCREEN 2 (100vw): VERTICAL UP-DOWN SCROLLABLE MEDIA GRID WITH SWIPE-BACK */}
         <main
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          aria-label="Media Gallery"
-          className="flex-none w-screen h-screen snap-start relative overflow-y-auto overflow-x-hidden p-4 space-scrollbar z-20 bg-transparent border-0"
+          aria-label="Mobile Media Gallery"
+          className="flex-none w-screen h-screen snap-start flex flex-col overflow-y-auto overflow-x-hidden p-4 relative shrink-0 space-scrollbar bg-transparent border-0"
           style={{
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {/* Header Bar: Clean arrow-only back button and active subfolder name */}
-          <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/8">
+          {/* Top Bar: Clean bare arrow icon button (←) with NO "FOLDERS" text & active subfolder name tag */}
+          <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/8 shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -554,14 +560,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
             </button>
             {selectedSubfolder && (
-              <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate max-w-[180px]">
+              <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate max-w-[200px]">
                 {selectedSubfolder}
               </span>
             )}
           </div>
 
-          {/* Vertical Up-Down Scrollable Media Grid: 2 columns on mobile */}
-          <div className="grid grid-cols-2 gap-3.5 pb-20">
+          {/* Media Grid: Takes full 100vw width */}
+          <div className="w-full grid grid-cols-2 gap-3.5 pb-20">
             {activeMediaList.map((item, idx) => {
               const isPhoto =
                 item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');

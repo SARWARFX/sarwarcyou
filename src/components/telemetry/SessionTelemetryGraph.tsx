@@ -12,7 +12,7 @@ interface DayStat {
 
 export interface SessionTelemetryGraphProps {
   className?: string;
-  variant?: 'compact' | 'dock';
+  variant?: 'compact' | 'dock' | 'mobile';
 }
 
 export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
@@ -167,6 +167,57 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  if (variant === 'mobile') {
+    return (
+      <div className={`w-full flex justify-between items-end h-20 gap-2 ${className}`}>
+        {dayStats.map((day) => {
+          const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
+
+          return (
+            <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1 group">
+              {/* Duration in H.MM */}
+              <span
+                className={`font-mono text-[9px] xs:text-[10px] transition-colors ${
+                  day.isToday
+                    ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]'
+                    : 'text-[#475569] group-hover:text-slate-300'
+                }`}
+              >
+                {day.hoursFormatted}
+              </span>
+
+              {/* Monolith Pillar Slot */}
+              <div className="h-[44px] w-full max-w-[36px] bg-white/[0.03] rounded flex items-end overflow-hidden">
+                <div
+                  style={{
+                    height: `${heightPct}%`,
+                    background: day.isToday
+                      ? 'linear-gradient(to top, #0284c7, #38bdf8)'
+                      : 'linear-gradient(to top, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.45))',
+                  }}
+                  className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
+                    day.isToday ? 'shadow-[0_0_12px_rgba(56,189,248,0.5)]' : ''
+                  }`}
+                />
+              </div>
+
+              {/* Date Label */}
+              <span
+                className={`font-mono text-[8px] xs:text-[9px] uppercase tracking-wider text-center truncate w-full ${
+                  day.isToday
+                    ? 'text-[#38bdf8] font-semibold'
+                    : 'text-[#475569] group-hover:text-slate-400'
+                }`}
+              >
+                {day.label}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   }
