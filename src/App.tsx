@@ -19,8 +19,10 @@ import { FrostedSnowCanvas } from './components/FrostedSnowCanvas';
 import { AuraCanvas } from './components/aura/AuraCanvas';
 import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
 import { MonolithBarGate } from './components/gate/MonolithBarGate';
+import { PurePhotographyTrailerGate } from './components/gate/PurePhotographyTrailerGate';
 import {
   ACTIVE_INTERFACE,
+  ENABLE_TRAILER_GATE,
   ENABLE_MONOLITH_GATE,
   ENABLE_AURA_FLOW,
   ENABLE_CASCADE_SHELL,
@@ -617,7 +619,31 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE' ? (
+      {ENABLE_TRAILER_GATE || ACTIVE_INTERFACE === 'TRAILER_GATE' ? (
+        <>
+          {/* 0. Opening Public Domain Compliance Splash Screen */}
+          <ComplianceSplashScreen />
+
+          {/* 1. Fullscreen Pure Photography Trailer Gate with Click-Anywhere Vault */}
+          <PurePhotographyTrailerGate
+            items={rawFeed.allMediaPool}
+            initialAlbum={initialAlbumTarget}
+            isModalOpen={
+              theaterState.isOpen ||
+              shortsState.isOpen ||
+              lightboxState.isOpen ||
+              viewAllState.isOpen ||
+              isCommandPaletteOpen
+            }
+            onOpenPhoto={handleOpenPhoto}
+            onOpenVideo={handleOpenVideo}
+            onOpenShort={handleOpenShort}
+          />
+
+          {/* Global Network Connectivity Indicator */}
+          <NetworkStatusHUD />
+        </>
+      ) : ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE' ? (
         <>
           {/* 0. Opening Public Domain Compliance Splash Screen */}
           <ComplianceSplashScreen />
