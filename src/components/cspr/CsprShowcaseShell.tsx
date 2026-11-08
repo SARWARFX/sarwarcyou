@@ -61,7 +61,7 @@ export const CsprShowcaseShell: React.FC<CsprShowcaseShellProps> = ({
           onClick={() => setActiveTab('HOME')}
           className="flex items-center gap-3 cursor-pointer select-none group"
         >
-          <span className="font-['Audiowide',cursive,sans-serif] text-sm sm:text-base tracking-[0.24em] text-white uppercase group-hover:text-neutral-200 transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+          <span className="font-['Google Sans'] font-bold text-sm sm:text-base tracking-[0.22em] text-white uppercase group-hover:text-neutral-200 transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
             SARWAR.CYOU
           </span>
           <span className="text-[10px] sm:text-xs font-mono tracking-widest text-neutral-400 uppercase hidden sm:inline">

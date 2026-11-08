@@ -147,7 +147,7 @@ export const SubfolderArchiveView: React.FC<SubfolderArchiveViewProps> = ({
           <span className="text-[10px] font-mono tracking-[0.25em] text-neutral-400 uppercase">
             CATEGORY ARCHIVE // {category}
           </span>
-          <h1 className="font-['Audiowide',cursive,sans-serif] text-xl sm:text-2xl md:text-3xl tracking-[0.22em] text-white uppercase mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+          <h1 className="font-['Google Sans'] font-medium text-xl sm:text-2xl md:text-3xl tracking-[0.18em] text-white uppercase mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
             {currentInfo.title}
           </h1>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1 font-['Roboto',sans-serif]">

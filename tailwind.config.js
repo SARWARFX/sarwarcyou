@@ -7,12 +7,12 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Audiowide"', 'cursive', 'sans-serif'],
-        brand: ['"Audiowide"', 'cursive', 'sans-serif'],
+        sans: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
+        display: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
+        brand: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
         audiowide: ['"Audiowide"', 'cursive', 'sans-serif'],
-        serif: ['"Times New Roman"', 'Times', 'Georgia', 'serif'],
-        sans: ['"Times New Roman"', 'Times', 'Georgia', 'serif'],
-        mono: ['"Times New Roman"', 'Times', 'Georgia', 'serif'],
+        serif: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
     },
   },

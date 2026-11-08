@@ -21,23 +21,31 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 
-    <!-- Global Root Overflow Lock & Modern Grotesque Typography -->
+    <!-- Global Root Overflow Lock & Google Sans Typography -->
     <style>
+      @font-face {
+        font-family: 'Google Sans';
+        src: local('Google Sans'), local('Product Sans'),
+             url('https://fonts.gstatic.com/s/googlesans/v58/4UaGrENHsxJlGDuGo1OIlL3Kwp5eKQtG.woff2') format('woff2');
+        font-weight: 400 700;
+        font-style: normal;
+        font-display: swap;
+      }
       html, body {
         max-width: 100%;
         overflow-x: hidden;
         position: relative;
-        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        font-family: 'Google Sans', 'Product Sans', sans-serif;
       }
       #root {
         width: 100%;
         max-width: 100%;
         overflow-x: hidden;
-        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        font-family: 'Google Sans', 'Product Sans', sans-serif;
       }
     </style>
   </head>
-  <body class="bg-[#08090c] text-neutral-100 antialiased overflow-x-hidden relative max-w-full select-none selection:bg-neutral-700 selection:text-white" style="font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;">
+  <body class="bg-[#08090c] text-neutral-100 antialiased overflow-x-hidden relative max-w-full select-none selection:bg-neutral-700 selection:text-white font-sans" style="font-family: 'Google Sans', 'Product Sans', sans-serif;">
     <script>
       window.BRAND_CONFIG = {
         name: 'SARWARCYOU',

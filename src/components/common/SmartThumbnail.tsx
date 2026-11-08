@@ -65,7 +65,7 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
             </div>
 
             {/* Telemetry Text */}
-            <span className="font-['Audiowide'] text-[10px] tracking-[0.24em] text-slate-400 uppercase mt-2 truncate max-w-full px-2">
+            <span className="font-['Google Sans'] font-medium text-[10px] tracking-[0.24em] text-slate-400 uppercase mt-2 truncate max-w-full px-2">
               LOADING THUMBNAIL...
             </span>
           </div>
@@ -76,7 +76,7 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
       {hasError ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-[#05080e] via-[#090e17] to-[#020408] p-3 text-center">
           <div className="w-2 h-2 rounded-full bg-slate-600/50 mb-2" />
-          <span className="font-['Audiowide'] text-[10px] tracking-widest text-slate-400 uppercase drop-shadow">
+          <span className="font-['Google Sans'] font-medium text-[10px] tracking-widest text-slate-400 uppercase drop-shadow">
             MEDIA ARCHIVE // READY
           </span>
           {fallbackTitle && (

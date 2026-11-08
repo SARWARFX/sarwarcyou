@@ -207,7 +207,7 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
           </span>
         </div>
         <div className="truncate">
-          <span className="text-xs font-['Audiowide',cursive,sans-serif] tracking-[0.08em] text-zinc-300 block truncate">{cleanTitle}</span>
+          <span className="text-xs font-['Google Sans'] font-medium tracking-[0.08em] text-zinc-300 block truncate">{cleanTitle}</span>
         </div>
       </div>
 
@@ -303,7 +303,7 @@ const CarouselCard: React.FC<CarouselCardProps> = ({
 
       {/* Bottom Gradient Metadata Bar */}
       <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 via-black/45 to-transparent z-20 pointer-events-none flex flex-col justify-end">
-        <span className="text-[11px] sm:text-xs font-['Audiowide',cursive,sans-serif] tracking-[0.08em] text-zinc-100 truncate block leading-tight">
+        <span className="text-[11px] sm:text-xs font-['Google Sans'] font-medium tracking-[0.08em] text-zinc-100 truncate block leading-tight">
           {cleanTitle}
         </span>
         <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mt-0.5 truncate">

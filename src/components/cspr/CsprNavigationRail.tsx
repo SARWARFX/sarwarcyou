@@ -53,7 +53,7 @@ export const CsprNavigationRail: React.FC<CsprNavigationRailProps> = ({
 
                 {/* Letter / Symbol Glyph */}
                 <span
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-['Audiowide',cursive,sans-serif] text-sm transition-all duration-200 ${
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-['Google Sans'] font-bold text-sm transition-all duration-200 ${
                     isActive
                       ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.5)] scale-105'
                       : 'text-neutral-400 group-hover:text-white group-hover:bg-white/10'
@@ -64,7 +64,7 @@ export const CsprNavigationRail: React.FC<CsprNavigationRailProps> = ({
 
                 {/* Hover Slide-Out Label: Smoothly expands to the right on hover */}
                 <span
-                  className={`overflow-hidden whitespace-nowrap font-['Audiowide',cursive,sans-serif] text-xs tracking-[0.22em] uppercase transition-all duration-300 max-w-0 opacity-0 group-hover:max-w-[200px] group-hover:opacity-100 group-hover:pl-3 group-hover:pr-4 ${
+                  className={`overflow-hidden whitespace-nowrap font-['Google Sans'] font-medium text-xs tracking-[0.22em] uppercase transition-all duration-300 max-w-0 opacity-0 group-hover:max-w-[200px] group-hover:opacity-100 group-hover:pl-3 group-hover:pr-4 ${
                     isActive ? 'text-white' : 'text-neutral-300'
                   }`}
                 >
@@ -95,7 +95,7 @@ export const CsprNavigationRail: React.FC<CsprNavigationRailProps> = ({
               }`}
             >
               <span
-                className={`w-7 h-7 rounded-lg flex items-center justify-center font-['Audiowide',cursive,sans-serif] text-sm transition-all duration-200 ${
+                className={`w-7 h-7 rounded-lg flex items-center justify-center font-['Google Sans'] font-bold text-sm transition-all duration-200 ${
                   isActive
                     ? 'bg-white text-black shadow-md scale-105'
                     : 'bg-white/5 text-neutral-400'
@@ -103,7 +103,7 @@ export const CsprNavigationRail: React.FC<CsprNavigationRailProps> = ({
               >
                 {item.icon}
               </span>
-              <span className="text-[9px] font-['Audiowide',cursive,sans-serif] tracking-wider uppercase mt-1 line-clamp-1">
+              <span className="text-[9px] font-['Google Sans'] font-medium tracking-wider uppercase mt-1 line-clamp-1">
                 {item.shortLabel}
               </span>
             </button>
