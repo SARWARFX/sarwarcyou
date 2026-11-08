@@ -92,9 +92,9 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
         <button
           type="button"
           onClick={handleDismiss}
-          className="mt-4 w-full sm:w-auto px-7 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white font-['Audiowide',cursive,sans-serif] text-xs tracking-[0.2em] uppercase transition-all duration-200 active:scale-95 shadow-lg cursor-pointer"
+          className="mt-4 font-['Audiowide'] text-xs md:text-sm tracking-[0.28em] uppercase text-slate-400 hover:text-white transition-all duration-300 hover:drop-shadow-[0_0_16px_rgba(255,255,255,0.7)] cursor-pointer bg-transparent border-none outline-none py-2 px-4"
         >
-          [ ENTER ARCHIVE ]
+          ENTER ARCHIVE
         </button>
       </div>
     </div>
