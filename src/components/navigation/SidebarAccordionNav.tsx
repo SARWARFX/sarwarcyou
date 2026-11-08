@@ -98,42 +98,59 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
             <button
               type="button"
               onClick={() => toggleAccordion(folder.key)}
-              className={`font-['Google_Sans'] font-bold text-lg md:text-xl tracking-[0.22em] uppercase transition-all cursor-pointer text-left outline-none bg-transparent border-0 flex items-center gap-2.5 ${
+              className={`font-['Google_Sans'] font-bold text-lg md:text-xl tracking-[0.22em] uppercase transition-all duration-300 cursor-pointer text-left outline-none bg-transparent border-0 flex items-center gap-2.5 ${
                 isFolderActive
                   ? 'text-white'
                   : 'text-slate-500 hover:text-white'
               }`}
             >
               {isFolderActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] flex-shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] flex-shrink-0 animate-pulse" />
               )}
               <span>{folder.label}</span>
             </button>
 
-            {/* Subfolder list when expanded */}
-            {isAccordionOpen && subfolderNodes.length > 0 && (
-              <div className="flex flex-col space-y-1.5 pl-4 pt-2.5 max-h-48 overflow-y-auto no-scrollbar">
-                {subfolderNodes.map((subNode) => {
-                  const isSubSelected =
-                    selectedAlbum === folder.key && selectedSubfolder === subNode.name;
+            {/* Subfolder list with smooth accordion expansion and staggered cascade */}
+            <div
+              className={`grid transition-[grid-template-rows,opacity] duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                isAccordionOpen
+                  ? 'grid-rows-[1fr] opacity-100'
+                  : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+              }`}
+            >
+              <div className="overflow-hidden">
+                {subfolderNodes.length > 0 && (
+                  <div className="flex flex-col space-y-1.5 border-l border-white/10 ml-1 pl-3.5 pt-2.5 pb-1">
+                    {subfolderNodes.map((subNode, idx) => {
+                      const isSubSelected =
+                        selectedAlbum === folder.key && selectedSubfolder === subNode.name;
 
-                  return (
-                    <button
-                      key={subNode.name}
-                      type="button"
-                      onClick={() => onSelectSubfolder(folder.key, subNode.name)}
-                      className={`font-['Google_Sans'] text-xs tracking-wider uppercase transition-all py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 ${
-                        isSubSelected
-                          ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1'
-                          : 'text-slate-400 hover:text-white hover:translate-x-1'
-                      }`}
-                    >
-                      {subNode.name}
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={subNode.name}
+                          type="button"
+                          onClick={() => onSelectSubfolder(folder.key, subNode.name)}
+                          style={{
+                            transitionDelay: isAccordionOpen ? `${idx * 40}ms` : '0ms',
+                          }}
+                          className={`font-['Google_Sans'] text-xs sm:text-[13px] tracking-wider uppercase transform transition-all duration-300 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 ${
+                            isAccordionOpen
+                              ? 'translate-x-0 opacity-100'
+                              : '-translate-x-2.5 opacity-0'
+                          } ${
+                            isSubSelected
+                              ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1.5'
+                              : 'text-slate-400 hover:text-white hover:translate-x-1'
+                          }`}
+                        >
+                          {subNode.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         );
       })}
