@@ -60,16 +60,46 @@ jobs:
 
           print(f"Total video files in vault: {len(video_files)}")
 
+          # 1. Compute expected vs existing thumbnails
+          valid_videos = set(video_files)
+          expected_thumbs = {f"Thumbnails/{os.path.splitext(v)[0]}.webp" for v in video_files}
+
           # Load existing manifest directly from Hugging Face dataset if available
           manifest = {}
+          initial_manifest_len = 0
           if "thumbnails.json" in existing_files_set:
               try:
                   manifest_path = hf_hub_download(repo_id=REPO_ID, filename="thumbnails.json", repo_type=REPO_TYPE, token=hf_token)
                   with open(manifest_path, "r", encoding="utf-8") as mf:
                       manifest = json.load(mf)
-                  print(f"Loaded existing manifest with {len(manifest)} items from Hugging Face dataset.")
+                  initial_manifest_len = len(manifest)
+                  print(f"Loaded existing manifest with {initial_manifest_len} items from Hugging Face dataset.")
               except Exception as e:
                   print(f"Note: Could not parse remote thumbnails.json: {e}")
+
+          # 2. Clean stale manifest entries
+          manifest = {v: thumb for v, thumb in manifest.items() if v in valid_videos}
+          stale_keys_count = initial_manifest_len - len(manifest)
+          if stale_keys_count > 0:
+              print(f"Pruned {stale_keys_count} stale entries from manifest.")
+
+          # 3. Identify & detect remote orphan WebP files
+          existing_thumbs = [
+              f for f in all_files 
+              if f.startswith("Thumbnails/") and f.lower().endswith(".webp")
+          ]
+          orphan_thumbs = [f for f in existing_thumbs if f not in expected_thumbs]
+          print(f"Detected {len(orphan_thumbs)} orphan WebP thumbnails in dataset.")
+
+          # 4. Execute deletions via Hugging Face API
+          if orphan_thumbs:
+              print(f"Pruning {len(orphan_thumbs)} orphan thumbnails from {REPO_ID}...")
+              for orphan in orphan_thumbs:
+                  try:
+                      api.delete_file(path_in_repo=orphan, repo_id=REPO_ID, repo_type=REPO_TYPE)
+                      print(f"  [PRUNED ORPHAN] {orphan}")
+                  except Exception as err:
+                      print(f"  [Prune Warning] Could not delete {orphan}: {err}")
 
           def get_duration(url, token):
               quoted_path = urllib.parse.quote(url, safe=":/")
@@ -99,7 +129,7 @@ jobs:
               dest_path = os.path.join(LOCAL_THUMB_DIR, thumb_rel_path)
 
               # Incremental processing: skip if thumbnail already exists in Hugging Face dataset
-              if thumb_rel_path in existing_files_set:
+              if thumb_rel_path in existing_files_set and thumb_rel_path not in orphan_thumbs:
                   manifest[v] = thumb_rel_path
                   print(f"[{idx}/{len(video_files)}] [SKIP] Exists on Hugging Face: {thumb_rel_path}")
                   continue
@@ -142,22 +172,26 @@ jobs:
 
           print(f"\nFinished extraction. Total new thumbnails generated: {generated_count}")
 
-          # Update the mapping manifest directly in the Hugging Face dataset folder
+          # 5. Save clean manifest
           manifest_temp_path = os.path.join(LOCAL_THUMB_DIR, "thumbnails.json")
           with open(manifest_temp_path, "w", encoding="utf-8") as f:
               json.dump(manifest, f, indent=2)
 
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"generated_count={generated_count}\n")
+          # If orphan_thumbs were deleted OR new thumbnails generated, trigger purge
+          total_changes = generated_count + len(orphan_thumbs)
+          manifest_modified = (stale_keys_count > 0) or (generated_count > 0)
 
-          # Upload generated thumbnails and updated manifest directly to Hugging Face dataset storage
-          if generated_count > 0:
-              print(f"Directly uploading {generated_count} thumbnails and manifest to Hugging Face dataset {REPO_ID}...")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"generated_count={total_changes}\n")
+
+          # Upload generated thumbnails and clean manifest directly to Hugging Face dataset storage
+          if total_changes > 0 or manifest_modified:
+              print(f"Directly uploading clean manifest and {generated_count} new thumbnails to Hugging Face dataset {REPO_ID}...")
               api.upload_folder(
                   folder_path=LOCAL_THUMB_DIR,
                   repo_id=REPO_ID,
                   repo_type=REPO_TYPE,
-                  commit_message=f"feat(thumbnails): upload {generated_count} single-frame 30% WebP thumbnails to Hugging Face dataset"
+                  commit_message=f"feat(thumbnails): update manifest, pruned {len(orphan_thumbs)} orphans, generated {generated_count} thumbnails"
               )
               print("Direct Hugging Face dataset upload complete!")
           else:
