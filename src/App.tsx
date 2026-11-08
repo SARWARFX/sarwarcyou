@@ -19,8 +19,10 @@ import { AmbientFogCanvas } from './components/AmbientFogCanvas';
 import { FrostedSnowCanvas } from './components/FrostedSnowCanvas';
 import { AuraCanvas } from './components/aura/AuraCanvas';
 import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
+import { CinematicGate } from './components/gate/CinematicGate';
 import {
   ACTIVE_INTERFACE,
+  ENABLE_CINEMATIC_GATE,
   ENABLE_AURA_FLOW,
   ENABLE_CASCADE_SHELL,
   ENABLE_SILENT_HILL_SHELL,
@@ -616,7 +618,36 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {ENABLE_AURA_FLOW || ACTIVE_INTERFACE === 'AURA_FLOW' ? (
+      {ENABLE_CINEMATIC_GATE || ACTIVE_INTERFACE === 'CINEMATIC_GATE' ? (
+        <>
+          {/* 0. Opening Public Domain Compliance Splash Screen */}
+          <ComplianceSplashScreen />
+
+          {/* 1. Cryptic Dynamic Cinematic Poster Landing Gate with Hacker Text-Scramble Unlock */}
+          <CinematicGate
+            items={rawFeed.allMediaPool}
+            initialAlbum={initialAlbumTarget}
+            isModalOpen={
+              theaterState.isOpen ||
+              shortsState.isOpen ||
+              lightboxState.isOpen ||
+              viewAllState.isOpen ||
+              isCommandPaletteOpen
+            }
+            onOpenPhoto={handleOpenPhoto}
+            onOpenVideo={handleOpenVideo}
+            onOpenShort={handleOpenShort}
+          />
+
+          {/* Intermittent Ambient Notices HUD */}
+          <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
+            <AmbientNoticesHUD />
+          </div>
+
+          {/* Global Network Connectivity Indicator */}
+          <NetworkStatusHUD />
+        </>
+      ) : ENABLE_AURA_FLOW || ACTIVE_INTERFACE === 'AURA_FLOW' ? (
         <>
           {/* Atmospheric Obsidian Canvas with Living Ambient Depth */}
           <AuraCanvas />
