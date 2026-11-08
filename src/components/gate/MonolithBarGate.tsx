@@ -120,10 +120,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   initialAlbum,
   isModalOpen = false,
 }) => {
-  // Gate unlock & navigation states
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
-  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
-  const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
+  // Gate unlock & navigation states (Default homepage: Photography > Images 2027)
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(true);
+  const [selectedAlbum, setSelectedAlbum] = useState<string | null>('PHOTOGRAPHY');
+  const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>('Images 2027');
 
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -174,47 +174,65 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return map;
   }, [items]);
 
-  // URL deep link auto-unlock
+  // URL deep link auto-unlock or default to Photography > Images 2027
   useEffect(() => {
-    if (!initialAlbum || items.length === 0) return;
-    const cleanTarget = initialAlbum.toLowerCase().replace(/[-_\s]+/g, '');
+    if (items.length === 0) return;
+    const cleanTarget = initialAlbum ? initialAlbum.toLowerCase().replace(/[-_\s]+/g, '') : null;
 
-    for (const album of ALBUMS) {
-      const rootNode = rootMap.get(album.rawName);
-      if (!rootNode) continue;
+    if (cleanTarget) {
+      for (const album of ALBUMS) {
+        const rootNode = rootMap.get(album.rawName);
+        if (!rootNode) continue;
 
-      if (album.rawName.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
-        const sortedSubs = sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()));
-        setIsUnlocked(true);
-        setSelectedAlbum(album.key);
-        setSelectedSubfolder(sortedSubs[0]?.name || null);
-        return;
-      }
-
-      for (const sub of rootNode.subfolders.values()) {
-        if (sub.name.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
+        if (album.rawName.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
+          const sortedSubs = sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()));
           setIsUnlocked(true);
           setSelectedAlbum(album.key);
-          setSelectedSubfolder(sub.name);
+          setSelectedSubfolder(sortedSubs[0]?.name || null);
           return;
         }
+
+        for (const sub of rootNode.subfolders.values()) {
+          if (sub.name.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
+            setIsUnlocked(true);
+            setSelectedAlbum(album.key);
+            setSelectedSubfolder(sub.name);
+            return;
+          }
+        }
+      }
+    }
+
+    // Default homepage: Photography > Images 2027
+    const photoNode = rootMap.get('Images');
+    if (photoNode && photoNode.subfolders.size > 0) {
+      setIsUnlocked(true);
+      setSelectedAlbum('PHOTOGRAPHY');
+      const targetSub =
+        Array.from(photoNode.subfolders.values()).find(
+          (s) => s.name.toLowerCase().replace(/[-_\s]+/g, '') === 'images2027'
+        ) || sortSubfolderNodesDescending(Array.from(photoNode.subfolders.values()))[0];
+
+      if (targetSub) {
+        setSelectedSubfolder(targetSub.name);
       }
     }
   }, [initialAlbum, items.length, rootMap]);
 
   // Album selection handler
   const handleSelectAlbum = (albumKey: string, rawName: string) => {
-    if (selectedAlbum === albumKey) {
-      setSelectedAlbum(null);
-      setSelectedSubfolder(null);
-      return;
-    }
-
     setSelectedAlbum(albumKey);
     const rootNode = rootMap.get(rawName);
     if (rootNode && rootNode.subfolders.size > 0) {
       const sortedSubs = sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()));
-      setSelectedSubfolder(sortedSubs[0]?.name || null);
+      if (albumKey === 'PHOTOGRAPHY') {
+        const img2027 = sortedSubs.find(
+          (s) => s.name.toLowerCase().replace(/[-_\s]+/g, '') === 'images2027'
+        );
+        setSelectedSubfolder(img2027 ? img2027.name : (sortedSubs[0]?.name || null));
+      } else {
+        setSelectedSubfolder(sortedSubs[0]?.name || null);
+      }
     } else {
       setSelectedSubfolder(null);
     }
@@ -272,33 +290,27 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     };
   }, [activeDirectoryNode, selectedAlbum]);
 
-  // Global Escape key listener for conceal
+  // Global Escape key listener: resets to default Photography > Images 2027
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isUnlocked && !isModalOpen) {
-        if (e.cancelable) e.preventDefault();
-        setIsUnlocked(false);
-        setSelectedAlbum(null);
-        setSelectedSubfolder(null);
+      if (e.key === 'Escape' && !isModalOpen) {
+        setSelectedAlbum('PHOTOGRAPHY');
+        const photoNode = rootMap.get('Images');
+        if (photoNode) {
+          const img2027 = Array.from(photoNode.subfolders.values()).find(
+            (s) => s.name.toLowerCase().replace(/[-_\s]+/g, '') === 'images2027'
+          );
+          setSelectedSubfolder(img2027 ? img2027.name : 'Images 2027');
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isUnlocked, isModalOpen]);
+  }, [isModalOpen, rootMap]);
 
-  // Backdrop Click: clicking screen when locked unlocks; clicking empty backdrop directly when unlocked conceals
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (isModalOpen) return;
-    if (e.target !== e.currentTarget) {
-      return;
-    }
-    if (isUnlocked) {
-      setIsUnlocked(false);
-      setSelectedAlbum(null);
-      setSelectedSubfolder(null);
-    } else {
-      setIsUnlocked(true);
-    }
+  // Backdrop Click: keeps the open archive interactive
+  const handleBackdropClick = () => {
+    // Permanent open homepage
   };
 
   return (
@@ -342,13 +354,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* 4. Progressive Navigation Stage (Desktop 3-Tier Cascade + Mobile Adaptive Drill-Down) */}
       <div
         ref={menuContainerRef}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setIsUnlocked(false);
-            setSelectedAlbum(null);
-            setSelectedSubfolder(null);
-          }
-        }}
+        onClick={(e) => e.stopPropagation()}
         className={`w-full h-full select-none z-30 transition-all duration-500 ${
           isUnlocked
             ? 'opacity-100 pointer-events-auto'
@@ -359,13 +365,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* DESKTOP 3-TIER HORIZONTAL CASCADE (md: and up)            */}
         {/* ========================================================= */}
         <div 
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIsUnlocked(false);
-              setSelectedAlbum(null);
-              setSelectedSubfolder(null);
-            }
-          }}
+          onClick={(e) => e.stopPropagation()}
           className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar"
         >
           {/* TIER 1: 4 Major Album Names - Clean Floating Typography, No Dark Background */}
@@ -547,35 +547,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* MOBILE ADAPTIVE VIEW (< md, 418px mobile screens)         */}
         {/* ========================================================= */}
         <div 
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIsUnlocked(false);
-              setSelectedAlbum(null);
-              setSelectedSubfolder(null);
-            }
-          }}
+          onClick={(e) => e.stopPropagation()}
           className="md:hidden flex flex-col w-full h-full pt-12 sm:pt-14 pb-3 sm:pb-4 px-3 sm:px-4 overflow-hidden min-w-0"
         >
           {!selectedAlbum ? (
             /* Mobile Step 1: Centered 4 Major Album Names - Pure Floating Text, No Dark Box */
             <div 
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  setIsUnlocked(false);
-                  setSelectedAlbum(null);
-                  setSelectedSubfolder(null);
-                }
-              }}
+              onClick={(e) => e.stopPropagation()}
               className="flex-1 flex flex-col justify-center items-center"
             >
               <div 
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) {
-                    setIsUnlocked(false);
-                    setSelectedAlbum(null);
-                    setSelectedSubfolder(null);
-                  }
-                }}
+                onClick={(e) => e.stopPropagation()}
                 className="flex flex-col items-center space-y-7 sm:space-y-8 py-6 sm:py-8"
               >
                 {ALBUMS.map((album) => (

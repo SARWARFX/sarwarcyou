@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 
-export const COMPLIANCE_STORAGE_KEY = 'public_access_disclaimer_v2';
+export const COMPLIANCE_STORAGE_KEY = 'public_notice_acknowledged_v3';
 
 export interface ComplianceSplashScreenProps {
   onDismiss?: () => void;
@@ -10,7 +11,7 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
   const [isOpen, setIsOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
-      return localStorage.getItem(COMPLIANCE_STORAGE_KEY) !== 'true';
+      return sessionStorage.getItem(COMPLIANCE_STORAGE_KEY) !== 'true';
     } catch {
       return false;
     }
@@ -18,9 +19,9 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
 
   const [isFadingOut, setIsFadingOut] = useState(false);
 
-  const handleEnterArchive = () => {
+  const handleDismiss = () => {
     try {
-      localStorage.setItem(COMPLIANCE_STORAGE_KEY, 'true');
+      sessionStorage.setItem(COMPLIANCE_STORAGE_KEY, 'true');
     } catch {
       // ignore potential storage quota or privacy mode errors
     }
@@ -28,7 +29,7 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
     setTimeout(() => {
       setIsOpen(false);
       onDismiss?.();
-    }, 350);
+    }, 280);
   };
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
         if (e.cancelable) e.preventDefault();
-        handleEnterArchive();
+        handleDismiss();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -49,25 +50,49 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Public Source & Open Access Disclaimer"
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center p-6 sm:p-10 select-none bg-black text-white transition-opacity duration-350 ease-out ${
-        isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      aria-label="Public Content Notification"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleDismiss();
+        }
+      }}
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 select-none bg-black/60 backdrop-blur-md transition-opacity duration-300 ease-out ${
+        isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
       }`}
-      style={{ backgroundColor: '#000000', fontFamily: '"Times New Roman", Times, Georgia, serif' }}
     >
-      <div className="max-w-2xl w-full flex flex-col items-center text-center border border-white/20 bg-black p-8 sm:p-14 shadow-2xl">
-        <h1 className="text-base sm:text-lg md:text-xl font-normal tracking-[0.2em] uppercase text-white border-b border-white/20 pb-4 mb-6 w-full text-center">
-          PUBLIC SOURCE & OPEN ACCESS DISCLAIMER
-        </h1>
-
-        <p className="text-sm sm:text-base leading-relaxed text-white font-normal mb-8 max-w-xl text-center">
-          All content featured across this platform—including videos, photographs, and shorts—has been collected exclusively from publicly available sources across the internet. No private, confidential, or personal video, image, or short has been published or hosted on this site.
-        </p>
-
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md sm:max-w-lg bg-[#04070c]/90 sm:bg-[#04070c]/85 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(56,189,248,0.12)] p-6 sm:p-8 relative flex flex-col items-center text-center animate-fade-in"
+      >
+        {/* Close Button Top-Right */}
         <button
           type="button"
-          onClick={handleEnterArchive}
-          className="px-8 py-3 bg-black hover:bg-white border border-white text-white hover:text-black text-xs sm:text-sm tracking-[0.25em] uppercase transition-all duration-200 cursor-pointer active:scale-95 font-medium"
+          onClick={handleDismiss}
+          className="absolute top-4 right-4 text-white/50 hover:text-white p-1 rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+          title="Dismiss Notice (Esc)"
+          aria-label="Close Notice"
+        >
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+
+        {/* Pulsing Ethereal Indicator */}
+        <div className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse mb-3.5" />
+
+        {/* Notice Title */}
+        <h2 className="text-xs sm:text-sm font-['Roboto',sans-serif] font-bold tracking-[0.25em] uppercase text-white/90 pb-2.5 mb-3 border-b border-white/10 w-full text-center">
+          PUBLIC CONTENT NOTICE
+        </h2>
+
+        {/* Notice Body */}
+        <p className="text-xs sm:text-sm md:text-[13px] leading-relaxed text-neutral-300 font-['Roboto',sans-serif] my-3 max-w-sm sm:max-w-md text-center">
+          All content featured across this platform has been collected exclusively from publicly available sources on the internet. No private video, image, or shorts has been published or hosted on this site.
+        </p>
+
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className="mt-4 w-full sm:w-auto px-7 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white font-['Roboto',sans-serif] font-bold text-xs tracking-[0.2em] uppercase transition-all duration-200 active:scale-95 shadow-lg cursor-pointer"
         >
           [ ENTER ARCHIVE ]
         </button>
