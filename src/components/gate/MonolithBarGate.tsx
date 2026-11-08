@@ -4,6 +4,7 @@ import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
 import { useScrambleText } from './useScrambleText';
+import { GhostApparition } from './GhostApparition';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
@@ -20,29 +21,12 @@ export interface MonolithBarGateProps {
   isModalOpen?: boolean;
 }
 
-const HUBS = [
+const ALBUMS = [
   { key: 'CLIPS', rawName: 'Clips', label: 'CLIPS' },
   { key: 'SHORTS', rawName: 'Shorts', label: 'SHORTS' },
   { key: 'PHOTOGRAPHY', rawName: 'Images', label: 'PHOTOGRAPHY' },
   { key: 'REALTUBE', rawName: 'REALTube', label: 'REALTUBE' },
 ];
-
-const STORAGE_KEY = 'sarwar_daily_ledger_v1';
-
-interface DayData {
-  dateKey: string;      // "YYYY-MM-DD"
-  dateLabel: string;    // "NOV 08"
-  seconds: number;
-  isToday: boolean;
-}
-
-// Format seconds into H.MM (e.g. 1 hr 25 min -> "1.25", 0 min -> "0.00")
-export function formatHoursMinutes(totalSeconds: number): string {
-  const safeSec = Math.max(0, totalSeconds);
-  const h = Math.floor(safeSec / 3600);
-  const m = Math.floor((safeSec % 3600) / 60);
-  return `${h}.${String(m).padStart(2, '0')}`;
-}
 
 function getFolderSegments(item: StageMediaItem): { root: string; subfolders: string[] } {
   const raw = item.path || item.parentAlbum || item.category || '';
@@ -88,7 +72,7 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   return { root, subfolders: sub };
 }
 
-const ScrambledHubItem: React.FC<{
+const ScrambledAlbumItem: React.FC<{
   label: string;
   isActive: boolean;
   isUnlocked: boolean;
@@ -100,14 +84,14 @@ const ScrambledHubItem: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer select-none border-0 outline-none p-0 bg-transparent flex items-center gap-2.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
+      className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-300 cursor-pointer select-none border-0 outline-none p-0 bg-transparent flex items-center gap-3 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] ${
         isActive
-          ? 'text-white font-bold tracking-[0.25em] text-xl md:text-2xl scale-[1.02] origin-left'
-          : 'text-neutral-400 font-medium tracking-[0.2em] text-lg hover:text-white'
+          ? 'text-white font-black tracking-[0.28em] text-2xl md:text-3xl scale-[1.03] origin-left'
+          : 'text-neutral-400 font-bold tracking-[0.22em] text-xl md:text-2xl hover:text-white hover:tracking-[0.25em]'
       }`}
     >
       {isActive && (
-        <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)] animate-pulse" />
+        <span className="w-2 h-2 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,1),0_0_20px_rgba(56,189,248,0.8)] animate-pulse" />
       )}
       {scrambled}
     </button>
@@ -124,116 +108,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 }) => {
   // Gate unlock & navigation states
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
-  const [selectedHub, setSelectedHub] = useState<string | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
 
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
-
-  // --------------------------------------------------------------------------
-  // 100% Authentic Visitor Memory Ledger (Zero Mock / Placeholder Data)
-  // --------------------------------------------------------------------------
-  const [ledger, setLedger] = useState<{ [dateKey: string]: number }>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // ignore
-    }
-    return {};
-  });
-
-  const sessionStartRef = useRef<number>(Date.now());
-  const initialTodayStoredRef = useRef<number>(0);
-  const todayKeyRef = useRef<string>('');
-
-  const now = new Date();
-  const currentTodayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  todayKeyRef.current = currentTodayKey;
-
-  const [todayTotalSeconds, setTodayTotalSeconds] = useState<number>(() => {
-    return ledger[currentTodayKey] || 0;
-  });
-
-  useEffect(() => {
-    initialTodayStoredRef.current = ledger[currentTodayKey] || 0;
-    setTodayTotalSeconds(initialTodayStoredRef.current);
-
-    const persistTodaySeconds = (seconds: number) => {
-      setLedger((prev) => ({ ...prev, [currentTodayKey]: seconds }));
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const currentData = raw ? JSON.parse(raw) : {};
-        currentData[currentTodayKey] = seconds;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
-      } catch {
-        // ignore storage errors
-      }
-    };
-
-    // Live session dwell counter (ticks every second)
-    const interval = window.setInterval(() => {
-      const elapsedSessionSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
-      const totalSec = initialTodayStoredRef.current + elapsedSessionSec;
-      setTodayTotalSeconds(totalSec);
-
-      // Periodically sync every 5 seconds to reduce storage writes
-      if (elapsedSessionSec % 5 === 0) {
-        persistTodaySeconds(totalSec);
-      }
-    }, 1000);
-
-    // Save on tab switch or page close
-    const handleVisibilityChange = () => {
-      const elapsedSessionSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
-      const totalSec = initialTodayStoredRef.current + elapsedSessionSec;
-      persistTodaySeconds(totalSec);
-    };
-
-    const handleBeforeUnload = () => {
-      const elapsedSessionSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
-      const totalSec = initialTodayStoredRef.current + elapsedSessionSec;
-      persistTodaySeconds(totalSec);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [currentTodayKey]);
-
-  // Generate 7-day chronological dataset (from 6 days ago up to Today)
-  const dayBars: DayData[] = useMemo(() => {
-    const bars: DayData[] = [];
-    const baseDate = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() - i);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const label = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
-      const isToday = (k === currentTodayKey);
-      const seconds = isToday ? todayTotalSeconds : (ledger[k] || 0);
-
-      bars.push({
-        dateKey: k,
-        dateLabel: label,
-        seconds,
-        isToday,
-      });
-    }
-
-    return bars;
-  }, [ledger, todayTotalSeconds, currentTodayKey]);
-
-  // Calculate dynamic scale factor (at least 60 minutes for balanced visual hierarchy)
-  const maxMinutes = useMemo(() => {
-    const mins = dayBars.map((b) => Math.floor(b.seconds / 60));
-    return Math.max(...mins, 60);
-  }, [dayBars]);
 
   // Build directory tree
   const rootMap = useMemo(() => {
@@ -287,14 +165,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     if (!initialAlbum || items.length === 0) return;
     const cleanTarget = initialAlbum.toLowerCase().replace(/[-_\s]+/g, '');
 
-    for (const hub of HUBS) {
-      const rootNode = rootMap.get(hub.rawName);
+    for (const album of ALBUMS) {
+      const rootNode = rootMap.get(album.rawName);
       if (!rootNode) continue;
 
-      if (hub.rawName.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
+      if (album.rawName.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
         const sortedSubs = sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()));
         setIsUnlocked(true);
-        setSelectedHub(hub.key);
+        setSelectedAlbum(album.key);
         setSelectedSubfolder(sortedSubs[0]?.name || null);
         return;
       }
@@ -302,7 +180,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       for (const sub of rootNode.subfolders.values()) {
         if (sub.name.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
           setIsUnlocked(true);
-          setSelectedHub(hub.key);
+          setSelectedAlbum(album.key);
           setSelectedSubfolder(sub.name);
           return;
         }
@@ -310,15 +188,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
   }, [initialAlbum, items.length, rootMap]);
 
-  // Hub selection handler
-  const handleSelectHub = (hubKey: string, rawName: string) => {
-    if (selectedHub === hubKey) {
-      setSelectedHub(null);
+  // Album selection handler
+  const handleSelectAlbum = (albumKey: string, rawName: string) => {
+    if (selectedAlbum === albumKey) {
+      setSelectedAlbum(null);
       setSelectedSubfolder(null);
       return;
     }
 
-    setSelectedHub(hubKey);
+    setSelectedAlbum(albumKey);
     const rootNode = rootMap.get(rawName);
     if (rootNode && rootNode.subfolders.size > 0) {
       const sortedSubs = sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()));
@@ -329,22 +207,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   };
 
   const currentSubfolders = useMemo(() => {
-    if (!selectedHub) return [];
-    const activeHubConfig = HUBS.find((h) => h.key === selectedHub);
-    if (!activeHubConfig) return [];
-    const rootNode = rootMap.get(activeHubConfig.rawName);
+    if (!selectedAlbum) return [];
+    const activeAlbumConfig = ALBUMS.find((h) => h.key === selectedAlbum);
+    if (!activeAlbumConfig) return [];
+    const rootNode = rootMap.get(activeAlbumConfig.rawName);
     if (!rootNode) return [];
     return sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()));
-  }, [selectedHub, rootMap]);
+  }, [selectedAlbum, rootMap]);
 
   const activeDirectoryNode = useMemo(() => {
-    if (!selectedHub || !selectedSubfolder) return null;
-    const activeHubConfig = HUBS.find((h) => h.key === selectedHub);
-    if (!activeHubConfig) return null;
-    const rootNode = rootMap.get(activeHubConfig.rawName);
+    if (!selectedAlbum || !selectedSubfolder) return null;
+    const activeAlbumConfig = ALBUMS.find((h) => h.key === selectedAlbum);
+    if (!activeAlbumConfig) return null;
+    const rootNode = rootMap.get(activeAlbumConfig.rawName);
     if (!rootNode) return null;
     return rootNode.subfolders.get(selectedSubfolder) || null;
-  }, [selectedHub, selectedSubfolder, rootMap]);
+  }, [selectedAlbum, selectedSubfolder, rootMap]);
 
   const { photoFiles, videoFiles, shortFiles } = useMemo(() => {
     if (!activeDirectoryNode) return { photoFiles: [], videoFiles: [], shortFiles: [] };
@@ -355,7 +233,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
     const isShortDir =
       activeDirectoryNode.fullPath.toLowerCase().includes('short') ||
-      (selectedHub === 'SHORTS');
+      (selectedAlbum === 'SHORTS');
 
     for (const file of activeDirectoryNode.files) {
       const isPhoto = file.type === 'image' || isPhotoExtension(file.path || file.url || file.name || '');
@@ -378,7 +256,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       videoFiles: sortMediaItemsDescending(videos),
       shortFiles: sortMediaItemsDescending(shorts),
     };
-  }, [activeDirectoryNode, selectedHub]);
+  }, [activeDirectoryNode, selectedAlbum]);
 
   // Global Escape key listener for conceal
   useEffect(() => {
@@ -386,7 +264,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       if (e.key === 'Escape' && isUnlocked && !isModalOpen) {
         if (e.cancelable) e.preventDefault();
         setIsUnlocked(false);
-        setSelectedHub(null);
+        setSelectedAlbum(null);
         setSelectedSubfolder(null);
       }
     };
@@ -402,7 +280,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
     if (isUnlocked) {
       setIsUnlocked(false);
-      setSelectedHub(null);
+      setSelectedAlbum(null);
       setSelectedSubfolder(null);
     } else {
       setIsUnlocked(true);
@@ -424,94 +302,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* 1. Permanent Midnight Obsidian Canvas with Drifting Cyan-White Mist */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
-      {/* 2. Central Stepped Monolith Bar Graph (7-Day Authentic Visitor Memory) */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsUnlocked(true);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            if (e.cancelable) e.preventDefault();
+      {/* 2. Central Ethereal Ghost Apparition (Tap to open 4 major album names) */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center">
+        <GhostApparition
+          isUnlocked={isUnlocked}
+          onClick={(e) => {
             e.stopPropagation();
             setIsUnlocked(true);
-          }
-        }}
-        aria-label="Authentic visitor memory monolith bar graph. Tap to decrypt vault."
-        className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[760px] h-[280px] flex flex-col justify-end px-4 sm:px-8 cursor-pointer select-none z-10 outline-none transition-all duration-700 ${
-          isUnlocked
-            ? 'opacity-0 pointer-events-none scale-95 blur-sm'
-            : 'opacity-100 pointer-events-auto scale-100 hover:scale-[1.01]'
-        }`}
-      >
-        <div className="relative w-full h-[230px] flex items-end justify-between gap-3 sm:gap-6 md:gap-8">
-          {/* Subtle Continuous Baseline Hair-line behind bottom of the bars */}
-          <div className="absolute bottom-[28px] left-0 right-0 h-px bg-white/[0.08] pointer-events-none z-0" />
-
-          {dayBars.map((bar) => {
-            const totalMinutes = Math.floor(bar.seconds / 60);
-            // 100% Authentic: when 0, minimal 2px baseline tick; when >0, scaled proportionally up to 165px
-            const heightPx = totalMinutes === 0
-              ? 2
-              : Math.max(4, Math.min(165, Math.round((totalMinutes / maxMinutes) * 165)));
-
-            return (
-              <div
-                key={bar.dateKey}
-                className="group relative flex flex-col items-center justify-end h-full flex-1 max-w-[72px] z-10"
-              >
-                {/* Cool Blue-White Ambient Halo behind Today's Pillar */}
-                {bar.isToday && (
-                  <div
-                    className="absolute -bottom-2 -left-3 -right-3 h-28 rounded-full pointer-events-none -z-10"
-                    style={{
-                      background: 'radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, rgba(56, 189, 248, 0) 70%)',
-                      filter: 'blur(10px)',
-                    }}
-                  />
-                )}
-
-                {/* Tip of Bar: Time Spent Readout (H.MM) */}
-                <span
-                  className={`font-['Roboto',sans-serif] font-bold text-[0.68rem] sm:text-[0.72rem] md:text-xs tracking-wider mb-2 select-none transition-all duration-200 ${
-                    bar.isToday
-                      ? 'text-white font-extrabold drop-shadow-[0_0_10px_rgba(186,230,253,0.95)] scale-105'
-                      : bar.seconds > 0
-                      ? 'text-neutral-300 group-hover:text-white'
-                      : 'text-neutral-500 group-hover:text-neutral-300'
-                  }`}
-                >
-                  {formatHoursMinutes(bar.seconds)}
-                </span>
-
-                {/* Monolith Pillar Rectangle */}
-                <div
-                  style={{ height: `${heightPx}px` }}
-                  className={`w-5 sm:w-7 md:w-9 rounded-t-sm transition-all duration-300 ${
-                    bar.isToday
-                      ? 'bg-white shadow-[0_0_20px_rgba(255,255,255,0.95),0_0_35px_rgba(56,189,248,0.4),0_0_60px_rgba(56,189,248,0.25)]'
-                      : bar.seconds > 0
-                      ? 'bg-neutral-700/80 group-hover:bg-neutral-500'
-                      : 'bg-neutral-800/80 group-hover:bg-neutral-600'
-                  }`}
-                />
-
-                {/* Bottom of Bar: Calendar Date Stamp (NOV 08) */}
-                <span
-                  className={`font-['Roboto',sans-serif] uppercase text-[0.65rem] sm:text-[0.68rem] tracking-[0.12em] mt-2.5 whitespace-nowrap select-none transition-colors duration-200 ${
-                    bar.isToday
-                      ? 'text-white font-bold'
-                      : 'text-neutral-500 group-hover:text-neutral-300'
-                  }`}
-                >
-                  {bar.dateLabel}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+          }}
+        />
       </div>
 
       {/* 3. Fixed Required Signature at Bottom-Right: "SARWAR.CYOU" */}
@@ -540,25 +339,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* DESKTOP 3-TIER HORIZONTAL CASCADE (md: and up)            */}
         {/* ========================================================= */}
         <div className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar">
-          {/* TIER 1: Left-Middle Navigation Menu (4 Major Hubs) */}
-          <div className="flex-shrink-0 flex flex-col justify-center">
-            <div className="bg-black/85 backdrop-blur-3xl border border-white/10 rounded-2xl p-6 md:p-8 flex flex-col space-y-6 shadow-2xl">
-              {HUBS.map((hub) => (
-                <ScrambledHubItem
-                  key={hub.key}
-                  label={hub.label}
-                  isActive={selectedHub === hub.key}
+          {/* TIER 1: 4 Major Album Names - Clean Floating Typography, No Dark Background */}
+          <div className="flex-shrink-0 flex flex-col justify-center py-6 px-4">
+            <div className="flex flex-col space-y-7">
+              {ALBUMS.map((album) => (
+                <ScrambledAlbumItem
+                  key={album.key}
+                  label={album.label}
+                  isActive={selectedAlbum === album.key}
                   isUnlocked={isUnlocked}
-                  onClick={() => handleSelectHub(hub.key, hub.rawName)}
+                  onClick={() => handleSelectAlbum(album.key, album.rawName)}
                 />
               ))}
             </div>
           </div>
 
-          {/* TIER 2: Subfolders Column (Smoothly slides open on choosing major hub) */}
-          {selectedHub && currentSubfolders.length > 0 && (
-            <div className="flex-shrink-0 flex flex-col justify-center min-w-[170px] sm:min-w-[200px] md:min-w-[230px] max-w-[290px] animate-fade-in">
-              <div className="bg-black/85 backdrop-blur-3xl border border-white/10 rounded-2xl p-5 md:p-6 flex flex-col space-y-3.5 max-h-[75vh] overflow-y-auto no-scrollbar shadow-2xl">
+          {/* TIER 2: Subfolders Column (Clean floating list, no dark box) */}
+          {selectedAlbum && currentSubfolders.length > 0 && (
+            <div className="flex-shrink-0 flex flex-col justify-center min-w-[170px] sm:min-w-[200px] md:min-w-[240px] max-w-[300px] animate-fade-in py-6">
+              <div className="flex flex-col space-y-4 max-h-[75vh] overflow-y-auto no-scrollbar pr-4">
                 {currentSubfolders.map((subNode) => {
                   const isSubActive = selectedSubfolder === subNode.name;
                   return (
@@ -566,7 +365,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       key={subNode.name}
                       type="button"
                       onClick={() => setSelectedSubfolder(subNode.name)}
-                      className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                      className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)] ${
                         isSubActive
                           ? 'text-white font-bold tracking-wider text-base md:text-lg'
                           : 'text-neutral-400 font-medium tracking-wide text-base md:text-lg hover:text-white'
@@ -704,20 +503,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* MOBILE ADAPTIVE VIEW (< md, 418px mobile screens)         */}
         {/* ========================================================= */}
         <div className="md:hidden flex flex-col w-full h-full pt-14 pb-4 px-4 overflow-hidden">
-          {!selectedHub ? (
-            /* Mobile Step 1: Centered 4 Major Hubs */
+          {!selectedAlbum ? (
+            /* Mobile Step 1: Centered 4 Major Album Names - Pure Floating Text, No Dark Box */
             <div className="flex-1 flex flex-col justify-center items-center">
-              <div className="w-full max-w-xs bg-black/85 backdrop-blur-3xl border border-white/10 rounded-2xl p-6 flex flex-col space-y-6 shadow-2xl">
-                <div className="text-[10px] font-['Roboto',sans-serif] tracking-[0.25em] text-neutral-400 uppercase pb-2 border-b border-white/10 text-center">
-                  SELECT HUB
-                </div>
-                {HUBS.map((hub) => (
-                  <ScrambledHubItem
-                    key={hub.key}
-                    label={hub.label}
-                    isActive={selectedHub === hub.key}
+              <div className="flex flex-col items-center space-y-8 py-8">
+                {ALBUMS.map((album) => (
+                  <ScrambledAlbumItem
+                    key={album.key}
+                    label={album.label}
+                    isActive={selectedAlbum === album.key}
                     isUnlocked={isUnlocked}
-                    onClick={() => handleSelectHub(hub.key, hub.rawName)}
+                    onClick={() => handleSelectAlbum(album.key, album.rawName)}
                   />
                 ))}
               </div>
@@ -730,12 +526,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedHub(null);
+                    setSelectedAlbum(null);
                     setSelectedSubfolder(null);
                   }}
                   className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-['Roboto',sans-serif] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-transform flex-shrink-0"
                 >
-                  ← HUBS
+                  ← BACK
                 </button>
 
                 {/* Horizontal Scrollable Subfolder Selector */}
