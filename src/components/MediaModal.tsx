@@ -349,13 +349,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Mobile Touch Gestures & Desktop Zoom Handlers
   // -------------------------------------------------------------
   const handleDoubleTap = useCallback((e?: React.TouchEvent | React.MouseEvent) => {
-    if (e) {
-      if ('cancelable' in e && e.cancelable) {
-        e.preventDefault();
-      }
-      if ('stopPropagation' in e) {
-        e.stopPropagation();
-      }
+    if (e && 'stopPropagation' in e) {
+      e.stopPropagation();
     }
     // Clear single-tap timer so controls don't flicker
     if (singleTapTimerRef.current) {
@@ -640,9 +635,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (e.pointerType !== 'mouse' || e.button !== 0 || scale <= 1.05 || type !== 'image') {
       return;
     }
-    // Prevent default browser image ghost drag or selection
-    if (e.cancelable) {
-      e.preventDefault();
+    // Prevent default browser image ghost drag or selection for mouse only
+    if (e.pointerType === 'mouse' && e.cancelable && e.nativeEvent?.cancelable) {
+      try {
+        e.preventDefault();
+      } catch {
+        // ignore passive violations
+      }
     }
 
     isDraggingRef.current = true;
@@ -749,9 +748,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Wheel zoom on desktop
   const handleWheel = (e: React.WheelEvent) => {
     if (type !== 'image') return;
-    if (e.cancelable) {
-      e.preventDefault();
-    }
     const zoomFactor = e.deltaY < 0 ? 1.2 : 0.8;
     const newScale = Math.max(1, Math.min(6, scale * zoomFactor));
     setScale(newScale);

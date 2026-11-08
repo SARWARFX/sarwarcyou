@@ -727,7 +727,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       } else if (e.key === 'ArrowLeft') {
         goToIndex(currentIndex - 1);
       } else if (e.key === ' ' && currentItem?.type === 'video') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         togglePlay();
       } else if (e.key === 'm' || e.key === 'M') {
         handleMuteToggle();
