@@ -10,7 +10,7 @@ interface DayStat {
   isToday: boolean;
 }
 
-export const SessionTelemetryGraph: React.FC = () => {
+export const SessionTelemetryGraph: React.FC<{ className?: string }> = ({ className = '' }) => {
   const [dayStats, setDayStats] = useState<DayStat[]>([]);
 
   useEffect(() => {
@@ -109,18 +109,18 @@ export const SessionTelemetryGraph: React.FC = () => {
   const maxMinutes = Math.max(15, ...dayStats.map((d) => d.minutes));
 
   return (
-    <div className="w-full h-[115px] sm:h-[125px] flex items-end select-none bg-transparent border-none p-0 shrink-0">
+    <div className={`w-full h-full flex items-end select-none bg-transparent border-none p-0 shrink-0 ${className}`}>
       {/* 7-Day Monolith Historical Bar Track without outer containers or header text */}
-      <div className="grid grid-cols-7 gap-2 sm:gap-4 md:gap-6 w-full h-full items-end pb-1">
+      <div className="grid grid-cols-7 gap-2 sm:gap-3 md:gap-4 w-full h-full items-end pb-0.5">
         {dayStats.map((day) => {
-          // Height percentage with minimum 3% baseline tick for 0 values
-          const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 3, 3);
+          // Height percentage with minimum 4% baseline tick for 0 values
+          const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
 
           return (
             <div key={day.dateKey} className="flex flex-col items-center h-full justify-end group">
               {/* Tip: Duration in H.MM */}
               <span
-                className={`font-mono text-[10px] sm:text-xs mb-1.5 transition-all ${
+                className={`font-mono text-[9px] sm:text-[10px] mb-1 transition-all ${
                   day.isToday
                     ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)] scale-105'
                     : 'text-slate-400 group-hover:text-white'
@@ -130,14 +130,14 @@ export const SessionTelemetryGraph: React.FC = () => {
               </span>
 
               {/* Monolith Pillar Bar */}
-              <div className="w-full max-w-[36px] sm:max-w-[48px] h-14 sm:h-16 flex items-end justify-center">
+              <div className="w-full max-w-[28px] sm:max-w-[36px] h-9 sm:h-11 flex items-end justify-center">
                 <div
                   style={{ height: `${heightPct}%` }}
-                  className={`w-full rounded-t-md transition-all duration-500 ease-out ${
+                  className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
                     day.isToday
-                      ? 'bg-gradient-to-t from-[#0284c7] to-[#38bdf8] shadow-[0_0_16px_rgba(56,189,248,0.4)]'
+                      ? 'bg-gradient-to-t from-[#0284c7] to-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.4)]'
                       : day.minutes > 0
-                      ? 'bg-white/15 group-hover:bg-white/30 group-hover:shadow-[0_0_12px_rgba(255,255,255,0.2)]'
+                      ? 'bg-white/15 group-hover:bg-white/30 group-hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]'
                       : 'bg-white/10 group-hover:bg-white/20'
                   }`}
                 />
@@ -145,7 +145,7 @@ export const SessionTelemetryGraph: React.FC = () => {
 
               {/* Bottom: Date Label */}
               <span
-                className={`mt-1.5 font-['Google_Sans'] text-[9px] sm:text-[10px] tracking-wider uppercase text-center truncate w-full ${
+                className={`mt-1 font-['Google_Sans'] text-[8px] sm:text-[9px] tracking-wider uppercase text-center truncate w-full ${
                   day.isToday
                     ? 'text-white font-bold drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]'
                     : 'text-slate-500 group-hover:text-slate-300'

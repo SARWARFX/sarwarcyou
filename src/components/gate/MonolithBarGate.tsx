@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
@@ -9,7 +9,6 @@ import { SessionTelemetryGraph } from '../telemetry/SessionTelemetryGraph';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
-import { sanitizeMediaTitle } from '../../utils/titleSanitizer';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { sortSubfolderNodesDescending, type DirectoryNode } from '../DeepSpaceTreeExplorer';
 
@@ -77,6 +76,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Navigation states: default to Idle Home Overview (null)
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
+
+  // Horizontal track ref for horizontal sliding transitions
+  const horizontalTrackRef = useRef<HTMLDivElement>(null);
 
   // Build directory tree
   const rootMap = useMemo(() => {
@@ -161,50 +163,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return rootNode.subfolders.get(selectedSubfolder) || null;
   }, [selectedAlbum, selectedSubfolder, rootMap]);
 
-  // Active album configuration
-  const activeAlbumConfig = useMemo(() => {
-    if (!selectedAlbum) return null;
-    return MAJOR_FOLDERS.find((h) => h.key === selectedAlbum) || null;
-  }, [selectedAlbum]);
-
-  // Categorize files within active subfolder
-  const { subfolderPhotos, subfolderVideos, subfolderShorts } = useMemo(() => {
-    if (!activeDirectoryNode) {
-      return { subfolderPhotos: [], subfolderVideos: [], subfolderShorts: [] };
-    }
-
-    const photos: StageMediaItem[] = [];
-    const videos: StageMediaItem[] = [];
-    const shorts: StageMediaItem[] = [];
-
-    const isShortDir =
-      activeDirectoryNode.fullPath.toLowerCase().includes('short') ||
-      selectedAlbum === 'SHORTS';
-
-    for (const file of activeDirectoryNode.files) {
-      const isPhoto =
-        file.type === 'image' || isPhotoExtension(file.path || file.url || file.name || '');
-      if (isPhoto) {
-        photos.push(file);
-      } else {
-        const isShort =
-          isShortDir ||
-          file.mediaType === 'short' ||
-          file.path?.toLowerCase().includes('short') ||
-          file.url?.toLowerCase().includes('short');
-
-        if (isShort) shorts.push(file);
-        else videos.push(file);
-      }
-    }
-
-    return {
-      subfolderPhotos: sortMediaItemsDescending(photos),
-      subfolderVideos: sortMediaItemsDescending(videos),
-      subfolderShorts: sortMediaItemsDescending(shorts),
-    };
-  }, [activeDirectoryNode, selectedAlbum]);
-
   // Aggregated Cross-Directory Latest Uploads (for Idle Stage)
   const latestUploads = useMemo(() => {
     const clipsNode = rootMap.get('Clips');
@@ -250,12 +208,21 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return combined.slice(0, 24);
   }, [rootMap]);
 
-  // Handler to open item from Latest Uploads
-  const handleOpenLatestItem = (item: StageMediaItem) => {
+  // Active media assets list: loads selected subfolder files, or latest uploads when idle
+  const activeMediaList = useMemo(() => {
+    if (selectedSubfolder && activeDirectoryNode) {
+      return activeDirectoryNode.files;
+    }
+    return latestUploads;
+  }, [selectedSubfolder, activeDirectoryNode, latestUploads]);
+
+  // Handler to open item from horizontal media cards rail
+  const handleOpenItem = (item: StageMediaItem, _idx: number) => {
     const isPhoto =
       item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+
     if (isPhoto) {
-      const photoPool = latestUploads.filter(
+      const photoPool = activeMediaList.filter(
         (f) => f.type === 'image' || isPhotoExtension(f.path || f.url || f.name || '')
       );
       const photoIdx = photoPool.findIndex((p) => p.id === item.id || p.url === item.url);
@@ -267,294 +234,158 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       item.mediaType === 'short' ||
       item.path?.toLowerCase().includes('short') ||
       item.url?.toLowerCase().includes('short') ||
-      item.category?.toLowerCase().includes('short');
+      item.category?.toLowerCase().includes('short') ||
+      selectedAlbum === 'SHORTS';
 
     if (isShort) {
-      const shortPool = latestUploads.filter(
+      const shortPool = activeMediaList.filter(
         (f) =>
           f.mediaType === 'short' ||
           f.path?.toLowerCase().includes('short') ||
           f.url?.toLowerCase().includes('short') ||
-          f.category?.toLowerCase().includes('short')
+          f.category?.toLowerCase().includes('short') ||
+          selectedAlbum === 'SHORTS'
       );
       const shortIdx = shortPool.findIndex((s) => s.id === item.id || s.url === item.url);
-      onOpenShort(item, shortPool, shortIdx >= 0 ? shortIdx : 0, item.category || 'Latest Shorts');
+      onOpenShort(
+        item,
+        shortPool,
+        shortIdx >= 0 ? shortIdx : 0,
+        selectedSubfolder || item.category || 'Shorts'
+      );
       return;
     }
 
-    const videoPool = latestUploads.filter((f) => f.type === 'video' || (!f.type && !isPhoto && !isShort));
+    const videoPool = activeMediaList.filter(
+      (f) => f.type === 'video' || (!f.type && !isPhoto && !isShort)
+    );
     onOpenVideo(item, videoPool.length > 0 ? videoPool : [item]);
   };
 
-  // Subfolder select handler: highlights subfolder and renders media grid
+  // Subfolder select handler: loads category assets & automatically smooth-scrolls track to center first media card
   const handleSelectSubfolder = (albumKey: string, subfolderName: string) => {
     setSelectedAlbum(albumKey);
     setSelectedSubfolder(subfolderName);
+
+    // Automatic smooth-scroll transition: reveals and centers first media card
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (horizontalTrackRef.current) {
+          const scrollTarget = window.innerWidth >= 768 ? 340 : window.innerWidth;
+          horizontalTrackRef.current.scrollTo({
+            left: scrollTarget,
+            behavior: 'smooth',
+          });
+        }
+      }, 50);
+    });
   };
 
-  // Idle reset handler: returns to Home Overview stage
+  // Idle reset handler: returns to Screen 1
   const handleSelectIdle = () => {
     setSelectedAlbum(null);
     setSelectedSubfolder(null);
+    if (horizontalTrackRef.current) {
+      horizontalTrackRef.current.scrollTo({
+        left: 0,
+        behavior: 'smooth',
+      });
+    }
   };
 
   return (
     <div
-      className="w-screen h-screen overflow-hidden select-none text-white font-['Google_Sans'] bg-transparent flex flex-row"
+      ref={horizontalTrackRef}
+      className="w-screen h-screen flex flex-row items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar bg-transparent select-none text-white font-['Google_Sans']"
       style={{
         isolation: 'isolate',
         background: 'radial-gradient(circle at 50% 35%, rgba(8, 20, 38, 0.6) 0%, #020408 85%)',
         backgroundColor: '#03060a',
       }}
     >
-      {/* 1. Seamless Midnight Obsidian Canvas */}
+      {/* Permanent Midnight Obsidian Backdrop Canvas */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
-      {/* 2. Folder Navigation: Positioned in Left-Middle (Vertically Centered) */}
-      <SidebarAccordionNav
-        rootMap={rootMap}
-        selectedAlbum={selectedAlbum}
-        selectedSubfolder={selectedSubfolder}
-        onSelectSubfolder={handleSelectSubfolder}
-        onSelectIdle={handleSelectIdle}
-      />
+      {/* ========================================================================= */}
+      {/* SCREEN 1: MIDDLE-LEFT FOLDERS & ATTACHED BOTTOM GRAPH                    */}
+      {/* ========================================================================= */}
+      <section
+        aria-label="Folder Navigation and Telemetry"
+        className="flex-none w-screen md:w-[340px] h-screen relative flex flex-col justify-center pl-8 md:pl-14 snap-start shrink-0 z-20 select-none bg-transparent"
+      >
+        {/* Vertically Centered Folder Navigation */}
+        <SidebarAccordionNav
+          rootMap={rootMap}
+          selectedAlbum={selectedAlbum}
+          selectedSubfolder={selectedSubfolder}
+          onSelectSubfolder={handleSelectSubfolder}
+          onSelectIdle={handleSelectIdle}
+        />
 
-      {/* 3. Main Stage Container: Absolutely No Scrollbars on Home Overview */}
-      {selectedSubfolder === null ? (
-        /* ========================================================================= */
-        /* A. HOME OVERVIEW STAGE: ZERO SCROLL, 1-ROW UPLOADS, TELEMETRY AT BOTTOM  */
-        /* ========================================================================= */
-        <main className="flex-1 h-screen p-8 md:p-10 flex flex-col justify-between overflow-hidden z-20 bg-transparent border-none">
-          {/* Top Area: Pure Dynamic Single-Row Uploads (2 on mobile, 4 on md, 5 on lg) */}
-          <div className="flex-1 min-h-0 flex items-center overflow-hidden w-full">
-            <div className="w-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 items-center">
-              {latestUploads.slice(0, 5).map((item, idx) => {
-                const isPhoto =
-                  item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+        {/* Telemetry Graph Dock: Anchored at the bottom inside Screen 1 (slides away with folders) */}
+        <div className="absolute bottom-6 left-6 right-6 md:left-14 md:right-10 h-20 flex items-end">
+          <SessionTelemetryGraph />
+        </div>
+      </section>
 
-                const imageSrc =
-                  (item as any).thumbnail ||
-                  (item as any).src ||
-                  item.url ||
-                  (item as any).image ||
-                  item.path ||
-                  '';
-                const thumb = isPhoto
-                  ? getMediaUrl(imageSrc) || imageSrc
-                  : getImageUrl(item) ||
-                    getThumbnailUrl(item) ||
-                    resolveStaticVideoThumbnail(item) ||
-                    getMediaUrl(imageSrc) ||
-                    imageSrc;
+      {/* ========================================================================= */}
+      {/* SCREEN 2+: PROMINENT HORIZONTAL MEDIA CARDS                              */}
+      {/* ========================================================================= */}
+      <section
+        aria-label="Media Rail"
+        className="flex flex-row items-center h-screen px-4 md:px-10 gap-5 flex-nowrap shrink-0 z-20"
+      >
+        {activeMediaList.map((item, idx) => {
+          const isPhoto =
+            item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
 
-                // Ensure single horizontal row without wrapping: 2 cards on mobile, 4 on md, 5 on lg
-                const visibilityClass =
-                  idx >= 4 ? 'hidden lg:block' : idx >= 2 ? 'hidden md:block' : 'block';
+          const imageSrc =
+            (item as any).thumbnail ||
+            (item as any).src ||
+            item.url ||
+            (item as any).image ||
+            item.path ||
+            '';
+          const thumb = isPhoto
+            ? getMediaUrl(imageSrc) || imageSrc
+            : getImageUrl(item) ||
+              getThumbnailUrl(item) ||
+              resolveStaticVideoThumbnail(item) ||
+              getMediaUrl(imageSrc) ||
+              imageSrc;
 
-                return (
-                  <div
-                    key={item.id || item.url || idx}
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenLatestItem(item);
-                    }}
-                    style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                    className={`animate-card-enter will-change-transform transform-gpu group relative aspect-[4/5] rounded-xl overflow-hidden cursor-pointer select-none bg-white/[0.02] border border-white/10 hover:border-[#38bdf8]/50 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-2xl ${visibilityClass}`}
-                  >
-                    <SmartThumbnail
-                      src={thumb}
-                      alt=""
-                      aspectClass="aspect-[4/5]"
-                      containerClassName="w-full h-full rounded-xl border-0"
-                    >
-                      {/* Center Play Indicator for Videos / Shorts on Hover */}
-                      {!isPhoto && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                          <div className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                          </div>
-                        </div>
-                      )}
-                    </SmartThumbnail>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Bottom Area: Compact Telemetry Graph Anchored at Bottom (~110px to 130px) */}
-          <div className="h-[110px] sm:h-[125px] w-full shrink-0 flex items-end">
-            <SessionTelemetryGraph />
-          </div>
-        </main>
-      ) : (
-        /* ========================================================================= */
-        /* B. SUBFOLDER VIEW: FULL-CANVAS MEDIA GRID                                 */
-        /* ========================================================================= */
-        <main className="flex-1 h-screen overflow-y-auto space-scrollbar p-6 sm:p-8 md:p-10 z-20 flex flex-col bg-transparent border-0 animate-fade-in">
-          {/* Subfolder Header Banner */}
-          <div className="flex items-center justify-between pb-2 mb-4 border-b border-white/8">
-            <h2 className="font-['Google_Sans'] font-bold text-xs sm:text-sm tracking-[0.2em] uppercase text-white flex items-center gap-2">
-              <span className="text-slate-400">{activeAlbumConfig?.label} //</span>
-              <span className="text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
-                {activeDirectoryNode?.name}
-              </span>
-            </h2>
-
-            <button
-              type="button"
-              onClick={handleSelectIdle}
-              className="font-['Google_Sans'] text-xs tracking-wider uppercase text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0 outline-none flex items-center gap-1.5"
+          return (
+            <div
+              key={item.id || item.url || idx}
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenItem(item, idx);
+              }}
+              style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+              className="flex-none w-[76vw] max-w-[380px] h-[72vh] max-h-[560px] aspect-[9/16] rounded-2xl overflow-hidden snap-center relative shadow-2xl border border-white/10 group cursor-pointer transition-transform duration-300 hover:scale-[1.02] bg-[#05080e] select-none"
             >
-              ← RETURN TO OVERVIEW
-            </button>
-          </div>
-
-          {/* Subfolder Media Grid */}
-          <div className="flex flex-col gap-6 w-full">
-            {/* Photos */}
-            {subfolderPhotos.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 md:gap-4 p-0.5">
-                {subfolderPhotos.map((photo, idx) => {
-                  const cleanTitle = sanitizeMediaTitle(photo.title || photo.name || '', selectedSubfolder || '');
-                  const imageSrc =
-                    (photo as any).thumbnail ||
-                    (photo as any).src ||
-                    photo.url ||
-                    (photo as any).image ||
-                    photo.path ||
-                    '';
-                  const resolvedPhotoSrc = getMediaUrl(imageSrc) || imageSrc;
-
-                  return (
-                    <div
-                      key={photo.id || photo.url || idx}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenPhoto(photo, subfolderPhotos, idx);
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                      className="animate-card-enter will-change-transform transform-gpu relative aspect-[4/5] cursor-pointer overflow-hidden rounded-xl group transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-1"
-                    >
-                      <SmartThumbnail
-                        src={resolvedPhotoSrc}
-                        alt={cleanTitle}
-                        aspectClass="aspect-[4/5]"
-                        containerClassName="w-full h-full rounded-xl border-0"
-                        className="group-hover:brightness-110 transition-all duration-300"
-                        fallbackTitle={cleanTitle}
-                      />
+              <SmartThumbnail
+                src={thumb}
+                alt=""
+                aspectClass="w-full h-full object-cover"
+                containerClassName="w-full h-full rounded-2xl border-0 overflow-hidden"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              >
+                {/* Center Play Indicator for Videos / Shorts on Hover */}
+                {!isPhoto && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                    <div className="w-14 h-14 rounded-full bg-white/90 text-black flex items-center justify-center shadow-2xl">
+                      <Play className="w-6 h-6 fill-current ml-0.5" />
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Videos */}
-            {subfolderVideos.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 md:gap-4 p-0.5">
-                {subfolderVideos.map((video, idx) => {
-                  const cleanTitle = sanitizeMediaTitle(video.title || video.name, selectedSubfolder || '');
-                  const rawVideoFallback =
-                    (video as any).thumbnail ||
-                    (video as any).src ||
-                    video.url ||
-                    (video as any).image ||
-                    video.path ||
-                    '';
-                  const thumb =
-                    getThumbnailUrl(video) ||
-                    resolveStaticVideoThumbnail(video) ||
-                    getMediaUrl(rawVideoFallback) ||
-                    rawVideoFallback;
-
-                  return (
-                    <div
-                      key={video.id || video.url || idx}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenVideo(video, subfolderVideos);
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                      className="animate-card-enter will-change-transform transform-gpu group relative aspect-video rounded-xl overflow-hidden cursor-pointer select-none transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-1"
-                    >
-                      <SmartThumbnail
-                        src={thumb}
-                        alt={cleanTitle}
-                        aspectClass="aspect-video"
-                        containerClassName="w-full h-full rounded-xl border-0"
-                        fallbackTitle={cleanTitle}
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                          <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                            <Play className="w-4 h-4 fill-current ml-0.5" />
-                          </div>
-                        </div>
-                      </SmartThumbnail>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Shorts */}
-            {subfolderShorts.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 md:gap-4 p-0.5">
-                {subfolderShorts.map((short, idx) => {
-                  const cleanTitle = sanitizeMediaTitle(short.title || short.name, selectedSubfolder || '');
-                  const rawShortFallback =
-                    (short as any).thumbnail ||
-                    (short as any).src ||
-                    short.url ||
-                    (short as any).image ||
-                    short.path ||
-                    '';
-                  const thumb =
-                    getImageUrl(short) ||
-                    getThumbnailUrl(short) ||
-                    resolveStaticVideoThumbnail(short) ||
-                    getMediaUrl(rawShortFallback) ||
-                    rawShortFallback;
-
-                  return (
-                    <div
-                      key={short.id || short.url || idx}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenShort(short, subfolderShorts, idx, selectedSubfolder || undefined);
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                      className="animate-card-enter will-change-transform transform-gpu relative aspect-[4/5] cursor-pointer overflow-hidden rounded-xl group transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-1"
-                    >
-                      <SmartThumbnail
-                        src={thumb}
-                        alt={cleanTitle}
-                        aspectClass="aspect-[4/5]"
-                        containerClassName="w-full h-full rounded-xl border-0"
-                        fallbackTitle={cleanTitle}
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                          <div className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                          </div>
-                        </div>
-                      </SmartThumbnail>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </main>
-      )}
+                  </div>
+                )}
+              </SmartThumbnail>
+            </div>
+          );
+        })}
+      </section>
     </div>
   );
 };

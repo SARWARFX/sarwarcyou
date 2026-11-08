@@ -81,10 +81,9 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
   };
 
   return (
-    <aside
-      onClick={(e) => e.stopPropagation()}
+    <nav
       aria-label="Major Folders Navigation"
-      className={`w-[240px] md:w-[260px] h-screen flex flex-col justify-center pl-8 md:pl-12 gap-7 bg-transparent border-none shrink-0 select-none z-20 overflow-y-auto no-scrollbar ${className}`}
+      className={`flex flex-col justify-center gap-6 md:gap-7 select-none ${className}`}
     >
       {MAJOR_FOLDERS.map((folder) => {
         const isAccordionOpen = Boolean(openAccordions[folder.key]);
@@ -98,7 +97,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
             <button
               type="button"
               onClick={() => toggleAccordion(folder.key)}
-              className={`font-['Google_Sans'] font-bold text-lg md:text-xl tracking-[0.22em] uppercase transition-all duration-300 cursor-pointer text-left outline-none bg-transparent border-0 flex items-center gap-2.5 ${
+              className={`font-['Google_Sans'] font-bold text-xl tracking-[0.24em] uppercase transition-all duration-300 cursor-pointer text-left outline-none bg-transparent border-0 flex items-center gap-2.5 ${
                 isFolderActive
                   ? 'text-white'
                   : 'text-slate-500 hover:text-white'
@@ -120,7 +119,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
             >
               <div className="overflow-hidden">
                 {subfolderNodes.length > 0 && (
-                  <div className="flex flex-col space-y-1.5 border-l border-white/10 ml-1 pl-3.5 pt-2.5 pb-1">
+                  <div className="flex flex-col space-y-2 border-l border-white/10 ml-1 pl-3.5 pt-2.5 pb-1">
                     {subfolderNodes.map((subNode, idx) => {
                       const isSubSelected =
                         selectedAlbum === folder.key && selectedSubfolder === subNode.name;
@@ -154,7 +153,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
           </div>
         );
       })}
-    </aside>
+    </nav>
   );
 };
 
