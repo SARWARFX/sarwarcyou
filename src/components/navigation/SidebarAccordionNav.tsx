@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { DirectoryNode } from '../DeepSpaceTreeExplorer';
 
 export interface MajorFolderDef {
@@ -41,9 +41,11 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
   const [internalOpenFolder, setInternalOpenFolder] = useState<string | null>(selectedAlbum || null);
   const currentOpenFolder = openFolder !== undefined ? openFolder : internalOpenFolder;
 
-  // Auto-expand folder when selectedAlbum changes externally; keep in sync
+  // Auto-expand folder only when selectedAlbum externally transitions
+  const prevAlbumRef = useRef(selectedAlbum);
   useEffect(() => {
-    if (selectedAlbum) {
+    if (selectedAlbum && selectedAlbum !== prevAlbumRef.current) {
+      prevAlbumRef.current = selectedAlbum;
       if (onToggleFolder) {
         onToggleFolder(selectedAlbum);
       } else {
@@ -55,7 +57,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
   const handleFolderClick = (folderKey: string) => {
     // Only toggle the accordion expansion state in place (never auto-loads or auto-redirects)
     if (onToggleFolder) {
-      onToggleFolder(currentOpenFolder === folderKey ? '' : folderKey);
+      onToggleFolder(folderKey);
     } else {
       setInternalOpenFolder((prev) => (prev === folderKey ? null : folderKey));
     }
@@ -68,8 +70,8 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
       aria-label="Major Folders Navigation"
       className={
         isDesktop
-          ? `hidden md:flex w-[260px] h-screen flex-col justify-center pl-12 gap-7 flex-shrink-0 z-20 bg-transparent select-none ${className}`
-          : `flex flex-col justify-center gap-6 select-none my-auto w-full ${className}`
+          ? `hidden md:flex w-[260px] h-screen flex-col justify-center pl-12 gap-7 flex-shrink-0 z-30 pointer-events-auto bg-transparent select-none ${className}`
+          : `relative z-30 pointer-events-auto flex flex-col justify-center gap-6 select-none w-full ${className}`
       }
     >
       {MAJOR_FOLDERS.map((folder) => {
@@ -79,12 +81,15 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
         const subfolderNodes = rootNode ? Array.from(rootNode.subfolders.values()) : [];
 
         return (
-          <div key={folder.key} className="flex flex-col w-full">
+          <div key={folder.key} className="flex flex-col w-full relative z-30">
             {/* Major Folder Link */}
             <button
               type="button"
-              onClick={() => handleFolderClick(folder.key)}
-              className={
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFolderClick(folder.key);
+              }}
+              className={`pointer-events-auto relative z-40 select-none ${
                 isDesktop
                   ? `font-['Google_Sans'] font-bold text-lg lg:text-xl tracking-[0.24em] uppercase transition-colors cursor-pointer flex items-center gap-3 text-left outline-none bg-transparent border-0 truncate ${
                       isAccordionOpen || isFolderActive
@@ -96,7 +101,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                         ? 'text-white'
                         : 'text-[#3b4252] hover:text-white'
                     }`
-              }
+              }`}
             >
               {isFolderActive && (
                 <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] flex-shrink-0 animate-pulse" />
@@ -104,52 +109,53 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
               <span className="truncate">{folder.label}</span>
             </button>
 
-            {/* Subfolder list with smooth accordion expansion and staggered cascade */}
+            {/* Subfolder list with smooth max-height accordion expansion */}
             <div
-              className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              className={`transition-all duration-300 ease-out ${
                 isAccordionOpen
-                  ? 'grid-rows-[1fr] opacity-100'
-                  : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  ? 'max-h-60 opacity-100 overflow-visible mt-1.5'
+                  : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'
               }`}
             >
-              <div className="overflow-hidden">
-                {subfolderNodes.length > 0 && (
-                  <div
-                    className={
-                      isDesktop
-                        ? 'flex flex-col space-y-2 border-l border-white/10 ml-1 pl-3.5 pt-2.5 pb-1'
-                        : 'flex flex-col space-y-1.5 border-l border-white/10 ml-1 pl-3 pt-1.5 pb-1'
-                    }
-                  >
-                    {subfolderNodes.map((subNode, idx) => {
-                      const isSubSelected =
-                        selectedAlbum === folder.key && selectedSubfolder === subNode.name;
+              {subfolderNodes.length > 0 && (
+                <div
+                  className={
+                    isDesktop
+                      ? 'flex flex-col space-y-2 border-l border-white/10 ml-1 pl-3.5 pt-1 pb-1'
+                      : 'flex flex-col space-y-1.5 border-l border-white/10 ml-1 pl-3 pt-1 pb-1'
+                  }
+                >
+                  {subfolderNodes.map((subNode, idx) => {
+                    const isSubSelected =
+                      selectedAlbum === folder.key && selectedSubfolder === subNode.name;
 
-                      return (
-                        <button
-                          key={subNode.name}
-                          type="button"
-                          onClick={() => onSelectSubfolder(folder.key, subNode.name)}
-                          style={{
-                            transitionDelay: isAccordionOpen ? `${idx * 40}ms` : '0ms',
-                          }}
-                          className={`font-['Google_Sans'] text-xs tracking-wider uppercase transform transition-all duration-200 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 truncate ${
-                            isAccordionOpen
-                              ? 'translate-x-0 opacity-100'
-                              : '-translate-x-2.5 opacity-0'
-                          } ${
-                            isSubSelected
-                              ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1.5'
-                              : 'text-slate-400 hover:text-white hover:translate-x-1'
-                          }`}
-                        >
-                          {subNode.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                    return (
+                      <button
+                        key={subNode.name}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectSubfolder(folder.key, subNode.name);
+                        }}
+                        style={{
+                          transitionDelay: isAccordionOpen ? `${idx * 40}ms` : '0ms',
+                        }}
+                        className={`pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-xs tracking-wider uppercase transform transition-all duration-200 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 truncate ${
+                          isAccordionOpen
+                            ? 'translate-x-0 opacity-100'
+                            : '-translate-x-2.5 opacity-0 pointer-events-none'
+                        } ${
+                          isSubSelected
+                            ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1.5'
+                            : 'text-slate-400 hover:text-white hover:translate-x-1'
+                        }`}
+                      >
+                        {subNode.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         );

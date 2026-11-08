@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Play, ArrowLeft } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
@@ -77,6 +77,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
   const [openFolder, setOpenFolder] = useState<string | null>(null);
+  const [activeMobilePane, setActiveMobilePane] = useState<0 | 1>(0);
 
   // Outer horizontal track ref for mobile horizontal snap & swipe-back
   const outerTrackRef = useRef<HTMLDivElement>(null);
@@ -95,14 +96,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
     const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
 
-    // Swiping left-to-right: positive deltaX (finger moved right)
-    // Instant snap-back triggered if horizontal delta exceeds threshold & dominates vertical
-    if (deltaX > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+    // Swiping left-to-right on Screen 2: positive deltaX (finger moved right)
+    // Only trigger horizontal swipe transitions if Math.abs(deltaX) > 15px
+    if (deltaX > 15 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
       if (outerTrackRef.current) {
         outerTrackRef.current.scrollTo({
           left: 0,
           behavior: 'smooth',
         });
+        setActiveMobilePane(0);
       }
     }
 
@@ -110,8 +112,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     touchStartYRef.current = null;
   };
 
-  const handleToggleFolder = (folderKey: string) => {
+  const handleToggleFolder = useCallback((folderKey: string) => {
     setOpenFolder((prev) => (prev === folderKey ? null : folderKey));
+  }, []);
+
+  const handleMobileTrackScroll = () => {
+    if (outerTrackRef.current) {
+      const scrollLeft = outerTrackRef.current.scrollLeft;
+      const clientWidth = outerTrackRef.current.clientWidth;
+      const pane = scrollLeft > clientWidth * 0.4 ? 1 : 0;
+      setActiveMobilePane((prev) => (prev !== pane ? pane : prev));
+    }
   };
 
   // Build directory tree
@@ -305,6 +316,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Mobile subfolder select handler: selects subfolder & smoothly scrolls to Pane 2
   const handleMobileSelectSubfolder = (albumKey: string, subfolderName: string) => {
     handleSelectSubfolder(albumKey, subfolderName);
+    setActiveMobilePane(1);
     requestAnimationFrame(() => {
       setTimeout(() => {
         if (outerTrackRef.current) {
@@ -321,6 +333,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const handleSelectIdle = () => {
     setSelectedAlbum(null);
     setSelectedSubfolder(null);
+    setActiveMobilePane(0);
     if (outerTrackRef.current) {
       outerTrackRef.current.scrollTo({
         left: 0,
@@ -505,6 +518,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* ========================================================================= */}
       <div
         ref={outerTrackRef}
+        onScroll={handleMobileTrackScroll}
         className="md:hidden w-screen h-screen flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar relative select-none z-20"
         style={{
           scrollSnapType: 'x mandatory',
@@ -513,10 +527,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* SCREEN 1 (100vw): HOME / FOLDERS & FULL-WIDTH BOTTOM GRAPH */}
         <section
           aria-label="Mobile Navigation and Telemetry"
-          className="flex-none w-screen h-screen snap-start flex flex-col justify-between overflow-hidden relative shrink-0"
+          className="flex-none w-screen h-screen snap-start flex flex-col justify-between overflow-hidden relative shrink-0 z-30 pointer-events-auto"
         >
           {/* Middle-Left Folders: Vertically centered */}
-          <div className="flex-1 flex flex-col justify-center pl-8 md:pl-12 gap-6 select-none">
+          <div className="flex-1 flex flex-col justify-center pl-8 md:pl-12 gap-6 select-none relative z-30 pointer-events-auto">
             <SidebarAccordionNav
               variant="mobile"
               rootMap={rootMap}
@@ -530,7 +544,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
 
           {/* Full-Width Bottom Graph Dock */}
-          <div className="w-full px-5 pb-6 pt-2 flex flex-col justify-end flex-shrink-0">
+          <div className="w-full px-5 pb-6 pt-2 flex flex-col justify-end flex-shrink-0 relative z-20 pointer-events-auto">
             <SessionTelemetryGraph variant="mobile" />
           </div>
         </section>
@@ -540,7 +554,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           aria-label="Mobile Media Gallery"
-          className="flex-none w-screen h-screen snap-start flex flex-col overflow-y-auto overflow-x-hidden p-4 relative shrink-0 space-scrollbar bg-transparent border-0"
+          className={`flex-none w-screen h-screen snap-start flex flex-col overflow-y-auto overflow-x-hidden p-4 relative shrink-0 space-scrollbar bg-transparent border-0 transition-opacity duration-200 ${
+            activeMobilePane === 1 ? 'pointer-events-auto z-30 opacity-100' : 'pointer-events-none z-10 opacity-0'
+          }`}
           style={{
             WebkitOverflowScrolling: 'touch',
           }}
