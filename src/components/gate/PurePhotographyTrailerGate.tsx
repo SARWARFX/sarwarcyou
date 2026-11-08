@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
+import { SmartThumbnail } from '../common/SmartThumbnail';
 import { useScrambleText } from './useScrambleText';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
@@ -704,19 +705,15 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                           onOpenPhoto(photo, photoFiles, idx);
                         }}
                         style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                        className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-neutral-900/40 backdrop-blur-sm transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
+                        className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl group transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
                       >
-                        <img
+                        <SmartThumbnail
                           src={getMediaUrl(photo.url)}
                           alt={photo.title || photo.name || 'Photo'}
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) parent.classList.add('bg-neutral-900');
-                          }}
-                          className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
+                          aspectClass="aspect-square"
+                          containerClassName="w-full h-full rounded-xl border-0"
+                          className="group-hover:brightness-110 transition-all duration-300"
+                          fallbackTitle={photo.title || photo.name}
                         />
                       </div>
                     ))}
@@ -741,26 +738,20 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                           style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
                           className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
-                          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
-                            {thumb ? (
-                              <img
-                                src={thumb}
-                                alt={cleanTitle}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-neutral-950">
-                                <Play className="w-6 h-6 text-neutral-400" />
-                              </div>
-                            )}
+                          <SmartThumbnail
+                            src={thumb}
+                            alt={cleanTitle}
+                            aspectClass="aspect-video"
+                            containerClassName="w-full aspect-video rounded-xl border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200"
+                            className="object-center group-hover:scale-105 transition-transform duration-500"
+                            fallbackTitle={cleanTitle}
+                          >
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                               <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
                                 <Play className="w-4 h-4 fill-current ml-0.5" />
                               </div>
                             </div>
-                          </div>
+                          </SmartThumbnail>
                           <span className="text-xs sm:text-sm font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300 group-hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                             {cleanTitle}
                           </span>
@@ -788,26 +779,20 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                           style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
                           className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
-                          <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
-                            {thumb ? (
-                              <img
-                                src={thumb}
-                                alt={cleanTitle}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-neutral-950">
-                                <Play className="w-5 h-5 text-neutral-400" />
-                              </div>
-                            )}
+                          <SmartThumbnail
+                            src={thumb}
+                            alt={cleanTitle}
+                            aspectClass="aspect-[9/16]"
+                            containerClassName="w-full aspect-[9/16] rounded-xl border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200"
+                            className="object-center group-hover:scale-105 transition-transform duration-500"
+                            fallbackTitle={cleanTitle}
+                          >
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                               <div className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
                                 <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                               </div>
                             </div>
-                          </div>
+                          </SmartThumbnail>
                           <span className="text-xs sm:text-sm font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300 group-hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                             {cleanTitle}
                           </span>
@@ -930,19 +915,14 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                               onOpenPhoto(photo, photoFiles, idx);
                             }}
                             style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                            className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md active:scale-95 transition-transform"
+                            className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl shadow-md active:scale-95 transition-transform"
                           >
-                            <img
+                            <SmartThumbnail
                               src={getMediaUrl(photo.url)}
                               alt={photo.title || photo.name || 'Photo'}
-                              loading="lazy"
-                              decoding="async"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) parent.classList.add('bg-neutral-900');
-                              }}
-                              className="w-full h-full object-cover rounded-xl"
+                              aspectClass="aspect-square"
+                              containerClassName="w-full h-full rounded-xl border-0"
+                              fallbackTitle={photo.title || photo.name}
                             />
                           </div>
                         ))}
@@ -967,26 +947,19 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                               style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
                               className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
-                              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
-                                {thumb ? (
-                                  <img
-                                    src={thumb}
-                                    alt={cleanTitle}
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="w-full h-full object-cover object-center"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-neutral-950">
-                                    <Play className="w-6 h-6 text-neutral-400" />
-                                  </div>
-                                )}
+                              <SmartThumbnail
+                                src={thumb}
+                                alt={cleanTitle}
+                                aspectClass="aspect-video"
+                                containerClassName="w-full aspect-video rounded-xl border-0 shadow-lg"
+                                fallbackTitle={cleanTitle}
+                              >
                                 <div className="absolute inset-0 flex items-center justify-center">
                                   <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
                                     <Play className="w-4 h-4 fill-current ml-0.5" />
                                   </div>
                                 </div>
-                              </div>
+                              </SmartThumbnail>
                               <span className="text-xs font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300">
                                 {cleanTitle}
                               </span>
@@ -1014,26 +987,19 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                               style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
                               className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
-                              <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
-                                {thumb ? (
-                                  <img
-                                    src={thumb}
-                                    alt={cleanTitle}
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="w-full h-full object-cover object-center"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-neutral-950">
-                                    <Play className="w-5 h-5 text-neutral-400" />
-                                  </div>
-                                )}
+                              <SmartThumbnail
+                                src={thumb}
+                                alt={cleanTitle}
+                                aspectClass="aspect-[9/16]"
+                                containerClassName="w-full aspect-[9/16] rounded-xl border-0 shadow-lg"
+                                fallbackTitle={cleanTitle}
+                              >
                                 <div className="absolute inset-0 flex items-center justify-center">
                                   <div className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
                                     <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                                   </div>
                                 </div>
-                              </div>
+                              </SmartThumbnail>
                               <span className="text-xs font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300">
                                 {cleanTitle}
                               </span>

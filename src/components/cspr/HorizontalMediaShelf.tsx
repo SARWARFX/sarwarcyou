@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
+import { SmartThumbnail } from '../common/SmartThumbnail';
 import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sanitizeMediaTitle } from '../../utils/titleSanitizer';
@@ -138,28 +139,14 @@ export const HorizontalMediaShelf: React.FC<HorizontalMediaShelfProps> = ({
               className={`group/card flex-shrink-0 snap-start flex flex-col gap-1.5 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1 ${cardContainerClass}`}
             >
               {/* Card Media Preview Container */}
-              <div
-                className={`relative w-full ${cardRatioClass} rounded-2xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover/card:shadow-2xl transition-all duration-300`}
+              <SmartThumbnail
+                src={thumb}
+                alt={cleanTitle}
+                aspectClass={cardRatioClass}
+                containerClassName="w-full rounded-2xl border-0 shadow-lg group-hover/card:shadow-2xl transition-all duration-300"
+                className="object-center group-hover/card:scale-105 transition-transform duration-500"
+                fallbackTitle={cleanTitle}
               >
-                {thumb ? (
-                  <img
-                    src={thumb}
-                    alt={cleanTitle}
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) parent.classList.add('bg-neutral-900');
-                    }}
-                    className="w-full h-full object-cover object-center transition-transform duration-500 group-hover/card:scale-105"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-neutral-950">
-                    <Play className="w-6 h-6 text-neutral-500" />
-                  </div>
-                )}
-
                 {/* Video / Shorts Play Button Overlay */}
                 {isVideo && (
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 pointer-events-none bg-black/25">
@@ -171,7 +158,7 @@ export const HorizontalMediaShelf: React.FC<HorizontalMediaShelfProps> = ({
 
                 {/* Subtle Bottom Vignette on Card */}
                 <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-              </div>
+              </SmartThumbnail>
 
               {/* Title Label */}
               <span className="text-[11px] sm:text-xs font-['Audiowide',cursive,sans-serif] uppercase font-normal line-clamp-1 leading-snug text-neutral-300 group-hover/card:text-white transition-colors px-0.5 tracking-[0.08em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">

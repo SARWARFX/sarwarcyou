@@ -285,3 +285,18 @@ html, body, #root {
   -webkit-perspective: 1000px;
 }
 
+/* Futuristic Laser Shimmer Loader */
+@keyframes laserShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-laser-shimmer {
+  animation: laserShimmer 2s infinite linear;
+}
+
+

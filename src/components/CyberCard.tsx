@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import type { StageMediaItem } from '../types';
+import { SmartThumbnail } from './common/SmartThumbnail';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -23,8 +24,6 @@ export const CyberCard: React.FC<CyberCardProps> = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isInViewport, setIsInViewport] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   // Viewport observer to pause cycling & control offscreen media
   useEffect(() => {
@@ -60,11 +59,6 @@ export const CyberCard: React.FC<CyberCardProps> = ({
 
     return () => clearInterval(intervalId);
   }, [isInViewport, totalAlbumItems]);
-
-  useEffect(() => {
-    setImageError(false);
-    setImageLoaded(false);
-  }, [currentPreviewIndex]);
 
   const activeItem = useMemo(() => {
     if (albumItems && albumItems.length > 0) {
@@ -138,24 +132,14 @@ export const CyberCard: React.FC<CyberCardProps> = ({
         transform: 'translateZ(0)',
       }}
     >
-      {/* 1. Visual Thumbnail Layer (Captured canvas frame or photo image) */}
-      {displayImageSrc && !imageError ? (
-        <img
-          key={displayImageSrc}
-          src={displayImageSrc}
-          alt={cleanTitle}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setImageLoaded(true)}
-          onError={() => setImageError(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 z-10 ${
-            imageLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-      ) : (
-        /* 2. Clean Fallback Placeholder (Zero video elements mounted to eliminate 403 rate-limiting) */
-        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 pointer-events-none z-10" />
-      )}
+      {/* 1. Visual Thumbnail Layer (Smart Thumbnail Loader) */}
+      <SmartThumbnail
+        key={displayImageSrc}
+        src={displayImageSrc}
+        alt={cleanTitle}
+        containerClassName="absolute inset-0 w-full h-full border-0 rounded-none z-10"
+        fallbackTitle={cleanTitle}
+      />
 
       {/* 3. Center Play Icon Overlay for Videos */}
       {isVideo && (
