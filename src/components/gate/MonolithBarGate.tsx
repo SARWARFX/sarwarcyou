@@ -344,7 +344,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   return (
     <div
-      className="w-screen h-screen overflow-hidden flex flex-row bg-[#020408] relative select-none font-['Google_Sans'] text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-row bg-[#020408] relative select-none font-['Google_Sans'] text-white"
       style={{
         isolation: 'isolate',
         background: 'radial-gradient(circle at 50% 35%, rgba(8, 20, 38, 0.6) 0%, #020408 85%)',
@@ -519,7 +519,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       <div
         ref={outerTrackRef}
         onScroll={handleMobileTrackScroll}
-        className="md:hidden w-screen h-screen flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar relative select-none z-20"
+        className="md:hidden w-screen h-[100dvh] max-h-[100dvh] flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar relative select-none z-20"
         style={{
           scrollSnapType: 'x mandatory',
         }}
@@ -527,10 +527,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* SCREEN 1 (100vw): HOME / FOLDERS & FULL-WIDTH BOTTOM GRAPH */}
         <section
           aria-label="Mobile Navigation and Telemetry"
-          className="flex-none w-screen h-screen snap-start flex flex-col justify-between overflow-hidden relative shrink-0 z-30 pointer-events-auto"
+          className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between relative bg-[#020408] flex-none snap-start shrink-0 z-30 pointer-events-auto"
         >
           {/* Middle-Left Folders: Vertically centered */}
-          <div className="flex-1 flex flex-col justify-center pl-8 md:pl-12 gap-6 select-none relative z-30 pointer-events-auto">
+          <div className="flex-1 flex flex-col justify-center pl-8 md:pl-12 gap-7 z-20 select-none relative pointer-events-auto">
             <SidebarAccordionNav
               variant="mobile"
               rootMap={rootMap}
@@ -544,7 +544,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
 
           {/* Full-Width Bottom Graph Dock */}
-          <div className="w-full px-5 pb-6 pt-2 flex flex-col justify-end flex-shrink-0 relative z-20 pointer-events-auto">
+          <div className="w-full px-5 pb-5 pt-1 flex flex-col justify-end flex-shrink-0 z-10 relative pointer-events-auto">
             <SessionTelemetryGraph variant="mobile" />
           </div>
         </section>
@@ -554,7 +554,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           aria-label="Mobile Media Gallery"
-          className={`flex-none w-screen h-screen snap-start flex flex-col overflow-y-auto overflow-x-hidden p-4 relative shrink-0 space-scrollbar bg-transparent border-0 transition-opacity duration-200 ${
+          className={`flex-none w-screen h-[100dvh] max-h-[100dvh] snap-start flex flex-col overflow-y-auto overflow-x-hidden p-4 relative shrink-0 space-scrollbar bg-transparent border-0 transition-opacity duration-200 ${
             activeMobilePane === 1 ? 'pointer-events-auto z-30 opacity-100' : 'pointer-events-none z-10 opacity-0'
           }`}
           style={{

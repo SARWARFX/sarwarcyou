@@ -71,7 +71,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
       className={
         isDesktop
           ? `hidden md:flex w-[260px] h-screen flex-col justify-center pl-12 gap-7 flex-shrink-0 z-30 pointer-events-auto bg-transparent select-none ${className}`
-          : `relative z-30 pointer-events-auto flex flex-col justify-center gap-6 select-none w-full ${className}`
+          : `relative z-30 pointer-events-auto flex flex-col justify-center gap-7 select-none w-full ${className}`
       }
     >
       {MAJOR_FOLDERS.map((folder) => {
@@ -96,15 +96,15 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                         ? 'text-white'
                         : 'text-[#3b4252] hover:text-white'
                     }`
-                  : `font-['Google_Sans'] font-bold text-sm sm:text-base tracking-[0.2em] uppercase transition-colors cursor-pointer flex items-center gap-2.5 text-left outline-none bg-transparent border-0 truncate ${
+                  : `font-['Google_Sans'] text-2xl md:text-3xl font-bold tracking-[0.22em] uppercase transition-colors cursor-pointer flex items-center gap-3.5 text-left outline-none bg-transparent border-0 truncate ${
                       isAccordionOpen || isFolderActive
                         ? 'text-white'
-                        : 'text-[#3b4252] hover:text-white'
+                        : 'text-slate-400 hover:text-white'
                     }`
               }`}
             >
               {isFolderActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] flex-shrink-0 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] flex-shrink-0 animate-pulse" />
               )}
               <span className="truncate">{folder.label}</span>
             </button>
@@ -122,7 +122,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                   className={
                     isDesktop
                       ? 'flex flex-col space-y-2 border-l border-white/10 ml-1 pl-3.5 pt-1 pb-1'
-                      : 'flex flex-col space-y-1.5 border-l border-white/10 ml-1 pl-3 pt-1 pb-1'
+                      : 'flex flex-col space-y-1.5 border-l border-white/10 ml-1 pl-2 pt-1 pb-1'
                   }
                 >
                   {subfolderNodes.map((subNode, idx) => {
@@ -140,15 +140,27 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                         style={{
                           transitionDelay: isAccordionOpen ? `${idx * 40}ms` : '0ms',
                         }}
-                        className={`pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-xs tracking-wider uppercase transform transition-all duration-200 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 truncate ${
-                          isAccordionOpen
-                            ? 'translate-x-0 opacity-100'
-                            : '-translate-x-2.5 opacity-0 pointer-events-none'
-                        } ${
-                          isSubSelected
-                            ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1.5'
-                            : 'text-slate-400 hover:text-white hover:translate-x-1'
-                        }`}
+                        className={
+                          isDesktop
+                            ? `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-xs tracking-wider uppercase transform transition-all duration-200 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 truncate ${
+                                isAccordionOpen
+                                  ? 'translate-x-0 opacity-100'
+                                  : '-translate-x-2.5 opacity-0 pointer-events-none'
+                              } ${
+                                isSubSelected
+                                  ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1.5'
+                                  : 'text-slate-400 hover:text-white hover:translate-x-1'
+                              }`
+                            : `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-sm font-semibold tracking-[0.16em] uppercase py-1 pl-4 text-left transition-colors cursor-pointer outline-none bg-transparent border-0 truncate ${
+                                isAccordionOpen
+                                  ? 'opacity-100'
+                                  : 'opacity-0 pointer-events-none'
+                              } ${
+                                isSubSelected
+                                  ? 'text-[#38bdf8] font-bold'
+                                  : 'text-slate-400 hover:text-white'
+                              }`
+                        }
                       >
                         {subNode.name}
                       </button>

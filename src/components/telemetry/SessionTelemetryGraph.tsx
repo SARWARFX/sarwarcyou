@@ -173,25 +173,25 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
 
   if (variant === 'mobile') {
     return (
-      <div className={`w-full flex justify-between items-end h-20 gap-2 ${className}`}>
+      <div className={`w-full flex justify-between items-end gap-2 h-[82px] ${className}`}>
         {dayStats.map((day) => {
           const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
 
           return (
-            <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1 group">
-              {/* Duration in H.MM */}
+            <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full group">
+              {/* Top: Duration readout */}
               <span
-                className={`font-mono text-[9px] xs:text-[10px] transition-colors ${
+                className={`font-mono text-[10px] transition-colors ${
                   day.isToday
                     ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]'
-                    : 'text-[#475569] group-hover:text-slate-300'
+                    : 'text-slate-400 group-hover:text-white'
                 }`}
               >
                 {day.hoursFormatted}
               </span>
 
-              {/* Monolith Pillar Slot */}
-              <div className="h-[44px] w-full max-w-[36px] bg-white/[0.03] rounded flex items-end overflow-hidden">
+              {/* Middle: Slot & Bar -> height ~42px, w-full rounded */}
+              <div className="h-[42px] w-full max-w-[36px] bg-white/[0.03] rounded flex items-end overflow-hidden my-0.5">
                 <div
                   style={{
                     height: `${heightPct}%`,
@@ -205,12 +205,12 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                 />
               </div>
 
-              {/* Date Label */}
+              {/* Bottom: Date label (e.g. "NOV 03" ... "TODAY") -> MUST BE VISIBLE */}
               <span
-                className={`font-mono text-[8px] xs:text-[9px] uppercase tracking-wider text-center truncate w-full ${
+                className={`font-mono text-[9px] tracking-wider uppercase mt-1.5 block whitespace-nowrap text-center ${
                   day.isToday
-                    ? 'text-[#38bdf8] font-semibold'
-                    : 'text-[#475569] group-hover:text-slate-400'
+                    ? 'text-[#38bdf8] font-bold'
+                    : 'text-slate-400 group-hover:text-slate-200'
                 }`}
               >
                 {day.label}
