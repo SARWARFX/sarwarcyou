@@ -18,14 +18,10 @@ import { AmbientFogCanvas } from './components/AmbientFogCanvas';
 import { FrostedSnowCanvas } from './components/FrostedSnowCanvas';
 import { AuraCanvas } from './components/aura/AuraCanvas';
 import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
-import { CinematicGate } from './components/gate/CinematicGate';
-import { FrequencyGate } from './components/gate/FrequencyGate';
 import { MonolithBarGate } from './components/gate/MonolithBarGate';
 import {
   ACTIVE_INTERFACE,
   ENABLE_MONOLITH_GATE,
-  ENABLE_FREQUENCY_GATE,
-  ENABLE_CINEMATIC_GATE,
   ENABLE_AURA_FLOW,
   ENABLE_CASCADE_SHELL,
   ENABLE_SILENT_HILL_SHELL,
@@ -628,54 +624,6 @@ function App() {
 
           {/* 1. Direct Data Monolith Bars Vault Gate with SARWAR.CYOU Signature */}
           <MonolithBarGate
-            items={rawFeed.allMediaPool}
-            initialAlbum={initialAlbumTarget}
-            isModalOpen={
-              theaterState.isOpen ||
-              shortsState.isOpen ||
-              lightboxState.isOpen ||
-              viewAllState.isOpen ||
-              isCommandPaletteOpen
-            }
-            onOpenPhoto={handleOpenPhoto}
-            onOpenVideo={handleOpenVideo}
-            onOpenShort={handleOpenShort}
-          />
-
-          {/* Global Network Connectivity Indicator */}
-          <NetworkStatusHUD />
-        </>
-      ) : ENABLE_FREQUENCY_GATE || ACTIVE_INTERFACE === 'FREQUENCY_GATE' ? (
-        <>
-          {/* 0. Opening Public Domain Compliance Splash Screen */}
-          <ComplianceSplashScreen />
-
-          {/* 1. Encrypted Frequency & Classified Telemetry Gate */}
-          <FrequencyGate
-            items={rawFeed.allMediaPool}
-            initialAlbum={initialAlbumTarget}
-            isModalOpen={
-              theaterState.isOpen ||
-              shortsState.isOpen ||
-              lightboxState.isOpen ||
-              viewAllState.isOpen ||
-              isCommandPaletteOpen
-            }
-            onOpenPhoto={handleOpenPhoto}
-            onOpenVideo={handleOpenVideo}
-            onOpenShort={handleOpenShort}
-          />
-
-          {/* Global Network Connectivity Indicator */}
-          <NetworkStatusHUD />
-        </>
-      ) : ENABLE_CINEMATIC_GATE || ACTIVE_INTERFACE === 'CINEMATIC_GATE' ? (
-        <>
-          {/* 0. Opening Public Domain Compliance Splash Screen */}
-          <ComplianceSplashScreen />
-
-          {/* 1. Cryptic Dynamic Cinematic Poster Landing Gate with Hacker Text-Scramble Unlock */}
-          <CinematicGate
             items={rawFeed.allMediaPool}
             initialAlbum={initialAlbumTarget}
             isModalOpen={

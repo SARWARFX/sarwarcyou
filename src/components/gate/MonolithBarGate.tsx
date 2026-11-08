@@ -29,22 +29,19 @@ const HUBS = [
 
 const STORAGE_KEY = 'sarwar_daily_ledger_v1';
 
-// Seed realistic historical session minutes if not present (between 35m and 165m)
-const SEED_MINUTES = [45, 78, 115, 38, 142, 64, 98];
-
 interface DayData {
   dateKey: string;      // "YYYY-MM-DD"
-  dateLabel: string;    // "NOV 01"
+  dateLabel: string;    // "NOV 08"
   seconds: number;
   isToday: boolean;
 }
 
-// Format seconds into H.MM (e.g. 1 hr 25 min -> "1.25", 45 min -> "0.45")
+// Format seconds into H.MM (e.g. 1 hr 25 min -> "1.25", 0 min -> "0.00")
 export function formatHoursMinutes(totalSeconds: number): string {
-  const totalMinutes = Math.floor(Math.max(0, totalSeconds) / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours}.${String(minutes).padStart(2, '0')}`;
+  const safeSec = Math.max(0, totalSeconds);
+  const h = Math.floor(safeSec / 3600);
+  const m = Math.floor((safeSec % 3600) / 60);
+  return `${h}.${String(m).padStart(2, '0')}`;
 }
 
 function getFolderSegments(item: StageMediaItem): { root: string; subfolders: string[] } {
@@ -125,119 +122,120 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   initialAlbum,
   isModalOpen = false,
 }) => {
-  // Atmospheric theme for canvas particles
+  // Atmospheric theme for canvas mist particles
   const [theme] = useState<CinematicTheme>(() => getRandomCinematicTheme());
 
-  // Gate state
+  // Gate unlock & navigation states
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [selectedHub, setSelectedHub] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
 
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Daily Ledger & Real-Time Accumulation (8 Days)
+  // --------------------------------------------------------------------------
+  // 100% Authentic Visitor Memory Ledger (Zero Mock / Placeholder Data)
+  // --------------------------------------------------------------------------
   const [ledger, setLedger] = useState<{ [dateKey: string]: number }>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) return JSON.parse(stored);
     } catch {
-      // fallback
+      // ignore
     }
     return {};
   });
 
-  // Track session seconds in memory and sync periodically
-  const sessionSecondsRef = useRef(0);
+  const sessionStartRef = useRef<number>(Date.now());
+  const initialTodayStoredRef = useRef<number>(0);
+  const todayKeyRef = useRef<string>('');
+
+  const now = new Date();
+  const currentTodayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  todayKeyRef.current = currentTodayKey;
+
+  const [todayTotalSeconds, setTodayTotalSeconds] = useState<number>(() => {
+    return ledger[currentTodayKey] || 0;
+  });
 
   useEffect(() => {
-    // Generate dates for the last 8 calendar days
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    initialTodayStoredRef.current = ledger[currentTodayKey] || 0;
+    setTodayTotalSeconds(initialTodayStoredRef.current);
 
-    setLedger((prev) => {
-      const updated = { ...prev };
-      let changed = false;
-
-      for (let i = 7; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-        if (updated[k] === undefined) {
-          if (k === todayKey) {
-            updated[k] = 25 * 60; // 25 min baseline for today
-          } else {
-            const seedIdx = (7 - i) % SEED_MINUTES.length;
-            updated[k] = SEED_MINUTES[seedIdx] * 60;
-          }
-          changed = true;
-        }
+    const persistTodaySeconds = (seconds: number) => {
+      setLedger((prev) => ({ ...prev, [currentTodayKey]: seconds }));
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const currentData = raw ? JSON.parse(raw) : {};
+        currentData[currentTodayKey] = seconds;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+      } catch {
+        // ignore storage errors
       }
+    };
 
-      if (changed) {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        } catch {
-          // ignore
-        }
-      }
-      return updated;
-    });
-
-    // Real-time dynamic accumulation timer (ticks every second)
+    // Live session dwell counter (ticks every second)
     const interval = window.setInterval(() => {
-      sessionSecondsRef.current += 1;
-      const todayDate = new Date();
-      const currentTodayKey = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+      const elapsedSessionSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+      const totalSec = initialTodayStoredRef.current + elapsedSessionSec;
+      setTodayTotalSeconds(totalSec);
 
-      setLedger((prev) => {
-        const currentVal = prev[currentTodayKey] || 0;
-        const nextVal = currentVal + 1;
-        const updated = { ...prev, [currentTodayKey]: nextVal };
-
-        // Sync to storage every 10 seconds to avoid excessive I/O
-        if (sessionSecondsRef.current % 10 === 0) {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-          } catch {
-            // ignore
-          }
-        }
-        return updated;
-      });
+      // Periodically sync every 5 seconds to reduce storage writes
+      if (elapsedSessionSec % 5 === 0) {
+        persistTodaySeconds(totalSec);
+      }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    // Save on tab switch or page close
+    const handleVisibilityChange = () => {
+      const elapsedSessionSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+      const totalSec = initialTodayStoredRef.current + elapsedSessionSec;
+      persistTodaySeconds(totalSec);
+    };
 
-  // Compute 8 days data array
+    const handleBeforeUnload = () => {
+      const elapsedSessionSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+      const totalSec = initialTodayStoredRef.current + elapsedSessionSec;
+      persistTodaySeconds(totalSec);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentTodayKey]);
+
+  // Generate 7-day chronological dataset (from 6 days ago up to Today)
   const dayBars: DayData[] = useMemo(() => {
     const bars: DayData[] = [];
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const baseDate = new Date();
 
-    for (let i = 7; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() - i);
       const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const label = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
-      const seconds = ledger[k] || 0;
+      const isToday = (k === currentTodayKey);
+      const seconds = isToday ? todayTotalSeconds : (ledger[k] || 0);
 
       bars.push({
         dateKey: k,
         dateLabel: label,
         seconds,
-        isToday: k === todayKey,
+        isToday,
       });
     }
 
     return bars;
-  }, [ledger]);
+  }, [ledger, todayTotalSeconds, currentTodayKey]);
 
-  // Determine scaling based on maximum minutes (min 120 minutes)
+  // Calculate dynamic scale factor (at least 60 minutes for balanced visual hierarchy)
   const maxMinutes = useMemo(() => {
     const mins = dayBars.map((b) => Math.floor(b.seconds / 60));
-    return Math.max(...mins, 120);
+    return Math.max(...mins, 60);
   }, [dayBars]);
 
   // Build directory tree
@@ -421,7 +419,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* 1. Ambient Deep Obsidian Backdrop with Drifting Procedural Mist */}
       <CinematicBackdropCanvas theme={theme} isPaused={isModalOpen} />
 
-      {/* 2. Central Stepped Monolith Bar Graph (Interactive Unlock Stage) */}
+      {/* 2. Central Stepped Monolith Bar Graph (7-Day Authentic Visitor Memory) */}
       <div
         role="button"
         tabIndex={0}
@@ -436,33 +434,37 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             setIsUnlocked(true);
           }
         }}
-        aria-label="Monolith daily usage bar graph. Tap to decrypt vault."
-        className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[780px] h-[280px] flex flex-col justify-end px-4 sm:px-8 cursor-pointer select-none z-10 outline-none transition-all duration-700 ${
+        aria-label="Authentic visitor memory monolith bar graph. Tap to decrypt vault."
+        className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[760px] h-[280px] flex flex-col justify-end px-4 sm:px-8 cursor-pointer select-none z-10 outline-none transition-all duration-700 ${
           isUnlocked
             ? 'opacity-0 pointer-events-none scale-95 blur-sm'
             : 'opacity-100 pointer-events-auto scale-100 hover:scale-[1.01]'
         }`}
       >
-        <div className="relative w-full h-[230px] flex items-end justify-between gap-2 sm:gap-4 md:gap-6">
+        <div className="relative w-full h-[230px] flex items-end justify-between gap-3 sm:gap-6 md:gap-8">
           {/* Subtle Continuous Baseline Hair-line behind bottom of the bars */}
           <div className="absolute bottom-[28px] left-0 right-0 h-px bg-white/[0.08] pointer-events-none z-0" />
 
           {dayBars.map((bar) => {
-            const minutes = Math.floor(bar.seconds / 60);
-            // Height scaled proportionally between 16px and 165px
-            const heightPx = Math.max(16, Math.min(165, Math.round((minutes / maxMinutes) * 165)));
+            const totalMinutes = Math.floor(bar.seconds / 60);
+            // 100% Authentic: when 0, minimal 2px baseline tick; when >0, scaled proportionally up to 165px
+            const heightPx = totalMinutes === 0
+              ? 2
+              : Math.max(4, Math.min(165, Math.round((totalMinutes / maxMinutes) * 165)));
 
             return (
               <div
                 key={bar.dateKey}
-                className="group relative flex flex-col items-center justify-end h-full flex-1 max-w-[68px] z-10"
+                className="group relative flex flex-col items-center justify-end h-full flex-1 max-w-[72px] z-10"
               >
                 {/* Tip of Bar: Time Spent Readout (H.MM) */}
                 <span
-                  className={`font-['Roboto',sans-serif] font-bold text-[0.68rem] sm:text-[0.75rem] md:text-xs tracking-wider mb-2 select-none transition-all duration-200 ${
+                  className={`font-['Roboto',sans-serif] font-bold text-[0.68rem] sm:text-[0.72rem] md:text-xs tracking-wider mb-2 select-none transition-all duration-200 ${
                     bar.isToday
                       ? 'text-white font-extrabold drop-shadow-[0_0_8px_rgba(255,255,255,0.85)] scale-105'
-                      : 'text-neutral-400 group-hover:text-white'
+                      : bar.seconds > 0
+                      ? 'text-neutral-300 group-hover:text-white'
+                      : 'text-neutral-500 group-hover:text-neutral-300'
                   }`}
                 >
                   {formatHoursMinutes(bar.seconds)}
@@ -471,16 +473,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 {/* Monolith Pillar Rectangle */}
                 <div
                   style={{ height: `${heightPx}px` }}
-                  className={`w-4 sm:w-6 md:w-8 rounded-t-sm transition-all duration-300 ${
+                  className={`w-5 sm:w-7 md:w-9 rounded-t-sm transition-all duration-300 ${
                     bar.isToday
                       ? 'bg-white shadow-[0_0_20px_rgba(255,255,255,0.7),0_0_40px_rgba(255,255,255,0.25)]'
+                      : bar.seconds > 0
+                      ? 'bg-neutral-700/80 group-hover:bg-neutral-500'
                       : 'bg-neutral-800/80 group-hover:bg-neutral-600'
                   }`}
                 />
 
-                {/* Bottom of Bar: Calendar Date (e.g. "NOV 08") */}
+                {/* Bottom of Bar: Calendar Date Stamp (NOV 08) */}
                 <span
-                  className={`font-['Roboto',sans-serif] uppercase text-[0.65rem] sm:text-[0.7rem] tracking-wider mt-2.5 whitespace-nowrap select-none transition-colors duration-200 ${
+                  className={`font-['Roboto',sans-serif] uppercase text-[0.65rem] sm:text-[0.68rem] tracking-[0.12em] mt-2.5 whitespace-nowrap select-none transition-colors duration-200 ${
                     bar.isToday
                       ? 'text-white font-bold'
                       : 'text-neutral-500 group-hover:text-neutral-300'
@@ -494,7 +498,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </div>
 
-      {/* 3. Fixed Signature at Bottom-Right: "SARWAR.CYOU" */}
+      {/* 3. Fixed Required Signature at Bottom-Right: "SARWAR.CYOU" */}
       <div className="fixed bottom-6 right-6 md:bottom-8 md:right-10 z-20 pointer-events-none select-none font-['Roboto',sans-serif] font-bold text-xs sm:text-sm tracking-[0.28em] text-white uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
         SARWAR.CYOU
       </div>
