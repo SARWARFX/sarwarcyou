@@ -5,6 +5,7 @@ import { SmartThumbnail } from '../common/SmartThumbnail';
 import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sanitizeMediaTitle } from '../../utils/titleSanitizer';
+import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 
 export type ShelfAspectRatio = 'video' | 'vertical' | 'portrait';
 
@@ -125,10 +126,19 @@ export const HorizontalMediaShelf: React.FC<HorizontalMediaShelfProps> = ({
       >
         {items.map((item, idx) => {
           const cleanTitle = sanitizeMediaTitle(item.title || item.name || '', title);
+          const isPhoto = item.type === 'image' || isPhotoExtension(item.url || item.path || item.name || '');
+          const imageSrc =
+            (item as any).thumbnail ||
+            (item as any).src ||
+            item.url ||
+            (item as any).image ||
+            item.path ||
+            item.id ||
+            '';
           const thumb =
-            item.type === 'image'
-              ? getMediaUrl(item.url || item.path || item.id)
-              : getImageUrl(item) || getThumbnailUrl(item) || resolveStaticVideoThumbnail(item);
+            isPhoto
+              ? getMediaUrl(imageSrc) || imageSrc
+              : getImageUrl(item) || getThumbnailUrl(item) || resolveStaticVideoThumbnail(item) || getMediaUrl(imageSrc) || imageSrc;
 
           return (
             <div

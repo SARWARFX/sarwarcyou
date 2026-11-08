@@ -390,7 +390,12 @@ export function getThumbnailUrl(
     raw = itemOrPath.trim();
   } else if (typeof itemOrPath === 'object' && itemOrPath !== null) {
     folderHint = itemOrPath.parentAlbum || itemOrPath.category || '';
-    const explicitPoster = itemOrPath.poster || itemOrPath.posterUrl || itemOrPath.thumbnail;
+    const explicitPoster =
+      itemOrPath.poster ||
+      itemOrPath.posterUrl ||
+      itemOrPath.thumbnail ||
+      (itemOrPath as any).src ||
+      (itemOrPath as any).image;
 
     // Check if explicit poster already exists as an external or full image URL
     if (explicitPoster && !isVideoExtension(explicitPoster)) {
@@ -403,7 +408,15 @@ export function getThumbnailUrl(
       }
       raw = explicitPoster;
     } else {
-      raw = itemOrPath.path || itemOrPath.url || itemOrPath.id || itemOrPath.name || '';
+      raw =
+        itemOrPath.thumbnail ||
+        (itemOrPath as any).src ||
+        itemOrPath.path ||
+        itemOrPath.url ||
+        (itemOrPath as any).image ||
+        itemOrPath.id ||
+        itemOrPath.name ||
+        '';
     }
   }
 

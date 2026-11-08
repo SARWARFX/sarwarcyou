@@ -25,27 +25,28 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
   decoding = 'async',
   onClick,
 }) => {
+  const cleanSrc = typeof src === 'string' && src.trim() !== '' ? src.trim() : null;
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
-  const [hasError, setHasError] = useState<boolean>(!src);
+  const [hasError, setHasError] = useState<boolean>(!cleanSrc);
 
   // Reset states when the image source changes
   useEffect(() => {
-    if (!src) {
+    if (!cleanSrc) {
       setHasError(true);
       setIsLoaded(false);
     } else {
       setHasError(false);
       setIsLoaded(false);
     }
-  }, [src]);
+  }, [cleanSrc]);
 
   return (
     <div
       onClick={onClick}
       className={`relative overflow-hidden bg-[#05080e] border border-white/10 rounded-sm select-none ${aspectClass} ${containerClassName}`}
     >
-      {/* 1. LOADING SKELETON LAYER (Mounted while !isLoaded && !hasError) */}
-      {!isLoaded && !hasError && (
+      {/* 1. LOADING SKELETON LAYER (Mounted while cleanSrc exists and !isLoaded && !hasError) */}
+      {cleanSrc && !isLoaded && !hasError && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none bg-[#05080e]">
           {/* Sweeping Laser Shimmer */}
           <div
@@ -73,7 +74,7 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
       )}
 
       {/* 2. ERROR / ARCHIVE FALLBACK */}
-      {hasError ? (
+      {hasError || !cleanSrc ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-[#05080e] via-[#090e17] to-[#020408] p-3 text-center">
           <div className="w-2 h-2 rounded-full bg-slate-600/50 mb-2" />
           <span className="font-['Google Sans'] font-medium text-[10px] tracking-widest text-slate-400 uppercase drop-shadow">
@@ -87,19 +88,29 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
         </div>
       ) : (
         /* 3. IMAGE ELEMENT & TRANSITION */
-        src && (
-          <img
-            src={src}
-            alt={alt}
-            loading={loading}
-            decoding={decoding}
-            onLoad={() => setIsLoaded(true)}
-            onError={() => setHasError(true)}
-            className={`w-full h-full object-cover transition-opacity duration-500 ease-out ${
-              isLoaded ? 'opacity-100' : 'opacity-0'
-            } ${className}`}
-          />
-        )
+        <img
+          src={cleanSrc}
+          alt={alt}
+          loading={loading}
+          decoding={decoding}
+          onLoad={() => {
+            setIsLoaded(true);
+            setHasError(false);
+          }}
+          onError={() => {
+            setHasError(true);
+            setIsLoaded(false);
+          }}
+          ref={(img) => {
+            if (img && img.complete && img.naturalWidth > 0 && !isLoaded) {
+              setIsLoaded(true);
+              setHasError(false);
+            }
+          }}
+          className={`w-full h-full object-cover transition-opacity duration-500 ease-out ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          } ${className}`}
+        />
       )}
 
       {/* 4. Optional Overlay Elements (Play Buttons, Badges, Vignettes) */}

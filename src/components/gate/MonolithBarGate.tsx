@@ -404,10 +404,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   const aspectClass = !isPhoto && !isShort ? 'aspect-video' : 'aspect-[4/5]';
 
                   const cleanTitle = sanitizeMediaTitle(item.title || item.name || '', badgeText);
+                  const imageSrc =
+                    (item as any).thumbnail ||
+                    (item as any).src ||
+                    item.url ||
+                    (item as any).image ||
+                    item.path ||
+                    '';
                   const thumb =
                     isPhoto
-                      ? getMediaUrl(item.url || item.path || item.id)
-                      : getImageUrl(item) || getThumbnailUrl(item) || resolveStaticVideoThumbnail(item);
+                      ? getMediaUrl(imageSrc) || imageSrc
+                      : getImageUrl(item) || getThumbnailUrl(item) || resolveStaticVideoThumbnail(item) || getMediaUrl(imageSrc) || imageSrc;
 
                   return (
                     <div
@@ -495,6 +502,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                   {subfolderPhotos.map((photo, idx) => {
                     const cleanTitle = sanitizeMediaTitle(photo.title || photo.name || '', selectedSubfolder);
+                    const imageSrc =
+                      (photo as any).thumbnail ||
+                      (photo as any).src ||
+                      photo.url ||
+                      (photo as any).image ||
+                      photo.path ||
+                      '';
+                    const resolvedPhotoSrc = getMediaUrl(imageSrc) || imageSrc;
+
                     return (
                       <div
                         key={photo.id || photo.url || idx}
@@ -508,7 +524,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                         className="animate-card-enter will-change-transform transform-gpu relative aspect-[4/5] cursor-pointer overflow-hidden rounded-xl group transition-all duration-300 transform border border-white/10 hover:border-[#38bdf8]/50 shadow-lg hover:shadow-2xl hover:-translate-y-1"
                       >
                         <SmartThumbnail
-                          src={getMediaUrl(photo.url)}
+                          src={resolvedPhotoSrc}
                           alt={cleanTitle}
                           aspectClass="aspect-[4/5]"
                           containerClassName="w-full h-full rounded-xl border-0"
@@ -532,7 +548,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {subfolderVideos.map((video, idx) => {
                     const cleanTitle = sanitizeMediaTitle(video.title || video.name, selectedSubfolder);
-                    const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
+                    const rawVideoFallback =
+                      (video as any).thumbnail ||
+                      (video as any).src ||
+                      video.url ||
+                      (video as any).image ||
+                      video.path ||
+                      '';
+                    const thumb =
+                      getThumbnailUrl(video) ||
+                      resolveStaticVideoThumbnail(video) ||
+                      getMediaUrl(rawVideoFallback) ||
+                      rawVideoFallback;
+
                     return (
                       <div
                         key={video.id || video.url || idx}
@@ -572,7 +600,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                   {subfolderShorts.map((short, idx) => {
                     const cleanTitle = sanitizeMediaTitle(short.title || short.name, selectedSubfolder);
-                    const thumb = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
+                    const rawShortFallback =
+                      (short as any).thumbnail ||
+                      (short as any).src ||
+                      short.url ||
+                      (short as any).image ||
+                      short.path ||
+                      '';
+                    const thumb =
+                      getImageUrl(short) ||
+                      getThumbnailUrl(short) ||
+                      resolveStaticVideoThumbnail(short) ||
+                      getMediaUrl(rawShortFallback) ||
+                      rawShortFallback;
+
                     return (
                       <div
                         key={short.id || short.url || idx}

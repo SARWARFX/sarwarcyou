@@ -85,8 +85,16 @@ export const CyberCard: React.FC<CyberCardProps> = ({
 
   // Clean media URL via Cloudflare Edge proxy
   const cleanMediaUrl = useMemo(() => {
-    return getMediaUrl(activeItem.url || activeItem.path || activeItem.id);
-  }, [activeItem.url, activeItem.path, activeItem.id]);
+    const rawFallback =
+      (activeItem as any).thumbnail ||
+      (activeItem as any).src ||
+      activeItem.url ||
+      (activeItem as any).image ||
+      activeItem.path ||
+      activeItem.id ||
+      '';
+    return getMediaUrl(rawFallback) || rawFallback;
+  }, [activeItem]);
 
   const cleanTitle = useMemo(() => {
     return sanitizeMediaTitle(activeItem.title || activeItem.name, activeItem.category);

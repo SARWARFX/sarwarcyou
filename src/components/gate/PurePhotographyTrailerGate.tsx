@@ -697,26 +697,36 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                 {/* Photos: Multi-Row Responsive Grid */}
                 {photoFiles.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 p-1">
-                    {photoFiles.map((photo, idx) => (
-                      <div
-                        key={photo.id || idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenPhoto(photo, photoFiles, idx);
-                        }}
-                        style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                        className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl group transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
-                      >
-                        <SmartThumbnail
-                          src={getMediaUrl(photo.url)}
-                          alt={photo.title || photo.name || 'Photo'}
-                          aspectClass="aspect-square"
-                          containerClassName="w-full h-full rounded-xl border-0"
-                          className="group-hover:brightness-110 transition-all duration-300"
-                          fallbackTitle={photo.title || photo.name}
-                        />
-                      </div>
-                    ))}
+                    {photoFiles.map((photo, idx) => {
+                      const imageSrc =
+                        (photo as any).thumbnail ||
+                        (photo as any).src ||
+                        photo.url ||
+                        (photo as any).image ||
+                        photo.path ||
+                        '';
+                      const resolvedSrc = getMediaUrl(imageSrc) || imageSrc;
+                      return (
+                        <div
+                          key={photo.id || idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenPhoto(photo, photoFiles, idx);
+                          }}
+                          style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                          className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl group transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
+                        >
+                          <SmartThumbnail
+                            src={resolvedSrc}
+                            alt={photo.title || photo.name || 'Photo'}
+                            aspectClass="aspect-square"
+                            containerClassName="w-full h-full rounded-xl border-0"
+                            className="group-hover:brightness-110 transition-all duration-300"
+                            fallbackTitle={photo.title || photo.name}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -907,25 +917,35 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                     {/* Photos Grid */}
                     {photoFiles.length > 0 && (
                       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                        {photoFiles.map((photo, idx) => (
-                          <div
-                            key={photo.id || idx}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenPhoto(photo, photoFiles, idx);
-                            }}
-                            style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
-                            className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl shadow-md active:scale-95 transition-transform"
-                          >
-                            <SmartThumbnail
-                              src={getMediaUrl(photo.url)}
-                              alt={photo.title || photo.name || 'Photo'}
-                              aspectClass="aspect-square"
-                              containerClassName="w-full h-full rounded-xl border-0"
-                              fallbackTitle={photo.title || photo.name}
-                            />
-                          </div>
-                        ))}
+                        {photoFiles.map((photo, idx) => {
+                          const imageSrc =
+                            (photo as any).thumbnail ||
+                            (photo as any).src ||
+                            photo.url ||
+                            (photo as any).image ||
+                            photo.path ||
+                            '';
+                          const resolvedSrc = getMediaUrl(imageSrc) || imageSrc;
+                          return (
+                            <div
+                              key={photo.id || idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenPhoto(photo, photoFiles, idx);
+                              }}
+                              style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                              className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl shadow-md active:scale-95 transition-transform"
+                            >
+                              <SmartThumbnail
+                                src={resolvedSrc}
+                                alt={photo.title || photo.name || 'Photo'}
+                                aspectClass="aspect-square"
+                                containerClassName="w-full h-full rounded-xl border-0"
+                                fallbackTitle={photo.title || photo.name}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
