@@ -87,7 +87,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Desktop Mouse Drag & Pan State
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const isDraggingRef = useRef<boolean>(false);
-  const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number }>({ x: 0, y: 0, posX: 0, posY: 0 });
+  const dragStartRef = useRef<{
+    x: number;
+    y: number;
+    posX: number;
+    posY: number;
+    time: number;
+    isPan: boolean;
+    isSwipe: boolean;
+  }>({ x: 0, y: 0, posX: 0, posY: 0, time: 0, isPan: false, isSwipe: false });
   const hasDraggedRef = useRef<boolean>(false);
 
   // 2-Finger Pinch & Pan State Ref
@@ -550,10 +558,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     touchStateRef.current.currentY = t.clientY;
 
     const dx = t.clientX - touchStateRef.current.startX;
-    const dy = t.clientY - touchStateRef.current.startY;
 
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-      setTouchDeltaX(Math.max(-80, Math.min(80, dx * 0.35)));
+    // Fluid real-time translation with edge rubberband
+    if (Math.abs(dx) > 4) {
+      let delta = dx;
+      const isAtStart = activeIdx <= 0 && dx > 0;
+      const isAtEnd = hasItemList && activeIdx >= items.length - 1 && dx < 0;
+      if (isAtStart || isAtEnd) {
+        delta = dx * 0.28;
+      }
+      setTouchDeltaX(delta);
     }
   };
 
@@ -579,18 +593,22 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
     const state = touchStateRef.current;
     touchStateRef.current = null;
-    setTouchDeltaX(0);
 
-    if (!state) return;
+    if (!state) {
+      setTouchDeltaX(0);
+      return;
+    }
 
     const t = e.changedTouches[0];
     const dx = t.clientX - state.startX;
     const dy = t.clientY - state.startY;
-    const dt = performance.now() - state.time;
+    const dt = Math.max(1, performance.now() - state.time);
+    const velocityX = Math.abs(dx) / dt;
 
-    // Stationary single tap check (< 20px move & < 300ms)
-    const isStationaryTap = Math.abs(dx) < 20 && Math.abs(dy) < 20 && dt < 300;
+    // Stationary single tap check (< 15px move & < 300ms)
+    const isStationaryTap = Math.abs(dx) < 15 && Math.abs(dy) < 15 && dt < 300;
     if (isStationaryTap) {
+      setTouchDeltaX(0);
       lastTapRef.current = {
         time: performance.now(),
         x: t.clientX,
@@ -610,29 +628,33 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
     // When scale > 1, horizontal swipe navigation is strictly disabled to allow free panning
     if (scale > 1.05) {
+      setTouchDeltaX(0);
       return;
     }
 
-    // Swipe down to dismiss
-    if (dy > 120 && Math.abs(dx) < 60 && dt < 450) {
+    // Swipe down to dismiss (pull down >= 120px while mostly vertical)
+    if (dy > 120 && Math.abs(dx) < 70 && dt < 500) {
+      setTouchDeltaX(0);
       onClose();
       return;
     }
 
-    // Horizontal swipe navigation (distance > 50px)
-    if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy)) {
-      if (dx < -50) {
-        handleNext();
-      } else if (dx > 50) {
-        handlePrev();
-      }
+    // Horizontal swipe navigation (swipe left = next, swipe right = prev)
+    const isSwipeLeft = (dx <= -40 || (dx <= -20 && velocityX >= 0.22)) && Math.abs(dx) > Math.abs(dy) * 0.55;
+    const isSwipeRight = (dx >= 40 || (dx >= 20 && velocityX >= 0.22)) && Math.abs(dx) > Math.abs(dy) * 0.55;
+
+    if (isSwipeLeft && hasItemList && activeIdx < items.length - 1) {
+      handleNext();
+    } else if (isSwipeRight && hasItemList && activeIdx > 0) {
+      handlePrev();
     }
+    setTouchDeltaX(0);
   };
 
-  // Desktop Mouse Drag & Pan Handlers (when scale > 1.05)
+  // Desktop Mouse Drag & Pan Handlers (Pan when scale > 1.05, Swipe when scale <= 1.05)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only handle primary mouse button drag when zoomed in (scale > 1.05) and viewing an image
-    if (e.pointerType !== 'mouse' || e.button !== 0 || scale <= 1.05 || type !== 'image') {
+    // Only handle primary mouse button drag for images
+    if (e.pointerType !== 'mouse' || e.button !== 0 || type !== 'image') {
       return;
     }
     // Prevent default browser image ghost drag or selection for mouse only
@@ -644,6 +666,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
     }
 
+    const isZoomedIn = scale > 1.05;
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
     setIsDragging(true);
@@ -653,6 +676,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       y: e.clientY,
       posX: position.x,
       posY: position.y,
+      time: performance.now(),
+      isPan: isZoomedIn,
+      isSwipe: !isZoomedIn,
     };
 
     try {
@@ -669,17 +695,26 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const dy = e.clientY - dragStartRef.current.y;
 
     // Movement threshold to distinguish drag from stationary click
-    if (Math.hypot(dx, dy) > 3) {
+    if (Math.hypot(dx, dy) > 4) {
       hasDraggedRef.current = true;
     }
 
-    // Boundary clamp to keep the image covering the viewport without leaving empty gaps
-    const { maxPanX, maxPanY } = calculatePanLimits(scale);
-
-    const nextX = Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.posX + dx));
-    const nextY = Math.max(-maxPanY, Math.min(maxPanY, dragStartRef.current.posY + dy));
-
-    setPosition({ x: nextX, y: nextY });
+    if (dragStartRef.current.isPan) {
+      // Boundary clamp to keep the image covering the viewport without leaving empty gaps
+      const { maxPanX, maxPanY } = calculatePanLimits(scale);
+      const nextX = Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.posX + dx));
+      const nextY = Math.max(-maxPanY, Math.min(maxPanY, dragStartRef.current.posY + dy));
+      setPosition({ x: nextX, y: nextY });
+    } else if (dragStartRef.current.isSwipe) {
+      // Fluid horizontal swipe preview on desktop
+      let delta = dx;
+      const isAtStart = activeIdx <= 0 && dx > 0;
+      const isAtEnd = hasItemList && activeIdx >= items.length - 1 && dx < 0;
+      if (isAtStart || isAtEnd) {
+        delta = dx * 0.28;
+      }
+      setTouchDeltaX(delta);
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -687,6 +722,24 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       setIsDragging(false);
+
+      if (dragStartRef.current.isSwipe) {
+        const dx = e.clientX - dragStartRef.current.x;
+        const dy = e.clientY - dragStartRef.current.y;
+        const dt = Math.max(1, performance.now() - dragStartRef.current.time);
+        const velocityX = Math.abs(dx) / dt;
+
+        const isSwipeLeft = (dx <= -40 || (dx <= -20 && velocityX >= 0.22)) && Math.abs(dx) > Math.abs(dy) * 0.55;
+        const isSwipeRight = (dx >= 40 || (dx >= 20 && velocityX >= 0.22)) && Math.abs(dx) > Math.abs(dy) * 0.55;
+
+        if (isSwipeLeft && hasItemList && activeIdx < items.length - 1) {
+          handleNext();
+        } else if (isSwipeRight && hasItemList && activeIdx > 0) {
+          handlePrev();
+        }
+        setTouchDeltaX(0);
+      }
+
       try {
         if (e.currentTarget.hasPointerCapture(e.pointerId)) {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -702,6 +755,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       setIsDragging(false);
+      setTouchDeltaX(0);
       try {
         if (e.currentTarget.hasPointerCapture(e.pointerId)) {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -836,6 +890,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* Edge-to-Edge Pure Photo */}
         <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
           <img
+            key={currentItem?.id || activeUrl || activeIdx}
             ref={imgRef}
             src={getMediaUrl(secureUrl)}
             alt={cleanTitle}
@@ -861,12 +916,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   ? 'none'
                   : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}
-            className={`max-w-full max-h-full object-contain select-none will-change-transform ${
+            className={`max-w-full max-h-full object-contain select-none will-change-transform animate-fade-in ${
               isZoomed
                 ? isDragging
                   ? 'cursor-grabbing'
                   : 'cursor-grab'
-                : 'cursor-zoom-in'
+                : isDragging
+                  ? 'cursor-grabbing'
+                  : 'cursor-grab md:cursor-zoom-in'
             }`}
             draggable={false}
           />
@@ -1147,7 +1204,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               ? isDragging
                 ? 'cursor-grabbing'
                 : 'cursor-grab'
-              : 'cursor-pointer'
+              : isDragging
+                ? 'cursor-grabbing'
+                : 'cursor-grab md:cursor-pointer'
           }`}
           onClick={handleStageClick}
           onDoubleClick={handleStageDoubleClick}
@@ -1176,6 +1235,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           ) : (
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
               <img
+                key={currentItem?.id || activeUrl || activeIdx}
                 ref={imgRef}
                 src={getMediaUrl(secureUrl)}
                 alt={cleanTitle}
@@ -1198,10 +1258,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                       ? 'none'
                       : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
-                className={`w-auto h-auto object-contain select-none will-change-transform ${
+                className={`w-auto h-auto object-contain select-none will-change-transform animate-fade-in ${
                   isZoomed
                     ? `max-w-none max-h-none rounded-none drop-shadow-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
-                    : 'max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-zoom-in'
+                    : `max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${isDragging ? 'cursor-grabbing' : 'cursor-grab md:cursor-zoom-in'}`
                 }`}
                 draggable={false}
               />
