@@ -35,7 +35,7 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         handleEnterArchive();
       }
     };

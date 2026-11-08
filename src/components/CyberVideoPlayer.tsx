@@ -768,7 +768,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           handleClose();
         }
       } else if (e.key === ' ') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         togglePlay();
       } else if (e.key === 'ArrowRight') {
         seekBy(10);
@@ -779,7 +779,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       } else if (e.key === 'm' || e.key === 'M') {
         handleToggleMute();
       } else if (e.key === '>' || (e.shiftKey && e.key === '.') || e.key === ']') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         const curIdx = PLAYBACK_SPEED_OPTIONS.indexOf(playbackSpeed);
         const nextSpeed = curIdx >= 0 && curIdx < PLAYBACK_SPEED_OPTIONS.length - 1
           ? PLAYBACK_SPEED_OPTIONS[curIdx + 1]
@@ -787,7 +787,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         applyPlaybackSpeed(nextSpeed);
         resetHudTimer();
       } else if (e.key === '<' || (e.shiftKey && e.key === ',') || e.key === '[') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         const curIdx = PLAYBACK_SPEED_OPTIONS.indexOf(playbackSpeed);
         const prevSpeed = curIdx > 0
           ? PLAYBACK_SPEED_OPTIONS[curIdx - 1]

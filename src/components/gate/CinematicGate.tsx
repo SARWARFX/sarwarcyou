@@ -270,7 +270,7 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isUnlocked && !isModalOpen) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         setIsUnlocked(false);
         setSelectedHub(null);
         setSelectedSubfolder(null);
@@ -315,7 +315,7 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
             e.stopPropagation();
             setIsUnlocked(true);
           }
@@ -408,174 +408,361 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
         </div>
       </div>
 
-      {/* 3. Progressive 3-Tier Navigation Cascade (Mounted when unlocked) */}
+      {/* 3. Progressive Navigation Stage (Desktop 3-Tier Cascade + Mobile Adaptive Drill-Down) */}
       <div
         ref={menuContainerRef}
         onClick={(e) => e.stopPropagation()}
-        className={`w-full h-full flex flex-row items-center p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar select-none z-30 transition-all duration-500 ${
+        className={`w-full h-full select-none z-30 transition-all duration-500 ${
           isUnlocked
-            ? 'opacity-100 pointer-events-auto translate-x-0'
-            : 'opacity-0 pointer-events-none -translate-x-6'
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none'
         }`}
       >
-        {/* TIER 1: Left-Middle Navigation Menu (4 Major Hubs) */}
-        <div className="flex-shrink-0 flex flex-col justify-center">
-          <div className="bg-black/40 backdrop-blur-2xl rounded-2xl p-6 md:p-8 flex flex-col space-y-6 shadow-2xl">
-            {HUBS.map((hub) => (
-              <ScrambledHubItem
-                key={hub.key}
-                label={hub.label}
-                isActive={selectedHub === hub.key}
-                isUnlocked={isUnlocked}
-                onClick={() => handleSelectHub(hub.key, hub.rawName)}
-              />
-            ))}
+        {/* ========================================================= */}
+        {/* DESKTOP 3-TIER HORIZONTAL CASCADE (md: and up)            */}
+        {/* ========================================================= */}
+        <div className="hidden md:flex flex-row items-center w-full h-full p-6 sm:p-10 md:p-14 gap-6 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar">
+          {/* TIER 1: Left-Middle Navigation Menu (4 Major Hubs) */}
+          <div className="flex-shrink-0 flex flex-col justify-center">
+            <div className="bg-black/40 backdrop-blur-2xl rounded-2xl p-6 md:p-8 flex flex-col space-y-6 shadow-2xl">
+              {HUBS.map((hub) => (
+                <ScrambledHubItem
+                  key={hub.key}
+                  label={hub.label}
+                  isActive={selectedHub === hub.key}
+                  isUnlocked={isUnlocked}
+                  onClick={() => handleSelectHub(hub.key, hub.rawName)}
+                />
+              ))}
+            </div>
           </div>
+
+          {/* TIER 2: Subfolders Column (Smoothly slides open on choosing major hub) */}
+          {selectedHub && currentSubfolders.length > 0 && (
+            <div className="flex-shrink-0 flex flex-col justify-center min-w-[170px] sm:min-w-[200px] md:min-w-[230px] max-w-[290px] animate-fade-in">
+              <div className="bg-black/40 backdrop-blur-2xl rounded-2xl p-5 md:p-6 flex flex-col space-y-3.5 max-h-[75vh] overflow-y-auto no-scrollbar shadow-2xl">
+                {currentSubfolders.map((subNode) => {
+                  const isSubActive = selectedSubfolder === subNode.name;
+                  return (
+                    <button
+                      key={subNode.name}
+                      type="button"
+                      onClick={() => setSelectedSubfolder(subNode.name)}
+                      className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                        isSubActive
+                          ? 'text-white font-bold tracking-wider text-base md:text-lg'
+                          : 'text-neutral-400 font-medium tracking-wide text-base md:text-lg hover:text-white'
+                      }`}
+                    >
+                      {subNode.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TIER 3: Edge-to-Edge Media Grid (Responsive Multi-Row Layout, Non-Clipping) */}
+          {activeDirectoryNode && (
+            <div className="flex-1 min-w-[320px] max-w-[85vw] h-full overflow-y-auto space-scrollbar py-6 sm:py-10 pl-2 pr-4 sm:pr-8 flex flex-col justify-center">
+              <div className="my-auto flex flex-col gap-6 w-full max-h-[82vh]">
+                {/* Photos: Multi-Row Responsive Grid */}
+                {photoFiles.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 p-1">
+                    {photoFiles.map((photo, idx) => (
+                      <div
+                        key={photo.id || idx}
+                        onClick={() => onOpenPhoto(photo, photoFiles, idx)}
+                        className="relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-neutral-900/40 backdrop-blur-sm transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
+                      >
+                        <img
+                          src={getMediaUrl(photo.url)}
+                          alt={photo.title || photo.name || 'Photo'}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) parent.classList.add('bg-neutral-900');
+                          }}
+                          className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Videos: 16:9 Landscape Widescreen Cards Grid */}
+                {videoFiles.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-5 p-1">
+                    {videoFiles.map((video) => {
+                      const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
+                      const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
+                      return (
+                        <div
+                          key={video.id || video.url}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => onOpenVideo(video, videoFiles)}
+                          className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+                        >
+                          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
+                            {thumb ? (
+                              <img
+                                src={thumb}
+                                alt={cleanTitle}
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-neutral-950">
+                                <Play className="w-6 h-6 text-neutral-400" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                              <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                                <Play className="w-4 h-4 fill-current ml-0.5" />
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-xs sm:text-sm font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300 group-hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                            {cleanTitle}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Shorts: 9:16 Vertical Cards Grid */}
+                {shortFiles.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 p-1">
+                    {shortFiles.map((short, idx) => {
+                      const cleanTitle = sanitizeMediaTitle(short.title || short.name, activeDirectoryNode.name);
+                      const thumb = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
+                      return (
+                        <div
+                          key={short.id || short.url}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => onOpenShort(short, shortFiles, idx, activeDirectoryNode.name)}
+                          className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+                        >
+                          <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
+                            {thumb ? (
+                              <img
+                                src={thumb}
+                                alt={cleanTitle}
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-neutral-950">
+                                <Play className="w-5 h-5 text-neutral-400" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                              <div className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                                <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-xs sm:text-sm font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300 group-hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                            {cleanTitle}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* TIER 2: Subfolders Column (Smoothly slides open on choosing major hub) */}
-        {selectedHub && currentSubfolders.length > 0 && (
-          <div className="flex-shrink-0 flex flex-col justify-center min-w-[170px] sm:min-w-[200px] md:min-w-[230px] max-w-[290px] animate-fade-in">
-            <div className="bg-black/40 backdrop-blur-2xl rounded-2xl p-5 md:p-6 flex flex-col space-y-3.5 max-h-[75vh] overflow-y-auto no-scrollbar shadow-2xl">
-              {currentSubfolders.map((subNode) => {
-                const isSubActive = selectedSubfolder === subNode.name;
-                return (
-                  <button
-                    key={subNode.name}
-                    type="button"
-                    onClick={() => setSelectedSubfolder(subNode.name)}
-                    className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
-                      isSubActive
-                        ? 'text-white font-bold tracking-wider text-base md:text-lg'
-                        : 'text-neutral-400 font-medium tracking-wide text-base md:text-lg hover:text-white'
-                    }`}
-                  >
-                    {subNode.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TIER 3: Edge-to-Edge Media Grid (Responsive Multi-Row Layout, Non-Clipping) */}
-        {activeDirectoryNode && (
-          <div className="flex-1 min-w-[320px] max-w-[85vw] h-full overflow-y-auto space-scrollbar py-6 sm:py-10 pl-2 pr-4 sm:pr-8 flex flex-col justify-center">
-            <div className="my-auto flex flex-col gap-6 w-full max-h-[82vh]">
-              {/* Photos: Multi-Row Responsive Grid */}
-              {photoFiles.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 p-1">
-                  {photoFiles.map((photo, idx) => (
-                    <div
-                      key={photo.id || idx}
-                      onClick={() => onOpenPhoto(photo, photoFiles, idx)}
-                      className="relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-neutral-900/40 backdrop-blur-sm transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
-                    >
-                      <img
-                        src={getMediaUrl(photo.url)}
-                        alt={photo.title || photo.name || 'Photo'}
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) parent.classList.add('bg-neutral-900');
-                        }}
-                        className="w-full h-full object-cover rounded-xl transition-all duration-300 group-hover:brightness-110"
-                      />
-                    </div>
-                  ))}
+        {/* ========================================================= */}
+        {/* MOBILE ADAPTIVE VIEW (< md, 418px mobile screens)         */}
+        {/* ========================================================= */}
+        <div className="md:hidden flex flex-col w-full h-full pt-14 pb-4 px-4 overflow-hidden">
+          {!selectedHub ? (
+            /* Mobile Step 1: Centered 4 Major Hubs */
+            <div className="flex-1 flex flex-col justify-center items-center">
+              <div className="w-full max-w-xs bg-black/50 backdrop-blur-2xl rounded-2xl p-6 flex flex-col space-y-6 shadow-2xl">
+                <div className="text-[10px] font-['JetBrains_Mono',monospace] tracking-[0.25em] text-neutral-400 uppercase pb-2 border-b border-white/10 text-center">
+                  SELECT HUB
                 </div>
-              )}
+                {HUBS.map((hub) => (
+                  <ScrambledHubItem
+                    key={hub.key}
+                    label={hub.label}
+                    isActive={selectedHub === hub.key}
+                    isUnlocked={isUnlocked}
+                    onClick={() => handleSelectHub(hub.key, hub.rawName)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Mobile Step 2: Top Subfolder Switcher & Full-Width Media Grid */
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+              {/* Mobile Header Bar with Back Button & Subfolder Pills */}
+              <div className="flex-shrink-0 flex items-center gap-2 pb-3 mb-2 border-b border-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedHub(null);
+                    setSelectedSubfolder(null);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-['JetBrains_Mono',monospace] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-transform flex-shrink-0"
+                >
+                  ← HUBS
+                </button>
 
-              {/* Videos: 16:9 Landscape Widescreen Cards Grid */}
-              {videoFiles.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-5 p-1">
-                  {videoFiles.map((video) => {
-                    const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
-                    const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
+                {/* Horizontal Scrollable Subfolder Selector */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 py-1">
+                  {currentSubfolders.map((subNode) => {
+                    const isSubActive = selectedSubfolder === subNode.name;
                     return (
-                      <div
-                        key={video.id || video.url}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => onOpenVideo(video, videoFiles)}
-                        className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+                      <button
+                        key={subNode.name}
+                        type="button"
+                        onClick={() => setSelectedSubfolder(subNode.name)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-['Roboto',sans-serif] uppercase whitespace-nowrap transition-all duration-200 flex-shrink-0 ${
+                          isSubActive
+                            ? 'bg-white/20 text-white font-bold shadow-md'
+                            : 'bg-black/40 text-neutral-400 hover:text-white'
+                        }`}
                       >
-                        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
-                          {thumb ? (
-                            <img
-                              src={thumb}
-                              alt={cleanTitle}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-neutral-950">
-                              <Play className="w-6 h-6 text-neutral-400" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                            <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                              <Play className="w-4 h-4 fill-current ml-0.5" />
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-xs sm:text-sm font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300 group-hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                          {cleanTitle}
-                        </span>
-                      </div>
+                        {subNode.name}
+                      </button>
                     );
                   })}
                 </div>
-              )}
+              </div>
 
-              {/* Shorts: 9:16 Vertical Cards Grid */}
-              {shortFiles.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 p-1">
-                  {shortFiles.map((short, idx) => {
-                    const cleanTitle = sanitizeMediaTitle(short.title || short.name, activeDirectoryNode.name);
-                    const thumb = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
-                    return (
-                      <div
-                        key={short.id || short.url}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => onOpenShort(short, shortFiles, idx, activeDirectoryNode.name)}
-                        className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
-                      >
-                        <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
-                          {thumb ? (
+              {/* Full-Width Mobile Media Stage */}
+              <div className="flex-1 overflow-y-auto space-scrollbar py-2">
+                {activeDirectoryNode && (
+                  <div className="flex flex-col gap-5 pb-8">
+                    {/* Photos Grid */}
+                    {photoFiles.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {photoFiles.map((photo, idx) => (
+                          <div
+                            key={photo.id || idx}
+                            onClick={() => onOpenPhoto(photo, photoFiles, idx)}
+                            className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md active:scale-95 transition-transform"
+                          >
                             <img
-                              src={thumb}
-                              alt={cleanTitle}
+                              src={getMediaUrl(photo.url)}
+                              alt={photo.title || photo.name || 'Photo'}
                               loading="lazy"
                               decoding="async"
-                              className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) parent.classList.add('bg-neutral-900');
+                              }}
+                              className="w-full h-full object-cover rounded-xl"
                             />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-neutral-950">
-                              <Play className="w-5 h-5 text-neutral-400" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                            <div className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                              <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                            </div>
                           </div>
-                        </div>
-                        <span className="text-xs sm:text-sm font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300 group-hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                          {cleanTitle}
-                        </span>
+                        ))}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    )}
+
+                    {/* Videos Grid */}
+                    {videoFiles.length > 0 && (
+                      <div className="grid grid-cols-1 gap-4">
+                        {videoFiles.map((video) => {
+                          const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
+                          const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
+                          return (
+                            <div
+                              key={video.id || video.url}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => onOpenVideo(video, videoFiles)}
+                              className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
+                            >
+                              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
+                                {thumb ? (
+                                  <img
+                                    src={thumb}
+                                    alt={cleanTitle}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-full h-full object-cover object-center"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-neutral-950">
+                                    <Play className="w-6 h-6 text-neutral-400" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-xs font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300">
+                                {cleanTitle}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Shorts Grid */}
+                    {shortFiles.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {shortFiles.map((short, idx) => {
+                          const cleanTitle = sanitizeMediaTitle(short.title || short.name, activeDirectoryNode.name);
+                          const thumb = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
+                          return (
+                            <div
+                              key={short.id || short.url}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => onOpenShort(short, shortFiles, idx, activeDirectoryNode.name)}
+                              className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
+                            >
+                              <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
+                                {thumb ? (
+                                  <img
+                                    src={thumb}
+                                    alt={cleanTitle}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-full h-full object-cover object-center"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-neutral-950">
+                                    <Play className="w-5 h-5 text-neutral-400" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-xs font-['Roboto',sans-serif] uppercase line-clamp-2 leading-snug text-neutral-300">
+                                {cleanTitle}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Floating Organic Mist Keyframe Animations */}

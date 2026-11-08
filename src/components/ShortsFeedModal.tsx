@@ -136,16 +136,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       if (e.key === 'm' || e.key === 'M') setIsMuted((prev) => !prev);
       if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         const v = videoRefs.current[activeIndex];
         if (!v) return;
         if (v.paused) {

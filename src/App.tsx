@@ -20,8 +20,10 @@ import { FrostedSnowCanvas } from './components/FrostedSnowCanvas';
 import { AuraCanvas } from './components/aura/AuraCanvas';
 import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
 import { CinematicGate } from './components/gate/CinematicGate';
+import { FrequencyGate } from './components/gate/FrequencyGate';
 import {
   ACTIVE_INTERFACE,
+  ENABLE_FREQUENCY_GATE,
   ENABLE_CINEMATIC_GATE,
   ENABLE_AURA_FLOW,
   ENABLE_CASCADE_SHELL,
@@ -174,7 +176,7 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         setIsCommandPaletteOpen((prev) => !prev);
         return;
       }
@@ -183,7 +185,7 @@ function App() {
         const targetTag = (document.activeElement?.tagName || '').toLowerCase();
         const isEditable = document.activeElement?.getAttribute('contenteditable') === 'true';
         if (targetTag !== 'input' && targetTag !== 'textarea' && !isEditable) {
-          e.preventDefault();
+          if (e.cancelable) e.preventDefault();
           setIsCommandPaletteOpen(true);
         }
       }
@@ -618,7 +620,36 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      {ENABLE_CINEMATIC_GATE || ACTIVE_INTERFACE === 'CINEMATIC_GATE' ? (
+      {ENABLE_FREQUENCY_GATE || ACTIVE_INTERFACE === 'FREQUENCY_GATE' ? (
+        <>
+          {/* 0. Opening Public Domain Compliance Splash Screen */}
+          <ComplianceSplashScreen />
+
+          {/* 1. Encrypted Frequency & Classified Telemetry Gate */}
+          <FrequencyGate
+            items={rawFeed.allMediaPool}
+            initialAlbum={initialAlbumTarget}
+            isModalOpen={
+              theaterState.isOpen ||
+              shortsState.isOpen ||
+              lightboxState.isOpen ||
+              viewAllState.isOpen ||
+              isCommandPaletteOpen
+            }
+            onOpenPhoto={handleOpenPhoto}
+            onOpenVideo={handleOpenVideo}
+            onOpenShort={handleOpenShort}
+          />
+
+          {/* Intermittent Ambient Notices HUD */}
+          <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[10001] max-w-[calc(100vw-2rem)] sm:max-w-md pointer-events-none">
+            <AmbientNoticesHUD />
+          </div>
+
+          {/* Global Network Connectivity Indicator */}
+          <NetworkStatusHUD />
+        </>
+      ) : ENABLE_CINEMATIC_GATE || ACTIVE_INTERFACE === 'CINEMATIC_GATE' ? (
         <>
           {/* 0. Opening Public Domain Compliance Splash Screen */}
           <ComplianceSplashScreen />
