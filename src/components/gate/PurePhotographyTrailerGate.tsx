@@ -688,7 +688,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
 
           {/* TIER 3: Edge-to-Edge Media Grid (Responsive Multi-Row Layout, Non-Clipping) */}
           {activeDirectoryNode && (
-            <div className="flex-1 min-w-[320px] max-w-[85vw] h-full overflow-y-auto space-scrollbar py-6 sm:py-10 pl-2 pr-4 sm:pr-8 flex flex-col justify-center">
+            <div 
+              key={activeDirectoryNode.fullPath || `${selectedHub}-${selectedSubfolder}`}
+              className="flex-1 min-w-[320px] max-w-[85vw] h-full overflow-y-auto space-scrollbar py-6 sm:py-10 pl-2 pr-4 sm:pr-8 flex flex-col justify-center"
+            >
               <div className="my-auto flex flex-col gap-6 w-full max-h-[82vh]">
                 {/* Photos: Multi-Row Responsive Grid */}
                 {photoFiles.length > 0 && (
@@ -700,7 +703,8 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                           e.stopPropagation();
                           onOpenPhoto(photo, photoFiles, idx);
                         }}
-                        className="relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-neutral-900/40 backdrop-blur-sm transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
+                        style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                        className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl group bg-neutral-900/40 backdrop-blur-sm transition-all duration-300 transform border-0 shadow-lg hover:shadow-2xl hover:scale-[1.03]"
                       >
                         <img
                           src={getMediaUrl(photo.url)}
@@ -722,7 +726,7 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                 {/* Videos: 16:9 Landscape Widescreen Cards Grid */}
                 {videoFiles.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-5 p-1">
-                    {videoFiles.map((video) => {
+                    {videoFiles.map((video, idx) => {
                       const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
                       const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
                       return (
@@ -734,7 +738,8 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                             e.stopPropagation();
                             onOpenVideo(video, videoFiles);
                           }}
-                          className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+                          style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                          className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
                           <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
                             {thumb ? (
@@ -780,7 +785,8 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                             e.stopPropagation();
                             onOpenShort(short, shortFiles, idx, activeDirectoryNode.name);
                           }}
-                          className="group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
+                          style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                          className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-2 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1"
                         >
                           <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg group-hover:shadow-2xl transition-all duration-200">
                             {thumb ? (
@@ -907,7 +913,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
               </div>
 
               {/* Full-Width Mobile Media Stage */}
-              <div className="flex-1 overflow-y-auto space-scrollbar py-1">
+              <div 
+                key={activeDirectoryNode ? (activeDirectoryNode.fullPath || `${selectedHub}-${selectedSubfolder}`) : 'empty'}
+                className="flex-1 overflow-y-auto space-scrollbar py-1"
+              >
                 {activeDirectoryNode && (
                   <div className="flex flex-col gap-4 sm:gap-5 pb-8">
                     {/* Photos Grid */}
@@ -920,7 +929,8 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                               e.stopPropagation();
                               onOpenPhoto(photo, photoFiles, idx);
                             }}
-                            className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md active:scale-95 transition-transform"
+                            style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                            className="animate-card-enter will-change-transform transform-gpu relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md active:scale-95 transition-transform"
                           >
                             <img
                               src={getMediaUrl(photo.url)}
@@ -942,7 +952,7 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                     {/* Videos Grid */}
                     {videoFiles.length > 0 && (
                       <div className="grid grid-cols-1 gap-3.5 sm:gap-4">
-                        {videoFiles.map((video) => {
+                        {videoFiles.map((video, idx) => {
                           const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
                           const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
                           return (
@@ -954,7 +964,8 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                                 e.stopPropagation();
                                 onOpenVideo(video, videoFiles);
                               }}
-                              className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
+                              style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                              className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
                               <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
                                 {thumb ? (
@@ -1000,7 +1011,8 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                                 e.stopPropagation();
                                 onOpenShort(short, shortFiles, idx, activeDirectoryNode.name);
                               }}
-                              className="group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
+                              style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                              className="animate-card-enter will-change-transform transform-gpu group flex flex-col gap-1.5 cursor-pointer select-none text-left active:scale-[0.98] transition-transform"
                             >
                               <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-900/60 backdrop-blur-sm border-0 shadow-lg">
                                 {thumb ? (
