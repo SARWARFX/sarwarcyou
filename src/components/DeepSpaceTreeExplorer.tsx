@@ -798,8 +798,9 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
 
       {/* COLUMN 2: Files in the Active Leaf Folder */}
       {activeLeafNode && (
-        <div className="flex-1 min-w-[300px] sm:min-w-[420px] md:min-w-[540px] flex flex-col justify-center h-full py-4 pl-2 pr-4 sm:pr-8 overflow-y-auto space-scrollbar">
-          {/* 1. Photos: Floating transparent grid directly over galaxy background */}
+        <div className="flex-1 min-w-[300px] sm:min-w-[420px] md:min-w-[540px] h-full overflow-y-auto space-scrollbar py-6 sm:py-10 pl-2 pr-4 sm:pr-8 flex flex-col">
+          <div className="my-auto flex flex-col gap-6 w-full">
+            {/* 1. Photos: Floating transparent grid directly over galaxy background */}
           {photoFiles.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
               {photoFiles.map((photo, idx) => {
@@ -876,6 +877,7 @@ export const DeepSpaceTreeExplorer: React.FC<DeepSpaceTreeExplorerProps> = ({
               ))}
             </div>
           )}
+          </div>
         </div>
       )}
     </div>
