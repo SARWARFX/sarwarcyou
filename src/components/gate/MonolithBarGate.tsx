@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Play } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Play, ArrowLeft } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -76,6 +76,43 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Navigation states: default to Idle Home Overview (null)
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
+  const [openFolder, setOpenFolder] = useState<string | null>(null);
+
+  // Outer horizontal track ref for mobile horizontal snap & swipe-back
+  const outerTrackRef = useRef<HTMLDivElement>(null);
+
+  // Touch tracking for instant left-to-right swipe back on mobile
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+
+    // Swiping left-to-right: positive deltaX (finger moved right)
+    // Instant snap-back triggered if horizontal delta exceeds threshold & dominates vertical
+    if (deltaX > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+      if (outerTrackRef.current) {
+        outerTrackRef.current.scrollTo({
+          left: 0,
+          behavior: 'smooth',
+        });
+      }
+    }
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
+  const handleToggleFolder = (folderKey: string) => {
+    setOpenFolder((prev) => (prev === folderKey ? null : folderKey));
+  };
 
   // Build directory tree
   const rootMap = useMemo(() => {
@@ -265,126 +302,318 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     setSelectedSubfolder(subfolderName);
   };
 
+  // Mobile subfolder select handler: selects subfolder & smoothly scrolls to Pane 2
+  const handleMobileSelectSubfolder = (albumKey: string, subfolderName: string) => {
+    handleSelectSubfolder(albumKey, subfolderName);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (outerTrackRef.current) {
+          outerTrackRef.current.scrollTo({
+            left: outerTrackRef.current.clientWidth,
+            behavior: 'smooth',
+          });
+        }
+      }, 50);
+    });
+  };
+
   // Idle reset handler: returns to Home Overview (Latest Uploads)
   const handleSelectIdle = () => {
     setSelectedAlbum(null);
     setSelectedSubfolder(null);
+    if (outerTrackRef.current) {
+      outerTrackRef.current.scrollTo({
+        left: 0,
+        behavior: 'smooth',
+      });
+    }
   };
 
   return (
     <div
-      className="w-screen h-screen overflow-hidden flex flex-row bg-transparent select-none text-white font-['Google_Sans']"
+      className="w-screen h-screen overflow-hidden flex flex-row bg-[#020408] relative select-none font-['Google_Sans'] text-white"
       style={{
         isolation: 'isolate',
         background: 'radial-gradient(circle at 50% 35%, rgba(8, 20, 38, 0.6) 0%, #020408 85%)',
-        backgroundColor: '#03060a',
+        backgroundColor: '#020408',
       }}
     >
       {/* Permanent Midnight Obsidian Backdrop Canvas */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
       {/* ========================================================================= */}
-      {/* LEFT-MIDDLE FOLDER NAVIGATION & BOUND TELEMETRY GRAPH (Desktop & Mobile)  */}
+      {/* 1. DESKTOP VIEWPORT-LOCKED HOMEPAGE & GALLERY (md: and above)             */}
       {/* ========================================================================= */}
-      <aside
-        aria-label="Folder Navigation and Telemetry"
-        className="w-[130px] xs:w-[150px] sm:w-[190px] md:w-[260px] lg:w-[280px] h-screen relative flex flex-col justify-center pl-3 xs:pl-5 sm:pl-7 md:pl-10 lg:pl-12 pb-16 sm:pb-22 z-20 select-none bg-transparent shrink-0 border-r border-white/5"
-      >
-        {/* Vertically centered in the middle of the screen on both desktop and mobile */}
+      <div className="hidden md:flex w-screen h-screen overflow-hidden flex-row bg-[#020408] relative select-none z-20">
+        {/* LEFT MIDDLE NAVIGATION (DESKTOP) */}
         <SidebarAccordionNav
+          variant="desktop"
           rootMap={rootMap}
           selectedAlbum={selectedAlbum}
           selectedSubfolder={selectedSubfolder}
+          openFolder={openFolder}
+          onToggleFolder={handleToggleFolder}
           onSelectSubfolder={handleSelectSubfolder}
           onSelectIdle={handleSelectIdle}
         />
 
-        {/* Anchored at bottom: 7-day telemetry ledger graph */}
-        <div className="absolute bottom-3 sm:bottom-5 left-2 sm:left-5 right-2 sm:right-5 md:left-9 md:right-7 h-12 sm:h-16 md:h-18 flex items-end">
-          <SessionTelemetryGraph />
-        </div>
-      </aside>
+        {/* DESKTOP RIGHT CANVAS: HOME STAGE OR SUBFOLDER MEDIA GALLERY */}
+        {selectedSubfolder === null ? (
+          /* ===================================================================== */
+          /* DESKTOP HOME STAGE: LOCKED VIEWPORT (100vw, 100vh), ZERO SCROLL       */
+          /* ===================================================================== */
+          <main
+            aria-label="Desktop Home Overview"
+            className="hidden md:flex flex-1 h-screen py-10 pr-12 pl-6 flex-col justify-between overflow-hidden z-10"
+          >
+            {/* UPPER ROW (5 LATEST UPLOADS) */}
+            <div className="flex-1 min-h-0 flex items-center w-full overflow-hidden">
+              <div className="w-full grid grid-cols-5 gap-5 items-center max-h-[calc(100vh-230px)]">
+                {latestUploads.slice(0, 5).map((item, idx) => {
+                  const isPhoto =
+                    item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+
+                  const imageSrc =
+                    (item as any).thumbnail ||
+                    (item as any).src ||
+                    item.url ||
+                    (item as any).image ||
+                    item.path ||
+                    '';
+                  const thumb = isPhoto
+                    ? getMediaUrl(imageSrc) || imageSrc
+                    : getImageUrl(item) ||
+                      getThumbnailUrl(item) ||
+                      resolveStaticVideoThumbnail(item) ||
+                      getMediaUrl(imageSrc) ||
+                      imageSrc;
+
+                  return (
+                    <div
+                      key={item.id || item.url || idx}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenItem(item, idx);
+                      }}
+                      className="relative rounded-2xl overflow-hidden aspect-[4/5] h-full max-h-[500px] bg-white/[0.02] border border-white/10 shadow-2xl transition-transform hover:-translate-y-1 hover:border-[#38bdf8]/40 cursor-pointer select-none group"
+                    >
+                      <SmartThumbnail
+                        src={thumb}
+                        alt=""
+                        aspectClass="aspect-[4/5]"
+                        containerClassName="w-full h-full rounded-2xl border-0 overflow-hidden"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      >
+                        {!isPhoto && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                            <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            </div>
+                          </div>
+                        )}
+                      </SmartThumbnail>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* LOWER DOCK (7-DAY TELEMETRY GRAPH) */}
+            <SessionTelemetryGraph variant="dock" />
+          </main>
+        ) : (
+          /* ===================================================================== */
+          /* DESKTOP SUBFOLDER VIEW (SCROLLABLE MEDIA GALLERY)                     */
+          /* ===================================================================== */
+          <main
+            aria-label="Desktop Subfolder Gallery"
+            className="hidden md:flex flex-1 h-screen overflow-y-auto space-scrollbar p-8 lg:p-12 z-10 flex-col bg-transparent border-0"
+          >
+            <div className="flex items-center justify-between pb-3 mb-6 border-b border-white/8">
+              <span className="font-['Google_Sans'] font-bold text-sm tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+                {selectedSubfolder}
+              </span>
+              <button
+                type="button"
+                onClick={handleSelectIdle}
+                className="font-['Google_Sans'] text-xs tracking-wider uppercase text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0 outline-none flex items-center gap-1.5"
+              >
+                ← RETURN TO OVERVIEW
+              </button>
+            </div>
+
+            {/* Subfolder Media Grid */}
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
+              {activeMediaList.map((item, idx) => {
+                const isPhoto =
+                  item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+
+                const imageSrc =
+                  (item as any).thumbnail ||
+                  (item as any).src ||
+                  item.url ||
+                  (item as any).image ||
+                  item.path ||
+                  '';
+                const thumb = isPhoto
+                  ? getMediaUrl(imageSrc) || imageSrc
+                  : getImageUrl(item) ||
+                    getThumbnailUrl(item) ||
+                    resolveStaticVideoThumbnail(item) ||
+                    getMediaUrl(imageSrc) ||
+                    imageSrc;
+
+                return (
+                  <div
+                    key={item.id || item.url || idx}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenItem(item, idx);
+                    }}
+                    style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
+                  >
+                    <SmartThumbnail
+                      src={thumb}
+                      alt=""
+                      aspectClass="aspect-[4/5]"
+                      containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    >
+                      {!isPhoto && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                          <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          </div>
+                        </div>
+                      )}
+                    </SmartThumbnail>
+                  </div>
+                );
+              })}
+            </div>
+          </main>
+        )}
+      </div>
 
       {/* ========================================================================= */}
-      {/* RIGHT CANVAS: VERTICAL MEDIA GRID (Desktop & Mobile)                      */}
+      {/* 2. MOBILE DUAL-PANE HORIZONTAL SNAP & SWIPE VIEW (< md)                   */}
       {/* ========================================================================= */}
-      <main
-        aria-label="Media Gallery"
-        className="flex-1 h-screen overflow-y-auto space-scrollbar p-2.5 xs:p-3 sm:p-6 md:p-8 z-20 bg-transparent border-0"
-        style={{
-          WebkitOverflowScrolling: 'touch',
-        }}
+      <div
+        ref={outerTrackRef}
+        className="md:hidden w-screen h-screen flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar bg-transparent select-none relative z-20"
       >
-        {/* Selected subfolder indicator if a category is open */}
-        {selectedSubfolder && (
+        {/* PANE 1: MIDDLE-LEFT FOLDERS & ATTACHED TELEMETRY GRAPH */}
+        <section
+          aria-label="Folder Navigation and Telemetry"
+          className="flex-none w-screen h-screen snap-start shrink-0 relative flex flex-col justify-center pl-8 pb-24 z-20 select-none bg-transparent"
+        >
+          <SidebarAccordionNav
+            variant="mobile"
+            rootMap={rootMap}
+            selectedAlbum={selectedAlbum}
+            selectedSubfolder={selectedSubfolder}
+            openFolder={openFolder}
+            onToggleFolder={handleToggleFolder}
+            onSelectSubfolder={handleMobileSelectSubfolder}
+            onSelectIdle={handleSelectIdle}
+          />
+
+          {/* Anchored at bottom: 7-day telemetry ledger graph */}
+          <div className="absolute bottom-6 left-6 right-6 h-20 flex items-end">
+            <SessionTelemetryGraph variant="compact" />
+          </div>
+        </section>
+
+        {/* PANE 2: VERTICAL UP-DOWN SCROLLABLE MEDIA GRID WITH SWIPE-BACK */}
+        <main
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          aria-label="Media Gallery"
+          className="flex-none w-screen h-screen snap-start relative overflow-y-auto overflow-x-hidden p-4 space-scrollbar z-20 bg-transparent border-0"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          {/* Header Bar: Clean arrow-only back button and active subfolder name */}
           <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/8">
-            <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate">
-              {selectedSubfolder}
-            </span>
             <button
               type="button"
-              onClick={handleSelectIdle}
-              className="text-slate-400 hover:text-white font-['Google_Sans'] text-[11px] uppercase tracking-wider cursor-pointer bg-transparent border-0 outline-none"
+              onClick={() => {
+                if (outerTrackRef.current) {
+                  outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+                }
+              }}
+              aria-label="Back to folders"
+              className="text-slate-400 hover:text-white p-1 -ml-1 cursor-pointer bg-transparent border-0 outline-none transition-colors flex items-center justify-center"
             >
-              SHOW ALL
+              <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
             </button>
+            {selectedSubfolder && (
+              <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate max-w-[180px]">
+                {selectedSubfolder}
+              </span>
+            )}
           </div>
-        )}
 
-        {/* Vertical Up-Down Scrollable Media Grid: 2 columns on mobile, 3-5 on larger screens */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3.5 pb-20">
-          {activeMediaList.map((item, idx) => {
-            const isPhoto =
-              item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+          {/* Vertical Up-Down Scrollable Media Grid: 2 columns on mobile */}
+          <div className="grid grid-cols-2 gap-3.5 pb-20">
+            {activeMediaList.map((item, idx) => {
+              const isPhoto =
+                item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
 
-            const imageSrc =
-              (item as any).thumbnail ||
-              (item as any).src ||
-              item.url ||
-              (item as any).image ||
-              item.path ||
-              '';
-            const thumb = isPhoto
-              ? getMediaUrl(imageSrc) || imageSrc
-              : getImageUrl(item) ||
-                getThumbnailUrl(item) ||
-                resolveStaticVideoThumbnail(item) ||
-                getMediaUrl(imageSrc) ||
-                imageSrc;
+              const imageSrc =
+                (item as any).thumbnail ||
+                (item as any).src ||
+                item.url ||
+                (item as any).image ||
+                item.path ||
+                '';
+              const thumb = isPhoto
+                ? getMediaUrl(imageSrc) || imageSrc
+                : getImageUrl(item) ||
+                  getThumbnailUrl(item) ||
+                  resolveStaticVideoThumbnail(item) ||
+                  getMediaUrl(imageSrc) ||
+                  imageSrc;
 
-            return (
-              <div
-                key={item.id || item.url || idx}
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenItem(item, idx);
-                }}
-                style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
-              >
-                <SmartThumbnail
-                  src={thumb}
-                  alt=""
-                  aspectClass="aspect-[4/5]"
-                  containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              return (
+                <div
+                  key={item.id || item.url || idx}
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenItem(item, idx);
+                  }}
+                  style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+                  className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
                 >
-                  {/* Center Play Indicator for Videos / Shorts on Hover */}
-                  {!isPhoto && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                      <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                  <SmartThumbnail
+                    src={thumb}
+                    alt=""
+                    aspectClass="aspect-[4/5]"
+                    containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  >
+                    {!isPhoto && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </SmartThumbnail>
-              </div>
-            );
-          })}
-        </div>
-      </main>
+                    )}
+                  </SmartThumbnail>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

@@ -10,7 +10,15 @@ interface DayStat {
   isToday: boolean;
 }
 
-export const SessionTelemetryGraph: React.FC<{ className?: string }> = ({ className = '' }) => {
+export interface SessionTelemetryGraphProps {
+  className?: string;
+  variant?: 'compact' | 'dock';
+}
+
+export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
+  className = '',
+  variant = 'compact',
+}) => {
   const [dayStats, setDayStats] = useState<DayStat[]>([]);
 
   useEffect(() => {
@@ -107,6 +115,61 @@ export const SessionTelemetryGraph: React.FC<{ className?: string }> = ({ classN
 
   // Calculate highest minute value to scale graph bars
   const maxMinutes = Math.max(15, ...dayStats.map((d) => d.minutes));
+
+  if (variant === 'dock') {
+    return (
+      <div className={`w-full h-[120px] flex flex-col justify-end flex-shrink-0 pt-2 ${className}`}>
+        {/* Track: 7 Pillars distributed evenly across the width */}
+        <div className="w-full flex justify-between items-end gap-6 h-[85px]">
+          {dayStats.map((day) => {
+            const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
+
+            return (
+              <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 group">
+                {/* Time readout on top: font-mono text-xs text-[#475569] (Today's readout is text-[#38bdf8] font-bold) */}
+                <span
+                  className={`font-mono text-xs transition-colors ${
+                    day.isToday
+                      ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]'
+                      : 'text-[#475569] group-hover:text-slate-300'
+                  }`}
+                >
+                  {day.hoursFormatted}
+                </span>
+
+                {/* Slot container: h-[56px] w-full max-w-[48px] bg-white/[0.03] rounded flex items-end overflow-hidden */}
+                <div className="h-[56px] w-full max-w-[48px] bg-white/[0.03] rounded flex items-end overflow-hidden">
+                  {/* Bar: linear-gradient(to top, rgba(255,255,255,0.15), rgba(255,255,255,0.45)). Today's bar glows with cyan shadow */}
+                  <div
+                    style={{
+                      height: `${heightPct}%`,
+                      background: day.isToday
+                        ? 'linear-gradient(to top, #0284c7, #38bdf8)'
+                        : 'linear-gradient(to top, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.45))',
+                    }}
+                    className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
+                      day.isToday ? 'shadow-[0_0_12px_rgba(56,189,248,0.5)]' : ''
+                    }`}
+                  />
+                </div>
+
+                {/* Date label below: font-mono text-[10px] text-[#475569] uppercase (e.g. NOV 03 ... TODAY) */}
+                <span
+                  className={`font-mono text-[10px] uppercase tracking-wider text-center truncate w-full ${
+                    day.isToday
+                      ? 'text-[#38bdf8] font-semibold'
+                      : 'text-[#475569] group-hover:text-slate-400'
+                  }`}
+                >
+                  {day.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full h-full flex items-end select-none bg-transparent border-none p-0 shrink-0 ${className}`}>
