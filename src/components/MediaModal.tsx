@@ -49,6 +49,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [activeIdx, setActiveIdx] = useState<number>(propCurrentIndex);
   const [scale, setScale] = useState<number>(1);
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const scaleRef = useRef<number>(1);
+  const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isZoomed = scale > 1.05;
 
   // Single Tap to Toggle Controls (with 250ms double-tap protection)
@@ -138,6 +140,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   if (prevPropKey.propCurrentIndex !== propCurrentIndex || prevPropKey.isOpen !== isOpen) {
     setPrevPropKey({ propCurrentIndex, isOpen });
     setActiveIdx(propCurrentIndex);
+    scaleRef.current = 1;
+    positionRef.current = { x: 0, y: 0 };
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setShowControls(true);
@@ -156,6 +160,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (!hasItemList || activeIdx >= items.length - 1) return;
     const next = activeIdx + 1;
     setActiveIdx(next);
+    scaleRef.current = 1;
+    positionRef.current = { x: 0, y: 0 };
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setIsDragging(false);
@@ -168,6 +174,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (!hasItemList || activeIdx <= 0) return;
     const prev = activeIdx - 1;
     setActiveIdx(prev);
+    scaleRef.current = 1;
+    positionRef.current = { x: 0, y: 0 };
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setIsDragging(false);
@@ -207,6 +215,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
     setIsLightboxFullscreen(false);
     setIsNativeFullscreen(false);
+    scaleRef.current = 1;
+    positionRef.current = { x: 0, y: 0 };
     setScale(1);
     setPosition({ x: 0, y: 0 });
   }, []);
@@ -298,9 +308,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
     if (baseW <= 0 || baseH <= 0) {
       if (imgDimensions?.width && imgDimensions?.height) {
-        const availW = isZoomed ? vw : vw - 64;
-        const availH = isZoomed ? vh : vh * 0.85;
-        const fit = Math.min(availW / imgDimensions.width, availH / imgDimensions.height);
+        const fit = Math.min((vw * 0.9) / imgDimensions.width, (vh * 0.85) / imgDimensions.height);
         baseW = imgDimensions.width * fit;
         baseH = imgDimensions.height * fit;
       } else {
@@ -314,38 +322,38 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
     // Generous, free pan limits so every detail, corner, and edge can be moved freely across the screen
     const maxPanX = Math.max(
-      Math.max(0, (scaledW - vw) / 2) + vw * 0.35,
-      scaledW * 0.45,
-      vw * 0.4
+      Math.max(0, (scaledW - vw) / 2) + vw * 0.45,
+      scaledW * 0.5,
+      vw * 0.5
     );
     const maxPanY = Math.max(
-      Math.max(0, (scaledH - vh) / 2) + vh * 0.35,
-      scaledH * 0.45,
-      vh * 0.4
+      Math.max(0, (scaledH - vh) / 2) + vh * 0.45,
+      scaledH * 0.5,
+      vh * 0.5
     );
 
     return { maxPanX, maxPanY, baseW, baseH };
-  }, [imgDimensions, isZoomed]);
+  }, [imgDimensions]);
 
   // Handle window resizing while zoomed to prevent edge gaps
   useEffect(() => {
     const handleResize = () => {
-      if (imgRef.current && scale <= 1.05 && imgRef.current.offsetWidth > 0) {
+      if (imgRef.current && scaleRef.current <= 1.05 && imgRef.current.offsetWidth > 0) {
         baseDimensionsRef.current = {
           w: imgRef.current.offsetWidth,
           h: imgRef.current.offsetHeight,
         };
-      } else if (scale > 1.05) {
-        const { maxPanX, maxPanY } = calculatePanLimits(scale);
-        setPosition((prev) => ({
-          x: Math.max(-maxPanX, Math.min(maxPanX, prev.x)),
-          y: Math.max(-maxPanY, Math.min(maxPanY, prev.y)),
-        }));
+      } else if (scaleRef.current > 1.05) {
+        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+        const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
+        const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
+        positionRef.current = { x: nextX, y: nextY };
+        setPosition({ x: nextX, y: nextY });
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [scale, calculatePanLimits]);
+  }, [calculatePanLimits]);
 
   // Keep unzoomed dimensions updated
   useEffect(() => {
@@ -370,8 +378,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       singleTapTimerRef.current = null;
     }
 
-    if (scale > 1.05) {
+    if (scaleRef.current > 1.05) {
       // ALWAYS RESET to natural default state when already zoomed
+      scaleRef.current = 1;
+      positionRef.current = { x: 0, y: 0 };
       setScale(1);
       setPosition({ x: 0, y: 0 });
       setIsDragging(false);
@@ -413,10 +423,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const initialX = Math.max(-maxPanX, Math.min(maxPanX, -tapOffsetX * (targetScale - 1) * 0.5));
       const initialY = Math.max(-maxPanY, Math.min(maxPanY, -tapOffsetY * (targetScale - 1) * 0.5));
 
+      scaleRef.current = targetScale;
+      positionRef.current = { x: initialX, y: initialY };
       setScale(targetScale);
       setPosition({ x: initialX, y: initialY });
     }
-  }, [scale, calculatePanLimits]);
+  }, [calculatePanLimits]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     lastTouchTimeRef.current = Date.now();
@@ -436,8 +448,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       pinchStateRef.current = {
         startDist: dist,
-        startScale: scale,
-        startPosition: { ...position },
+        startScale: scaleRef.current,
+        startPosition: { ...positionRef.current },
         lastTouchX: midX,
         lastTouchY: midY,
         isPinching: true,
@@ -467,7 +479,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
 
       // Drag / Pan while zoomed in (scale > 1.05)
-      if (scale > 1.05) {
+      if (scaleRef.current > 1.05) {
         pinchStateRef.current.isPanning = true;
         pinchStateRef.current.isPinching = false;
         pinchStateRef.current.lastTouchX = t.clientX;
@@ -500,7 +512,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     lastTouchTimeRef.current = Date.now();
     wakeFullscreenClose();
 
-    // Multi-touch: Two-finger continuous pinch zooming (clamped 1x to 4x)
+    // Multi-touch: Two-finger continuous pinch zooming (clamped 1x to 5x)
     if (e.touches.length === 2 && pinchStateRef.current.isPinching) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -508,7 +520,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       );
       if (pinchStateRef.current.startDist > 0) {
         const factor = dist / pinchStateRef.current.startDist;
-        const newScale = Math.max(1, Math.min(4, pinchStateRef.current.startScale * factor));
+        const newScale = Math.max(1, Math.min(5, pinchStateRef.current.startScale * factor));
+        scaleRef.current = newScale;
         setScale(newScale);
 
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
@@ -519,20 +532,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         pinchStateRef.current.lastTouchY = midY;
 
         if (newScale <= 1.05) {
+          positionRef.current = { x: 0, y: 0 };
           setPosition({ x: 0, y: 0 });
         } else {
           const { maxPanX, maxPanY } = calculatePanLimits(newScale);
-          setPosition((prev) => ({
-            x: Math.max(-maxPanX, Math.min(maxPanX, prev.x + dMidX)),
-            y: Math.max(-maxPanY, Math.min(maxPanY, prev.y + dMidY)),
-          }));
+          const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x + dMidX));
+          const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y + dMidY));
+          positionRef.current = { x: nextX, y: nextY };
+          setPosition({ x: nextX, y: nextY });
         }
       }
       return;
     }
 
     // Drag / Pan with 1 finger when zoomed in (scale > 1.05)
-    if (e.touches.length === 1 && scale > 1.05) {
+    if (e.touches.length === 1 && scaleRef.current > 1.05) {
       const t = e.touches[0];
       if (!pinchStateRef.current.isPanning) {
         pinchStateRef.current.isPanning = true;
@@ -557,17 +571,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         touchStateRef.current.currentY = t.clientY;
       }
 
-      const { maxPanX, maxPanY } = calculatePanLimits(scale);
-
-      setPosition((prev) => ({
-        x: Math.max(-maxPanX, Math.min(maxPanX, prev.x + dx)),
-        y: Math.max(-maxPanY, Math.min(maxPanY, prev.y + dy)),
-      }));
+      const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+      const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x + dx));
+      const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y + dy));
+      positionRef.current = { x: nextX, y: nextY };
+      setPosition({ x: nextX, y: nextY });
       return;
     }
 
     // Horizontal swipe preview feedback ONLY when scale <= 1.05
-    if (!touchStateRef.current || scale > 1.05) return;
+    if (!touchStateRef.current || scaleRef.current > 1.05) return;
     const t = e.touches[0];
     touchStateRef.current.currentX = t.clientX;
     touchStateRef.current.currentY = t.clientY;
@@ -592,15 +605,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (e.touches.length === 0) {
       pinchStateRef.current.isPinching = false;
       pinchStateRef.current.isPanning = false;
+      setIsDragging(false);
+      isDraggingRef.current = false;
 
-      // Snap back if pinched below 1.05x
-      if (scale <= 1.05) {
+      // Snap back if pinched below 1.05x (CRITICAL: check scaleRef.current, NOT stale scale state!)
+      if (scaleRef.current <= 1.05) {
+        scaleRef.current = 1;
+        positionRef.current = { x: 0, y: 0 };
         setScale(1);
         setPosition({ x: 0, y: 0 });
       }
     } else if (e.touches.length === 1 && pinchStateRef.current.isPinching) {
       pinchStateRef.current.isPinching = false;
-      pinchStateRef.current.isPanning = scale > 1.05;
+      pinchStateRef.current.isPanning = scaleRef.current > 1.05;
       const t = e.touches[0];
       pinchStateRef.current.lastTouchX = t.clientX;
       pinchStateRef.current.lastTouchY = t.clientY;
@@ -642,10 +659,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
 
     // When scale > 1, horizontal swipe navigation is strictly disabled to allow free panning
-    if (scale > 1.05) {
+    if (scaleRef.current > 1.05) {
       setTouchDeltaX(0);
-      setIsDragging(false);
-      isDraggingRef.current = false;
       return;
     }
 
@@ -683,7 +698,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
     }
 
-    const isZoomedIn = scale > 1.05;
+    const isZoomedIn = scaleRef.current > 1.05;
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
     setIsDragging(true);
@@ -691,8 +706,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      posX: position.x,
-      posY: position.y,
+      posX: positionRef.current.x,
+      posY: positionRef.current.y,
       time: performance.now(),
       isPan: isZoomedIn,
       isSwipe: !isZoomedIn,
@@ -718,9 +733,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
     if (dragStartRef.current.isPan) {
       // Boundary clamp to keep the image covering the viewport without leaving empty gaps
-      const { maxPanX, maxPanY } = calculatePanLimits(scale);
+      const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
       const nextX = Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.posX + dx));
       const nextY = Math.max(-maxPanY, Math.min(maxPanY, dragStartRef.current.posY + dy));
+      positionRef.current = { x: nextX, y: nextY };
       setPosition({ x: nextX, y: nextY });
     } else if (dragStartRef.current.isSwipe) {
       // Fluid horizontal swipe preview on desktop
@@ -820,18 +836,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const handleWheel = (e: React.WheelEvent) => {
     if (type !== 'image') return;
     const zoomFactor = e.deltaY < 0 ? 1.2 : 0.8;
-    const newScale = Math.max(1, Math.min(6, scale * zoomFactor));
+    const newScale = Math.max(1, Math.min(6, scaleRef.current * zoomFactor));
+    scaleRef.current = newScale;
     setScale(newScale);
     if (newScale <= 1.05) {
+      scaleRef.current = 1;
+      positionRef.current = { x: 0, y: 0 };
       setPosition({ x: 0, y: 0 });
       setIsDragging(false);
       isDraggingRef.current = false;
     } else {
       const { maxPanX, maxPanY } = calculatePanLimits(newScale);
-      setPosition((prev) => ({
-        x: Math.max(-maxPanX, Math.min(maxPanX, prev.x)),
-        y: Math.max(-maxPanY, Math.min(maxPanY, prev.y)),
-      }));
+      const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
+      const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
+      positionRef.current = { x: nextX, y: nextY };
+      setPosition({ x: nextX, y: nextY });
     }
   };
 
@@ -886,11 +905,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] select-none touch-none touch-action-none flex items-center justify-center animate-fade-in cursor-pointer"
+        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] select-none touch-none flex items-center justify-center animate-fade-in cursor-pointer"
         style={{
-          background: 'rgba(3, 5, 10, 0.55)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(3, 5, 10, 0.65)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
         }}
         onClick={handleStageClick}
         onDoubleClick={handleStageDoubleClick}
@@ -973,11 +992,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row select-none animate-fade-in touch-none touch-action-none overscroll-contain"
+      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row select-none animate-fade-in touch-none overscroll-contain"
       style={{
-        background: isZoomed ? '#000000' : 'rgba(3, 5, 10, 0.55)',
-        backdropFilter: isZoomed ? 'none' : 'blur(12px)',
-        WebkitBackdropFilter: isZoomed ? 'none' : 'blur(12px)',
+        background: 'rgba(3, 5, 10, 0.65)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
       }}
       onClick={(e) => {
         if (showSidebar) {
@@ -994,7 +1013,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* Top Bar Header */}
         <header
           className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-b from-black/60 via-transparent to-transparent transition-opacity duration-300 ${
-            showControls && !isZoomed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1214,9 +1233,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* Main Media Stage */}
         <div
           ref={mediaBoxRef}
-          className={`flex-1 relative w-full h-full flex items-center justify-center ${
-            isZoomed ? 'p-0' : 'p-3 sm:p-6 md:p-8'
-          } transition-all overflow-hidden ${
+          className={`flex-1 relative w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-6 transition-all overflow-hidden touch-none select-none ${
             isZoomed
               ? isDragging
                 ? 'cursor-grabbing'
@@ -1225,6 +1242,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 ? 'cursor-grabbing'
                 : 'cursor-grab md:cursor-pointer'
           }`}
+          style={{ touchAction: 'none' }}
           onClick={handleStageClick}
           onDoubleClick={handleStageDoubleClick}
           onTouchStart={handleTouchStart}
@@ -1274,11 +1292,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                     pinchStateRef.current.isPinching || pinchStateRef.current.isPanning || isDragging || touchDeltaX !== 0
                       ? 'none'
                       : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  touchAction: 'none',
                 }}
-                className={`w-auto h-auto object-contain select-none will-change-transform animate-fade-in ${
-                  isZoomed
-                    ? `max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-none drop-shadow-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
-                    : `max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${isDragging ? 'cursor-grabbing' : 'cursor-grab md:cursor-zoom-in'}`
+                className={`w-auto h-auto object-contain select-none will-change-transform animate-fade-in max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${
+                  isDragging ? 'cursor-grabbing' : isZoomed ? 'cursor-grab' : 'cursor-grab md:cursor-zoom-in'
                 }`}
                 draggable={false}
               />
