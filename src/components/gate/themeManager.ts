@@ -1,15 +1,17 @@
 /**
- * Cinematic Theme Manager for Poster Landing Gate
- * Rotates dynamically between 3 distinct cinematic themes on page load:
- * 1. Silent Hill Mist (Desaturated charcoal, rolling ash fog, rusted vignette)
- * 2. Dark Shadows Gothic (Midnight indigo, spectral blue mist, gothic shadows)
- * 3. Wick Underworld Noir (Pitch obsidian, high-contrast shadows, tungsten/gold ambient edge glow)
+ * Permanent Deep Midnight Obsidian Theme
+ *
+ * Locked Palette Specifications:
+ * - Base solid color: #03060a (Deep midnight abyss).
+ * - Radial glow overlay: radial-gradient(circle at 50% 40%, rgba(8, 20, 38, 0.6) 0%, #020408 80%).
+ * - Dust/mist particles: rgba(186, 230, 253, alpha) (cool cyan-white shimmer).
+ * - Core pillar glow & halo: pure white (#ffffff) with cool blue-white halo (rgba(56, 189, 248, 0.25)).
  */
 
 export interface CinematicTheme {
-  id: 'silent-hill' | 'dark-shadows' | 'wick-noir';
+  id: string;
   name: string;
-  bgGradient: [string, string, string]; // Top, Middle, Bottom
+  bgGradient: [string, string, string];
   fogColor: string;
   particleColor: string;
   particleSpeed: number;
@@ -18,46 +20,23 @@ export interface CinematicTheme {
   vignetteColor: string;
 }
 
-export const CINEMATIC_THEMES: Record<string, CinematicTheme> = {
-  'silent-hill': {
-    id: 'silent-hill',
-    name: 'Silent Hill Mist',
-    bgGradient: ['#050608', '#0d1016', '#030406'],
-    fogColor: 'rgba(38, 46, 58, ',
-    particleColor: 'rgba(175, 185, 200, ',
-    particleSpeed: 0.38,
-    particleCount: 55,
-    glowAccent: 'rgba(90, 115, 140, 0.07)',
-    vignetteColor: 'rgba(3, 4, 6, 0.90)',
-  },
-  'dark-shadows': {
-    id: 'dark-shadows',
-    name: 'Dark Shadows Gothic',
-    bgGradient: ['#03040b', '#080d1e', '#020307'],
-    fogColor: 'rgba(20, 38, 78, ',
-    particleColor: 'rgba(150, 190, 255, ',
-    particleSpeed: 0.32,
-    particleCount: 48,
-    glowAccent: 'rgba(70, 110, 190, 0.09)',
-    vignetteColor: 'rgba(2, 3, 7, 0.92)',
-  },
-  'wick-noir': {
-    id: 'wick-noir',
-    name: 'Wick Underworld Noir',
-    bgGradient: ['#020203', '#08080a', '#010102'],
-    fogColor: 'rgba(50, 38, 18, ',
-    particleColor: 'rgba(245, 190, 85, ',
-    particleSpeed: 0.45,
-    particleCount: 42,
-    glowAccent: 'rgba(220, 150, 45, 0.08)',
-    vignetteColor: 'rgba(1, 1, 2, 0.95)',
-  },
+export const MIDNIGHT_OBSIDIAN_THEME: CinematicTheme = {
+  id: 'midnight-obsidian',
+  name: 'Permanent Midnight Obsidian',
+  bgGradient: ['#03060a', '#060e1c', '#020408'],
+  fogColor: 'rgba(12, 28, 54, ',
+  particleColor: 'rgba(186, 230, 253, ',
+  particleSpeed: 0.32,
+  particleCount: 52,
+  glowAccent: 'rgba(56, 189, 248, 0.16)',
+  vignetteColor: 'rgba(2, 4, 8, 0.94)',
 };
 
-const THEME_KEYS: Array<keyof typeof CINEMATIC_THEMES> = ['silent-hill', 'dark-shadows', 'wick-noir'];
+export function getMidnightObsidianTheme(): CinematicTheme {
+  return MIDNIGHT_OBSIDIAN_THEME;
+}
 
+// Fallback alias for legacy theme callers
 export function getRandomCinematicTheme(): CinematicTheme {
-  const randomIndex = Math.floor(Math.random() * THEME_KEYS.length);
-  const key = THEME_KEYS[randomIndex];
-  return CINEMATIC_THEMES[key];
+  return MIDNIGHT_OBSIDIAN_THEME;
 }

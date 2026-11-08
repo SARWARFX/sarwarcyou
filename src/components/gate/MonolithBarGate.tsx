@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
-import { getRandomCinematicTheme, type CinematicTheme } from './themeManager';
+import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
 import { useScrambleText } from './useScrambleText';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
@@ -122,9 +122,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   initialAlbum,
   isModalOpen = false,
 }) => {
-  // Atmospheric theme for canvas mist particles
-  const [theme] = useState<CinematicTheme>(() => getRandomCinematicTheme());
-
   // Gate unlock & navigation states
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [selectedHub, setSelectedHub] = useState<string | null>(null);
@@ -413,11 +410,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   return (
     <div
       onClick={handleBackdropClick}
-      className="relative w-full h-[100dvh] overflow-hidden select-none text-white font-['Roboto',sans-serif] bg-[#030406]"
-      style={{ isolation: 'isolate' }}
+      className="relative w-full h-[100dvh] overflow-hidden select-none text-white font-['Roboto',sans-serif] bg-[#03060a]"
+      style={{
+        isolation: 'isolate',
+        background: 'radial-gradient(circle at 50% 40%, rgba(8, 20, 38, 0.6) 0%, #020408 80%)',
+        backgroundColor: '#03060a',
+      }}
     >
-      {/* 1. Ambient Deep Obsidian Backdrop with Drifting Procedural Mist */}
-      <CinematicBackdropCanvas theme={theme} isPaused={isModalOpen} />
+      {/* 1. Permanent Midnight Obsidian Canvas with Drifting Cyan-White Mist */}
+      <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
       {/* 2. Central Stepped Monolith Bar Graph (7-Day Authentic Visitor Memory) */}
       <div
@@ -457,11 +458,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 key={bar.dateKey}
                 className="group relative flex flex-col items-center justify-end h-full flex-1 max-w-[72px] z-10"
               >
+                {/* Cool Blue-White Ambient Halo behind Today's Pillar */}
+                {bar.isToday && (
+                  <div
+                    className="absolute -bottom-2 -left-3 -right-3 h-28 rounded-full pointer-events-none -z-10"
+                    style={{
+                      background: 'radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, rgba(56, 189, 248, 0) 70%)',
+                      filter: 'blur(10px)',
+                    }}
+                  />
+                )}
+
                 {/* Tip of Bar: Time Spent Readout (H.MM) */}
                 <span
                   className={`font-['Roboto',sans-serif] font-bold text-[0.68rem] sm:text-[0.72rem] md:text-xs tracking-wider mb-2 select-none transition-all duration-200 ${
                     bar.isToday
-                      ? 'text-white font-extrabold drop-shadow-[0_0_8px_rgba(255,255,255,0.85)] scale-105'
+                      ? 'text-white font-extrabold drop-shadow-[0_0_10px_rgba(186,230,253,0.95)] scale-105'
                       : bar.seconds > 0
                       ? 'text-neutral-300 group-hover:text-white'
                       : 'text-neutral-500 group-hover:text-neutral-300'
@@ -475,7 +487,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   style={{ height: `${heightPx}px` }}
                   className={`w-5 sm:w-7 md:w-9 rounded-t-sm transition-all duration-300 ${
                     bar.isToday
-                      ? 'bg-white shadow-[0_0_20px_rgba(255,255,255,0.7),0_0_40px_rgba(255,255,255,0.25)]'
+                      ? 'bg-white shadow-[0_0_20px_rgba(255,255,255,0.95),0_0_35px_rgba(56,189,248,0.4),0_0_60px_rgba(56,189,248,0.25)]'
                       : bar.seconds > 0
                       ? 'bg-neutral-700/80 group-hover:bg-neutral-500'
                       : 'bg-neutral-800/80 group-hover:bg-neutral-600'
