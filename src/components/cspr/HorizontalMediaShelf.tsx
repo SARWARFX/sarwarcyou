@@ -74,11 +74,11 @@ export const HorizontalMediaShelf: React.FC<HorizontalMediaShelfProps> = ({
       {/* Shelf Header */}
       <div className="flex items-baseline justify-between px-4 sm:px-6 md:px-8 mb-3">
         <div className="flex items-baseline gap-3">
-          <h2 className="font-['Roboto',sans-serif] font-bold text-sm sm:text-base md:text-lg tracking-[0.2em] text-white uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+          <h2 className="font-['Audiowide',cursive,sans-serif] text-sm sm:text-base md:text-lg tracking-[0.18em] text-white uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
             {title}
           </h2>
           {subtitle && (
-            <span className="text-[10px] sm:text-xs font-['Roboto',sans-serif] tracking-widest text-neutral-400 uppercase hidden sm:inline">
+            <span className="text-[10px] sm:text-xs font-['Audiowide',cursive,sans-serif] tracking-[0.14em] text-neutral-400 uppercase hidden sm:inline">
               // {subtitle}
             </span>
           )}
@@ -174,7 +174,7 @@ export const HorizontalMediaShelf: React.FC<HorizontalMediaShelfProps> = ({
               </div>
 
               {/* Title Label */}
-              <span className="text-[11px] sm:text-xs font-['Roboto',sans-serif] uppercase font-medium line-clamp-1 leading-snug text-neutral-300 group-hover/card:text-white transition-colors px-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+              <span className="text-[11px] sm:text-xs font-['Audiowide',cursive,sans-serif] uppercase font-normal line-clamp-1 leading-snug text-neutral-300 group-hover/card:text-white transition-colors px-0.5 tracking-[0.08em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                 {cleanTitle}
               </span>
             </div>

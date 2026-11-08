@@ -79,8 +79,8 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
         <div className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse mb-3.5" />
 
         {/* Notice Title */}
-        <h2 className="text-xs sm:text-sm font-['Roboto',sans-serif] font-bold tracking-[0.25em] uppercase text-white/90 pb-2.5 mb-3 border-b border-white/10 w-full text-center">
-          PUBLIC CONTENT NOTICE
+        <h2 className="text-[11px] sm:text-xs font-['Audiowide',cursive,sans-serif] tracking-[0.22em] uppercase text-white/95 pb-2.5 mb-3 border-b border-white/10 w-full text-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+          PUBLIC DOMAIN & OPEN ACCESS NOTICE
         </h2>
 
         {/* Notice Body */}
@@ -92,7 +92,7 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
         <button
           type="button"
           onClick={handleDismiss}
-          className="mt-4 w-full sm:w-auto px-7 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white font-['Roboto',sans-serif] font-bold text-xs tracking-[0.2em] uppercase transition-all duration-200 active:scale-95 shadow-lg cursor-pointer"
+          className="mt-4 w-full sm:w-auto px-7 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white font-['Audiowide',cursive,sans-serif] text-xs tracking-[0.2em] uppercase transition-all duration-200 active:scale-95 shadow-lg cursor-pointer"
         >
           [ ENTER ARCHIVE ]
         </button>

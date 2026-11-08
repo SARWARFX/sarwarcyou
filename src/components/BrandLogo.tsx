@@ -54,7 +54,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
       {showText && (
         <span
-          className={`brand-gradient-text uppercase font-sans font-black leading-none drop-shadow ${textSizeClasses}`}
+          className={`brand-gradient-text uppercase font-brand leading-none drop-shadow tracking-[0.24em] ${textSizeClasses}`}
         >
           SARWARCYOU
         </span>

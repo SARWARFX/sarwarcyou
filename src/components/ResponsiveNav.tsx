@@ -105,8 +105,8 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
           >
             <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm group-hover:scale-125 transition-transform" />
             <span
-              className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-white group-hover:text-white/80 transition-colors"
-              style={{ fontFamily: "'Orbitron', 'Syne', monospace, sans-serif" }}
+              className="text-base sm:text-lg font-normal uppercase tracking-[0.24em] text-white group-hover:text-white/80 transition-colors font-brand"
+              style={{ fontFamily: "'Audiowide', cursive, sans-serif" }}
             >
               SARWARCYOU
             </span>

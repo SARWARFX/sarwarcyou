@@ -158,10 +158,10 @@ const ScrambledHubItem: React.FC<{
       onTouchEnd={(e) => {
         e.stopPropagation();
       }}
-      className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer select-none border-0 outline-none p-0 bg-transparent flex items-center gap-2.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
+      className={`text-left font-['Audiowide',cursive,sans-serif] uppercase transition-all duration-200 cursor-pointer select-none border-0 outline-none p-0 bg-transparent flex items-center gap-2.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
         isActive
-          ? 'text-white font-bold tracking-[0.25em] text-xl md:text-2xl scale-[1.02] origin-left'
-          : 'text-neutral-400 font-medium tracking-[0.2em] text-lg hover:text-white'
+          ? 'text-white tracking-[0.24em] text-lg sm:text-xl md:text-2xl scale-[1.02] origin-left'
+          : 'text-neutral-400 tracking-[0.2em] text-base sm:text-lg hover:text-white'
       }`}
     >
       {isActive && (
@@ -672,10 +672,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                         e.stopPropagation();
                         setSelectedSubfolder(subNode.name);
                       }}
-                      className={`text-left font-['Roboto',sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                      className={`text-left font-['Audiowide',cursive,sans-serif] uppercase transition-all duration-200 cursor-pointer p-0 bg-transparent border-0 outline-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
                         isSubActive
-                          ? 'text-white font-bold tracking-wider text-base md:text-lg'
-                          : 'text-neutral-400 font-medium tracking-wide text-base md:text-lg hover:text-white'
+                          ? 'text-white tracking-[0.18em] text-sm md:text-base'
+                          : 'text-neutral-400 tracking-[0.15em] text-sm md:text-base hover:text-white'
                       }`}
                     >
                       {subNode.name}
@@ -879,7 +879,7 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                     setSelectedHub(null);
                     setSelectedSubfolder(null);
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/25 text-white text-[11px] font-['Roboto',sans-serif] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/25 text-white text-[10px] font-['Audiowide',cursive,sans-serif] tracking-wider uppercase flex items-center gap-1 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
                 >
                   ← HUBS
                 </button>
@@ -899,10 +899,10 @@ export const PurePhotographyTrailerGate: React.FC<PurePhotographyTrailerGateProp
                           e.stopPropagation();
                           setSelectedSubfolder(subNode.name);
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-['Roboto',sans-serif] uppercase whitespace-nowrap transition-all duration-200 flex-shrink-0 cursor-pointer ${
+                        className={`px-2.5 py-1.5 rounded-xl text-[10px] font-['Audiowide',cursive,sans-serif] uppercase whitespace-nowrap transition-all duration-200 flex-shrink-0 cursor-pointer ${
                           isSubActive
-                            ? 'bg-white/20 text-white font-bold shadow-md'
-                            : 'bg-black/40 text-neutral-400 hover:text-white'
+                            ? 'bg-white/20 text-white font-bold shadow-md tracking-wider'
+                            : 'bg-black/40 text-neutral-400 hover:text-white tracking-wide'
                         }`}
                       >
                         {subNode.name}
