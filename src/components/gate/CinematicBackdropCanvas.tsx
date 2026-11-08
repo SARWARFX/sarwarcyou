@@ -12,7 +12,10 @@ interface Particle {
   wobbleOffset: number;
 }
 
-export const CinematicBackdropCanvas: React.FC<{ theme: CinematicTheme }> = ({ theme }) => {
+export const CinematicBackdropCanvas: React.FC<{ theme: CinematicTheme; isPaused?: boolean }> = ({
+  theme,
+  isPaused = false,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -132,7 +135,9 @@ export const CinematicBackdropCanvas: React.FC<{ theme: CinematicTheme }> = ({ t
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, width, height);
 
-      animId = requestAnimationFrame(render);
+      if (!isPaused) {
+        animId = requestAnimationFrame(render);
+      }
     };
 
     render();
@@ -141,7 +146,7 @@ export const CinematicBackdropCanvas: React.FC<{ theme: CinematicTheme }> = ({ t
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
     };
-  }, [theme]);
+  }, [theme, isPaused]);
 
   return (
     <canvas

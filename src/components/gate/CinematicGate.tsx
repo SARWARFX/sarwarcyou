@@ -266,6 +266,20 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
     };
   }, [activeDirectoryNode, selectedHub]);
 
+  // Escape key global listener for auto-conceal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isUnlocked && !isModalOpen) {
+        e.preventDefault();
+        setIsUnlocked(false);
+        setSelectedHub(null);
+        setSelectedSubfolder(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isUnlocked, isModalOpen]);
+
   // Backdrop Auto-Conceal (Re-encrypt): clicking the empty canvas conceals the UI
   const handleBackdropClick = (e: React.MouseEvent) => {
     // If a modal (video, shorts, lightbox) is open, ignore
@@ -290,72 +304,106 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white font-['Roboto',sans-serif]"
       style={{ isolation: 'isolate' }}
     >
-      {/* 1. Dynamic Rotating Atmospheric Canvas Backdrop */}
-      <CinematicBackdropCanvas theme={theme} />
+      {/* 1. Dynamic Rotating Atmospheric Canvas Backdrop with Modal Pause */}
+      <CinematicBackdropCanvas theme={theme} isPaused={isModalOpen} />
 
-      {/* 2. Floating Shadowy Phantom / Specter Silhouette (Center Stage) */}
+      {/* 2. Floating Vaporous Mist Specter / Shadow Apparition (Center Stage) */}
       <div
         onClick={(e) => {
           e.stopPropagation();
           setIsUnlocked(true);
         }}
-        className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 select-none z-10 flex flex-col items-center justify-center ${
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsUnlocked(true);
+          }
+        }}
+        className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 select-none z-10 flex flex-col items-center justify-center outline-none focus:outline-none ${
           isUnlocked
-            ? 'opacity-15 pointer-events-none scale-90'
+            ? 'opacity-10 pointer-events-none scale-90 blur-sm'
             : 'opacity-85 hover:opacity-100 cursor-pointer pointer-events-auto scale-100'
         }`}
         style={{
-          animation: 'specterHover 6s ease-in-out infinite, specterPulse 4s ease-in-out infinite',
+          animation: 'specterVaporFloat 7s ease-in-out infinite, specterVaporBreathe 5s ease-in-out infinite',
         }}
         title="Tap to decrypt"
         aria-label="Enigmatic entity gate"
         role="button"
         tabIndex={0}
       >
-        {/* Shadowy Specter Silhouette SVG */}
-        <div className="relative w-44 sm:w-56 md:w-68 aspect-[3/4] flex items-center justify-center">
-          {/* Ethereal dark glow aura */}
+        {/* Organic Volumetric Mist & Shadow Smoke Entity */}
+        <div className="relative w-56 sm:w-72 md:w-84 aspect-[3/4] flex items-center justify-center pointer-events-none">
+          {/* Ethereal dark ambient aura matching active theme */}
           <div
-            className="absolute inset-0 rounded-full blur-3xl opacity-40 transition-opacity duration-500"
+            className="absolute inset-0 rounded-full blur-3xl opacity-50 transition-opacity duration-700"
             style={{
               background:
                 theme.id === 'wick-noir'
-                  ? 'radial-gradient(circle, rgba(210,150,50,0.2) 0%, rgba(0,0,0,0) 70%)'
+                  ? 'radial-gradient(circle, rgba(230,165,55,0.22) 0%, rgba(30,20,5,0.12) 50%, rgba(0,0,0,0) 75%)'
                   : theme.id === 'dark-shadows'
-                  ? 'radial-gradient(circle, rgba(40,80,160,0.25) 0%, rgba(0,0,0,0) 70%)'
-                  : 'radial-gradient(circle, rgba(120,135,150,0.2) 0%, rgba(0,0,0,0) 70%)',
+                  ? 'radial-gradient(circle, rgba(50,95,190,0.25) 0%, rgba(10,20,50,0.15) 50%, rgba(0,0,0,0) 75%)'
+                  : 'radial-gradient(circle, rgba(135,155,175,0.22) 0%, rgba(25,35,45,0.12) 50%, rgba(0,0,0,0) 75%)',
             }}
           />
 
           <svg
-            viewBox="0 0 200 280"
+            viewBox="0 0 240 320"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full drop-shadow-[0_15px_35px_rgba(0,0,0,0.95)]"
+            className="w-full h-full drop-shadow-[0_20px_45px_rgba(0,0,0,0.98)]"
           >
             <defs>
-              <linearGradient id="specterGrad" x1="100" y1="20" x2="100" y2="280" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#15171d" stopOpacity="0.95" />
-                <stop offset="35%" stopColor="#0c0e12" stopOpacity="0.88" />
-                <stop offset="70%" stopColor="#060709" stopOpacity="0.75" />
-                <stop offset="100%" stopColor="#020304" stopOpacity="0.0" />
-              </linearGradient>
-              <filter id="specterMist" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3.5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              {/* Ethereal Smoke Fluid Distortion Filter */}
+              <filter id="organicMist" x="-30%" y="-30%" width="160%" height="160%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="3" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+                <feGaussianBlur in="displaced" stdDeviation="6" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" opacity="0.6" />
+                </feMerge>
               </filter>
+
+              {/* Radial Vapor Core Gradient */}
+              <radialGradient id="vaporCore" cx="50%" cy="40%" r="55%">
+                <stop offset="0%" stopColor="#141720" stopOpacity="0.95" />
+                <stop offset="35%" stopColor="#0b0e14" stopOpacity="0.85" />
+                <stop offset="70%" stopColor="#05070a" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#020304" stopOpacity="0" />
+              </radialGradient>
+
+              {/* Outer Ethereal Tendril Gradient */}
+              <linearGradient id="tendrilGrad" x1="120" y1="30" x2="120" y2="300" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#1c212c" stopOpacity="0.8" />
+                <stop offset="40%" stopColor="#0d1017" stopOpacity="0.7" />
+                <stop offset="75%" stopColor="#05070a" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+              </linearGradient>
             </defs>
 
-            {/* Phantom Cowl & Body Silhouette */}
+            {/* Layer 1: Diffuse Outer Shadow Vapor */}
             <path
-              d="M100 25 C65 25 50 55 45 95 C40 135 30 190 20 255 C40 245 65 250 85 240 C100 248 115 238 130 244 C155 240 175 252 185 255 C175 190 162 135 155 95 C150 55 135 25 100 25 Z"
-              fill="url(#specterGrad)"
-              filter="url(#specterMist)"
+              d="M120 40 C70 45 40 85 35 145 C30 205 15 260 25 295 C55 280 85 290 120 275 C155 290 185 280 215 295 C225 260 210 205 205 145 C200 85 170 45 120 40 Z"
+              fill="url(#tendrilGrad)"
+              filter="url(#organicMist)"
+              opacity="0.85"
             />
 
-            {/* Subtle Eerie Eyes / Core Slits */}
-            <ellipse cx="88" cy="85" rx="3.5" ry="1.8" fill="rgba(240, 245, 255, 0.45)" />
-            <ellipse cx="112" cy="85" rx="3.5" ry="1.8" fill="rgba(240, 245, 255, 0.45)" />
+            {/* Layer 2: Deep Volumetric Mist Core */}
+            <path
+              d="M120 55 C85 58 65 95 60 145 C55 195 45 240 55 270 C80 260 100 268 120 258 C140 268 160 260 185 270 C195 240 185 195 180 145 C175 95 155 58 120 55 Z"
+              fill="url(#vaporCore)"
+              filter="url(#organicMist)"
+            />
+
+            {/* Layer 3: Secondary Ascending Smoke Wisps */}
+            <path
+              d="M120 70 C100 70 85 98 82 135 C78 172 72 205 80 230 C95 224 108 228 120 222 C132 228 145 224 160 230 C168 205 162 172 158 135 C155 98 140 70 120 70 Z"
+              fill="url(#vaporCore)"
+              opacity="0.9"
+            />
           </svg>
         </div>
       </div>
@@ -410,13 +458,13 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
           </div>
         )}
 
-        {/* TIER 3: Edge-to-Edge Media Reel / Grid (Starts from top without row clipping) */}
+        {/* TIER 3: Edge-to-Edge Media Grid (Responsive Multi-Row Layout, Non-Clipping) */}
         {activeDirectoryNode && (
-          <div className="flex-1 min-w-[300px] sm:min-w-[420px] md:min-w-[540px] h-full overflow-y-auto space-scrollbar py-6 sm:py-10 pl-2 pr-4 sm:pr-8 flex flex-col">
-            <div className="my-auto flex flex-col gap-6 w-full">
-              {/* Photos: Borderless Cards with Micro-Elevation */}
+          <div className="flex-1 min-w-[320px] max-w-[85vw] h-full overflow-y-auto space-scrollbar py-6 sm:py-10 pl-2 pr-4 sm:pr-8 flex flex-col justify-center">
+            <div className="my-auto flex flex-col gap-6 w-full max-h-[82vh]">
+              {/* Photos: Multi-Row Responsive Grid */}
               {photoFiles.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 p-1">
                   {photoFiles.map((photo, idx) => (
                     <div
                       key={photo.id || idx}
@@ -440,9 +488,9 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
                 </div>
               )}
 
-              {/* Videos: 16:9 Landscape Widescreen Cards */}
+              {/* Videos: 16:9 Landscape Widescreen Cards Grid */}
               {videoFiles.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 p-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-5 p-1">
                   {videoFiles.map((video) => {
                     const cleanTitle = sanitizeMediaTitle(video.title || video.name, activeDirectoryNode.name);
                     const thumb = getThumbnailUrl(video) || resolveStaticVideoThumbnail(video);
@@ -483,9 +531,9 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
                 </div>
               )}
 
-              {/* Shorts: 9:16 Vertical Cards */}
+              {/* Shorts: 9:16 Vertical Cards Grid */}
               {shortFiles.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 p-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 p-1">
                   {shortFiles.map((short, idx) => {
                     const cleanTitle = sanitizeMediaTitle(short.title || short.name, activeDirectoryNode.name);
                     const thumb = getImageUrl(short) || getThumbnailUrl(short) || resolveStaticVideoThumbnail(short);
@@ -530,22 +578,24 @@ export const CinematicGate: React.FC<CinematicGateProps> = ({
         )}
       </div>
 
-      {/* Floating Ambient Keyframe Animations */}
+      {/* Floating Organic Mist Keyframe Animations */}
       <style>{`
-        @keyframes specterHover {
+        @keyframes specterVaporFloat {
           0%, 100% {
             transform: translate(-50%, -50%) translateY(0);
           }
           50% {
-            transform: translate(-50%, -50%) translateY(-14px);
+            transform: translate(-50%, -50%) translateY(-15px);
           }
         }
-        @keyframes specterPulse {
+        @keyframes specterVaporBreathe {
           0%, 100% {
-            filter: drop-shadow(0 0 15px rgba(0,0,0,0.8));
+            transform: translate(-50%, -50%) scale(1) scaleX(0.97) scaleY(1.03);
+            filter: drop-shadow(0 0 20px rgba(0,0,0,0.9));
           }
           50% {
-            filter: drop-shadow(0 0 35px rgba(255,255,255,0.08));
+            transform: translate(-50%, -50%) scale(1.04) scaleX(1.03) scaleY(0.97);
+            filter: drop-shadow(0 0 45px rgba(255,255,255,0.06));
           }
         }
       `}</style>
