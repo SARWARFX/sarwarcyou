@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Play } from 'lucide-react';
+import { Play, ArrowLeft } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -339,7 +339,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* ========================================================================= */}
       <section
         aria-label="Folder Navigation and Telemetry"
-        className="flex-none w-screen md:w-[320px] h-screen snap-start shrink-0 relative flex flex-col justify-center pl-8 md:pl-14 z-20 select-none bg-transparent"
+        className="flex-none w-screen md:w-[320px] h-screen snap-start shrink-0 relative flex flex-col justify-center pl-8 md:pl-14 pb-24 z-20 select-none bg-transparent"
       >
         {/* Folder list vertically centered on the left: CLIPS, SHORTS, PHOTOGRAPHY, REALTUBE */}
         <SidebarAccordionNav
@@ -368,7 +368,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Mobile Header Bar: Instant tap-to-return and current folder title */}
+        {/* Mobile Header Bar: Instant tap-to-return (clean icon only) and current folder title */}
         <div className="md:hidden flex items-center justify-between pb-2 mb-3 border-b border-white/8">
           <button
             type="button"
@@ -377,9 +377,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
               }
             }}
-            className="text-slate-400 hover:text-white font-['Google_Sans'] text-xs tracking-wider uppercase flex items-center gap-1.5 cursor-pointer bg-transparent border-0 outline-none py-1"
+            aria-label="Back to folders"
+            className="text-slate-400 hover:text-white p-1 -ml-1 cursor-pointer bg-transparent border-0 outline-none transition-colors flex items-center justify-center"
           >
-            ← FOLDERS
+            <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
           </button>
           {selectedSubfolder && (
             <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate max-w-[180px]">

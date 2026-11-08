@@ -31,45 +31,25 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
   onSelectIdle,
   className = '',
 }) => {
-  // Track open/collapsed state of each major folder
-  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>(() => ({
-    CLIPS: false,
-    SHORTS: false,
-    PHOTOGRAPHY: false,
-    REALTUBE: false,
-  }));
+  // Strict Exclusive Single-Folder Open State (only 1 folder can be open at a time)
+  const [openFolder, setOpenFolder] = useState<string | null>(selectedAlbum || null);
 
-  // Auto-expand folder if selectedAlbum is selected externally; keep collapsed when idle
+  // Auto-expand folder when selectedAlbum changes externally; keep in sync
   useEffect(() => {
     if (selectedAlbum) {
-      setOpenAccordions((prev) => ({
-        ...prev,
-        [selectedAlbum]: true,
-      }));
+      setOpenFolder(selectedAlbum);
     } else {
-      setOpenAccordions({
-        CLIPS: false,
-        SHORTS: false,
-        PHOTOGRAPHY: false,
-        REALTUBE: false,
-      });
+      setOpenFolder(null);
     }
   }, [selectedAlbum]);
 
-  const toggleAccordion = (folderKey: string) => {
-    const isCurrentlyOpen = Boolean(openAccordions[folderKey]);
-    if (isCurrentlyOpen) {
-      setOpenAccordions((prev) => ({
-        ...prev,
-        [folderKey]: false,
-      }));
+  const handleFolderClick = (folderKey: string) => {
+    if (openFolder === folderKey) {
+      setOpenFolder(null);
       onSelectIdle();
     } else {
-      setOpenAccordions((prev) => ({
-        ...prev,
-        [folderKey]: true,
-      }));
-      // Auto-select first subfolder when folder is opened
+      // Immediately collapse any other folder and open only this one
+      setOpenFolder(folderKey);
       const rootNode = rootMap.get(MAJOR_FOLDERS.find((f) => f.key === folderKey)?.rawName || '');
       const subfolderNodes = rootNode ? Array.from(rootNode.subfolders.values()) : [];
       if (subfolderNodes.length > 0) {
@@ -83,10 +63,11 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
   return (
     <nav
       aria-label="Major Folders Navigation"
-      className={`flex flex-col justify-center gap-6 md:gap-7 select-none ${className}`}
+      className={`flex flex-col justify-center gap-6 md:gap-7 select-none mb-24 pb-4 ${className}`}
     >
       {MAJOR_FOLDERS.map((folder) => {
-        const isAccordionOpen = Boolean(openAccordions[folder.key]);
+        // Enforce strict exclusive check: only openFolder === folderKey is expanded
+        const isAccordionOpen = openFolder === folder.key;
         const isFolderActive = selectedAlbum === folder.key;
         const rootNode = rootMap.get(folder.rawName);
         const subfolderNodes = rootNode ? Array.from(rootNode.subfolders.values()) : [];
@@ -96,7 +77,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
             {/* Major Folder Link */}
             <button
               type="button"
-              onClick={() => toggleAccordion(folder.key)}
+              onClick={() => handleFolderClick(folder.key)}
               className={`font-['Google_Sans'] font-bold text-xl tracking-[0.24em] uppercase transition-all duration-300 cursor-pointer text-left outline-none bg-transparent border-0 flex items-center gap-2.5 ${
                 isFolderActive
                   ? 'text-white'
