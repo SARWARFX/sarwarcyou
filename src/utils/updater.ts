@@ -61,9 +61,15 @@ export async function getCurrentAppVersion(): Promise<{ version: string; buildNu
 }
 
 /**
- * Query GitHub Releases API for SARWARFX/sarwarcyou latest release and compare versions
+ * Query GitHub Releases API for SARWARFX/sarwarcyou latest release and compare versions.
+ * Strictly restricted to native Android (Capacitor) platform.
  */
-export async function checkAppUpdate(): Promise<UpdateCheckResult> {
+export async function checkAppUpdate(): Promise<UpdateCheckResult | null> {
+  if (!Capacitor.isNativePlatform()) {
+    console.log('[Updater] Update check bypassed: running on web browser.');
+    return null;
+  }
+
   const current = await getCurrentAppVersion();
   const repo = 'SARWARFX/sarwarcyou';
   const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
@@ -112,14 +118,13 @@ export async function checkAppUpdate(): Promise<UpdateCheckResult> {
 }
 
 /**
- * Trigger installation or download of the new APK
+ * Trigger installation or download of the new APK (Native Android only)
  */
 export function installAppUpdate(apkUrl: string): void {
-  if (Capacitor.isNativePlatform()) {
-    // Open in Android system browser/DownloadManager to invoke native package installer
-    window.open(apkUrl, '_system');
-  } else {
-    // Web browser direct download
-    window.location.href = apkUrl;
+  if (!Capacitor.isNativePlatform()) {
+    console.log('[Updater] Install bypassed: running on web browser.');
+    return;
   }
+  // Open in Android system browser/DownloadManager to invoke native package installer
+  window.open(apkUrl, '_system');
 }

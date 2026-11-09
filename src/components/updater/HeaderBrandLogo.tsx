@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles, Download, CheckCircle2, AlertCircle, Loader2, X, ArrowUpRight } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { checkAppUpdate, installAppUpdate, type UpdateCheckResult } from '../../utils/updater';
 import { hapticMedium } from '../../utils/hapticsManager';
 
@@ -43,6 +44,17 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
 
   const handleLogoClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Web platform guard: APK updater strictly restricted to native Android
+    if (!Capacitor.isNativePlatform()) {
+      console.log('[Updater] Update check bypassed: running on web browser.');
+      hapticMedium();
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
     if (isChecking) return;
 
     hapticMedium();
@@ -53,11 +65,11 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
       const result = await checkAppUpdate();
       setIsChecking(false);
 
-      if (result.hasUpdate) {
+      if (result && result.hasUpdate) {
         showToast({ status: 'idle' });
         setUpdateResult(result);
         setIsModalOpen(true);
-      } else {
+      } else if (result) {
         showToast({ status: 'upToDate', version: result.currentVersion }, 2800);
       }
     } catch (err: any) {
@@ -83,8 +95,8 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
       <button
         type="button"
         onClick={handleLogoClick}
-        title="SARWARCYOU - Tap to check for updates"
-        aria-label="Check for updates"
+        title={Capacitor.isNativePlatform() ? "SARWARCYOU - Tap to check for updates" : "SARWARCYOU"}
+        aria-label={Capacitor.isNativePlatform() ? "Check for updates" : "SARWARCYOU"}
         className={`inline-flex items-center gap-2 group cursor-pointer select-none bg-transparent border-0 p-0 active:scale-95 transition-transform duration-150 focus:outline-none ${className}`}
       >
         <span
@@ -142,8 +154,9 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
           document.body
         )}
 
-      {/* Sleek Cyber Update Available Modal Overlay */}
+      {/* Sleek Cyber Update Available Modal Overlay (Strictly Native Android only) */}
       {typeof document !== 'undefined' &&
+        Capacitor.isNativePlatform() &&
         isModalOpen &&
         updateResult &&
         createPortal(
