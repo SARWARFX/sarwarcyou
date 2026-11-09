@@ -25,6 +25,8 @@ import { getMediaUrl, getDirectHfVideoUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
+import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
+import { useBackButton } from '../utils/backButtonManager';
 
 export type VideoRepeatMode = 'off' | 'all' | 'one';
 
@@ -679,7 +681,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   };
 
-  // Toggle Fullscreen with Landscape Auto-Rotate via Screen Orientation API
+  // Toggle Fullscreen with Landscape Auto-Rotate via Native Capacitor Screen Orientation
   const handleFullscreenToggle = useCallback(async () => {
     const container = playerContainerRef.current;
     const video = videoRef.current;
@@ -696,19 +698,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         console.warn('Fullscreen request notice:', err);
       }
 
-      // Auto-rotate if video is landscape (width > height)
-      const isLandscape = video.videoWidth > video.videoHeight;
-      if ('orientation' in screen && 'lock' in (screen.orientation as any)) {
-        try {
-          if (isLandscape) {
-            await (screen.orientation as any).lock('landscape');
-          } else {
-            await (screen.orientation as any).lock('portrait');
-          }
-        } catch (err) {
-          console.warn('Orientation lock notice:', err);
-        }
-      }
+      // Force rotate phone screen to landscape on video fullscreen
+      await lockToLandscape();
     } else {
       try {
         if (document.exitFullscreen) {
@@ -720,11 +711,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         console.warn('Fullscreen exit notice:', err);
       }
 
-      if ('orientation' in screen && 'unlock' in (screen.orientation as any)) {
-        try {
-          (screen.orientation as any).unlock();
-        } catch (err) {}
-      }
+      await unlockOrientation();
     }
     resetHudTimer();
   }, [resetHudTimer]);
@@ -733,11 +720,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   useEffect(() => {
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
-        if ('orientation' in screen && 'unlock' in (screen.orientation as any)) {
-          try {
-            (screen.orientation as any).unlock();
-          } catch (_) {}
-        }
+        unlockOrientation();
       }
     };
 
@@ -746,13 +729,37 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      if ('orientation' in screen && 'unlock' in (screen.orientation as any)) {
-        try {
-          (screen.orientation as any).unlock();
-        } catch (_) {}
-      }
+      unlockOrientation();
     };
   }, []);
+
+  // Android Native Hardware Back Button handler
+  useBackButton(
+    useCallback(() => {
+      // 1. If currently in fullscreen, exit fullscreen and restore portrait
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+        unlockOrientation();
+        return true;
+      }
+
+      // 2. If sidebar drawer is open, close drawer first
+      if (showSidebar) {
+        setShowSidebar(false);
+        return true;
+      }
+
+      // 3. Close the video player
+      unlockOrientation();
+      onClose();
+      return true;
+    }, [showSidebar, onClose]),
+    isOpen
+  );
 
   // Handle Mute Toggle
   const handleToggleMute = useCallback(() => {

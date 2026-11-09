@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { useBackButton } from './utils/backButtonManager';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
 import { CyberVideoPlayer } from './components/CyberVideoPlayer';
@@ -182,28 +182,23 @@ function App() {
     StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    let listenerHandle: { remove: () => void } | null = null;
-    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-      if (theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen) {
-        handleCloseModal();
-      } else if (isCommandPaletteOpen) {
-        setIsCommandPaletteOpen(false);
-      } else if (canGoBack) {
-        window.history.back();
-      } else {
-        CapacitorApp.exitApp();
-      }
-    }).then((handle) => {
-      listenerHandle = handle;
-    }).catch(() => {});
+  // Handle Android back button for Command Palette
+  useBackButton(
+    useCallback(() => {
+      setIsCommandPaletteOpen(false);
+      return true;
+    }, []),
+    isCommandPaletteOpen
+  );
 
-    return () => {
-      if (listenerHandle) {
-        listenerHandle.remove();
-      }
-    };
-  }, [theaterState.isOpen, shortsState.isOpen, lightboxState.isOpen, viewAllState.isOpen, isCommandPaletteOpen, handleCloseModal]);
+  // Global fallback back handler for active modals
+  useBackButton(
+    useCallback(() => {
+      handleCloseModal();
+      return true;
+    }, [handleCloseModal]),
+    theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen
+  );
 
   // Global Command Palette Shortcut (Ctrl+K / Cmd+K, or "/" when no input is focused)
   useEffect(() => {

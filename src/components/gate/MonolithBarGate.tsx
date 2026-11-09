@@ -11,6 +11,7 @@ import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlR
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { sortSubfolderNodesDescending, type DirectoryNode } from '../DeepSpaceTreeExplorer';
+import { useBackButton } from '../../utils/backButtonManager';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -124,6 +125,36 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setActiveMobilePane((prev) => (prev !== pane ? pane : prev));
     }
   };
+
+  // Android Native Hardware Back Button handler
+  useBackButton(
+    useCallback(() => {
+      // 1. If viewing Mobile Screen 2 (media gallery), return to Screen 1 (Folders)
+      if (activeMobilePane === 1) {
+        if (outerTrackRef.current) {
+          outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        }
+        setActiveMobilePane(0);
+        return true;
+      }
+
+      // 2. If a subfolder is selected on desktop, return to home
+      if (selectedSubfolder !== null) {
+        setSelectedSubfolder(null);
+        return true;
+      }
+
+      // 3. If an accordion folder is expanded, collapse it
+      if (openFolder !== null) {
+        setOpenFolder(null);
+        return true;
+      }
+
+      // Otherwise let parent / exit toast handle it
+      return false;
+    }, [activeMobilePane, selectedSubfolder, openFolder]),
+    !isModalOpen
+  );
 
   // Build directory tree
   const rootMap = useMemo(() => {

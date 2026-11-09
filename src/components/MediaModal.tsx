@@ -18,6 +18,8 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
+import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
+import { useBackButton } from '../utils/backButtonManager';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 
 interface MediaModalProps {
@@ -189,6 +191,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         (document as any).webkitExitFullscreen();
       }
     }
+    unlockOrientation();
     setIsLightboxFullscreen(false);
     setIsNativeFullscreen(false);
     scaleRef.current = 1;
@@ -200,6 +203,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (isFullscreen) {
       exitFullscreen();
     } else {
+      if (type === 'video') {
+        lockToLandscape();
+      }
       setIsLightboxFullscreen(true);
       wakeFullscreenClose();
       const el = mediaBoxRef.current || document.documentElement;
@@ -214,7 +220,29 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
       setIsLightboxFullscreen(true);
     }
-  }, [isFullscreen, exitFullscreen, wakeFullscreenClose]);
+  }, [isFullscreen, type, exitFullscreen, wakeFullscreenClose]);
+
+  // Android Native Hardware Back Button handler
+  useBackButton(
+    useCallback(() => {
+      if (isFullscreen) {
+        exitFullscreen();
+        return true;
+      }
+      if (scale > 1.05) {
+        resetZoom();
+        return true;
+      }
+      if (showSidebar) {
+        setShowSidebar(false);
+        return true;
+      }
+      unlockOrientation();
+      onClose();
+      return true;
+    }, [isFullscreen, scale, showSidebar, exitFullscreen, resetZoom, onClose]),
+    isOpen
+  );
 
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);

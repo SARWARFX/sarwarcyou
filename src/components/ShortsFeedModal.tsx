@@ -5,6 +5,7 @@ import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/im
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
+import { useBackButton } from '../utils/backButtonManager';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -33,6 +34,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const lastTouchTimeRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
+
+  // Android Native Hardware Back Button handler
+  useBackButton(
+    useCallback(() => {
+      onClose();
+      return true;
+    }, [onClose]),
+    isOpen
+  );
 
   // Auto-hide HUD controls after 2.5s of inactivity while playing
   const scheduleAutoHide = useCallback(() => {
