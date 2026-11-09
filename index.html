@@ -41,229 +41,267 @@
         font-family: 'Roboto Condensed', -apple-system, BlinkMacSystemFont, sans-serif;
       }
 
-      /* Cyber Lens Aperture & HUD Startup Animation */
-      .cyber-splash-root {
+      /* Cyber Lens Aperture & HUD Animation */
+      .cyber-splash-active {
         position: fixed;
         inset: 0;
         z-index: 999999;
         background: #020617;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        pointer-events: all;
+        transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
         user-select: none;
         -webkit-user-select: none;
-        transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-                    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
       }
-      .cyber-splash-root.dismissed {
+
+      .cyber-splash-active.dismissed {
         opacity: 0;
-        transform: scale(1.06);
+        transform: scale(1.08);
         pointer-events: none;
       }
-      .hud-grid-overlay {
+
+      .aperture-backdrop-grid {
         position: absolute;
         inset: 0;
         background-image: 
-          linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
-        background-size: 32px 32px;
+          linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
+        background-size: 36px 36px;
         pointer-events: none;
       }
-      .hud-bracket {
-        position: absolute;
-        width: 24px;
-        height: 24px;
-        border: 2px solid rgba(56, 189, 248, 0.4);
-        pointer-events: none;
-      }
-      .hud-top-left { top: 24px; left: 24px; border-right: none; border-bottom: none; }
-      .hud-top-right { top: 24px; right: 24px; border-left: none; border-bottom: none; }
-      .hud-bottom-left { bottom: 24px; left: 24px; border-right: none; border-top: none; }
-      .hud-bottom-right { bottom: 24px; right: 24px; border-left: none; border-top: none; }
 
-      .lens-aperture-stage {
-        position: relative;
+      .hud-corner {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        border: 2px solid rgba(56, 189, 248, 0.5);
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+      }
+      .top-left { top: 28px; left: 28px; border-right: none; border-bottom: none; }
+      .top-right { top: 28px; right: 28px; border-left: none; border-bottom: none; }
+      .bottom-left { bottom: 28px; left: 28px; border-right: none; border-top: none; }
+      .bottom-right { bottom: 28px; right: 28px; border-left: none; border-top: none; }
+
+      .aperture-assembly {
         display: flex;
         flex-direction: column;
         align-items: center;
+        position: relative;
         z-index: 2;
       }
-      .hud-telemetry-text {
-        font-family: 'Roboto Condensed', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 10px;
-        color: rgba(56, 189, 248, 0.6);
-        letter-spacing: 2px;
-      }
-      .top-telemetry { margin-bottom: 24px; }
-      .bottom-telemetry { margin-top: 24px; opacity: 0.7; }
 
-      .aperture-core {
+      .telemetry-tag {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 11px;
+        color: rgba(56, 189, 248, 0.7);
+        letter-spacing: 2px;
+        text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+      }
+      .top-tag { margin-bottom: 24px; }
+      .bottom-tag { margin-top: 24px; font-size: 10px; opacity: 0.6; }
+
+      .lens-chassis {
         position: relative;
-        width: 160px;
-        height: 160px;
+        width: 200px;
+        height: 200px;
         display: flex;
         align-items: center;
         justify-content: center;
       }
-      .aperture-ring-outer {
+
+      .ring-track.outer-spin {
         position: absolute;
         inset: 0;
         border-radius: 50%;
-        border: 1px dashed rgba(56, 189, 248, 0.35);
-        animation: spinRing 12s linear infinite;
+        border: 2px dashed rgba(56, 189, 248, 0.4);
+        animation: chassisSpin 12s linear infinite;
       }
-      .aperture-ring-ticks {
+
+      .ring-track.inner-counter-spin {
         position: absolute;
-        inset: 10px;
+        inset: 12px;
         border-radius: 50%;
-        border: 2px dotted rgba(56, 189, 248, 0.5);
-        animation: spinRingReverse 8s linear infinite;
+        border: 2px dotted rgba(56, 189, 248, 0.6);
+        box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.2);
+        animation: chassisSpinReverse 8s linear infinite;
       }
-      .aperture-blade-iris {
+
+      .iris-chamber {
         position: absolute;
-        inset: 22px;
+        inset: 26px;
         border-radius: 50%;
+        background: #030712;
         overflow: hidden;
-        border: 1px solid rgba(56, 189, 248, 0.4);
-        background: rgba(3, 7, 18, 0.85);
-        box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.25);
+        border: 2px solid rgba(56, 189, 248, 0.5);
+        box-shadow: 0 0 25px rgba(56, 189, 248, 0.35), inset 0 0 30px rgba(0, 0, 0, 0.9);
       }
+
+      .iris-blade {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #090e1a 0%, #172554 100%);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        transform-origin: 50% 50%;
+        transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .blade-1 { transform: rotate(0deg) translate(0%, -28%); }
+      .blade-2 { transform: rotate(60deg) translate(0%, -28%); }
+      .blade-3 { transform: rotate(120deg) translate(0%, -28%); }
+      .blade-4 { transform: rotate(180deg) translate(0%, -28%); }
+      .blade-5 { transform: rotate(240deg) translate(0%, -28%); }
+      .blade-6 { transform: rotate(300deg) translate(0%, -28%); }
+
       .lens-flare-beam {
         position: absolute;
-        width: 220px;
-        height: 2px;
+        width: 320px;
+        height: 3px;
         background: linear-gradient(90deg, transparent, #38bdf8, #ffffff, #38bdf8, transparent);
-        box-shadow: 0 0 16px #38bdf8;
-        animation: flareSweep 2.5s ease-in-out forwards;
-        opacity: 0.8;
+        filter: drop-shadow(0 0 12px #38bdf8);
+        animation: flareSweep 2.5s ease-in-out infinite alternate;
+        z-index: 4;
       }
-      .aperture-center-logo {
+
+      .central-optic-core {
         position: relative;
-        z-index: 3;
-        width: 58px;
-        height: 58px;
+        z-index: 5;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1.5px solid rgba(56, 189, 248, 0.6);
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 50%;
-        background: rgba(15, 23, 42, 0.7);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(56, 189, 248, 0.4);
-        box-shadow: 0 0 24px rgba(56, 189, 248, 0.4);
-      }
-      .hud-logo-svg {
-        width: 32px;
-        height: 32px;
-        filter: drop-shadow(0 0 8px #38bdf8);
+        box-shadow: 0 0 25px rgba(56, 189, 248, 0.5), inset 0 0 10px rgba(56, 189, 248, 0.3);
       }
 
-      .hud-identity {
+      .optic-play-symbol {
+        width: 38px;
+        height: 38px;
+        filter: drop-shadow(0 0 10px #38bdf8);
+      }
+
+      .aperture-readout {
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin-top: 24px;
+        margin-top: 28px;
       }
-      .hud-title {
-        margin: 0;
+
+      .brand-logotype {
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: 7px;
         color: #f8fafc;
-        font-family: 'Roboto Condensed', system-ui, -apple-system, sans-serif;
-        font-size: 22px;
-        font-weight: 800;
-        letter-spacing: 6px;
-        text-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+        text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
       }
-      .hud-status {
+
+      .sub-telemetry {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-top: 8px;
-      }
-      .status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #38bdf8;
-        box-shadow: 0 0 8px #38bdf8;
-        animation: blinkDot 1s infinite alternate;
-      }
-      .status-readout {
-        font-family: 'Roboto Condensed', ui-monospace, SFMono-Regular, monospace;
-        font-size: 10px;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 11px;
         color: #94a3b8;
         letter-spacing: 2px;
+        margin-top: 8px;
       }
-      .hud-progress-track {
-        width: 140px;
-        height: 2px;
+
+      .blinking-indicator {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #38bdf8;
+        box-shadow: 0 0 10px #38bdf8;
+        animation: blinkDot 0.8s infinite alternate;
+      }
+
+      .progress-bar-slot {
+        width: 160px;
+        height: 3px;
         background: rgba(255, 255, 255, 0.1);
-        border-radius: 2px;
-        margin-top: 18px;
+        border-radius: 3px;
+        margin-top: 20px;
         overflow: hidden;
       }
-      .hud-progress-fill {
+
+      .progress-bar-fill {
         width: 0%;
         height: 100%;
         background: #38bdf8;
-        box-shadow: 0 0 10px #38bdf8;
-        animation: fillProgress 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        box-shadow: 0 0 12px #38bdf8;
+        animation: loadProgressBar 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
       }
 
-      @keyframes spinRing { to { transform: rotate(360deg); } }
-      @keyframes spinRingReverse { to { transform: rotate(-360deg); } }
-      @keyframes blinkDot { from { opacity: 0.3; } to { opacity: 1; } }
+      @keyframes chassisSpin { to { transform: rotate(360deg); } }
+      @keyframes chassisSpinReverse { to { transform: rotate(-360deg); } }
+      @keyframes blinkDot { from { opacity: 0.2; } to { opacity: 1; } }
       @keyframes flareSweep {
-        0% { transform: scaleX(0.2); opacity: 0.2; }
-        50% { transform: scaleX(1.4); opacity: 1; }
-        100% { transform: scaleX(0.9); opacity: 0.7; }
+        0% { transform: scaleX(0.2); opacity: 0.3; }
+        50% { transform: scaleX(1.4); opacity: 1; filter: drop-shadow(0 0 16px #38bdf8); }
+        100% { transform: scaleX(0.8); opacity: 0.7; }
       }
-      @keyframes fillProgress {
-        0% { width: 0%; }
-        100% { width: 100%; }
-      }
+      @keyframes loadProgressBar { 0% { width: 0%; } 100% { width: 100%; } }
     </style>
   </head>
   <body class="bg-[#08090c] text-neutral-100 antialiased overflow-x-hidden relative max-w-full select-none selection:bg-neutral-700 selection:text-white font-sans" style="font-family: 'Roboto Condensed', sans-serif;">
-    <div id="cyber-splash-screen" class="cyber-splash-root" aria-hidden="true">
-      <div class="hud-grid-overlay"></div>
-      <div class="hud-bracket hud-top-left"></div>
-      <div class="hud-bracket hud-top-right"></div>
-      <div class="hud-bracket hud-bottom-left"></div>
-      <div class="hud-bracket hud-bottom-right"></div>
+    <div id="cyber-splash-screen" class="cyber-splash-active">
+      <div class="aperture-backdrop-grid"></div>
+      
+      <!-- HUD Viewfinder Corners -->
+      <div class="hud-corner top-left"></div>
+      <div class="hud-corner top-right"></div>
+      <div class="hud-corner bottom-left"></div>
+      <div class="hud-corner bottom-right"></div>
 
-      <div class="lens-aperture-stage">
-        <div class="hud-telemetry-text top-telemetry">SYS.DIAG // APERTURE ACTIVE</div>
-        <div class="aperture-core">
-          <div class="aperture-ring-outer"></div>
-          <div class="aperture-ring-ticks"></div>
-          <div class="aperture-blade-iris"></div>
+      <div class="aperture-assembly">
+        <div class="telemetry-tag top-tag">SYS.BOOT // APERTURE CALIBRATION [2.5s]</div>
+
+        <!-- Mechanical Lens Housing -->
+        <div class="lens-chassis">
+          <div class="ring-track outer-spin"></div>
+          <div class="ring-track inner-counter-spin"></div>
+          
+          <!-- 6 Overlapping Iris Aperture Blades -->
+          <div class="iris-chamber">
+            <div class="iris-blade blade-1"></div>
+            <div class="iris-blade blade-2"></div>
+            <div class="iris-blade blade-3"></div>
+            <div class="iris-blade blade-4"></div>
+            <div class="iris-blade blade-5"></div>
+            <div class="iris-blade blade-6"></div>
+          </div>
+
+          <!-- Laser Beam & Flare -->
           <div class="lens-flare-beam"></div>
-          <div class="aperture-center-logo">
-            <svg class="hud-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="35,22 80,50 35,78" fill="url(#cyan-glow)" />
-              <defs>
-                <linearGradient id="cyan-glow" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#0284c7" />
-                  <stop offset="100%" stop-color="#38bdf8" />
-                </linearGradient>
-              </defs>
+
+          <!-- Central Glass Lens Core -->
+          <div class="central-optic-core">
+            <div class="optic-glass-sheen"></div>
+            <svg viewBox="0 0 100 100" class="optic-play-symbol">
+              <polygon points="38,28 76,50 38,72" fill="#38bdf8" />
             </svg>
           </div>
         </div>
-        <div class="hud-telemetry-text bottom-telemetry">OPTICAL RESOLUTION 4K // READY</div>
-      </div>
 
-      <div class="hud-identity">
-        <h1 class="hud-title">SARWARCYOU</h1>
-        <div class="hud-status">
-          <span class="status-dot"></span>
-          <span class="status-readout">QUANTUM MEDIA VAULT // SECURE INITIALIZATION</span>
+        <!-- Branding & Progress -->
+        <div class="aperture-readout">
+          <div class="brand-logotype">SARWARCYOU</div>
+          <div class="sub-telemetry">
+            <span class="blinking-indicator"></span>
+            <span>QUANTUM OPTICAL VAULT // ONLINE</span>
+          </div>
+          <div class="progress-bar-slot">
+            <div class="progress-bar-fill"></div>
+          </div>
         </div>
-        <div class="hud-progress-track">
-          <div class="hud-progress-fill"></div>
-        </div>
+
+        <div class="telemetry-tag bottom-tag">OPTICAL RESOLUTION: 4K DIRECT // INITIALIZED</div>
       </div>
     </div>
 
