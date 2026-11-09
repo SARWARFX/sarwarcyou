@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import {
   Play,
   Pause,
@@ -17,9 +18,7 @@ import {
   Share2,
   X,
   AlertTriangle,
-  MoreHorizontal,
   PictureInPicture2,
-  Star,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -30,7 +29,7 @@ import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight } from '../utils/hapticsManager';
-import { isItemFavorite, toggleFavorite } from '../utils/favoritesManager';
+import { cacheVideoForOffline, getLocalCachedVideoUrl } from '../services/videoOfflineManager';
 
 export type VideoRepeatMode = 'off' | 'all' | 'one';
 
@@ -85,16 +84,17 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(false);
-  const [showMobileMore, setShowMobileMore] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
 
-  // Favorites & Picture-in-Picture States
-  const [isFav, setIsFav] = useState(false);
+  // Picture-in-Picture State
   const [isPiPSupported, setIsPiPSupported] = useState(false);
 
+  // Auto-cache video on native app when opened/played
   useEffect(() => {
-    setIsFav(isItemFavorite(item));
-  }, [item]);
+    if (isOpen && item && Capacitor.isNativePlatform()) {
+      cacheVideoForOffline(item).catch(() => {});
+    }
+  }, [isOpen, item]);
 
   useEffect(() => {
     if (typeof document !== 'undefined' && 'pictureInPictureEnabled' in document) {
@@ -114,12 +114,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     } catch (err) {
       console.warn('PiP error:', err);
     }
-  };
-
-  const handleToggleFav = () => {
-    if (!item) return;
-    const nowFav = toggleFavorite(item);
-    setIsFav(nowFav);
   };
 
   // Playback Fallback & Error State
@@ -1018,9 +1012,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   if (!isOpen || !item) return null;
 
+  const cachedLocalUrl = getLocalCachedVideoUrl(item);
   const primaryStreamUrl = getMediaUrl(item.url || item.path || item.id);
   const directHfUrl = getDirectHfVideoUrl(item);
-  const streamUrl = sourceOverride || primaryStreamUrl || directHfUrl;
+  const streamUrl = sourceOverride || cachedLocalUrl || primaryStreamUrl || directHfUrl;
   const albumName = item.category || item.parentAlbum || 'Cinema Vault';
   const activeIdx = playlist.findIndex((v) => v.id === item.id || v.url === item.url);
   const currentItemIndex = activeIdx >= 0 ? activeIdx + 1 : 1;
@@ -1051,45 +1046,171 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
 
-      {/* 2. Top-Left: Unboxed Floating HUD Stamp */}
-      <div
-        onPointerDown={(e) => e.stopPropagation()}
-        className={`fixed top-4 left-4 sm:top-6 sm:left-7 z-30 font-mono text-xs tracking-widest text-white/90 flex items-center gap-2.5 transition-opacity duration-300 select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
-          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <span className="font-['Roboto_Condensed'] font-sans font-medium uppercase truncate max-w-[180px] xs:max-w-xs sm:max-w-md tracking-wider">
-          {albumName}
-        </span>
-        {totalCount > 0 && (
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/80 border border-white/15 flex-shrink-0 font-mono">
-            {currentItemIndex} / {totalCount}
+      {/* 2. Top-Left: Unboxed Floating HUD Stamp (Web only) */}
+      {!Capacitor.isNativePlatform() && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className={`fixed top-4 left-4 sm:top-6 sm:left-7 z-30 font-mono text-xs tracking-widest text-white/90 flex items-center gap-2.5 transition-opacity duration-300 select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
+            showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <span className="font-['Roboto_Condensed'] font-sans font-medium uppercase truncate max-w-[180px] xs:max-w-xs sm:max-w-md tracking-wider">
+            {albumName}
           </span>
-        )}
-      </div>
+          {totalCount > 0 && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/80 border border-white/15 flex-shrink-0 font-mono">
+              {currentItemIndex} / {totalCount}
+            </span>
+          )}
+        </div>
+      )}
 
-      {/* Top-Right: Borderless Floating Text Actions */}
+      {/* Top Center Floating Action Bar: Loop, A-B, Speed, PiP, Download, Share (Website & App) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`fixed top-4 right-4 sm:top-6 sm:right-7 z-30 flex items-center gap-3 sm:gap-4 transition-opacity duration-300 pointer-events-auto ${
-          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed top-3 sm:top-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 sm:gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 shadow-2xl transition-all duration-300 pointer-events-auto ${
+          showHud ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
       >
-        {/* CLOSE (✕) Action */}
+        {/* Loop Mode */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onClose();
+            setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
+            resetHudTimer();
           }}
-          className="bg-transparent border-none outline-none text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-widest text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 py-1 px-1.5"
-          title="Close (Esc)"
-          aria-label="Close"
+          className={`p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-xs font-mono flex items-center gap-1 cursor-pointer ${
+            repeatMode !== 'off' ? 'text-cyan-400 bg-cyan-500/10' : 'text-slate-300 hover:text-white'
+          }`}
+          title={`Loop: ${repeatMode.toUpperCase()}`}
+          aria-label="Loop Mode"
         >
-          <X className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">CLOSE</span>
+          {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+          <span className="text-[10px] uppercase font-bold tracking-wider hidden xs:inline">{repeatMode}</span>
+        </button>
+
+        {/* A-B Loop */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleLoop();
+            resetHudTimer();
+          }}
+          className={`p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-xs font-mono flex items-center gap-1 cursor-pointer ${
+            loopA !== null ? 'text-cyan-400 bg-cyan-500/10' : 'text-slate-300 hover:text-white'
+          }`}
+          title={loopA !== null && loopB !== null ? `A-B Loop (${formatTime(loopA)} - ${formatTime(loopB)})` : loopA !== null ? 'Set Point B' : 'Set Point A'}
+          aria-label="A-B Loop"
+        >
+          <span className="text-[10px] font-bold px-1 py-0.5 rounded bg-white/10">A-B</span>
+          <span className="text-[10px] uppercase font-bold tracking-wider hidden md:inline">
+            {loopA !== null && loopB !== null ? 'Active' : loopA !== null ? 'Set B' : 'Off'}
+          </span>
+        </button>
+
+        {/* Playback Speed */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowSpeedMenu((prev) => !prev);
+            resetHudTimer();
+          }}
+          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-xs font-mono flex items-center gap-1 cursor-pointer text-slate-300 hover:text-white"
+          title="Playback Speed"
+          aria-label="Playback Speed"
+        >
+          <Gauge className="w-4 h-4" />
+          <span className="text-[10px] font-bold tracking-wider">{playbackSpeed}x</span>
+        </button>
+
+        {/* Picture-in-Picture */}
+        {isPiPSupported && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTogglePiP();
+              resetHudTimer();
+            }}
+            className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-slate-300 hover:text-white cursor-pointer"
+            title="Picture-in-Picture"
+            aria-label="Picture-in-Picture"
+          >
+            <PictureInPicture2 className="w-4 h-4" />
+          </button>
+        )}
+
+        <div className="w-[1px] h-4 bg-white/20 mx-0.5" />
+
+        {/* Download */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload();
+            resetHudTimer();
+          }}
+          disabled={isDownloading}
+          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-slate-300 hover:text-white cursor-pointer disabled:opacity-40"
+          title="Download Video"
+          aria-label="Download Video"
+        >
+          {downloadSuccess ? (
+            <Check className="w-4 h-4 text-emerald-400" />
+          ) : isDownloading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-neutral-300" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+        </button>
+
+        {/* Share */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleShareMedia();
+            resetHudTimer();
+          }}
+          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-slate-300 hover:text-white cursor-pointer"
+          title={shareSuccess ? 'Link Copied!' : 'Share Video'}
+          aria-label="Share Video"
+        >
+          {shareSuccess ? (
+            <Check className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <Share2 className="w-4 h-4" />
+          )}
         </button>
       </div>
+
+      {/* Top-Right: Borderless Floating Text Actions (Web only) */}
+      {!Capacitor.isNativePlatform() && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className={`fixed top-4 right-4 sm:top-6 sm:right-7 z-30 flex items-center gap-3 sm:gap-4 transition-opacity duration-300 pointer-events-auto ${
+            showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          {/* CLOSE (✕) Action */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="bg-transparent border-none outline-none text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-widest text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 py-1 px-1.5"
+            title="Close (Esc)"
+            aria-label="Close"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">CLOSE</span>
+          </button>
+        </div>
+      )}
 
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
       {showTelemetry && (
@@ -1717,19 +1838,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </div>
 
-            {/* Vault Favorite */}
-            <button
-              type="button"
-              onClick={handleToggleFav}
-              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0 ${
-                isFav ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'text-slate-300 hover:text-white'
-              }`}
-              title={isFav ? 'Remove from Vault Favorites' : 'Save to Vault Favorites'}
-              aria-label="Toggle Vault Favorite"
-            >
-              <Star className={`w-4 h-4 ${isFav ? 'fill-amber-400' : ''}`} />
-            </button>
-
             {/* Picture-in-Picture */}
             {isPiPSupported && (
               <button
@@ -1824,127 +1932,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               {playbackSpeed}x
             </button>
 
-            {/* Overflow (⋯) Button for Loop, A-B, Download, Share */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowMobileMore((prev) => !prev);
-                  resetHudTimer();
-                }}
-                className={`bg-transparent border-none outline-none p-1 text-slate-400 hover:text-white cursor-pointer flex items-center justify-center flex-shrink-0 ${
-                  showMobileMore ? 'text-[#38bdf8]' : ''
-                }`}
-                title="More options"
-                aria-label="More options"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-
-              {/* Overflow Popover Menu */}
-              {showMobileMore && (
-                <div
-                  style={{
-                    background: 'rgba(4, 7, 12, 0.94)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                  }}
-                  className="fixed bottom-16 right-12 py-2 px-2.5 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.95)] flex flex-col gap-2 z-[10000] min-w-[140px] animate-fade-in pointer-events-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Loop Option */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
-                      resetHudTimer();
-                    }}
-                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
-                  >
-                    {repeatMode === 'one' ? <Repeat1 className="w-3.5 h-3.5 text-[#38bdf8]" /> : <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#38bdf8]' : ''}`} />}
-                    <span>Loop: {repeatMode.toUpperCase()}</span>
-                  </button>
-
-                  {/* A-B Loop Option */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleLoop();
-                    }}
-                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
-                  >
-                    <Repeat className="w-3.5 h-3.5" />
-                    <span>A-B: {loopA !== null && loopB !== null ? 'Active' : loopA !== null ? 'Set B' : 'Set A'}</span>
-                  </button>
-
-                  {/* Download Option */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload();
-                    }}
-                    disabled={isDownloading}
-                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1 disabled:opacity-40"
-                  >
-                    {downloadSuccess ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    ) : isDownloading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Download className="w-3.5 h-3.5" />
-                    )}
-                    <span>Download</span>
-                  </button>
-
-                  {/* Vault Favorite Option */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleFav();
-                      setShowMobileMore(false);
-                    }}
-                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
-                  >
-                    <Star className={`w-3.5 h-3.5 ${isFav ? 'text-amber-400 fill-amber-400' : ''}`} />
-                    <span>{isFav ? 'Saved in Vault' : 'Save to Vault'}</span>
-                  </button>
-
-                  {/* Picture-in-Picture Option */}
-                  {isPiPSupported && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTogglePiP();
-                        setShowMobileMore(false);
-                      }}
-                      className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
-                    >
-                      <PictureInPicture2 className="w-3.5 h-3.5" />
-                      <span>Picture in Picture</span>
-                    </button>
-                  )}
-
-                  {/* Share Option */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShareMedia();
-                    }}
-                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
-                  >
-                    {shareSuccess ? <Check className="w-3.5 h-3.5 text-[#38bdf8]" /> : <Share2 className="w-3.5 h-3.5" />}
-                    <span>Share</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Mobile Controls Right Edge */}
           </div>
 
           {/* Right: Mute & Fullscreen ALWAYS pinned to the right edge with flex-shrink-0 z-10 */}

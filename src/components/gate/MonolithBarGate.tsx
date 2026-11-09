@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Play, ArrowLeft, Maximize2, Search } from 'lucide-react';
+import { Play, ArrowLeft, Maximize2 } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -12,8 +12,9 @@ import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { sortSubfolderNodesDescending, type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
-import { THEME_ACCENTS, useThemeAccent, setThemeAccent } from '../../utils/themeAccentManager';
 import { SyncStatusIndicator } from '../SyncStatusIndicator';
+import { Capacitor } from '@capacitor/core';
+import { AvailableOfflineBadge } from '../common/AvailableOfflineBadge';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -74,11 +75,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   onOpenPhoto,
   onOpenVideo,
   onOpenShort,
-  onOpenSearch,
+  onOpenSearch: _onOpenSearch,
   initialAlbum,
   isModalOpen = false,
 }) => {
-  const { accent: activeAccent } = useThemeAccent();
   // Navigation states: default to Idle Home Overview (null)
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
@@ -501,49 +501,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           aria-label="Desktop Sidebar Navigation and Telemetry"
           className="hidden md:flex relative w-[300px] lg:w-[320px] h-screen flex-col flex-shrink-0 z-20 border-r border-white/[0.03] select-none overflow-hidden"
         >
-          {/* Top-Left Header: Brand, Quick Search, Theme Accents */}
-          <div className="absolute top-7 left-10 lg:left-12 right-6 flex flex-col gap-3 z-30 pointer-events-auto">
-            <div className="flex items-center justify-between">
-              <span className="font-['Google_Sans'] font-black tracking-[0.22em] text-xs uppercase text-white/90">
-                STREAM<span className="text-[var(--accent-color,#38bdf8)]">VAULT</span>
-              </span>
-              <SyncStatusIndicator />
-              {/* Theme Accent Switcher Dots */}
-              <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.04] border border-white/10">
-                {THEME_ACCENTS.map((accent) => {
-                  const isSelected = activeAccent.id === accent.id;
-                  return (
-                    <button
-                      key={accent.id}
-                      type="button"
-                      onClick={() => setThemeAccent(accent.id)}
-                      className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
-                        isSelected ? 'scale-125 ring-2 ring-white/80 shadow-[0_0_8px_var(--accent-glow)]' : 'opacity-50 hover:opacity-100 hover:scale-110'
-                      }`}
-                      style={{ backgroundColor: accent.color }}
-                      title={`Theme: ${accent.name}`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quick Search HUD Button */}
-            {onOpenSearch && (
-              <button
-                type="button"
-                onClick={onOpenSearch}
-                className="flex items-center justify-between w-full px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 text-slate-400 hover:text-white transition-all cursor-pointer group"
-              >
-                <div className="flex items-center gap-2">
-                  <Search className="w-3.5 h-3.5 text-[var(--accent-color,#38bdf8)] group-hover:scale-110 transition-transform" />
-                  <span className="font-['Roboto_Condensed'] font-sans text-xs tracking-wider">Search Vault...</span>
-                </div>
-                <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 border border-white/10 text-slate-500 group-hover:text-slate-300">
-                  Ctrl+K
-                </kbd>
-              </button>
-            )}
+          {/* Top-Left Header: Brand & Sync Status */}
+          <div className="absolute top-7 left-10 lg:left-12 right-6 flex items-center justify-between z-30 pointer-events-auto">
+            <span className="font-['Roboto_Condensed'] font-black tracking-[0.25em] text-sm uppercase text-white/95">
+              SARWAR<span className="text-[#00f0ff]">CYOU</span>
+            </span>
+            <SyncStatusIndicator />
           </div>
 
           {/* Middle-Left Folders (Exact Vertical Midpoint) */}
@@ -712,6 +675,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                           </div>
                         </div>
                       )}
+                      <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
                     </SmartThumbnail>
                   </div>
                 );
@@ -737,47 +701,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           aria-label="Mobile Navigation and Telemetry"
           className="relative w-screen h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#020408] flex-none snap-start shrink-0 z-30 pointer-events-auto"
         >
-          {/* Top Mobile Bar: Brand, Quick Search, Theme Accents */}
+          {/* Top Mobile Bar: Brand & Sync Status */}
           <div className="absolute top-5 inset-x-0 px-6 flex items-center justify-between z-30 pointer-events-auto">
-            <div className="flex items-center gap-2">
-              <span className="font-['Google_Sans'] font-black tracking-[0.2em] text-sm uppercase text-white/90">
-                STREAM<span className="text-[var(--accent-color,#38bdf8)]">VAULT</span>
-              </span>
-              <SyncStatusIndicator />
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              {/* Theme Accents */}
-              <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.04] border border-white/10">
-                {THEME_ACCENTS.map((accent) => {
-                  const isSelected = activeAccent.id === accent.id;
-                  return (
-                    <button
-                      key={accent.id}
-                      type="button"
-                      onClick={() => setThemeAccent(accent.id)}
-                      className={`w-3.5 h-3.5 rounded-full transition-all cursor-pointer ${
-                        isSelected ? 'scale-125 ring-2 ring-white/80 shadow-[0_0_8px_var(--accent-glow)]' : 'opacity-50'
-                      }`}
-                      style={{ backgroundColor: accent.color }}
-                      title={`Theme: ${accent.name}`}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Quick Search Button */}
-              {onOpenSearch && (
-                <button
-                  type="button"
-                  onClick={onOpenSearch}
-                  className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer active:scale-95"
-                  title="Search Vault"
-                >
-                  <Search className="w-4 h-4 text-[var(--accent-color,#38bdf8)]" />
-                </button>
-              )}
-            </div>
+            <span className="font-['Roboto_Condensed'] font-black tracking-[0.22em] text-sm uppercase text-white/95">
+              SARWAR<span className="text-[#00f0ff]">CYOU</span>
+            </span>
+            <SyncStatusIndicator />
           </div>
 
           {/* Middle-Left Folders: Exact Vertical Midpoint top calc(50dvh - 100px) */}
@@ -810,26 +739,28 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {/* Top Bar: Clean bare arrow icon button (←) with NO "FOLDERS" text & active subfolder name tag */}
-          <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/8 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                if (outerTrackRef.current) {
-                  outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-                }
-              }}
-              aria-label="Back to folders"
-              className="text-slate-400 hover:text-white p-1 -ml-1 cursor-pointer bg-transparent border-0 outline-none transition-colors flex items-center justify-center"
-            >
-              <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
-            </button>
-            {selectedSubfolder && (
-              <span className="font-['Roboto_Condensed'] font-sans text-xs font-bold text-[var(--accent-color,#38bdf8)] uppercase tracking-wider truncate max-w-[200px]">
-                {selectedSubfolder}
-              </span>
-            )}
-          </div>
+          {/* Top Bar: Clean bare arrow icon button (←) - Hidden on Native App since hardware back button is used */}
+          {!Capacitor.isNativePlatform() && (
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/8 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (outerTrackRef.current) {
+                    outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+                  }
+                }}
+                aria-label="Back to folders"
+                className="text-slate-400 hover:text-white p-1 -ml-1 cursor-pointer bg-transparent border-0 outline-none transition-colors flex items-center justify-center"
+              >
+                <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
+              </button>
+              {selectedSubfolder && (
+                <span className="font-['Roboto_Condensed'] font-sans text-xs font-bold text-[#00f0ff] uppercase tracking-wider truncate max-w-[200px]">
+                  {selectedSubfolder}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Media Grid: Takes full 100vw width */}
           <div className="w-full grid grid-cols-2 gap-3.5 pb-20">
@@ -878,6 +809,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                         </div>
                       </div>
                     )}
+                    <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
                   </SmartThumbnail>
                 </div>
               );

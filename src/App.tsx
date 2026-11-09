@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { useBackButton } from './utils/backButtonManager';
 import { useMediaData } from './useMediaData';
@@ -8,12 +9,12 @@ import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
-import { QuickSearchModal } from './components/QuickSearchModal';
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
 import { initializePhotoCache, startBackgroundPhotoSync } from './services/photoSyncManager';
+import { initializeVideoOfflineCache } from './services/videoOfflineManager';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
-import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
+import { AppIntroSplash } from './components/AppIntroSplash';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
 import { WinXPDesktop } from './components/winxp/WinXPDesktop';
 import { SilentHillShell } from './components/silenthill/SilentHillShell';
@@ -174,9 +175,6 @@ function App() {
     window.history.replaceState({ tab: 'all' }, '', targetUrl);
   }, []);
 
-  // Cyberpunk Command Palette State
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-
   // Native Android Device Integration (Capacitor)
   useEffect(() => {
     // Initialize Theme Accent
@@ -185,19 +183,22 @@ function App() {
     // Initialize Local Photo Cache for 0-latency offline viewing
     initializePhotoCache().catch(() => {});
 
-    // Edge-to-edge transparent status bar
-    StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
-    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-  }, []);
+    // Initialize Video Offline Cache
+    initializeVideoOfflineCache().catch(() => {});
 
-  // Handle Android back button for Command Palette
-  useBackButton(
-    useCallback(() => {
-      setIsCommandPaletteOpen(false);
-      return true;
-    }, []),
-    isCommandPaletteOpen
-  );
+    // Immersive View: hide status bar on Android
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.hide().catch(() => {});
+    } else {
+      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+      StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    }
+
+    // Keep screen awake (prevent phone sleep / lock)
+    if ('wakeLock' in navigator) {
+      (navigator as any).wakeLock?.request('screen').catch(() => {});
+    }
+  }, []);
 
   // Global fallback back handler for active modals
   useBackButton(
@@ -207,29 +208,6 @@ function App() {
     }, [handleCloseModal]),
     theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen
   );
-
-  // Global Command Palette Shortcut (Ctrl+K / Cmd+K, or "/" when no input is focused)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        if (e.cancelable) e.preventDefault();
-        setIsCommandPaletteOpen((prev) => !prev);
-        return;
-      }
-
-      if (e.key === '/') {
-        const targetTag = (document.activeElement?.tagName || '').toLowerCase();
-        const isEditable = document.activeElement?.getAttribute('contenteditable') === 'true';
-        if (targetTag !== 'input' && targetTag !== 'textarea' && !isEditable) {
-          if (e.cancelable) e.preventDefault();
-          setIsCommandPaletteOpen(true);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Organize raw catalog data into structured discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
@@ -663,11 +641,11 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
+      {/* Native App Intro Splash Screen */}
+      <AppIntroSplash />
+
       {ENABLE_CSPR_SHOWCASE || ACTIVE_INTERFACE === 'CSPR_SHOWCASE' ? (
         <>
-          {/* 0. Opening Public Domain Compliance Splash Screen */}
-          <ComplianceSplashScreen />
-
           {/* 1. CSPR Border-Attached Navigation and Curated Horizontal Carousel Home Page */}
           <CsprShowcaseShell
             items={rawFeed.allMediaPool}
@@ -676,8 +654,7 @@ function App() {
               theaterState.isOpen ||
               shortsState.isOpen ||
               lightboxState.isOpen ||
-              viewAllState.isOpen ||
-              isCommandPaletteOpen
+              viewAllState.isOpen
             }
             onOpenPhoto={handleOpenPhoto}
             onOpenVideo={handleOpenVideo}
@@ -689,9 +666,6 @@ function App() {
         </>
       ) : ENABLE_TRAILER_GATE || ACTIVE_INTERFACE === 'TRAILER_GATE' ? (
         <>
-          {/* 0. Opening Public Domain Compliance Splash Screen */}
-          <ComplianceSplashScreen />
-
           {/* 1. Fullscreen Pure Photography Trailer Gate with Click-Anywhere Vault */}
           <PurePhotographyTrailerGate
             items={rawFeed.allMediaPool}
@@ -700,8 +674,7 @@ function App() {
               theaterState.isOpen ||
               shortsState.isOpen ||
               lightboxState.isOpen ||
-              viewAllState.isOpen ||
-              isCommandPaletteOpen
+              viewAllState.isOpen
             }
             onOpenPhoto={handleOpenPhoto}
             onOpenVideo={handleOpenVideo}
@@ -713,9 +686,6 @@ function App() {
         </>
       ) : ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE' ? (
         <>
-          {/* 0. Public Source & Open Access Start Screen */}
-          <ComplianceSplashScreen />
-
           {/* 1. Direct Data Monolith Bars Vault Gate with SARWAR.CYOU Signature */}
           <MonolithBarGate
             items={rawFeed.allMediaPool}
@@ -724,13 +694,11 @@ function App() {
               theaterState.isOpen ||
               shortsState.isOpen ||
               lightboxState.isOpen ||
-              viewAllState.isOpen ||
-              isCommandPaletteOpen
+              viewAllState.isOpen
             }
             onOpenPhoto={handleOpenPhoto}
             onOpenVideo={handleOpenVideo}
             onOpenShort={handleOpenShort}
-            onOpenSearch={() => setIsCommandPaletteOpen(true)}
           />
 
           {/* Global Network Connectivity Indicator */}
@@ -745,7 +713,6 @@ function App() {
           <AuraCascadeExplorer
             items={rawFeed.allMediaPool}
             isNavDisabled={
-              isCommandPaletteOpen ||
               theaterState.isOpen ||
               shortsState.isOpen ||
               lightboxState.isOpen ||
@@ -765,7 +732,6 @@ function App() {
           <ModernCascadeExplorer
             items={rawFeed.allMediaPool}
             isNavDisabled={
-              isCommandPaletteOpen ||
               theaterState.isOpen ||
               shortsState.isOpen ||
               lightboxState.isOpen ||
@@ -783,8 +749,7 @@ function App() {
             theaterState.isOpen ||
             shortsState.isOpen ||
             lightboxState.isOpen ||
-            viewAllState.isOpen ||
-            isCommandPaletteOpen
+            viewAllState.isOpen
           }
           onOpenPhoto={handleOpenPhoto}
           onOpenVideo={handleOpenVideo}
@@ -797,8 +762,7 @@ function App() {
             theaterState.isOpen ||
             shortsState.isOpen ||
             lightboxState.isOpen ||
-            viewAllState.isOpen ||
-            isCommandPaletteOpen
+            viewAllState.isOpen
           }
           onOpenPhoto={handleOpenPhoto}
           onOpenVideo={handleOpenVideo}
@@ -806,9 +770,6 @@ function App() {
         />
       ) : (
         <>
-          {/* 0. Opening Public Domain Compliance Splash Screen */}
-          <ComplianceSplashScreen />
-
           {/* 1. Frosted Snowy Background Canvas (or Ambient Wallpaper fallback) */}
           {ENABLE_FROSTED_SNOW ? (
             <FrostedSnowCanvas />
@@ -829,7 +790,6 @@ function App() {
               items={rawFeed.allMediaPool}
               initialAlbum={initialAlbumTarget}
               isNavDisabled={
-                isCommandPaletteOpen ||
                 theaterState.isOpen ||
                 shortsState.isOpen ||
                 lightboxState.isOpen ||
@@ -943,22 +903,6 @@ function App() {
             typeCounts={viewAllState.typeCounts}
             onClose={() => handleCloseModal('viewAll')}
             onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
-          />
-        </PlayerErrorBoundary>
-      )}
-
-      {/* 7. Quick Search & Vault Favorites HUD (Ctrl+K / Cmd+K / "/" / Search Button) */}
-      {isCommandPaletteOpen && (
-        <PlayerErrorBoundary onClose={() => setIsCommandPaletteOpen(false)} fallbackTitle="Quick Search Error">
-          <QuickSearchModal
-            isOpen={isCommandPaletteOpen}
-            onClose={() => setIsCommandPaletteOpen(false)}
-            items={rawFeed.allMediaPool}
-            onOpenPhoto={handleOpenPhoto}
-            onOpenVideo={handleOpenVideo}
-            onOpenShort={(item, shorts, index) => {
-              handleOpenShort(item, shorts, index, item.category || item.parentAlbum);
-            }}
           />
         </PlayerErrorBoundary>
       )}

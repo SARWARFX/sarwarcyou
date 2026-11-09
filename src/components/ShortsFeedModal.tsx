@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause, Star, Heart, FastForward } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause, Heart, FastForward } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { useBackButton } from '../utils/backButtonManager';
-import { hapticLight, hapticMedium, hapticSuccess } from '../utils/hapticsManager';
-import { isItemFavorite, toggleFavorite } from '../utils/favoritesManager';
+import { hapticLight, hapticMedium } from '../utils/hapticsManager';
+import { cacheVideoForOffline, getLocalCachedVideoUrl } from '../services/videoOfflineManager';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -31,7 +32,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [duration, setDuration] = useState(0);
   const [is2XSpeed, setIs2XSpeed] = useState(false);
   const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
-  const [isFav, setIsFav] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -51,11 +51,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const lastTapTimeRef = useRef(0);
   const tapTimeoutRef = useRef<number | null>(null);
 
-  // Sync Favorite state with current active item
+  // Auto-cache active short on native app for offline use
   useEffect(() => {
     const currentItem = shorts[activeIndex];
-    setIsFav(isItemFavorite(currentItem));
-  }, [activeIndex, shorts]);
+    if (isOpen && currentItem && Capacitor.isNativePlatform()) {
+      cacheVideoForOffline(currentItem).catch(() => {});
+    }
+  }, [isOpen, activeIndex, shorts]);
 
   // Android Native Hardware Back Button handler
   useBackButton(
@@ -167,10 +169,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
       const item = shorts[activeIndex];
       if (item) {
-        toggleFavorite(item);
-        setIsFav(true);
         setLikeHeart({ id: Date.now() });
-        hapticSuccess();
         setTimeout(() => setLikeHeart(null), 850);
       }
       return;
@@ -430,27 +429,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              const currentItem = shorts[activeIndex];
-              if (currentItem) {
-                const nowFav = toggleFavorite(currentItem);
-                setIsFav(nowFav);
-              }
-            }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            className={`w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
-              isFav
-                ? 'text-amber-400 border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
-                : 'text-neutral-300 hover:text-white border-neutral-700/80'
-            }`}
-            title={isFav ? 'Remove from Favorites' : 'Save to Favorites'}
-          >
-            <Star className={`w-4 h-4 ${isFav ? 'fill-amber-400' : ''}`} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
               setIsMuted((prev) => !prev);
               hapticLight();
             }}
@@ -498,7 +476,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       >
         {shorts.map((item, idx) => {
           if (!item) return null;
-          const streamUrl = overrides[idx] || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
+          const streamUrl = overrides[idx] || getLocalCachedVideoUrl(item) || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
           const posterUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
           const isLandscape = landscapeMap[idx];
 

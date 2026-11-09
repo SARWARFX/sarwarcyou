@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { UniversalSearchBar } from './UniversalSearchBar';
 import type { AlbumData, StageMediaItem } from '../types';
 
 interface TopNavbarProps {
@@ -20,7 +19,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   activeAlbumIndex = 0,
   onSelectAlbum,
   onResetHome,
-  onSelectItem,
+  onSelectItem: _onSelectItem,
 }) => {
   const activeCategory = useMemo<CategoryChip>(() => {
     if (activeAlbumIndex === 0) return 'LATEST';
@@ -87,7 +86,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
   return (
     <header className="fixed top-3 sm:top-4 left-0 right-0 z-[1001] flex justify-center px-3 sm:px-4 pointer-events-none">
-      <div className="glass-pill pointer-events-auto flex items-center justify-between gap-2 sm:gap-4 px-2.5 sm:px-4 py-1.5 sm:py-2 w-full max-w-4xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] transition-all duration-300">
+      <div className="glass-pill pointer-events-auto flex items-center justify-center gap-2 sm:gap-4 px-3 sm:px-5 py-1.5 sm:py-2 w-auto max-w-4xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] transition-all duration-300">
         {/* Category Filter Chips */}
         <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
           {CATEGORIES.map((cat) => {
@@ -107,16 +106,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             );
           })}
         </nav>
-
-        {/* Omnisearch Bar */}
-        <div className="flex-shrink-0">
-          <UniversalSearchBar
-            albums={albums}
-            onSelectItem={onSelectItem}
-            onSelectAlbum={onSelectAlbum}
-            accentColor="#00D2FF"
-          />
-        </div>
       </div>
     </header>
   );

@@ -71,10 +71,15 @@
 *, *::before, *::after {
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
+  font-family: 'Roboto Condensed', sans-serif !important;
 }
 
 *, *:focus, *:focus-visible {
   outline: none !important;
+}
+
+button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
+  font-family: 'Roboto Condensed', sans-serif !important;
 }
 
 /* Media Cards: Clean minimal borders */
