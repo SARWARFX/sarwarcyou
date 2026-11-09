@@ -536,9 +536,59 @@ html, body, #root {
   letter-spacing: 1px;
 }
 
-.vault-footer-status {
+.vault-telemetry-cluster {
   margin-top: auto;
-  padding-top: 20px;
+  padding: 16px 0 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.telemetry-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.telemetry-stat {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.telemetry-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 38px;
+}
+
+.telemetry-bars .bar {
+  flex: 1;
+  background: rgba(56, 189, 248, 0.35);
+  border-radius: 2px;
+  transition: height 0.3s ease, background 0.2s ease;
+}
+
+.telemetry-bars .bar:hover {
+  background: #38bdf8;
+}
+
+.telemetry-bar-footer {
+  display: flex;
+  justify-content: space-between;
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.telemetry-bar-footer .active-tag {
+  color: #38bdf8;
+}
+
+.vault-footer-status {
+  padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-family: ui-monospace, monospace;
   font-size: 10px;

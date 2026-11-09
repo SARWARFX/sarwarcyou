@@ -86,6 +86,33 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
             </button>
           </li>
         </ul>
+
+        {/* Usage Telemetry Activity Bar Chart */}
+        <div className="vault-telemetry-cluster">
+          <div className="telemetry-bar-header">
+            <span className="telemetry-stat">5.14</span>
+            <span className="telemetry-history">141.10 98.00 64.00 147.00 38.00 115.00</span>
+          </div>
+          <div className="telemetry-bars">
+            <div className="bar" style={{ height: '75%' }}></div>
+            <div className="bar" style={{ height: '45%' }}></div>
+            <div className="bar" style={{ height: '30%' }}></div>
+            <div className="bar" style={{ height: '90%' }}></div>
+            <div className="bar" style={{ height: '55%' }}></div>
+            <div className="bar" style={{ height: '65%' }}></div>
+            <div className="bar" style={{ height: '85%' }}></div>
+          </div>
+          <div className="telemetry-bar-footer">
+            <span className="active-tag">TODAY</span>
+            <span>YESTERDAY</span>
+            <span>NOV 07</span>
+            <span>NOV 06</span>
+            <span>NOV 05</span>
+            <span>NOV 04</span>
+            <span>NOV 03</span>
+          </div>
+        </div>
+
         <div className="vault-footer-status">
           <span>ACCESS // GRANTED</span>
           <span>SYS READY</span>

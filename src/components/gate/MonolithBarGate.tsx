@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Play, ArrowLeft } from 'lucide-react';
+import { Play, ArrowLeft, Folder, ChevronRight } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -16,6 +16,7 @@ import { AvailableOfflineBadge } from '../common/AvailableOfflineBadge';
 import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 import { CelebrityShowcase } from '../CelebrityShowcase';
 import { VaultDrawer } from '../VaultDrawer';
+import { hapticMedium } from '../../utils/hapticsManager';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -51,21 +52,21 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   } else {
     if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short')) {
       root = 'Shorts';
-      sub = dirParts.length > 0 ? dirParts : ['Shorts Classic'];
+      sub = dirParts.length > 0 ? dirParts : ['SHORTS 2027'];
     } else if (item.type === 'image' || isPhotoExtension(item.url || item.name)) {
       root = 'Images';
-      sub = dirParts.length > 0 ? dirParts : ['Images 2027'];
+      sub = dirParts.length > 0 ? dirParts : ['Editorial Sessions'];
     } else {
       root = 'Clips';
-      sub = dirParts.length > 0 ? dirParts : ['Favorite'];
+      sub = dirParts.length > 0 ? dirParts : ['Featured Clips'];
     }
   }
 
   if (sub.length === 0) {
-    if (root === 'Shorts') sub = ['Shorts Classic'];
-    else if (root === 'REALTube') sub = ['REALTube Shorts'];
-    else if (root === 'Images') sub = ['Images 2027'];
-    else sub = ['Favorite'];
+    if (root === 'Shorts') sub = ['SHORTS 2027'];
+    else if (root === 'REALTube') sub = ['Long-form Media'];
+    else if (root === 'Images') sub = ['Editorial Sessions'];
+    else sub = ['Featured Clips'];
   }
 
   return { root, subfolders: sub };
@@ -79,8 +80,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   initialAlbum,
   isModalOpen = false,
 }) => {
-  // Navigation states: default to Public Bollywood Overview (null)
-  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
+  // Navigation states:
+  // Level 0: selectedCategory === null && selectedSubfolder === null (Bollywood Overview)
+  // Level 1: selectedCategory !== null && selectedSubfolder === null (Child Subfolders Grid)
+  // Level 2: selectedCategory !== null && selectedSubfolder !== null (Direct Media Items)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
 
   // Concealed Option A Terminal Drawer State
@@ -120,6 +124,31 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       currentNode.files.push(item);
     }
 
+    // Ensure designated canonical subfolders exist if empty
+    const ensureSubfolders = (rootKey: string, defaultNames: string[]) => {
+      const node = map.get(rootKey);
+      if (!node) return;
+      if (node.subfolders.size === 0 && node.files.length > 0) {
+        const chunkSize = Math.ceil(node.files.length / defaultNames.length);
+        defaultNames.forEach((name, i) => {
+          const slice = node.files.slice(i * chunkSize, (i + 1) * chunkSize);
+          if (slice.length > 0 || i === 0) {
+            node.subfolders.set(name, {
+              name,
+              fullPath: `${node.fullPath}/${name}`,
+              subfolders: new Map(),
+              files: slice,
+            });
+          }
+        });
+      }
+    };
+
+    ensureSubfolders('Clips', ['Featured Clips', 'Trailers', 'Studio Edits']);
+    ensureSubfolders('Shorts', ['SHORTS 2027', 'SHORTS CLASSIC']);
+    ensureSubfolders('Images', ['Editorial Sessions', 'Studio Vault', 'Landscape Archives']);
+    ensureSubfolders('REALTube', ['Long-form Media', 'Storage Volumes', 'Channel Feeds']);
+
     // Sort files descending
     for (const rootNode of map.values()) {
       rootNode.files = sortMediaItemsDescending(rootNode.files);
@@ -138,15 +167,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     const cleanTarget = initialAlbum.toLowerCase().replace(/[-_\s]+/g, '');
     for (const folder of MAJOR_FOLDERS) {
       if (folder.key.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
-        setSelectedAlbum(folder.key);
-        setSelectedSubfolder(folder.key);
+        setSelectedCategory(folder.key);
+        setSelectedSubfolder(null); // Level 1 first
         return;
       }
       const rootNode = rootMap.get(folder.rawName);
       if (!rootNode) continue;
       for (const sub of rootNode.subfolders.values()) {
         if (sub.name.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
-          setSelectedAlbum(folder.key);
+          setSelectedCategory(folder.key);
           setSelectedSubfolder(sub.name);
           return;
         }
@@ -154,35 +183,29 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
   }, [initialAlbum, items.length, rootMap]);
 
-  // Helper to gather all files under a DirectoryNode recursively
-  const getAllFiles = useCallback((node?: DirectoryNode): StageMediaItem[] => {
-    if (!node) return [];
-    let list: StageMediaItem[] = [...node.files];
-    for (const sub of node.subfolders.values()) {
-      list = list.concat(getAllFiles(sub));
-    }
-    return list;
-  }, []);
+  // Active Category Root Node
+  const activeCategoryNode = useMemo(() => {
+    if (!selectedCategory) return null;
+    const activeAlbumConfig = MAJOR_FOLDERS.find((h) => h.key === selectedCategory);
+    if (!activeAlbumConfig) return null;
+    return rootMap.get(activeAlbumConfig.rawName) || null;
+  }, [selectedCategory, rootMap]);
 
-  // Active media assets list for selected archive folder
+  // Active Category Child Subfolders (for Level 1 Grid)
+  const childSubfoldersList = useMemo(() => {
+    if (!activeCategoryNode) return [];
+    return Array.from(activeCategoryNode.subfolders.values());
+  }, [activeCategoryNode]);
+
+  // Active Media Items List (for Level 2 Grid)
   const activeMediaList = useMemo(() => {
-    if (!selectedAlbum) return [];
-
-    const activeAlbumConfig = MAJOR_FOLDERS.find((h) => h.key === selectedAlbum);
-    if (!activeAlbumConfig) return [];
-
-    const rootNode = rootMap.get(activeAlbumConfig.rawName);
-    if (!rootNode) return [];
-
-    // If a specific subfolder is selected
-    if (selectedSubfolder && selectedSubfolder !== activeAlbumConfig.key && rootNode.subfolders.has(selectedSubfolder)) {
-      const subNode = rootNode.subfolders.get(selectedSubfolder);
-      return subNode ? getAllFiles(subNode) : [];
+    if (!activeCategoryNode || !selectedSubfolder) return [];
+    const subNode = activeCategoryNode.subfolders.get(selectedSubfolder);
+    if (subNode) {
+      return subNode.files;
     }
-
-    // Default: return all files in this core archive
-    return getAllFiles(rootNode);
-  }, [selectedAlbum, selectedSubfolder, rootMap, getAllFiles]);
+    return activeCategoryNode.files;
+  }, [activeCategoryNode, selectedSubfolder]);
 
   // Handler to open item from media grid
   const handleOpenItem = (item: StageMediaItem, _idx: number) => {
@@ -219,7 +242,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       item.path?.toLowerCase().includes('short') ||
       item.url?.toLowerCase().includes('short') ||
       item.category?.toLowerCase().includes('short') ||
-      selectedAlbum === 'SHORTS';
+      selectedCategory === 'SHORTS';
 
     if (isShort) {
       const shortPool = activeMediaList.filter(
@@ -228,7 +251,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           f.path?.toLowerCase().includes('short') ||
           f.url?.toLowerCase().includes('short') ||
           f.category?.toLowerCase().includes('short') ||
-          selectedAlbum === 'SHORTS'
+          selectedCategory === 'SHORTS'
       );
       const shortIdx = shortPool.findIndex((s) => s.id === item.id || s.url === item.url);
       onOpenShort(
@@ -246,7 +269,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     onOpenVideo(item, videoPool.length > 0 ? videoPool : [item]);
   };
 
-  // Drawer Folder selection handler
+  // Drawer Category selection handler: strictly sets Category and opens Level 1
   const handleSelectDrawerFolder = useCallback((folderId: 'clips' | 'shorts' | 'photography' | 'realtube') => {
     const keyMap: Record<string, string> = {
       clips: 'CLIPS',
@@ -255,18 +278,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       realtube: 'REALTUBE',
     };
     const targetKey = keyMap[folderId] || 'CLIPS';
-    setSelectedAlbum(targetKey);
-    setSelectedSubfolder(targetKey);
+    setSelectedCategory(targetKey);
+    setSelectedSubfolder(null); // Level 1: child subfolders only
     setVaultDrawerOpen(false);
   }, []);
 
-  // Idle reset handler: returns to Public Bollywood Overview
-  const handleSelectIdle = useCallback(() => {
-    setSelectedAlbum(null);
+  // Idle reset handler: returns to Public Bollywood Overview (Level 0)
+  const handleExitToHome = useCallback(() => {
+    setSelectedCategory(null);
     setSelectedSubfolder(null);
   }, []);
 
-  // Android Native Hardware Back Button handler
+  // Return to Category Subfolders handler (Level 2 -> Level 1)
+  const handleReturnToCategory = useCallback(() => {
+    setSelectedSubfolder(null);
+  }, []);
+
+  // Android Native Hardware Back Button handler (stepped 2-tier back navigation)
   useBackButton(
     useCallback(() => {
       // 1. If concealed terminal drawer is open, close it
@@ -275,14 +303,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return true;
       }
 
-      // 2. If viewing a core archive folder, return to Public Overview
+      // 2. If at Level 2 (viewing individual subfolder assets), step back to Level 1
       if (selectedSubfolder !== null) {
-        handleSelectIdle();
+        handleReturnToCategory();
+        return true;
+      }
+
+      // 3. If at Level 1 (viewing category child collections), step back to Level 0
+      if (selectedCategory !== null) {
+        handleExitToHome();
         return true;
       }
 
       return false;
-    }, [isVaultDrawerOpen, selectedSubfolder, handleSelectIdle])
+    }, [isVaultDrawerOpen, selectedSubfolder, selectedCategory, handleReturnToCategory, handleExitToHome])
   );
 
   return (
@@ -297,14 +331,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* Permanent Midnight Obsidian Backdrop Canvas */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
-      {/* Option A: Concealed Left Terminal Drawer */}
+      {/* Option A: Concealed Left Terminal Drawer with Usage Telemetry */}
       <VaultDrawer
         isOpen={isVaultDrawerOpen}
         onClose={() => setVaultDrawerOpen(false)}
         onSelectFolder={handleSelectDrawerFolder}
       />
 
-      {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Sync Indicator */}
+      {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Stepped Breadcrumbs */}
       <header className="w-full px-5 sm:px-8 py-3.5 flex items-center justify-between border-b border-white/[0.06] bg-[#020408]/80 backdrop-blur-md z-30 shrink-0">
         <div className="flex items-center gap-3">
           <HeaderBrandLogo
@@ -312,32 +346,63 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
           />
 
-          {selectedSubfolder && (
-            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-[#38bdf8]/10 border border-[#38bdf8]/30">
-              CORE // {selectedSubfolder}
+          {/* Breadcrumb Indicators */}
+          {selectedCategory && !selectedSubfolder && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-[#38bdf8]/10 border border-[#38bdf8]/30">
+              <span>CORE</span>
+              <span>//</span>
+              <span>{selectedCategory}</span>
+            </span>
+          )}
+
+          {selectedCategory && selectedSubfolder && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-[#38bdf8]/10 border border-[#38bdf8]/30">
+              <span>CORE</span>
+              <span>//</span>
+              <button
+                type="button"
+                onClick={handleReturnToCategory}
+                className="hover:underline cursor-pointer"
+              >
+                {selectedCategory}
+              </button>
+              <span>/</span>
+              <span className="text-white">{selectedSubfolder}</span>
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Header Right Action: Level-Specific Return Buttons & Sync Status */}
+        <div className="flex items-center gap-2.5">
           {selectedSubfolder && (
             <button
               type="button"
-              onClick={handleSelectIdle}
-              className="text-xs font-mono tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10"
+              onClick={handleReturnToCategory}
+              className="text-xs font-mono tracking-wider uppercase text-neutral-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1 px-3 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10"
             >
               <ArrowLeft className="w-3.5 h-3.5 text-[#38bdf8]" />
-              <span>RETURN</span>
+              <span>RETURN TO {selectedCategory}</span>
             </button>
           )}
+
+          {selectedCategory && (
+            <button
+              type="button"
+              onClick={handleExitToHome}
+              className="text-xs font-mono tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1 px-3 py-1 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-white/5"
+            >
+              <span>EXIT TO HOME</span>
+            </button>
+          )}
+
           <SyncStatusIndicator />
         </div>
       </header>
 
       {/* MAIN VIEWPORT STAGE */}
-      {selectedSubfolder === null ? (
+      {selectedCategory === null ? (
         /* ===================================================================== */
-        /* DEFAULT FACADE: FULL-STAGE BOLLYWOOD WALLPAPERS & NEWS FEED           */
+        /* LEVEL 0: PUBLIC ENTERTAINMENT HUB & CHRONICLE NEWS                    */
         /* ===================================================================== */
         <main
           aria-label="Bollywood Celebrity Archive Overview"
@@ -345,16 +410,142 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         >
           <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
         </main>
-      ) : (
+      ) : selectedSubfolder === null ? (
         /* ===================================================================== */
-        /* CORE ARCHIVE VIEW: FULL-WIDTH SCROLLABLE MEDIA GALLERY                */
+        /* LEVEL 1: STRUCTURED CHILD COLLECTIONS / ALBUMS GRID                   */
         /* ===================================================================== */
         <main
-          aria-label="Core Archive Gallery"
+          aria-label="Category Child Collections"
           className="flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent"
         >
-          <div className="flex items-center justify-between pb-3 mb-6 border-b border-white/10">
+          {/* Section Breadcrumb Bar */}
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
             <div className="flex items-center gap-2">
+              <span className="font-['Roboto_Condensed'] font-black text-lg sm:text-xl tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+                {selectedCategory} DIRECTORIES
+              </span>
+              <span className="text-xs font-mono text-neutral-400">
+                ({childSubfoldersList.length} collections)
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExitToHome}
+              className="font-mono text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              ← EXIT TO CELEBRITY HUB
+            </button>
+          </div>
+
+          {/* Subfolders / Child Collections Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+            {childSubfoldersList.map((sub) => {
+              const firstItem = sub.files[0];
+              const isPhoto = firstItem
+                ? firstItem.type === 'image' || isPhotoExtension(firstItem.path || firstItem.url || firstItem.name || '')
+                : false;
+
+              const imageSrc = firstItem
+                ? (firstItem as any).thumbnail ||
+                  (firstItem as any).src ||
+                  firstItem.url ||
+                  (firstItem as any).image ||
+                  firstItem.path ||
+                  ''
+                : '';
+
+              const thumb = firstItem
+                ? isPhoto
+                  ? getMediaUrl(imageSrc) || imageSrc
+                  : getImageUrl(firstItem) ||
+                    getThumbnailUrl(firstItem) ||
+                    resolveStaticVideoThumbnail(firstItem) ||
+                    getMediaUrl(imageSrc) ||
+                    imageSrc
+                : '';
+
+              return (
+                <div
+                  key={sub.name}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    hapticMedium();
+                    setSelectedSubfolder(sub.name);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      hapticMedium();
+                      setSelectedSubfolder(sub.name);
+                    }
+                  }}
+                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-[#38bdf8]/20 hover:border-[#38bdf8]/60 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(56,189,248,0.25)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col justify-end aspect-[16/10] sm:aspect-[4/3] select-none"
+                >
+                  {/* Thumbnail Preview */}
+                  {thumb ? (
+                    <img
+                      src={thumb}
+                      alt={sub.name}
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-[#020408] to-[#0c1e38] flex items-center justify-center">
+                      <Folder className="w-12 h-12 text-[#38bdf8]/40" />
+                    </div>
+                  )}
+
+                  {/* Ambient Dark Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#020408]/95 via-[#020408]/50 to-transparent pointer-events-none" />
+
+                  {/* Top Badge: Item Count */}
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-black/75 backdrop-blur-md border border-[#38bdf8]/30 shadow-md">
+                      <Folder className="w-3 h-3 text-[#38bdf8]" />
+                      <span>{sub.files.length} ITEMS</span>
+                    </span>
+                  </div>
+
+                  {/* Bottom Info: Subfolder Name & Arrow Prompt */}
+                  <div className="relative z-10 p-5 flex items-center justify-between pointer-events-none">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono tracking-widest text-[#38bdf8] uppercase">
+                        {selectedCategory} // SUBFOLDER
+                      </span>
+                      <h3 className="font-['Roboto_Condensed'] font-black tracking-wider text-lg sm:text-xl text-white uppercase group-hover:text-[#38bdf8] transition-colors line-clamp-1">
+                        {sub.name}
+                      </h3>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-[#38bdf8] text-white group-hover:text-black flex items-center justify-center transition-all duration-300 shadow-md shrink-0">
+                      <ChevronRight className="w-5 h-5 ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+      ) : (
+        /* ===================================================================== */
+        /* LEVEL 2: SPECIFIC SUBFOLDER MEDIA ASSETS GALLERY                      */
+        /* ===================================================================== */
+        <main
+          aria-label="Subfolder Media Assets"
+          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent"
+        >
+          {/* Breadcrumb Header Rail */}
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleReturnToCategory}
+                className="font-mono text-xs uppercase tracking-wider text-slate-400 hover:text-white cursor-pointer"
+              >
+                {selectedCategory}
+              </button>
+              <span className="text-slate-500">/</span>
               <span className="font-['Roboto_Condensed'] font-black text-base sm:text-lg tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
                 {selectedSubfolder}
               </span>
@@ -363,23 +554,39 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSelectIdle}
-              className="font-['Roboto_Condensed'] text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              ← RETURN TO OVERVIEW
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleReturnToCategory}
+                className="font-mono text-xs tracking-wider uppercase text-neutral-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-[#38bdf8]" />
+                <span>RETURN TO {selectedCategory}</span>
+              </button>
+              <span className="text-slate-600 hidden sm:inline">•</span>
+              <button
+                type="button"
+                onClick={handleExitToHome}
+                className="font-mono text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
+              >
+                EXIT TO CELEBRITY HUB
+              </button>
+            </div>
           </div>
 
+          {/* Media Items Grid */}
           {activeMediaList.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[40vh] text-white/60">
               <p className="text-white/80 text-sm font-semibold tracking-wider uppercase mb-1">
                 No Media Items in this Collection
               </p>
-              <p className="text-white/40 text-xs">
-                Tap the top SARWARCYOU logo to access other core archives.
-              </p>
+              <button
+                type="button"
+                onClick={handleReturnToCategory}
+                className="mt-4 px-4 py-2 rounded-lg bg-[#38bdf8]/15 hover:bg-[#38bdf8]/25 text-[#38bdf8] border border-[#38bdf8]/30 font-mono text-xs uppercase tracking-wider transition-all"
+              >
+                Return to {selectedCategory} Directories
+              </button>
             </div>
           ) : (
             <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20">
