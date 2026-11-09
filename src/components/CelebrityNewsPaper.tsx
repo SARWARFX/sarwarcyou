@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ExternalLink, Radio, Newspaper as NewspaperIcon, ArrowUpRight } from 'lucide-react';
+import { Newspaper as NewspaperIcon, ArrowUpRight } from 'lucide-react';
 import type { CelebrityNewsItem } from './CelebrityShowcase';
 
 export interface CelebrityNewsPaperProps {
@@ -14,29 +14,31 @@ function formatDate(date: Date = new Date()): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).toUpperCase();
+  });
 }
 
 function formatTimeAgo(isoString: string): string {
   try {
     const pub = new Date(isoString).getTime();
-    if (isNaN(pub)) return 'RECENT';
+    if (isNaN(pub)) return 'recently';
     const diffMs = Date.now() - pub;
     const diffSec = Math.floor(diffMs / 1000);
-    if (diffSec < 60) return 'JUST NOW';
+    if (diffSec < 60) return 'just now';
     const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}M AGO`;
+    if (diffMin === 1) return '1 minute ago';
+    if (diffMin < 60) return `${diffMin} minutes ago`;
     const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}H AGO`;
+    if (diffHr === 1) return '1 hour ago';
+    if (diffHr < 24) return `${diffHr} hours ago`;
     const diffDay = Math.floor(diffHr / 24);
-    if (diffDay === 1) return 'YESTERDAY';
-    if (diffDay < 7) return `${diffDay}D AGO`;
-    return new Date(isoString).toLocaleDateString(undefined, {
+    if (diffDay === 1) return 'yesterday';
+    if (diffDay < 7) return `${diffDay} days ago`;
+    return new Date(isoString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-    }).toUpperCase();
+    });
   } catch {
-    return 'RECENT';
+    return 'recently';
   }
 }
 
@@ -47,26 +49,26 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
 }) => {
   const currentDateFormatted = useMemo(() => formatDate(), []);
 
-  // Partition articles into Lead Story, Secondary Column Stories, and Wire Dispatches
+  // Partition articles into Lead Story, Secondary Column Stories, and Right Wire Dispatches
   const leadArticle = articles.length > 0 ? articles[0] : null;
-  const secondaryArticles = articles.slice(1, 10);
-  const wireTelegrams = articles.slice(10, 22);
+  const secondaryArticles = articles.slice(1, 9);
+  const wireTelegrams = articles.slice(9, 22);
 
   if (articles.length === 0) {
     return (
       <div className="newspaper-container rounded-2xl text-center py-20 px-6 flex flex-col items-center justify-center">
-        <NewspaperIcon className="w-12 h-12 text-slate-500 mb-4 opacity-50" />
-        <h2 className="font-['Playfair_Display'] text-2xl font-bold text-white mb-2">
+        <NewspaperIcon className="w-10 h-10 text-neutral-600 mb-4" />
+        <h2 className="font-['Playfair_Display'] text-2xl font-bold text-[#f4f4f5] mb-2">
           No Dispatches on File
         </h2>
-        <p className="font-serif italic text-sm text-slate-400 max-w-md mb-6">
-          The telegraph wires currently carry no verified reports concerning {activeFilter === 'ALL' ? 'the selected filter' : activeFilter}.
+        <p className="font-serif italic text-sm text-neutral-400 max-w-md mb-6">
+          There are currently no verified reports on file for {activeFilter === 'ALL' ? 'the selected filter' : activeFilter}.
         </p>
         {onResetFilter && (
           <button
             type="button"
             onClick={onResetFilter}
-            className="px-4 py-2 rounded-lg bg-[#38bdf8]/15 hover:bg-[#38bdf8]/25 text-[#38bdf8] border border-[#38bdf8]/30 font-mono text-xs uppercase tracking-wider transition-all"
+            className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 border border-white/10 text-xs tracking-wider uppercase transition-all cursor-pointer"
           >
             Return to General Front Page
           </button>
@@ -81,88 +83,79 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
       <header className="newspaper-masthead">
         {/* Top Dateline & Publication Issue Bar */}
         <div className="masthead-top-bar flex-wrap gap-2">
-          <span>DAILY BOLLYWOOD DISPATCH • LATE CITY EDITION</span>
-          <span className="font-bold text-slate-300">{currentDateFormatted}</span>
-          <span>VOL. XXVIII NO. 312 • FREE ISSUE • 4K WIRE</span>
+          <span>DAILY BOLLYWOOD DISPATCH</span>
+          <span className="font-serif italic text-neutral-400">{currentDateFormatted}</span>
+          <span>EDITORIAL EDITION</span>
         </div>
 
-        {/* Vintage Gothic / Broadsheet Masthead Title */}
+        {/* Elegant Broadsheet Masthead Title */}
         <h1 className="masthead-title">THE BOLLYWOOD CHRONICLE</h1>
 
         {/* Sub-Motto Rule */}
         <p className="masthead-motto">
-          “Verified Celebrity Intelligence, Red Carpet Reports & Cinema Archives”
+          Verified Celebrity Journalism, Film Culture & Cinema Archives
         </p>
 
-        {/* Double Vintage Print Hairline Rule */}
+        {/* Subtle Double Hairline Rule */}
         <div className="newspaper-double-rule" />
       </header>
 
       {/* 2. BROADSHEET EDITORIAL GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT / CENTER SPREAD: LEAD FEATURE & COLUMNAR STORIES (8-9 Cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+        {/* LEFT / CENTER SPREAD: LEAD FEATURE & COLUMNAR STORIES (8 Cols) */}
+        <div className="lg:col-span-8 flex flex-col gap-10">
           {/* LEAD STORY SPREAD */}
           {leadArticle && (
-            <article className="border-b-2 border-white/20 pb-8 flex flex-col gap-4">
-              {/* Category & Kicker Tag */}
-              <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-[#38bdf8]">
-                <span className="font-black bg-[#38bdf8]/15 px-2 py-0.5 rounded border border-[#38bdf8]/30">
-                  {leadArticle.category || 'FRONT PAGE EXCLUSIVE'}
-                </span>
-                <span>•</span>
-                <span>[{leadArticle.celebrity}]</span>
+            <article className="border-b border-white/[0.08] pb-10 flex flex-col gap-4">
+              {/* Clean Typographic Byline */}
+              <div className="text-xs text-neutral-400 tracking-wide font-sans">
+                <span className="text-neutral-200 font-medium">{leadArticle.celebrity}</span>
+                <span className="mx-2 text-neutral-600">·</span>
+                <span>{leadArticle.source}</span>
+                <span className="mx-2 text-neutral-600">·</span>
+                <span>{formatTimeAgo(leadArticle.publishedAt)}</span>
               </div>
 
               {/* Giant Serif Lead Headline */}
-              <h2 className="font-['Playfair_Display'] text-2xl sm:text-3xl lg:text-[34px] font-extrabold text-white leading-[1.18] tracking-tight hover:text-[#38bdf8] transition-colors">
+              <h2 className="font-['Playfair_Display'] text-2xl sm:text-3xl lg:text-[36px] font-bold text-[#f4f4f5] leading-[1.2] tracking-tight hover:text-white transition-colors">
                 <a href={leadArticle.sourceUrl} target="_blank" rel="noopener noreferrer">
                   {leadArticle.headline}
                 </a>
               </h2>
 
-              {/* Classic Dateline Byline */}
-              <div className="article-byline flex items-center gap-2">
-                <span>MUMBAI BUREAU</span>
-                <span>—</span>
-                <span>{leadArticle.source}</span>
-                <span>—</span>
-                <span>{formatTimeAgo(leadArticle.publishedAt)}</span>
-              </div>
-
               {/* Hero Photo (if available) with Editorial Caption */}
               {leadArticle.imageUrl && (
-                <div className="w-full rounded-xl overflow-hidden border border-white/10 bg-black/50 relative">
+                <div className="w-full rounded-lg overflow-hidden border border-white/[0.08] bg-[#121215] relative mt-1">
                   <img
                     src={leadArticle.imageUrl}
                     alt={leadArticle.headline}
                     loading="lazy"
-                    className="w-full max-h-[420px] object-cover"
+                    className="w-full max-h-[440px] object-cover"
                     onError={(e) => {
                       (e.currentTarget as HTMLElement).style.display = 'none';
                     }}
                   />
-                  <div className="p-2.5 bg-black/80 border-t border-white/10 text-[11px] font-serif italic text-slate-300">
-                    WIRE PHOTO — {leadArticle.celebrity.toUpperCase()} PHOTOGRAPHED DURING RECENT INDUSTRY ENGAGEMENTS. ARCHIVAL REPRODUCTION VIA {leadArticle.source.toUpperCase()}.
+                  <div className="px-3.5 py-2 bg-[#09090b]/90 border-t border-white/[0.06] text-xs font-serif italic text-neutral-400">
+                    Photograph: {leadArticle.celebrity} via {leadArticle.source}.
                   </div>
                 </div>
               )}
 
               {/* Body Text with Editorial Drop Cap */}
-              <p className="article-body newspaper-drop-cap">
+              <p className="article-body newspaper-drop-cap mt-1">
                 {leadArticle.summary}
               </p>
 
-              {/* Read Full Report Link */}
-              <div>
+              {/* Read Full Story Link */}
+              <div className="pt-1">
                 <a
                   href={leadArticle.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="article-link"
+                  className="article-link group inline-flex items-center gap-1.5 text-xs text-neutral-300 hover:text-white transition-colors"
                 >
-                  CONTINUE READING FULL REPORT AT {leadArticle.source.toUpperCase()}
-                  <ExternalLink className="w-3 h-3 ml-1 inline" />
+                  <span className="underline underline-offset-4 decoration-neutral-600 group-hover:decoration-white">Read Full Story</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
                 </a>
               </div>
             </article>
@@ -170,131 +163,117 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
 
           {/* SECONDARY STORIES (Multi-Column Print Flow) */}
           <div className="newspaper-columns">
-            {secondaryArticles.map((article) => {
-              return (
-                <article key={article.id} className="newspaper-article">
-                  {/* Actress & Category Meta */}
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5 flex items-center justify-between">
-                    <span className="font-bold">[{article.celebrity}]</span>
-                    <span className="text-slate-400">{article.category}</span>
-                  </div>
+            {secondaryArticles.map((article) => (
+              <article key={article.id} className="newspaper-article">
+                {/* Byline */}
+                <div className="text-[11px] text-neutral-400 mb-2">
+                  <span className="text-neutral-300 font-medium">{article.celebrity}</span>
+                  <span className="mx-1.5 text-neutral-600">·</span>
+                  <span>{article.source}</span>
+                  <span className="mx-1.5 text-neutral-600">·</span>
+                  <span>{formatTimeAgo(article.publishedAt)}</span>
+                </div>
 
-                  {/* Headline */}
-                  <h3 className="article-headline">
-                    <a
-                      href={article.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-[#38bdf8] transition-colors"
-                    >
-                      {article.headline}
-                    </a>
-                  </h3>
-
-                  {/* Byline */}
-                  <div className="article-byline">
-                    MUMBAI WIRE • {article.source} • {formatTimeAgo(article.publishedAt)}
-                  </div>
-
-                  {/* Thumbnail (if available) */}
-                  {article.imageUrl && (
-                    <div className="w-full h-36 rounded-lg overflow-hidden border border-white/10 mb-3 bg-black/40">
-                      <img
-                        src={article.imageUrl}
-                        alt={article.headline}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Body Paragraph */}
-                  <p className="article-body">
-                    {article.summary}
-                  </p>
-
-                  {/* Read Link */}
+                {/* Headline */}
+                <h3 className="article-headline">
                   <a
                     href={article.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="article-link"
+                    className="hover:text-white transition-colors"
                   >
-                    READ DISPATCH
-                    <ArrowUpRight className="w-3 h-3 ml-0.5 inline" />
+                    {article.headline}
                   </a>
-                </article>
-              );
-            })}
+                </h3>
+
+                {/* Thumbnail */}
+                {article.imageUrl && (
+                  <div className="w-full h-40 rounded-lg overflow-hidden border border-white/[0.08] mb-3 bg-[#121215]">
+                    <img
+                      src={article.imageUrl}
+                      alt={article.headline}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Body Paragraph */}
+                <p className="article-body">
+                  {article.summary}
+                </p>
+
+                {/* Read Link */}
+                <div className="pt-2">
+                  <a
+                    href={article.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="article-link group inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-white transition-colors"
+                  >
+                    <span className="underline underline-offset-4 decoration-neutral-700 group-hover:decoration-white">Read Story</span>
+                    <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors" />
+                  </a>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
 
-        {/* RIGHT COLUMN: "IN BRIEF" // LATE TELEGRAPH DISPATCHES (4 Cols) */}
-        <aside className="lg:col-span-4 border-t-2 lg:border-t-0 lg:border-l border-white/15 pt-6 lg:pt-0 lg:pl-6 flex flex-col gap-6">
-          <div className="border-b-2 border-white/20 pb-3">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-widest text-[#38bdf8] uppercase">
-              <Radio className="w-3.5 h-3.5 animate-pulse text-[#38bdf8]" />
-              <span>IN BRIEF // TELEGRAPH WIRE</span>
-            </div>
-            <p className="font-serif italic text-[11px] text-slate-400 mt-1">
-              Live updates received over news agency teleprinters.
+        {/* RIGHT COLUMN: COMPACT NEWS DISPATCH LIST (4 Cols) */}
+        <aside className="lg:col-span-4 border-t lg:border-t-0 lg:border-l border-white/[0.08] pt-6 lg:pt-0 lg:pl-8 flex flex-col gap-6">
+          <div className="border-b border-white/[0.08] pb-3">
+            <h3 className="font-['Playfair_Display'] text-lg font-bold text-[#f4f4f5] tracking-wide">
+              Latest Dispatches
+            </h3>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              Continuous editorial coverage and syndicated reports
             </p>
           </div>
 
-          <div className="flex flex-col divide-y divide-white/10">
+          <div className="flex flex-col divide-y divide-white/[0.06]">
             {wireTelegrams.length === 0 && (
-              <p className="text-xs font-serif text-slate-400 py-4 italic">
-                All available dispatches featured on the main front spread.
+              <p className="text-xs font-serif text-neutral-400 py-4 italic">
+                All available reports featured on the main front spread.
               </p>
             )}
 
             {wireTelegrams.map((wire, idx) => {
               return (
-                <div key={wire.id || idx} className="py-3.5 first:pt-0 last:pb-0 flex flex-col gap-1.5 group">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                    <span className="font-bold text-[#38bdf8]">[{wire.celebrity}]</span>
+                <div key={wire.id || idx} className="py-4 first:pt-0 last:pb-0 flex flex-col gap-1.5 group">
+                  {/* Celebrity Tag / Source */}
+                  <div className="flex items-center justify-between text-[11px] text-neutral-500 tracking-wider uppercase">
+                    <span className="font-medium text-neutral-400">{wire.celebrity} · {wire.source}</span>
                     <span>{formatTimeAgo(wire.publishedAt)}</span>
                   </div>
 
+                  {/* Direct Headline */}
                   <a
                     href={wire.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-['Playfair_Display'] text-sm font-semibold text-white group-hover:text-[#38bdf8] transition-colors leading-snug"
+                    className="font-['Playfair_Display'] text-[15px] sm:text-[16px] font-semibold text-[#f4f4f5] group-hover:text-white transition-colors leading-snug"
                   >
                     {wire.headline}
                   </a>
 
                   {wire.summary && (
-                    <p className="font-serif text-[12px] text-slate-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
                       {wire.summary}
                     </p>
                   )}
-
-                  <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500">
-                    <span>VIA {wire.source.toUpperCase()}</span>
-                    <a
-                      href={wire.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#38bdf8] hover:underline flex items-center gap-0.5"
-                    >
-                      <span>DISPATCH</span>
-                      <ArrowUpRight className="w-2.5 h-2.5" />
-                    </a>
-                  </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Newspaper Footer Colophon Stamp */}
-          <div className="mt-auto pt-6 border-t border-white/10 font-mono text-[10px] text-slate-500 flex flex-col gap-1 text-center">
-            <span>PRINTED & TRANSMITTED VIA SARWARCYOU FLEET</span>
-            <span className="text-[#38bdf8]/70">ALL EDITORIAL RIGHTS RESERVED TO VERIFIED SOURCES</span>
+          {/* Minimalist Colophon */}
+          <div className="mt-auto pt-6 border-t border-white/[0.08] text-[11px] text-neutral-500 flex flex-col gap-1 text-center font-sans">
+            <span>The Bollywood Chronicle · Mumbai Editorial Bureau</span>
+            <span className="text-neutral-600">Verified syndicated entertainment reports</span>
           </div>
         </aside>
       </div>
