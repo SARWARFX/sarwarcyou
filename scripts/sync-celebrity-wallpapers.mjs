@@ -559,7 +559,8 @@ async function fetchCelebrityImages(celebrityName) {
   return items;
 }
 
-async function main() {
+export async function syncWallpapers(customOutputPath) {
+  const targetOutput = customOutputPath || OUTPUT_FILE;
   console.log('--- STARTING BOLLYWOOD CELEBRITY HD WALLPAPER SYNC ---');
 
   const collected = [];
@@ -603,15 +604,18 @@ async function main() {
   });
 
   // Ensure parent directory exists
-  fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
+  fs.mkdirSync(path.dirname(targetOutput), { recursive: true });
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(finalCatalog, null, 2), 'utf8');
+  fs.writeFileSync(targetOutput, JSON.stringify(finalCatalog, null, 2), 'utf8');
 
-  console.log(`[Sync] Successfully saved ${finalCatalog.length} HD celebrity entries to ${OUTPUT_FILE}`);
-  console.log('--- SYNC COMPLETE ---');
+  console.log(`[Sync] Successfully saved ${finalCatalog.length} HD celebrity entries to ${targetOutput}`);
+  console.log('--- WALLPAPER SYNC COMPLETE ---');
+  return finalCatalog;
 }
 
-main().catch((err) => {
-  console.error('[Sync Fatal Error]:', err);
-  process.exit(1);
-});
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  syncWallpapers().catch((err) => {
+    console.error('[Sync Fatal Error]:', err);
+    process.exit(1);
+  });
+}

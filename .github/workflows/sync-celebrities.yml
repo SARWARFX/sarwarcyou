@@ -1,34 +1,30 @@
-name: Sync Celebrity Wallpapers
+name: Daily Bollywood Intel Sync
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '0 2 * * *' # Every day at 02:00 UTC (08:00 AM BST)
 
 permissions:
   contents: write
 
 jobs:
   sync:
-    name: Sync Bollywood Celebrity Wallpapers
+    name: Daily Bollywood Intel Sync
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Fetch and Update Wallpaper Catalog
-        run: node scripts/sync-celebrity-wallpapers.mjs
-
-      - name: Commit & Push Changes
+      - name: Install Feed Parsers
+        run: npm install rss-parser
+      - name: Run Daily Sync Script
+        run: node scripts/sync-bollywood-daily.mjs
+      - name: Commit & Push Daily Intel
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/data/celebrityGallery.json
-          git commit -m "chore(data): auto-sync top-tier bollywood celebrity wallpapers" || exit 0
+          git add src/data/celebrityGallery.json src/data/celebrityNews.json
+          git commit -m "chore(feed): daily sync of verified bollywood wallpapers and news" || exit 0
           git push
