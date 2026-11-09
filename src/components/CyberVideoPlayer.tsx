@@ -18,6 +18,8 @@ import {
   X,
   AlertTriangle,
   MoreHorizontal,
+  PictureInPicture2,
+  Star,
 } from 'lucide-react';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
@@ -27,6 +29,8 @@ import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
+import { hapticLight } from '../utils/hapticsManager';
+import { isItemFavorite, toggleFavorite } from '../utils/favoritesManager';
 
 export type VideoRepeatMode = 'off' | 'all' | 'one';
 
@@ -83,6 +87,40 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [showTelemetry, setShowTelemetry] = useState(false);
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
+
+  // Favorites & Picture-in-Picture States
+  const [isFav, setIsFav] = useState(false);
+  const [isPiPSupported, setIsPiPSupported] = useState(false);
+
+  useEffect(() => {
+    setIsFav(isItemFavorite(item));
+  }, [item]);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined' && 'pictureInPictureEnabled' in document) {
+      setIsPiPSupported(Boolean(document.pictureInPictureEnabled));
+    }
+  }, []);
+
+  const handleTogglePiP = async () => {
+    try {
+      hapticLight();
+      if (!videoRef.current) return;
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.warn('PiP error:', err);
+    }
+  };
+
+  const handleToggleFav = () => {
+    if (!item) return;
+    const nowFav = toggleFavorite(item);
+    setIsFav(nowFav);
+  };
 
   // Playback Fallback & Error State
   const [sourceOverride, setSourceOverride] = useState<string | null>(null);
@@ -324,6 +362,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   // Play / Pause Toggle
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
+    hapticLight();
     if (videoRef.current.paused) {
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
@@ -683,6 +722,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // Toggle Fullscreen with Landscape Auto-Rotate via Native Capacitor Screen Orientation
   const handleFullscreenToggle = useCallback(async () => {
+    hapticLight();
     const container = playerContainerRef.current;
     const video = videoRef.current;
     if (!container || !video) return;
@@ -763,6 +803,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // Handle Mute Toggle
   const handleToggleMute = useCallback(() => {
+    hapticLight();
     setIsMuted((prev) => {
       const next = !prev;
       if (videoRef.current) {
@@ -1676,6 +1717,32 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               )}
             </div>
 
+            {/* Vault Favorite */}
+            <button
+              type="button"
+              onClick={handleToggleFav}
+              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0 ${
+                isFav ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'text-slate-300 hover:text-white'
+              }`}
+              title={isFav ? 'Remove from Vault Favorites' : 'Save to Vault Favorites'}
+              aria-label="Toggle Vault Favorite"
+            >
+              <Star className={`w-4 h-4 ${isFav ? 'fill-amber-400' : ''}`} />
+            </button>
+
+            {/* Picture-in-Picture */}
+            {isPiPSupported && (
+              <button
+                type="button"
+                onClick={handleTogglePiP}
+                className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0"
+                title="Picture-in-Picture (P)"
+                aria-label="Toggle Picture-in-Picture"
+              >
+                <PictureInPicture2 className="w-4 h-4" />
+              </button>
+            )}
+
             {/* Mute / Unmute Toggle */}
             <button
               type="button"
@@ -1832,6 +1899,36 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                     )}
                     <span>Download</span>
                   </button>
+
+                  {/* Vault Favorite Option */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFav();
+                      setShowMobileMore(false);
+                    }}
+                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                  >
+                    <Star className={`w-3.5 h-3.5 ${isFav ? 'text-amber-400 fill-amber-400' : ''}`} />
+                    <span>{isFav ? 'Saved in Vault' : 'Save to Vault'}</span>
+                  </button>
+
+                  {/* Picture-in-Picture Option */}
+                  {isPiPSupported && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTogglePiP();
+                        setShowMobileMore(false);
+                      }}
+                      className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                    >
+                      <PictureInPicture2 className="w-3.5 h-3.5" />
+                      <span>Picture in Picture</span>
+                    </button>
+                  )}
 
                   {/* Share Option */}
                   <button

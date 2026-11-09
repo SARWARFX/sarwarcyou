@@ -8,7 +8,8 @@ import { ShortsFeedModal } from './components/ShortsFeedModal';
 import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
-import { CyberCommandPalette } from './components/CyberCommandPalette';
+import { QuickSearchModal } from './components/QuickSearchModal';
+import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
@@ -177,6 +178,9 @@ function App() {
 
   // Native Android Device Integration (Capacitor)
   useEffect(() => {
+    // Initialize Theme Accent
+    applyAccentToDom(getActiveAccent());
+
     // Edge-to-edge transparent status bar
     StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
     StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
@@ -715,6 +719,7 @@ function App() {
             onOpenPhoto={handleOpenPhoto}
             onOpenVideo={handleOpenVideo}
             onOpenShort={handleOpenShort}
+            onOpenSearch={() => setIsCommandPaletteOpen(true)}
           />
 
           {/* Global Network Connectivity Indicator */}
@@ -931,17 +936,18 @@ function App() {
         </PlayerErrorBoundary>
       )}
 
-      {/* 7. Cyberpunk Command Palette (Ctrl+K / Cmd+K / "/") */}
+      {/* 7. Quick Search & Vault Favorites HUD (Ctrl+K / Cmd+K / "/" / Search Button) */}
       {isCommandPaletteOpen && (
-        <PlayerErrorBoundary onClose={() => setIsCommandPaletteOpen(false)} fallbackTitle="Command Palette Error">
-          <CyberCommandPalette
+        <PlayerErrorBoundary onClose={() => setIsCommandPaletteOpen(false)} fallbackTitle="Quick Search Error">
+          <QuickSearchModal
             isOpen={isCommandPaletteOpen}
             onClose={() => setIsCommandPaletteOpen(false)}
             items={rawFeed.allMediaPool}
-            allShorts={rawFeed.shorts}
             onOpenPhoto={handleOpenPhoto}
             onOpenVideo={handleOpenVideo}
-            onOpenShort={handleOpenShort}
+            onOpenShort={(item, shorts, index) => {
+              handleOpenShort(item, shorts, index, item.category || item.parentAlbum);
+            }}
           />
         </PlayerErrorBoundary>
       )}

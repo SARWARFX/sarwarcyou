@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause } from 'lucide-react';
+import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause, Star, Heart, FastForward } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { useBackButton } from '../utils/backButtonManager';
+import { hapticLight, hapticMedium, hapticSuccess } from '../utils/hapticsManager';
+import { isItemFavorite, toggleFavorite } from '../utils/favoritesManager';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -24,6 +26,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [centerIcon, setCenterIcon] = useState<{ idx: number; type: 'play' | 'pause'; id: number } | null>(null);
   const [showControls, setShowControls] = useState(true);
 
+  // Enhanced Shorts Experience States
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [is2XSpeed, setIs2XSpeed] = useState(false);
+  const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
+  const [isFav, setIsFav] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -34,6 +43,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const lastTouchTimeRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
+
+  // Gesture Engine Refs
+  const isScrubbingRef = useRef(false);
+  const holdTimerRef = useRef<number | null>(null);
+  const isHold2XRef = useRef(false);
+  const lastTapTimeRef = useRef(0);
+  const tapTimeoutRef = useRef<number | null>(null);
+
+  // Sync Favorite state with current active item
+  useEffect(() => {
+    const currentItem = shorts[activeIndex];
+    setIsFav(isItemFavorite(currentItem));
+  }, [activeIndex, shorts]);
 
   // Android Native Hardware Back Button handler
   useBackButton(
@@ -112,10 +134,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (v.paused) {
       v.play().catch(() => {});
       setCenterIcon({ idx, type: 'play', id: Date.now() });
+      hapticLight();
       scheduleAutoHide();
     } else {
       v.pause();
       setCenterIcon({ idx, type: 'pause', id: Date.now() });
+      hapticLight();
       if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
       setShowControls(true);
     }
@@ -123,6 +147,125 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
     iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
   }, [showControls, scheduleAutoHide]);
+
+  // Video Pointer Engine: Double-tap to Like, Hold-to-2x Speed
+  const handleVideoPointerDown = useCallback((_e: React.PointerEvent, idx: number) => {
+    if (idx !== activeIndex) return;
+    const now = Date.now();
+
+    // Double-tap detection (< 280ms)
+    if (now - lastTapTimeRef.current < 280) {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
+      }
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
+      lastTapTimeRef.current = 0;
+
+      const item = shorts[activeIndex];
+      if (item) {
+        toggleFavorite(item);
+        setIsFav(true);
+        setLikeHeart({ id: Date.now() });
+        hapticSuccess();
+        setTimeout(() => setLikeHeart(null), 850);
+      }
+      return;
+    }
+    lastTapTimeRef.current = now;
+
+    // Hold-to-2x speed gesture trigger (> 280ms)
+    holdTimerRef.current = window.setTimeout(() => {
+      const v = videoRefs.current[activeIndex];
+      if (v && !v.paused) {
+        isHold2XRef.current = true;
+        setIs2XSpeed(true);
+        v.playbackRate = 2.0;
+        hapticMedium();
+      }
+    }, 280);
+  }, [activeIndex, shorts]);
+
+  const handleVideoPointerUp = useCallback((_e: React.PointerEvent, idx: number) => {
+    if (idx !== activeIndex) return;
+
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    // If hold-2x was engaged, restore normal speed and bypass single tap
+    if (isHold2XRef.current) {
+      isHold2XRef.current = false;
+      setIs2XSpeed(false);
+      const v = videoRefs.current[activeIndex];
+      if (v) {
+        v.playbackRate = 1.0;
+        hapticLight();
+      }
+      lastTapTimeRef.current = 0;
+      return;
+    }
+
+    // Schedule single tap with short delay to allow double-tap detection
+    if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+    tapTimeoutRef.current = window.setTimeout(() => {
+      handleScreenTap(idx);
+      tapTimeoutRef.current = null;
+    }, 250);
+  }, [activeIndex, handleScreenTap]);
+
+  const handleVideoPointerCancel = useCallback((idx: number) => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (isHold2XRef.current) {
+      isHold2XRef.current = false;
+      setIs2XSpeed(false);
+      const v = videoRefs.current[idx];
+      if (v) v.playbackRate = 1.0;
+    }
+  }, []);
+
+  // Timeline scrub handling
+  const handleScrubSeek = useCallback((clientX: number, target: HTMLElement, idx: number) => {
+    const rect = target.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const v = videoRefs.current[idx];
+    if (v && v.duration) {
+      const targetTime = ratio * v.duration;
+      v.currentTime = targetTime;
+      setCurrentTime(targetTime);
+    }
+  }, []);
+
+  const handleScrubPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, idx: number) => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isScrubbingRef.current = true;
+    hapticLight();
+    handleScrubSeek(e.clientX, e.currentTarget, idx);
+  }, [handleScrubSeek]);
+
+  const handleScrubPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>, idx: number) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    handleScrubSeek(e.clientX, e.currentTarget, idx);
+  }, [handleScrubSeek]);
+
+  const handleScrubPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    isScrubbingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+    hapticLight();
+  }, []);
 
   // Break the infinite fallback loop (Single-shot fallback per itemKey)
   const handleVideoError = useCallback((idx: number, item: StageMediaItem, currentSrc: string) => {
@@ -287,7 +430,29 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              const currentItem = shorts[activeIndex];
+              if (currentItem) {
+                const nowFav = toggleFavorite(currentItem);
+                setIsFav(nowFav);
+              }
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className={`w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+              isFav
+                ? 'text-amber-400 border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
+                : 'text-neutral-300 hover:text-white border-neutral-700/80'
+            }`}
+            title={isFav ? 'Remove from Favorites' : 'Save to Favorites'}
+          >
+            <Star className={`w-4 h-4 ${isFav ? 'fill-amber-400' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
               setIsMuted((prev) => !prev);
+              hapticLight();
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
@@ -346,7 +511,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent"
             >
               <div
-                onClick={() => handleScreenTap(idx)}
+                onPointerDown={(e) => handleVideoPointerDown(e, idx)}
+                onPointerUp={(e) => handleVideoPointerUp(e, idx)}
+                onPointerCancel={() => handleVideoPointerCancel(idx)}
                 className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
                   isLandscape
                     ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
@@ -370,6 +537,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                           const isWide = v.videoWidth > v.videoHeight;
                           setLandscapeMap((prev) => (prev[idx] === isWide ? prev : { ...prev, [idx]: isWide }));
                         }
+                        if (idx === activeIndex) {
+                          setDuration(v.duration || 0);
+                        }
+                      }}
+                      onTimeUpdate={(e) => {
+                        if (idx === activeIndex && !isScrubbingRef.current) {
+                          setCurrentTime(e.currentTarget.currentTime);
+                        }
                       }}
                       onPause={() => {
                         if (idx === activeIndex) {
@@ -384,6 +559,43 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       }}
                       onError={() => handleVideoError(idx, item, streamUrl)}
                     />
+
+                    {/* 2X Speed HUD Pill */}
+                    {is2XSpeed && idx === activeIndex && (
+                      <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-black/85 border border-amber-400/60 text-amber-300 font-mono text-xs font-bold tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.5)] animate-pulse pointer-events-none">
+                        <span>2X SPEED</span>
+                        <FastForward className="w-3.5 h-3.5 fill-current" />
+                      </div>
+                    )}
+
+                    {/* Double-tap Like Heart Burst */}
+                    {likeHeart && idx === activeIndex && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-out fade-out zoom-out duration-700">
+                        <div className="w-24 h-24 rounded-full bg-red-500/20 backdrop-blur-md flex items-center justify-center border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.6)]">
+                          <Heart className="w-14 h-14 text-red-500 fill-red-500" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Interactive glowing scrub timeline */}
+                    {idx === activeIndex && duration > 0 && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => handleScrubPointerDown(e, idx)}
+                        onPointerMove={(e) => handleScrubPointerMove(e, idx)}
+                        onPointerUp={handleScrubPointerUp}
+                        onPointerCancel={handleScrubPointerUp}
+                        className="absolute bottom-0 inset-x-0 h-6 flex items-end pb-1.5 px-3 z-30 cursor-pointer group"
+                      >
+                        <div className="w-full h-1 group-hover:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-150 relative">
+                          <div
+                            className="h-full bg-[var(--accent-color,#38bdf8)] shadow-[0_0_10px_var(--accent-glow,rgba(56,189,248,0.8))] rounded-full transition-[width] duration-75"
+                            style={{ width: `${Math.min(100, Math.max(0, (currentTime / (duration || 1)) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {centerIcon && centerIcon.idx === idx && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-out fade-out zoom-out duration-700">
                         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center text-white border border-neutral-700 shadow-2xl">

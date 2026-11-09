@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { DirectoryNode } from '../DeepSpaceTreeExplorer';
+import { hapticSelection } from '../../utils/hapticsManager';
 
 export interface MajorFolderDef {
   key: string;
@@ -57,6 +58,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
   }, [selectedAlbum, onToggleFolder]);
 
   const handleFolderClick = (folderKey: string) => {
+    hapticSelection();
     // Only toggle the accordion expansion state in place (never auto-loads or auto-redirects)
     if (onToggleFolder) {
       onToggleFolder(folderKey);
@@ -110,7 +112,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
               }`}
             >
               {isFolderActive && (
-                <span className="w-2 h-2 rounded-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] flex-shrink-0 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[var(--accent-color,#38bdf8)] shadow-[0_0_12px_var(--accent-glow,rgba(56,189,248,0.6))] flex-shrink-0 animate-pulse" />
               )}
               <span className="truncate">{folder.label}</span>
             </button>
@@ -141,6 +143,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          hapticSelection();
                           onSelectSubfolder(folder.key, subNode.name);
                         }}
                         style={{
@@ -154,7 +157,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                                   : '-translate-x-2.5 opacity-0 pointer-events-none'
                               } ${
                                 isSubSelected
-                                  ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1.5'
+                                  ? 'text-[var(--accent-color,#38bdf8)] font-bold drop-shadow-[0_0_8px_var(--accent-glow,rgba(56,189,248,0.6))] translate-x-1.5'
                                   : 'text-slate-400 hover:text-white hover:translate-x-1'
                               }`
                             : `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-sm font-semibold tracking-[0.16em] uppercase py-1 pl-4 text-left transition-colors cursor-pointer outline-none bg-transparent border-0 truncate ${
@@ -163,7 +166,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                                   : 'opacity-0 pointer-events-none'
                               } ${
                                 isSubSelected
-                                  ? 'text-[#38bdf8] font-bold'
+                                  ? 'text-[var(--accent-color,#38bdf8)] font-bold'
                                   : 'text-slate-400 hover:text-white'
                               }`
                         }

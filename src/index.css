@@ -32,6 +32,9 @@
 }
 
 :root {
+  --accent-color: #38bdf8;
+  --accent-rgb: 56, 189, 248;
+  --accent-glow: rgba(56, 189, 248, 0.5);
   --bg-page: #08090c;
   --text-primary: #ededed;
   --text-secondary: #a3a3a3;

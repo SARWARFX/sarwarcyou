@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Share2,
   X,
+  Star,
+  Sparkles,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -20,6 +22,8 @@ import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
+import { hapticLight, hapticMedium } from '../utils/hapticsManager';
+import { isItemFavorite, toggleFavorite } from '../utils/favoritesManager';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 
 interface MediaModalProps {
@@ -137,6 +141,39 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const activeUrl = currentItem?.url || url;
   const activeTitle = currentItem?.title || title || (type === 'video' ? 'Video Stream' : 'Photograph');
 
+  // Vault Favorites State
+  const [isFav, setIsFav] = useState(false);
+  useEffect(() => {
+    setIsFav(isItemFavorite(currentItem));
+  }, [currentItem, activeIdx]);
+
+  const handleToggleFav = () => {
+    if (!currentItem) return;
+    const nowFav = toggleFavorite(currentItem);
+    setIsFav(nowFav);
+  };
+
+  // Ken Burns Slideshow / Story Mode State
+  const [isSlideshowActive, setIsSlideshowActive] = useState(false);
+
+  const toggleSlideshow = () => {
+    hapticLight();
+    setIsSlideshowActive((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (!isSlideshowActive || !hasItemList || items.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveIdx((prev) => {
+        const next = prev >= items.length - 1 ? 0 : prev + 1;
+        onIndexChange?.(next);
+        return next;
+      });
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [isSlideshowActive, hasItemList, items.length, onIndexChange]);
+
   // Reset whenever displayed photo changes
   useEffect(() => {
     resetZoom();
@@ -144,6 +181,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   const handleNext = useCallback(() => {
     if (!hasItemList || activeIdx >= items.length - 1) return;
+    hapticLight();
     const next = activeIdx + 1;
     setActiveIdx(next);
     resetZoom();
@@ -154,6 +192,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   const handlePrev = useCallback(() => {
     if (!hasItemList || activeIdx <= 0) return;
+    hapticLight();
     const prev = activeIdx - 1;
     setActiveIdx(prev);
     resetZoom();
@@ -435,6 +474,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const now = Date.now();
         if (now - lastTapTime < 280) {
           e.preventDefault();
+          hapticMedium();
           if (singleTapTimerRef.current) {
             clearTimeout(singleTapTimerRef.current);
             singleTapTimerRef.current = null;
@@ -785,6 +825,38 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 )}
               </button>
 
+              {/* Ken Burns Slideshow / Story Mode Toggle */}
+              {type === 'image' && hasItemList && (
+                <button
+                  type="button"
+                  onClick={toggleSlideshow}
+                  className={`pointer-events-auto p-2 rounded-full border transition-all cursor-pointer ${
+                    isSlideshowActive
+                      ? 'text-cyan-400 bg-cyan-500/20 border-cyan-400/50 shadow-[0_0_12px_rgba(56,189,248,0.4)] animate-pulse'
+                      : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
+                  }`}
+                  title={isSlideshowActive ? 'Pause Slideshow' : 'Play Slideshow (Story Mode)'}
+                  aria-label="Toggle slideshow"
+                >
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+
+              {/* Vault Favorite Toggle */}
+              <button
+                type="button"
+                onClick={handleToggleFav}
+                className={`pointer-events-auto p-2 rounded-full border transition-all cursor-pointer ${
+                  isFav
+                    ? 'text-amber-400 bg-amber-500/20 border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
+                    : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
+                }`}
+                title={isFav ? 'Remove from Vault Favorites' : 'Save to Vault Favorites'}
+                aria-label="Toggle Vault Favorite"
+              >
+                <Star className={`w-4 h-4 sm:w-5 sm:h-5 ${isFav ? 'fill-amber-400' : ''}`} />
+              </button>
+
               {/* Fullscreen Toggle Button */}
               <button
                 type="button"
@@ -918,7 +990,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   WebkitTouchCallout: 'none',
                   overscrollBehavior: 'none',
                 }}
-                className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform animate-fade-in rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]"
+                className={`pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${
+                  isSlideshowActive ? 'transition-transform duration-[4500ms] ease-out scale-105' : 'animate-fade-in'
+                }`}
                 draggable={false}
               />
             </div>
