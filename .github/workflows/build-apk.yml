@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-apk:
     name: Build & Package Android APK
@@ -90,17 +94,16 @@ jobs:
           tag_name: "v1.0.${{ github.run_number }}"
           name: "SARWARCYOU v1.0.${{ github.run_number }}"
           body: |
-            ### 📱 SARWARCYOU v1.0.${{ github.run_number }} (Direct Download)
+            ### SARWARCYOU v1.0.${{ github.run_number }} (Direct Download)
 
             - **Version:** `1.0.${{ github.run_number }}` (versionCode: `${{ github.run_number }}`)
             - **Primary Signed APK:** [`SARWARCYOU-v${{ github.run_number }}.apk`](https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/SARWARCYOU-v${{ github.run_number }}.apk)
             - **Commit:** ${{ github.sha }}
 
             #### Installation on your Android phone:
-            1. Tap the download link above on your phone's browser.
-            2. When the download finishes, tap **Open**.
-            3. If prompted, allow "Install from unknown sources" (or "Install unknown apps").
-            4. Tap **Install** / **Update** and launch SARWARCYOU!
+            1. Tap the download link above on your phone's browser, or update directly inside the app.
+            2. When the download finishes, confirm the prompt.
+            3. Tap **Install** / **Update** and launch SARWARCYOU!
           files: |
             SARWARCYOU-v${{ github.run_number }}.apk
             SARWARCYOU.apk
@@ -113,7 +116,7 @@ jobs:
           tag_name: apk-latest
           name: "SARWARCYOU Android App (Latest Build)"
           body: |
-            ### 📱 SARWARCYOU Android App (Latest Build)
+            ### SARWARCYOU Android App (Latest Build)
 
             - **Latest Version:** `1.0.${{ github.run_number }}` (versionCode: `${{ github.run_number }}`)
             - **Direct Download Link:** [Download SARWARCYOU.apk](https://github.com/${{ github.repository }}/releases/download/apk-latest/SARWARCYOU.apk)
