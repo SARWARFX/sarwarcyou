@@ -1,23 +1,21 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Play, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Play, ArrowLeft } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
 import { SmartThumbnail } from '../common/SmartThumbnail';
-import { SidebarAccordionNav, MAJOR_FOLDERS } from '../navigation/SidebarAccordionNav';
-import { SessionTelemetryGraph } from '../telemetry/SessionTelemetryGraph';
+import { MAJOR_FOLDERS } from '../navigation/SidebarAccordionNav';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
-import { sortSubfolderNodesDescending, type DirectoryNode } from '../DeepSpaceTreeExplorer';
+import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
 import { SyncStatusIndicator } from '../SyncStatusIndicator';
-import { Capacitor } from '@capacitor/core';
 import { AvailableOfflineBadge } from '../common/AvailableOfflineBadge';
-import { isMediaAvailableOffline } from '../../services/videoOfflineManager';
 import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 import { CelebrityShowcase } from '../CelebrityShowcase';
+import { VaultDrawer } from '../VaultDrawer';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -78,155 +76,74 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   onOpenPhoto,
   onOpenVideo,
   onOpenShort,
-  onOpenSearch: _onOpenSearch,
   initialAlbum,
   isModalOpen = false,
 }) => {
-  // Navigation states: default to Idle Home Overview (null)
+  // Navigation states: default to Public Bollywood Overview (null)
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
-  const [openFolder, setOpenFolder] = useState<string | null>(null);
-  const [activeMobilePane, setActiveMobilePane] = useState<0 | 1>(0);
 
-  // Outer horizontal track ref for mobile horizontal snap & swipe-back
-  const outerTrackRef = useRef<HTMLDivElement>(null);
+  // Concealed Option A Terminal Drawer State
+  const [isVaultDrawerOpen, setVaultDrawerOpen] = useState(false);
 
-  // Touch tracking for instant left-to-right swipe back on mobile
-  const touchStartXRef = useRef<number | null>(null);
-  const touchStartYRef = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
-
-    // Swiping left-to-right on Screen 2: positive deltaX (finger moved right)
-    // Only trigger horizontal swipe transitions if Math.abs(deltaX) > 15px
-    if (deltaX > 15 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
-      if (outerTrackRef.current) {
-        outerTrackRef.current.scrollTo({
-          left: 0,
-          behavior: 'smooth',
-        });
-        setActiveMobilePane(0);
-      }
-    }
-
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-  };
-
-  const handleToggleFolder = useCallback((folderKey: string) => {
-    setOpenFolder((prev) => (prev === folderKey ? null : folderKey));
-  }, []);
-
-  const handleMobileTrackScroll = () => {
-    if (outerTrackRef.current) {
-      const scrollLeft = outerTrackRef.current.scrollLeft;
-      const clientWidth = outerTrackRef.current.clientWidth;
-      const pane = scrollLeft > clientWidth * 0.4 ? 1 : 0;
-      setActiveMobilePane((prev) => (prev !== pane ? pane : prev));
-    }
-  };
-
-  // Android Native Hardware Back Button handler
-  useBackButton(
-    useCallback(() => {
-      // 1. If viewing Mobile Screen 2 (media gallery), return to Screen 1 (Folders)
-      if (activeMobilePane === 1) {
-        if (outerTrackRef.current) {
-          outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-        }
-        setActiveMobilePane(0);
-        return true;
-      }
-
-      // 2. If a subfolder is selected on desktop, return to home
-      if (selectedSubfolder !== null) {
-        setSelectedSubfolder(null);
-        return true;
-      }
-
-      // 3. If an accordion folder is expanded, collapse it
-      if (openFolder !== null) {
-        setOpenFolder(null);
-        return true;
-      }
-
-      // Otherwise let parent / exit toast handle it
-      return false;
-    }, [activeMobilePane, selectedSubfolder, openFolder]),
-    !isModalOpen
-  );
-
-  // Build directory tree
+  // Group media into hierarchical directory nodes
   const rootMap = useMemo(() => {
     const map = new Map<string, DirectoryNode>();
+    for (const folder of MAJOR_FOLDERS) {
+      map.set(folder.rawName, {
+        name: folder.rawName,
+        fullPath: folder.rawName,
+        subfolders: new Map(),
+        files: [],
+      });
+    }
+
+    if (!items || items.length === 0) return map;
 
     for (const item of items) {
       const { root, subfolders } = getFolderSegments(item);
-      if (!map.has(root)) {
-        map.set(root, {
-          name: root,
-          fullPath: root,
-          subfolders: new Map(),
-          files: [],
-        });
-      }
+      const rootNode = map.get(root);
+      if (!rootNode) continue;
 
-      let currentNode = map.get(root)!;
-      let currentMap = currentNode.subfolders;
-
-      for (const seg of subfolders) {
-        if (!currentMap.has(seg)) {
-          currentMap.set(seg, {
-            name: seg,
-            fullPath: `${currentNode.fullPath}/${seg}`,
+      let currentNode = rootNode;
+      for (const sub of subfolders) {
+        if (!currentNode.subfolders.has(sub)) {
+          currentNode.subfolders.set(sub, {
+            name: sub,
+            fullPath: `${currentNode.fullPath}/${sub}`,
             subfolders: new Map(),
             files: [],
           });
         }
-        currentNode = currentMap.get(seg)!;
-        currentMap = currentNode.subfolders;
+        currentNode = currentNode.subfolders.get(sub)!;
       }
-
       currentNode.files.push(item);
     }
 
-    for (const node of map.values()) {
-      const sortRecursive = (n: DirectoryNode) => {
-        n.files = sortMediaItemsDescending(n.files);
-        for (const sub of n.subfolders.values()) {
-          sortRecursive(sub);
-        }
-      };
-      sortRecursive(node);
+    // Sort files descending
+    for (const rootNode of map.values()) {
+      rootNode.files = sortMediaItemsDescending(rootNode.files);
+      for (const sub of rootNode.subfolders.values()) {
+        sub.files = sortMediaItemsDescending(sub.files);
+      }
     }
 
     return map;
   }, [items]);
 
-  // URL deep link auto-open if specific album was requested via URL query
+  // Initial deep link routing support
   useEffect(() => {
-    if (items.length === 0 || !initialAlbum) return;
+    if (!initialAlbum || items.length === 0) return;
+
     const cleanTarget = initialAlbum.toLowerCase().replace(/[-_\s]+/g, '');
-
     for (const folder of MAJOR_FOLDERS) {
-      const rootNode = rootMap.get(folder.rawName);
-      if (!rootNode) continue;
-
-      if (folder.rawName.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
-        const sortedSubs = sortSubfolderNodesDescending(Array.from(rootNode.subfolders.values()));
+      if (folder.key.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
         setSelectedAlbum(folder.key);
-        setSelectedSubfolder(sortedSubs[0]?.name || null);
+        setSelectedSubfolder(folder.key);
         return;
       }
-
+      const rootNode = rootMap.get(folder.rawName);
+      if (!rootNode) continue;
       for (const sub of rootNode.subfolders.values()) {
         if (sub.name.toLowerCase().replace(/[-_\s]+/g, '') === cleanTarget) {
           setSelectedAlbum(folder.key);
@@ -237,77 +154,35 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
   }, [initialAlbum, items.length, rootMap]);
 
-  // Active directory node for the selected subfolder
-  const activeDirectoryNode = useMemo(() => {
-    if (!selectedAlbum || !selectedSubfolder) return null;
-    const activeAlbumConfig = MAJOR_FOLDERS.find((h) => h.key === selectedAlbum);
-    if (!activeAlbumConfig) return null;
-    const rootNode = rootMap.get(activeAlbumConfig.rawName);
-    if (!rootNode) return null;
-    return rootNode.subfolders.get(selectedSubfolder) || null;
-  }, [selectedAlbum, selectedSubfolder, rootMap]);
-
-  // Aggregated Cross-Directory Latest Uploads (for Idle Stage)
-  const latestUploads = useMemo(() => {
-    const clipsNode = rootMap.get('Clips');
-    const shortsNode = rootMap.get('Shorts');
-    const photoNode = rootMap.get('Images');
-    const realTubeNode = rootMap.get('REALTube');
-
-    const getAllFiles = (node?: DirectoryNode): StageMediaItem[] => {
-      if (!node) return [];
-      let list: StageMediaItem[] = [...node.files];
-      for (const sub of node.subfolders.values()) {
-        list = list.concat(getAllFiles(sub));
-      }
-      return list;
-    };
-
-    const clipFiles = getAllFiles(clipsNode);
-    const shortFiles = getAllFiles(shortsNode);
-    const photoFiles = getAllFiles(photoNode);
-    const realTubeFiles = getAllFiles(realTubeNode);
-
-    const recentClips = clipFiles.slice(0, 8);
-    const recentShorts = shortFiles.slice(0, 8);
-    const recentPhotos = photoFiles.slice(0, 8);
-    const recentRealTube = realTubeFiles.slice(0, 4);
-
-    // Interleave to balance media types across directories
-    const combined: StageMediaItem[] = [];
-    const maxLen = Math.max(
-      recentClips.length,
-      recentShorts.length,
-      recentPhotos.length,
-      recentRealTube.length
-    );
-
-    for (let i = 0; i < maxLen; i++) {
-      if (recentPhotos[i]) combined.push(recentPhotos[i]);
-      if (recentClips[i]) combined.push(recentClips[i]);
-      if (recentShorts[i]) combined.push(recentShorts[i]);
-      if (recentRealTube[i]) combined.push(recentRealTube[i]);
+  // Helper to gather all files under a DirectoryNode recursively
+  const getAllFiles = useCallback((node?: DirectoryNode): StageMediaItem[] => {
+    if (!node) return [];
+    let list: StageMediaItem[] = [...node.files];
+    for (const sub of node.subfolders.values()) {
+      list = list.concat(getAllFiles(sub));
     }
+    return list;
+  }, []);
 
-    return combined.slice(0, 24);
-  }, [rootMap]);
-
-  // Offline items pool (App only)
-  const offlineItems = useMemo(() => {
-    if (!Capacitor.isNativePlatform() || !items) return [];
-    return items.filter((it) => isMediaAvailableOffline(it));
-  }, [items]);
-
-  // Active media assets list: loads selected subfolder files, or offline items, or latest uploads when idle
+  // Active media assets list for selected archive folder
   const activeMediaList = useMemo(() => {
-    if (selectedAlbum === 'OFFLINE') {
-      return offlineItems;
+    if (!selectedAlbum) return [];
+
+    const activeAlbumConfig = MAJOR_FOLDERS.find((h) => h.key === selectedAlbum);
+    if (!activeAlbumConfig) return [];
+
+    const rootNode = rootMap.get(activeAlbumConfig.rawName);
+    if (!rootNode) return [];
+
+    // If a specific subfolder is selected
+    if (selectedSubfolder && selectedSubfolder !== activeAlbumConfig.key && rootNode.subfolders.has(selectedSubfolder)) {
+      const subNode = rootNode.subfolders.get(selectedSubfolder);
+      return subNode ? getAllFiles(subNode) : [];
     }
-    if (selectedSubfolder && activeDirectoryNode) {
-      return activeDirectoryNode.files;
-    }
-    return latestUploads;
-  }, [selectedAlbum, offlineItems, selectedSubfolder, activeDirectoryNode, latestUploads]);
+
+    // Default: return all files in this core archive
+    return getAllFiles(rootNode);
+  }, [selectedAlbum, selectedSubfolder, rootMap, getAllFiles]);
 
   // Handler to open item from media grid
   const handleOpenItem = (item: StageMediaItem, _idx: number) => {
@@ -319,21 +194,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       if (!stats[key]) {
         stats[key] = { today: 0, yesterday: 0, total: 0 };
       }
-      stats[key].today = (stats[key].today || 0) + 1;
-      stats[key].total = (stats[key].total || 0) + 1;
+      stats[key].today += 1;
+      stats[key].total += 1;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
-    } catch {
-      // ignore storage quota errors
+    } catch (e) {
+      console.warn('Failed to update media views:', e);
     }
+
     const isPhoto =
       item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
 
     if (isPhoto) {
       const photoPool = activeMediaList.filter(
-        (f) => f.type === 'image' || isPhotoExtension(f.path || f.url || f.name || '')
+        (f) =>
+          f.type === 'image' || isPhotoExtension(f.path || f.url || f.name || '')
       );
       const photoIdx = photoPool.findIndex((p) => p.id === item.id || p.url === item.url);
-      onOpenPhoto(item, photoPool, photoIdx >= 0 ? photoIdx : 0);
+      onOpenPhoto(item, photoPool.length > 0 ? photoPool : [item], photoIdx >= 0 ? photoIdx : 0);
       return;
     }
 
@@ -369,57 +246,48 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     onOpenVideo(item, videoPool.length > 0 ? videoPool : [item]);
   };
 
-  // Subfolder select handler: selects subfolder to display its media assets
-  const handleSelectSubfolder = (albumKey: string, subfolderName: string) => {
-    setSelectedAlbum(albumKey);
-    setSelectedSubfolder(subfolderName);
-  };
+  // Drawer Folder selection handler
+  const handleSelectDrawerFolder = useCallback((folderId: 'clips' | 'shorts' | 'photography' | 'realtube') => {
+    const keyMap: Record<string, string> = {
+      clips: 'CLIPS',
+      shorts: 'SHORTS',
+      photography: 'PHOTOGRAPHY',
+      realtube: 'REALTUBE',
+    };
+    const targetKey = keyMap[folderId] || 'CLIPS';
+    setSelectedAlbum(targetKey);
+    setSelectedSubfolder(targetKey);
+    setVaultDrawerOpen(false);
+  }, []);
 
-  // Mobile subfolder select handler: selects subfolder & smoothly scrolls to Pane 2
-  const handleMobileSelectSubfolder = (albumKey: string, subfolderName: string) => {
-    handleSelectSubfolder(albumKey, subfolderName);
-    setActiveMobilePane(1);
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (outerTrackRef.current) {
-          outerTrackRef.current.scrollTo({
-            left: outerTrackRef.current.clientWidth,
-            behavior: 'smooth',
-          });
-        }
-      }, 50);
-    });
-  };
-
-  // Idle reset handler: returns to Home Overview (Latest Uploads)
-  const handleSelectIdle = () => {
+  // Idle reset handler: returns to Public Bollywood Overview
+  const handleSelectIdle = useCallback(() => {
     setSelectedAlbum(null);
     setSelectedSubfolder(null);
-    setActiveMobilePane(0);
-    if (outerTrackRef.current) {
-      outerTrackRef.current.scrollTo({
-        left: 0,
-        behavior: 'smooth',
-      });
-    }
-  };
+  }, []);
 
-  // Offline items view handler (App only)
-  const handleSelectOffline = () => {
-    setSelectedAlbum('OFFLINE');
-    setSelectedSubfolder('Available Offline');
-    setActiveMobilePane(1);
-    if (outerTrackRef.current) {
-      outerTrackRef.current.scrollTo({
-        left: outerTrackRef.current.clientWidth,
-        behavior: 'smooth',
-      });
-    }
-  };
+  // Android Native Hardware Back Button handler
+  useBackButton(
+    useCallback(() => {
+      // 1. If concealed terminal drawer is open, close it
+      if (isVaultDrawerOpen) {
+        setVaultDrawerOpen(false);
+        return true;
+      }
+
+      // 2. If viewing a core archive folder, return to Public Overview
+      if (selectedSubfolder !== null) {
+        handleSelectIdle();
+        return true;
+      }
+
+      return false;
+    }, [isVaultDrawerOpen, selectedSubfolder, handleSelectIdle])
+  );
 
   return (
     <div
-      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-row bg-[#020408] relative select-none font-['Roboto_Condensed'] font-sans text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-[#020408] relative select-none font-['Roboto_Condensed'] font-sans text-white"
       style={{
         isolation: 'isolate',
         background: 'radial-gradient(circle at 50% 35%, rgba(8, 20, 38, 0.6) 0%, #020408 85%)',
@@ -429,270 +297,92 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* Permanent Midnight Obsidian Backdrop Canvas */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
-      {/* ========================================================================= */}
-      {/* 1. DESKTOP VIEWPORT-LOCKED HOMEPAGE & GALLERY (md: and above)             */}
-      {/* ========================================================================= */}
-      <div className="hidden md:flex w-screen h-screen overflow-hidden flex-row bg-[#020408] relative select-none z-20">
-        {/* LEFT SIDEBAR (DESKTOP) */}
-        <aside
-          aria-label="Desktop Sidebar Navigation and Telemetry"
-          className="hidden md:flex relative w-[300px] lg:w-[320px] h-screen flex-col flex-shrink-0 z-20 border-r border-white/[0.03] select-none overflow-hidden"
-        >
-          {/* Top-Left Header: Brand & Sync Status */}
-          <div className="absolute top-7 left-10 lg:left-12 right-6 flex items-center justify-between z-30 pointer-events-auto">
-            <HeaderBrandLogo trackingClass="tracking-[0.25em]" />
-            <SyncStatusIndicator />
-          </div>
+      {/* Option A: Concealed Left Terminal Drawer */}
+      <VaultDrawer
+        isOpen={isVaultDrawerOpen}
+        onClose={() => setVaultDrawerOpen(false)}
+        onSelectFolder={handleSelectDrawerFolder}
+      />
 
-          {/* App-only Available Offline Option (Desktop) */}
-          {Capacitor.isNativePlatform() && (
-            <div className="absolute top-16 left-10 lg:left-12 right-6 z-30 pointer-events-auto">
-              <button
-                type="button"
-                onClick={handleSelectOffline}
-                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl backdrop-blur-xl border transition-all cursor-pointer ${
-                  selectedAlbum === 'OFFLINE'
-                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)]'
-                    : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="font-['Roboto_Condensed'] font-bold tracking-wider text-xs uppercase">
-                    Available Offline
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
-                  {offlineItems.length}
-                </span>
-              </button>
-            </div>
-          )}
-
-          {/* Middle-Left Folders (Exact Vertical Midpoint) */}
-          <SidebarAccordionNav
-            variant="desktop"
-            rootMap={rootMap}
-            selectedAlbum={selectedAlbum}
-            selectedSubfolder={selectedSubfolder}
-            openFolder={openFolder}
-            onToggleFolder={handleToggleFolder}
-            onSelectSubfolder={handleSelectSubfolder}
-            onSelectIdle={handleSelectIdle}
+      {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Sync Indicator */}
+      <header className="w-full px-5 sm:px-8 py-3.5 flex items-center justify-between border-b border-white/[0.06] bg-[#020408]/80 backdrop-blur-md z-30 shrink-0">
+        <div className="flex items-center gap-3">
+          <HeaderBrandLogo
+            trackingClass="tracking-[0.22em] sm:tracking-[0.25em]"
+            onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
           />
 
-          {/* Bottom-Left Telemetry Dock */}
-          <div className="absolute bottom-8 left-10 lg:left-12 w-[240px] flex flex-col justify-end pointer-events-auto z-20">
-            <SessionTelemetryGraph variant="dock" />
-          </div>
-        </aside>
+          {selectedSubfolder && (
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-[#38bdf8]/10 border border-[#38bdf8]/30">
+              CORE // {selectedSubfolder}
+            </span>
+          )}
+        </div>
 
-        {/* DESKTOP RIGHT CANVAS: BOLLYWOOD ARCHIVE SHOWCASE OR SUBFOLDER MEDIA GALLERY */}
-        {selectedSubfolder === null ? (
-          /* ===================================================================== */
-          /* DESKTOP HOME STAGE: BOLLYWOOD CELEBRITY HD SHOWCASE                   */
-          /* ===================================================================== */
-          <main
-            aria-label="Desktop Home Overview"
-            className="hidden md:flex flex-1 h-screen p-6 lg:p-8 flex-col min-w-0 overflow-hidden z-10"
-          >
-            <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
-          </main>
-        ) : (
-          /* ===================================================================== */
-          /* DESKTOP SUBFOLDER VIEW (SCROLLABLE MEDIA GALLERY)                     */
-          /* ===================================================================== */
-          <main
-            aria-label="Desktop Subfolder Gallery"
-            className="hidden md:flex flex-1 h-screen overflow-y-auto space-scrollbar p-8 lg:p-12 z-10 flex-col bg-transparent border-0"
-          >
-            <div className="flex items-center justify-between pb-3 mb-6 border-b border-white/8">
-              <span className="font-['Roboto_Condensed'] font-sans font-bold text-sm tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+        <div className="flex items-center gap-3">
+          {selectedSubfolder && (
+            <button
+              type="button"
+              onClick={handleSelectIdle}
+              className="text-xs font-mono tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <span>RETURN</span>
+            </button>
+          )}
+          <SyncStatusIndicator />
+        </div>
+      </header>
+
+      {/* MAIN VIEWPORT STAGE */}
+      {selectedSubfolder === null ? (
+        /* ===================================================================== */
+        /* DEFAULT FACADE: FULL-STAGE BOLLYWOOD WALLPAPERS & NEWS FEED           */
+        /* ===================================================================== */
+        <main
+          aria-label="Bollywood Celebrity Archive Overview"
+          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-hidden p-4 sm:p-6 lg:p-8 flex flex-col min-w-0 z-10"
+        >
+          <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
+        </main>
+      ) : (
+        /* ===================================================================== */
+        /* CORE ARCHIVE VIEW: FULL-WIDTH SCROLLABLE MEDIA GALLERY                */
+        /* ===================================================================== */
+        <main
+          aria-label="Core Archive Gallery"
+          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent"
+        >
+          <div className="flex items-center justify-between pb-3 mb-6 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="font-['Roboto_Condensed'] font-black text-base sm:text-lg tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
                 {selectedSubfolder}
               </span>
-              <button
-                type="button"
-                onClick={handleSelectIdle}
-                className="font-['Roboto_Condensed'] font-sans text-xs tracking-wider uppercase text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0 outline-none flex items-center gap-1.5"
-              >
-                ← RETURN TO OVERVIEW
-              </button>
+              <span className="text-xs font-mono text-neutral-400">
+                ({activeMediaList.length} files)
+              </span>
             </div>
 
-            {/* Subfolder Media Grid */}
-            {activeMediaList.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[50vh] text-white/60">
-                <CheckCircle2 className="w-12 h-12 text-emerald-400/50 mb-3" />
-                <p className="text-white/90 text-sm font-semibold tracking-wider uppercase mb-1">No Offline Files Yet</p>
-                <p className="text-white/50 text-xs max-w-sm">Play any video or short in the app to automatically save it for offline playback.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
-                {activeMediaList.map((item, idx) => {
-                  const isPhoto =
-                    item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
-
-                  const imageSrc =
-                    (item as any).thumbnail ||
-                    (item as any).src ||
-                    item.url ||
-                    (item as any).image ||
-                    item.path ||
-                    '';
-                  const thumb = isPhoto
-                    ? getMediaUrl(imageSrc) || imageSrc
-                    : getImageUrl(item) ||
-                      getThumbnailUrl(item) ||
-                      resolveStaticVideoThumbnail(item) ||
-                      getMediaUrl(imageSrc) ||
-                      imageSrc;
-
-                  return (
-                    <div
-                      key={item.id || item.url || idx}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenItem(item, idx);
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                      className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
-                    >
-                      <SmartThumbnail
-                        src={thumb}
-                        alt=""
-                        aspectClass="aspect-[4/5]"
-                        containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      >
-                        {!isPhoto && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                            <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                              <Play className="w-4 h-4 fill-current ml-0.5" />
-                            </div>
-                          </div>
-                        )}
-                        <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
-                      </SmartThumbnail>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </main>
-        )}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 2. MOBILE DUAL-PANE HORIZONTAL SNAP & SWIPE VIEW (< md)                   */}
-      {/* ========================================================================= */}
-      <div
-        ref={outerTrackRef}
-        onScroll={handleMobileTrackScroll}
-        className="md:hidden w-screen h-[100dvh] max-h-[100dvh] flex flex-row overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar relative select-none z-20"
-        style={{
-          scrollSnapType: 'x mandatory',
-        }}
-      >
-        {/* SCREEN 1 (100vw): HOME / FOLDERS & FULL-WIDTH BOTTOM GRAPH */}
-        <section
-          aria-label="Mobile Navigation and Telemetry"
-          className="relative w-screen h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#020408] flex-none snap-start shrink-0 z-30 pointer-events-auto"
-        >
-          {/* Top Mobile Bar: Brand & Sync Status */}
-          <div className="absolute top-5 inset-x-0 px-6 flex items-center justify-between z-30 pointer-events-auto">
-            <HeaderBrandLogo trackingClass="tracking-[0.22em]" />
-            <SyncStatusIndicator />
+            <button
+              type="button"
+              onClick={handleSelectIdle}
+              className="font-['Roboto_Condensed'] text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              ← RETURN TO OVERVIEW
+            </button>
           </div>
 
-          {/* App-only Available Offline Option (Mobile Screen 1) */}
-          {Capacitor.isNativePlatform() && (
-            <div className="absolute top-14 inset-x-0 px-6 z-30 pointer-events-auto">
-              <button
-                type="button"
-                onClick={handleSelectOffline}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
-                  selectedAlbum === 'OFFLINE'
-                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)]'
-                    : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="font-['Roboto_Condensed'] font-bold tracking-wider text-xs uppercase">
-                    Available Offline
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
-                  {offlineItems.length} files
-                </span>
-              </button>
-            </div>
-          )}
-
-          {/* Middle-Left Folders: Exact Vertical Midpoint top calc(50dvh - 100px) */}
-          <SidebarAccordionNav
-            variant="mobile"
-            rootMap={rootMap}
-            selectedAlbum={selectedAlbum}
-            selectedSubfolder={selectedSubfolder}
-            openFolder={openFolder}
-            onToggleFolder={handleToggleFolder}
-            onSelectSubfolder={handleMobileSelectSubfolder}
-            onSelectIdle={handleSelectIdle}
-          />
-
-          {/* Full-Width Bottom Graph Dock */}
-          <div className="absolute bottom-4 left-0 right-0 px-5 flex flex-col justify-end flex-shrink-0 z-10 pointer-events-auto">
-            <SessionTelemetryGraph variant="mobile" />
-          </div>
-        </section>
-
-        {/* SCREEN 2 (100vw): VERTICAL UP-DOWN SCROLLABLE MEDIA GRID WITH SWIPE-BACK */}
-        <main
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          aria-label="Mobile Media Gallery"
-          className={`flex-none w-screen h-[100dvh] max-h-[100dvh] snap-start flex flex-col overflow-y-auto overflow-x-hidden p-4 relative shrink-0 space-scrollbar bg-transparent border-0 transition-opacity duration-200 ${
-            activeMobilePane === 1 ? 'pointer-events-auto z-30 opacity-100' : 'pointer-events-none z-10 opacity-0'
-          }`}
-          style={{
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          {/* Top Bar: Clean bare arrow icon button (←) - Hidden on Native App since hardware back button is used */}
-          {!Capacitor.isNativePlatform() && (
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/8 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  if (outerTrackRef.current) {
-                    outerTrackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-                  }
-                }}
-                aria-label="Back to folders"
-                className="text-slate-400 hover:text-white p-1 -ml-1 cursor-pointer bg-transparent border-0 outline-none transition-colors flex items-center justify-center"
-              >
-                <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
-              </button>
-              {selectedSubfolder && (
-                <span className="font-['Roboto_Condensed'] font-sans text-xs font-bold text-[#00f0ff] uppercase tracking-wider truncate max-w-[200px]">
-                  {selectedSubfolder}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Media Grid: Takes full 100vw width */}
           {activeMediaList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center my-auto min-h-[50vh] text-white/60">
-              <CheckCircle2 className="w-12 h-12 text-emerald-400/50 mb-3" />
-              <p className="text-white/90 text-sm font-semibold tracking-wider uppercase mb-1">No Offline Files Yet</p>
-              <p className="text-white/50 text-xs max-w-xs">Play any video or short in the app to automatically save it for offline playback.</p>
+            <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[40vh] text-white/60">
+              <p className="text-white/80 text-sm font-semibold tracking-wider uppercase mb-1">
+                No Media Items in this Collection
+              </p>
+              <p className="text-white/40 text-xs">
+                Tap the top SARWARCYOU logo to access other core archives.
+              </p>
             </div>
           ) : (
-            <div className="w-full grid grid-cols-2 gap-3.5 pb-20">
+            <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20">
               {activeMediaList.map((item, idx) => {
                 const isPhoto =
                   item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
@@ -722,7 +412,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       handleOpenItem(item, idx);
                     }}
                     style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
+                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 hover:border-[#38bdf8]/40 relative shadow-lg group cursor-pointer transition-all duration-300 hover:scale-[1.02] select-none"
                   >
                     <SmartThumbnail
                       src={thumb}
@@ -746,7 +436,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           )}
         </main>
-      </div>
+      )}
     </div>
   );
 };
