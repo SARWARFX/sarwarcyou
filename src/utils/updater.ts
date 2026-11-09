@@ -1,5 +1,34 @@
 import { App } from '@capacitor/app';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+export interface AppInstallerPlugin {
+  canRequestPackageInstalls(): Promise<{ value: boolean }>;
+  openInstallSettings(): Promise<void>;
+  downloadAndInstall(options: { url: string; fileName?: string }): Promise<{ success: boolean }>;
+  addListener(
+    eventName: 'downloadProgress',
+    listenerFunc: (progress: { percent: number; bytesReceived: number; totalBytes: number }) => void
+  ): Promise<any>;
+  addListener(
+    eventName: 'downloadComplete',
+    listenerFunc: () => void
+  ): Promise<any>;
+  addListener(
+    eventName: 'downloadFailed',
+    listenerFunc: (err: { error: string }) => void
+  ): Promise<any>;
+  removeAllListeners(): Promise<void>;
+}
+
+export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');
+
+export function formatBytes(bytes: number): string {
+  if (bytes <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 export interface UpdateCheckResult {
   hasUpdate: boolean;
@@ -118,13 +147,17 @@ export async function checkAppUpdate(): Promise<UpdateCheckResult | null> {
 }
 
 /**
- * Trigger installation or download of the new APK (Native Android only)
+ * Trigger in-app download and installation of the new APK (Native Android only)
  */
-export function installAppUpdate(apkUrl: string): void {
+export async function installAppUpdate(apkUrl: string): Promise<void> {
   if (!Capacitor.isNativePlatform()) {
     console.log('[Updater] Install bypassed: running on web browser.');
     return;
   }
-  // Open in Android system browser/DownloadManager to invoke native package installer
-  window.open(apkUrl, '_system');
+  try {
+    await AppInstaller.downloadAndInstall({ url: apkUrl });
+  } catch (err) {
+    console.warn('[Updater] AppInstaller native method failed, falling back to system browser:', err);
+    window.open(apkUrl, '_system');
+  }
 }
