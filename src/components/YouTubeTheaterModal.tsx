@@ -1167,6 +1167,23 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     isVideo &&
     (isVideoExtension(cleanStreamUrl) || cleanStreamUrl.includes('media.sarwar.cyou') || cleanStreamUrl.includes('huggingface.co'));
 
+  const iframeSrc = useMemo(() => {
+    if (!streamUrl) return '';
+    let url = streamUrl;
+    if (url.includes('youtube.com/watch')) {
+      const match = url.match(/[?&]v=([^&]+)/);
+      if (match) url = `https://www.youtube-nocookie.com/embed/${match[1]}`;
+    } else if (url.includes('youtu.be/')) {
+      const id = url.split('youtu.be/')[1].split(/[?#]/)[0];
+      if (id) url = `https://www.youtube-nocookie.com/embed/${id}`;
+    }
+    const sep = url.includes('?') ? '&' : '?';
+    if (!url.includes('autoplay=')) {
+      url = `${url}${sep}autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+    }
+    return url;
+  }, [streamUrl]);
+
   // Video Streaming Initialization and 15-Second Stall Detector
   useEffect(() => {
     if (!isOpen || !isVideo) return;
@@ -1244,8 +1261,18 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
-      <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-none">
-        {/* Right: Actions (Zoom, Download, Prominent View Full Screen - NO Close Button) */}
+      <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-none px-3 py-2">
+        {/* Left: Close / Return to Stage */}
+        <button
+          onClick={onClose}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+          title="Close Theater"
+        >
+          <ChevronDown className="w-4 h-4" />
+          <span className="hidden sm:inline">CLOSE</span>
+        </button>
+
+        {/* Right: Actions (Zoom, Download, Prominent View Full Screen) */}
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-20">
           {!isVideo && (
             <button
@@ -1893,9 +1920,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                   </div>
                 ) : (
                   <iframe
-                    src={`${streamUrl}?autoplay=1`}
+                    src={iframeSrc}
                     className="w-full h-full border-0 relative z-10"
-                    allow="autoplay; encrypted-media; fullscreen"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                     allowFullScreen
                     title={cleanTitle}
                   />

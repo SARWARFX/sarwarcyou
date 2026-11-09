@@ -24,7 +24,7 @@ export interface VaultDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectFolder: (
-    folderId: 'clips' | 'shorts' | 'photography' | 'realtube',
+    folderId: 'clips' | 'shorts' | 'photography' | 'realtube' | 'youtube',
     subfolderName?: string
   ) => void;
   rootMap?: Map<string, DirectoryNode>;
@@ -36,12 +36,14 @@ interface DrawerSubfolder {
   id: string;
   name: string;
   itemCount?: number;
+  tag?: string;
 }
 
 interface CategoryConfig {
-  id: 'clips' | 'shorts' | 'photography' | 'realtube';
+  id: 'clips' | 'shorts' | 'photography' | 'realtube' | 'youtube';
   name: string;
   rawName: string;
+  tag?: string;
 }
 
 const CATEGORIES: CategoryConfig[] = [
@@ -49,6 +51,7 @@ const CATEGORIES: CategoryConfig[] = [
   { id: 'shorts', name: 'SHORTS', rawName: 'Shorts' },
   { id: 'photography', name: 'PHOTOGRAPHY', rawName: 'Images' },
   { id: 'realtube', name: 'REALTUBE', rawName: 'REALTube' },
+  { id: 'youtube', name: 'YOUTUBE', rawName: 'YouTube', tag: '14 TRACKS' },
 ];
 
 function extractFallbackSubfolders(rawName: string): DrawerSubfolder[] {
@@ -107,6 +110,13 @@ function extractFallbackSubfolders(rawName: string): DrawerSubfolder[] {
     return [
       { id: 'REALTube Shorts', name: 'REALTube Shorts', itemCount: 12 },
       { id: 'Archive Feeds', name: 'Archive Feeds', itemCount: 6 },
+    ];
+  }
+
+  if (rawName === 'YouTube') {
+    return [
+      { id: 'FAVORITE TRACKS', name: 'FAVORITE TRACKS', itemCount: 14, tag: '14' },
+      { id: 'HD REMASTERS', name: 'HD REMASTERS', itemCount: 14, tag: '8K/4K' },
     ];
   }
 
@@ -354,7 +364,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
   }, [rootMap]);
 
   const navigateToSubfolder = (
-    folderId: 'clips' | 'shorts' | 'photography' | 'realtube',
+    folderId: 'clips' | 'shorts' | 'photography' | 'realtube' | 'youtube',
     subfolderName: string
   ) => {
     hapticMedium();
@@ -398,13 +408,31 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                   className={`folder-btn ${isExpanded ? 'expanded' : ''}`}
                   onClick={() => {
                     hapticMedium();
-                    setExpandedFolder(isExpanded ? null : folder.id);
+                    if (folder.id === 'youtube') {
+                      navigateToSubfolder('youtube', 'FAVORITE TRACKS');
+                    } else {
+                      setExpandedFolder(isExpanded ? null : folder.id);
+                    }
                   }}
                 >
                   <span className="folder-label">
-                    <span className={`folder-caret ${isExpanded ? 'open' : ''}`}>▸</span>
+                    <span
+                      className={`folder-caret ${isExpanded ? 'open' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        hapticMedium();
+                        setExpandedFolder(isExpanded ? null : folder.id);
+                      }}
+                    >
+                      ▸
+                    </span>
                     <span>{folder.name}</span>
                   </span>
+                  {folder.tag && (
+                    <span className="folder-badge font-mono text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] text-neutral-400">
+                      {folder.tag}
+                    </span>
+                  )}
                 </button>
 
                 {isExpanded && (
@@ -418,10 +446,15 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                         <button
                           key={sub.id}
                           type="button"
-                          className="subfolder-btn"
+                          className="subfolder-btn flex items-center justify-between w-full"
                           onClick={() => navigateToSubfolder(folder.id, sub.name)}
                         >
                           <span className="sub-title">{sub.name}</span>
+                          {sub.tag && (
+                            <span className="sub-tag font-mono text-[9px] text-neutral-400">
+                              {sub.tag}
+                            </span>
+                          )}
                         </button>
                       ))
                     )}
