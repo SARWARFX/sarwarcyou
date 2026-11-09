@@ -43,9 +43,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 }) => {
   const [activeIdx, setActiveIdx] = useState<number>(propCurrentIndex);
   const [scale, setScale] = useState<number>(1);
+  const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+
   const scaleRef = useRef<number>(1);
   const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
+  const lastGestureTimeRef = useRef<number>(0);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isDownloading, setIsDownloading] = useState(false);
@@ -59,34 +62,39 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const imgRef = useRef<HTMLImageElement | null>(null);
   const baseDimensionsRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
 
-  // Desktop Mouse Drag & Pan State
-  const isDraggingRef = useRef<boolean>(false);
-  const hasDraggedRef = useRef<boolean>(false);
-  const lastGestureTimeRef = useRef<number>(0);
-
-  // Dedicated isolated Pinch & Double-Tap Engine refs (Zero swipe conflict)
-  const transform = useRef({ scale: 1, x: 0, y: 0 });
-
-  const applyTransform = useCallback(() => {
-    if (imgRef.current) {
-      const { scale: currentScale, x, y } = transform.current;
-      imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0px) scale(${currentScale})`;
-    }
-  }, []);
-
   const resetZoom = useCallback(() => {
-    transform.current = { scale: 1, x: 0, y: 0 };
     scaleRef.current = 1;
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
+    setPos({ x: 0, y: 0 });
+    setIsTransitioning(true);
     if (imgRef.current) {
       imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
       imgRef.current.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
       setTimeout(() => {
         if (imgRef.current) imgRef.current.style.transition = 'none';
+        setIsTransitioning(false);
       }, 250);
     }
   }, []);
+
+  const goToNext = useCallback(() => {
+    if (items && items.length > 0 && activeIdx < items.length - 1) {
+      const next = activeIdx + 1;
+      setActiveIdx(next);
+      _onIndexChange?.(next);
+      resetZoom();
+    }
+  }, [items, activeIdx, _onIndexChange, resetZoom]);
+
+  const goToPrev = useCallback(() => {
+    if (items && items.length > 0 && activeIdx > 0) {
+      const prev = activeIdx - 1;
+      setActiveIdx(prev);
+      _onIndexChange?.(prev);
+      resetZoom();
+    }
+  }, [items, activeIdx, _onIndexChange, resetZoom]);
 
   useEffect(() => {
     return () => {
@@ -101,8 +109,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     scaleRef.current = 1;
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
-    isDraggingRef.current = false;
-    hasDraggedRef.current = false;
+    setPos({ x: 0, y: 0 });
   }
 
   // Determine active media item
@@ -119,14 +126,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Android Native Hardware Back Button handler
   useBackButton(
     useCallback(() => {
-      if (scale > 1.05) {
+      if (scaleRef.current > 1.05) {
         resetZoom();
         return true;
       }
       unlockOrientation();
       onClose();
       return true;
-    }, [scale, resetZoom, onClose]),
+    }, [resetZoom, onClose]),
     isOpen
   );
 
@@ -139,6 +146,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === 'ArrowRight') {
+        goToNext();
+      } else if (e.key === 'ArrowLeft') {
+        goToPrev();
       }
     };
 
@@ -146,7 +157,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, goToNext, goToPrev]);
 
   // Smart Adjacent Pre-Fetching: pre-decode i - 1 and i + 1 images in memory
   useEffect(() => {
@@ -171,9 +182,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     });
   }, [isOpen, activeIdx, items]);
 
-  // -------------------------------------------------------------
   // Dynamic Pan Limits & Screen Coverage Math
-  // -------------------------------------------------------------
   const calculatePanLimits = useCallback((currentScale: number) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -194,7 +203,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const scaledW = baseW * currentScale;
     const scaledH = baseH * currentScale;
 
-    // Generous, free pan limits so every detail, corner, and edge can be moved freely across the screen
+    // Free pan limits to inspect all corners smoothly
     const maxPanX = Math.max(
       Math.max(0, (scaledW - vw) / 2) + vw * 0.45,
       scaledW * 0.5,
@@ -222,7 +231,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
         const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
         positionRef.current = { x: nextX, y: nextY };
-        applyTransform();
+        setPos({ x: nextX, y: nextY });
+        if (imgRef.current) {
+          imgRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${scaleRef.current})`;
+        }
       }
     };
     window.addEventListener('resize', handleResize);
@@ -239,16 +251,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   }, [scale, activeIdx]);
 
-  // -------------------------------------------------------------
-  // Dedicated Native Non-Passive Touch Engine & Gesture Handlers
-  // -------------------------------------------------------------
-  useEffect(() => {
-    resetZoom();
-  }, [activeIdx, activeUrl, resetZoom]);
-
-  // -------------------------------------------------------------
-  // Dedicated Isolated Pinch-to-Zoom & Double-Tap Engine (No Swipe Conflict)
-  // -------------------------------------------------------------
   const isTouchOnImage = useCallback((clientX: number, clientY: number) => {
     if (!imgRef.current) return false;
     const rect = imgRef.current.getBoundingClientRect();
@@ -260,65 +262,58 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     );
   }, []);
 
-  // -------------------------------------------------------------
-  // Dedicated Hardware-Accelerated Multi-Touch & Gesture Engine
-  // (Bound to stage container to cover full viewport + letterbox)
-  // -------------------------------------------------------------
+  // Hardware-Accelerated Multi-Touch & Gesture Engine
   useEffect(() => {
     const container = imageContainerRef.current;
     const img = imgRef.current;
     if (!container || !img || type !== 'image') return;
 
-    let currentScale = transform.current.scale || 1;
-    let posX = transform.current.x || 0;
-    let posY = transform.current.y || 0;
-
-    if (scaleRef.current === 1) {
-      currentScale = 1;
-      posX = 0;
-      posY = 0;
-    }
+    let currentScale = scaleRef.current;
+    let posX = positionRef.current.x;
+    let posY = positionRef.current.y;
 
     const applyTransform = (smooth = false) => {
       if (!img) return;
       img.style.transition = smooth ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
       img.style.transform = `translate3d(${posX}px, ${posY}px, 0px) scale(${currentScale})`;
-      img.style.willChange = 'transform';
-      img.style.transformOrigin = 'center center';
-      transform.current = { scale: currentScale, x: posX, y: posY };
       scaleRef.current = currentScale;
       positionRef.current = { x: posX, y: posY };
+    };
+
+    const commitTransform = (smooth = false) => {
+      applyTransform(smooth);
+      setScale(currentScale);
+      setPos({ x: posX, y: posY });
     };
 
     const handleDoubleTap = (clientX: number, clientY: number) => {
       hapticMedium();
       lastGestureTimeRef.current = Date.now();
-      if (singleTapTimerRef.current) {
-        clearTimeout(singleTapTimerRef.current);
-        singleTapTimerRef.current = null;
-      }
 
       if (currentScale > 1.05) {
         currentScale = 1;
         posX = 0;
         posY = 0;
-        applyTransform(true);
-        setScale(1);
+        commitTransform(true);
       } else {
-        currentScale = 2.5;
+        const targetScale = 2.5;
         const rect = container.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
-        posX = (cx - clientX) * 1.5;
-        posY = (cy - clientY) * 1.5;
-        applyTransform(true);
-        setScale(2.5);
+        let nextX = (cx - clientX) * (targetScale - 1);
+        let nextY = (cy - clientY) * (targetScale - 1);
+
+        const { maxPanX, maxPanY } = calculatePanLimits(targetScale);
+        nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
+        nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
+
+        currentScale = targetScale;
+        posX = nextX;
+        posY = nextY;
+        commitTransform(true);
       }
     };
 
-    // -------------------------------------------------------------
-    // Touch Events: 2-Finger Pinch, Double-Tap, Pan, and 1x Swipe
-    // -------------------------------------------------------------
     let lastTapTime = 0;
     let lastTapPos = { x: 0, y: 0 };
     let startTouchX = 0;
@@ -333,10 +328,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     let initialPinchMidY = 0;
     let initialPinchPosX = 0;
     let initialPinchPosY = 0;
-    let touchMoved = false;
+    let swipeDeltaX = 0;
 
     const onTouchStart = (e: TouchEvent) => {
-      touchMoved = false;
+      swipeDeltaX = 0;
 
       if (e.touches.length === 1) {
         const touch = e.touches[0];
@@ -344,8 +339,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const timeDiff = now - lastTapTime;
         const dist = Math.hypot(touch.clientX - lastTapPos.x, touch.clientY - lastTapPos.y);
 
-        // Double-tap detection (< 340ms and < 35px)
-        if (timeDiff > 40 && timeDiff < 340 && dist < 35) {
+        // Double-tap detection (< 320ms and < 35px)
+        if (timeDiff > 40 && timeDiff < 320 && dist < 35) {
           e.preventDefault();
           handleDoubleTap(touch.clientX, touch.clientY);
           lastTapTime = 0;
@@ -359,17 +354,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
         if (currentScale > 1.05) {
           isPanning = true;
-          startPanX = touch.clientX - posX;
-          startPanY = touch.clientY - posY;
+          startPanX = posX;
+          startPanY = posY;
         }
       } else if (e.touches.length === 2) {
+        e.preventDefault();
         isPinching = true;
         isPanning = false;
         lastGestureTimeRef.current = Date.now();
-        if (singleTapTimerRef.current) {
-          clearTimeout(singleTapTimerRef.current);
-          singleTapTimerRef.current = null;
-        }
+
         const t0 = e.touches[0];
         const t1 = e.touches[1];
         initialPinchDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
@@ -384,7 +377,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && isPinching && initialPinchDist > 0) {
         e.preventDefault();
-        touchMoved = true;
         lastGestureTimeRef.current = Date.now();
 
         const t0 = e.touches[0];
@@ -394,7 +386,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const currentMidY = (t0.clientY + t1.clientY) / 2;
 
         const scaleRatio = currentDist / initialPinchDist;
-        currentScale = Math.min(Math.max(initialPinchScale * scaleRatio, 0.75), 4.5);
+        currentScale = Math.min(Math.max(initialPinchScale * scaleRatio, 0.75), 5.0);
 
         const deltaX = currentMidX - initialPinchMidX;
         const deltaY = currentMidY - initialPinchMidY;
@@ -402,25 +394,33 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         posY = initialPinchPosY + deltaY;
 
         applyTransform(false);
-      } else if (e.touches.length === 1) {
+      } else if (e.touches.length === 1 && !isPinching) {
         const touch = e.touches[0];
         const dx = touch.clientX - startTouchX;
         const dy = touch.clientY - startTouchY;
-
-        if (Math.hypot(dx, dy) > 8) {
-          touchMoved = true;
-          lastGestureTimeRef.current = Date.now();
-        }
+        swipeDeltaX = dx;
 
         if (currentScale > 1.05 && isPanning) {
           e.preventDefault();
-          posX = touch.clientX - startPanX;
-          posY = touch.clientY - startPanY;
+          lastGestureTimeRef.current = Date.now();
+          const { maxPanX, maxPanY } = calculatePanLimits(currentScale);
+          let nextX = startPanX + dx;
+          let nextY = startPanY + dy;
+
+          // Elastic boundary resistance
+          if (nextX > maxPanX) nextX = maxPanX + (nextX - maxPanX) * 0.25;
+          if (nextX < -maxPanX) nextX = -maxPanX + (nextX + maxPanX) * 0.25;
+          if (nextY > maxPanY) nextY = maxPanY + (nextY - maxPanY) * 0.25;
+          if (nextY < -maxPanY) nextY = -maxPanY + (nextY + maxPanY) * 0.25;
+
+          posX = nextX;
+          posY = nextY;
           applyTransform(false);
         } else if (currentScale <= 1.05) {
           if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
             e.preventDefault();
-            posX = dx * 0.4;
+            // Elastic horizontal swipe preview
+            posX = dx * 0.38;
             posY = 0;
             applyTransform(false);
           }
@@ -436,18 +436,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         initialPinchDist = 0;
         lastGestureTimeRef.current = Date.now();
 
-        if (currentScale < 1) {
+        if (currentScale < 1.05) {
           currentScale = 1;
           posX = 0;
           posY = 0;
-          applyTransform(true);
-          setScale(1);
-        } else if (currentScale > 4) {
-          currentScale = 4;
-          applyTransform(true);
-          setScale(4);
+          commitTransform(true);
         } else {
-          setScale(currentScale);
+          if (currentScale > 4.5) currentScale = 4.5;
+          const { maxPanX, maxPanY } = calculatePanLimits(currentScale);
+          posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
+          posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
+          commitTransform(true);
         }
         return;
       }
@@ -455,29 +454,28 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       if (remainingTouches === 0) {
         isPanning = false;
 
-        // At 1x reset position if moved slightly
-        if (currentScale <= 1.05 && touchMoved) {
-          if (posX !== 0 || posY !== 0) {
+        if (currentScale > 1.05) {
+          // Settle zoomed image inside pan bounds
+          const { maxPanX, maxPanY } = calculatePanLimits(currentScale);
+          posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
+          posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
+          commitTransform(true);
+        } else {
+          // Check 1x horizontal swipe navigation
+          if (swipeDeltaX < -55 && hasItemList && activeIdx < (items?.length || 0) - 1) {
+            goToNext();
+          } else if (swipeDeltaX > 55 && hasItemList && activeIdx > 0) {
+            goToPrev();
+          } else {
+            // Snap back to center
             posX = 0;
             posY = 0;
-            currentScale = 1;
-            applyTransform(true);
-          }
-        }
-
-        // Single tap
-        if (!touchMoved && Date.now() - lastTapTime < 250) {
-          if (singleTapTimerRef.current) {
-            clearTimeout(singleTapTimerRef.current);
-            singleTapTimerRef.current = null;
+            commitTransform(true);
           }
         }
       }
     };
 
-    // -------------------------------------------------------------
-    // Desktop Mouse & Trackpad Gestures (DoubleClick, Pan, Wheel Zoom)
-    // -------------------------------------------------------------
     const onDoubleClick = (e: MouseEvent) => {
       e.preventDefault();
       handleDoubleTap(e.clientX, e.clientY);
@@ -488,7 +486,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     let mouseStartY = 0;
 
     const onMouseDown = (e: MouseEvent) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || currentScale <= 1.05) return;
       isMouseDown = true;
       mouseStartX = e.clientX - posX;
       mouseStartY = e.clientY - posY;
@@ -498,60 +496,57 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       if (!isMouseDown || currentScale <= 1.05) return;
       e.preventDefault();
       lastGestureTimeRef.current = Date.now();
-      posX = e.clientX - mouseStartX;
-      posY = e.clientY - mouseStartY;
+      const { maxPanX, maxPanY } = calculatePanLimits(currentScale);
+      let nextX = e.clientX - mouseStartX;
+      let nextY = e.clientY - mouseStartY;
+      nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
+      nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
+      posX = nextX;
+      posY = nextY;
       applyTransform(false);
     };
 
     const onMouseUp = () => {
-      isMouseDown = false;
+      if (isMouseDown) {
+        isMouseDown = false;
+        commitTransform(false);
+      }
     };
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       lastGestureTimeRef.current = Date.now();
 
-      const rect = container.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-
+      let targetScale = currentScale;
       if (e.ctrlKey) {
-        // Trackpad 2-finger pinch zoom
-        const zoomDelta = -e.deltaY * 0.012;
-        const factor = Math.exp(zoomDelta);
-        const targetScale = Math.min(Math.max(currentScale * factor, 1), 5);
-
-        if (targetScale <= 1.02) {
-          currentScale = 1;
-          posX = 0;
-          posY = 0;
-        } else {
-          const scaleChange = targetScale / currentScale;
-          posX = e.clientX - (e.clientX - posX) * scaleChange;
-          posY = e.clientY - (e.clientY - posY) * scaleChange;
-          currentScale = targetScale;
-        }
-        applyTransform(false);
-        setScale(currentScale);
+        // Trackpad pinch zoom
+        const factor = Math.exp(-e.deltaY * 0.012);
+        targetScale = Math.min(Math.max(currentScale * factor, 1), 5);
       } else {
         // Mouse wheel scroll zoom
         const factor = e.deltaY < 0 ? 1.25 : 0.8;
-        const targetScale = Math.min(Math.max(currentScale * factor, 1), 5);
-        if (targetScale <= 1.02) {
-          currentScale = 1;
-          posX = 0;
-          posY = 0;
-        } else {
-          posX = (cx - e.clientX) * (targetScale - 1);
-          posY = (cy - e.clientY) * (targetScale - 1);
-          currentScale = targetScale;
-        }
-        applyTransform(true);
-        setScale(currentScale);
+        targetScale = Math.min(Math.max(currentScale * factor, 1), 5);
+      }
+
+      if (targetScale <= 1.02) {
+        currentScale = 1;
+        posX = 0;
+        posY = 0;
+        commitTransform(true);
+      } else {
+        const scaleChange = targetScale / currentScale;
+        let nextX = e.clientX - (e.clientX - posX) * scaleChange;
+        let nextY = e.clientY - (e.clientY - posY) * scaleChange;
+        const { maxPanX, maxPanY } = calculatePanLimits(targetScale);
+        nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
+        nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
+        currentScale = targetScale;
+        posX = nextX;
+        posY = nextY;
+        commitTransform(true);
       }
     };
 
-    // Attach native event listeners to container (non-passive for touch & wheel so preventDefault works!)
     container.addEventListener('touchstart', onTouchStart, { passive: false });
     container.addEventListener('touchmove', onTouchMove, { passive: false });
     container.addEventListener('touchend', onTouchEnd);
@@ -575,7 +570,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       window.removeEventListener('mouseup', onMouseUp);
       container.removeEventListener('wheel', onWheel);
     };
-  }, [activeUrl, activeIdx, type]);
+  }, [activeUrl, activeIdx, type, calculatePanLimits, goToNext, goToPrev, hasItemList, items?.length]);
 
   const handleDownload = useCallback(async () => {
     if (!activeUrl || isDownloading) return;
@@ -634,6 +629,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }}
       onClick={(e) => {
         if (Date.now() - lastGestureTimeRef.current < 400) return;
+        if (scaleRef.current > 1.05) {
+          resetZoom();
+          return;
+        }
         if (type === 'image' && !isTouchOnImage(e.clientX, e.clientY)) {
           if (singleTapTimerRef.current) {
             clearTimeout(singleTapTimerRef.current);
@@ -673,13 +672,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           style={{
             transformOrigin: 'center center',
             willChange: 'transform',
+            transform: `translate3d(${pos.x}px, ${pos.y}px, 0px) scale(${scale})`,
+            transition: isTransitioning ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
             touchAction: 'none',
             userSelect: 'none',
             WebkitUserSelect: 'none',
             WebkitTouchCallout: 'none',
             overscrollBehavior: 'none',
           }}
-          className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] animate-fade-in"
+          className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]"
           draggable={false}
         />
       </div>
