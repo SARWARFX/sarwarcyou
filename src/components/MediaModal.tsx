@@ -707,9 +707,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         ref={mediaBoxRef}
         role="dialog"
         aria-modal="true"
-        className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-fade-in cursor-pointer"
+        className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-fade-in cursor-pointer"
         style={{
           touchAction: 'none',
+          WebkitBackdropFilter: 'blur(20px)',
+          backdropFilter: 'blur(20px)',
+          backgroundColor: 'rgba(2, 4, 8, 0.65)',
         }}
         onClick={handleStageClick}
         onDoubleClick={handleStageDoubleClick}
@@ -732,19 +735,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             overscrollBehavior: 'none',
           }}
         >
-          {/* Ambient Blurred Background for Rich Cinematic Depth Outside Image */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0 flex items-center justify-center"
-          >
-            <img
-              src={getMediaUrl(secureUrl)}
-              alt=""
-              className="w-full h-full object-cover scale-125 filter blur-[40px] sm:blur-[60px] opacity-40 brightness-75 transition-opacity duration-300 pointer-events-none"
-            />
-            <div className="absolute inset-0 bg-[#020408]/50 backdrop-blur-md pointer-events-none" />
-          </div>
-
           <img
             key={currentItem?.id || activeUrl || activeIdx}
             ref={imgRef}
@@ -801,9 +791,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col md:flex-row items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-fade-in"
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-fade-in"
       style={{
         touchAction: 'none',
+        WebkitBackdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(20px)',
+        backgroundColor: 'rgba(2, 4, 8, 0.65)',
       }}
       onClick={(e) => {
         if (showSidebar) {
@@ -1055,19 +1048,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 overscrollBehavior: 'none',
               }}
             >
-              {/* Ambient Blurred Background for Rich Cinematic Depth Outside Image */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0 flex items-center justify-center"
-              >
-                <img
-                  src={getMediaUrl(secureUrl)}
-                  alt=""
-                  className="w-full h-full object-cover scale-125 filter blur-[40px] sm:blur-[60px] opacity-40 brightness-75 transition-opacity duration-300 pointer-events-none"
-                />
-                <div className="absolute inset-0 bg-[#020408]/50 backdrop-blur-md pointer-events-none" />
-              </div>
-
               <img
                 key={currentItem?.id || activeUrl || activeIdx}
                 ref={imgRef}
