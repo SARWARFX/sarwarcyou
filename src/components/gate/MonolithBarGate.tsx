@@ -341,7 +341,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         <main
           aria-label="Bollywood Celebrity Archive Overview"
-          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-hidden p-4 sm:p-6 lg:p-8 flex flex-col min-w-0 z-10"
+          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-hidden flex flex-col min-w-0 z-10"
         >
           <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
         </main>

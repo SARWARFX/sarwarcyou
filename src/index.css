@@ -691,6 +691,37 @@ html, body, #root {
   }
 }
 
+/* ==========================================================================
+   SMART AUTO-HIDING SHOWCASE HEADER
+   ========================================================================== */
+
+.showcase-control-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(2, 6, 23, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 24px 12px 24px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s ease;
+  will-change: transform;
+}
+
+.showcase-control-header.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.showcase-control-header.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+
 
 
 
