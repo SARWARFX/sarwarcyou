@@ -46,7 +46,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 }) => {
   const [activeIdx, setActiveIdx] = useState<number>(propCurrentIndex);
   const [scale, setScale] = useState<number>(1);
-  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const scaleRef = useRef<number>(1);
   const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isZoomed = scale > 1.05;
@@ -54,7 +53,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Single Tap to Toggle Controls (with 250ms double-tap protection)
   const [showControls, setShowControls] = useState<boolean>(true);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTouchTimeRef = useRef<number>(0);
 
   const [showSidebar, setShowSidebar] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -73,12 +71,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const fullscreenCloseTimerRef = useRef<number | null>(null);
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const baseDimensionsRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
-  const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
 
   // Desktop Mouse Drag & Pan State
-  const [isDragging, setIsDragging] = useState<boolean>(false);
   const isDraggingRef = useRef<boolean>(false);
   const dragStartRef = useRef<{
     x: number;
@@ -91,21 +88,46 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   }>({ x: 0, y: 0, posX: 0, posY: 0, time: 0, isPan: false, isSwipe: false });
   const hasDraggedRef = useRef<boolean>(false);
 
-  // Touch Gesture Refs
-  const initialDistanceRef = useRef<number | null>(null);
+  // Gesture Tracking State (kept in refs for 60fps performance without React re-render lag)
+  const transformRef = useRef({ scale: 1, x: 0, y: 0 });
+  const initialDistanceRef = useRef<number>(0);
   const initialScaleRef = useRef<number>(1);
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const isPinchingRef = useRef<boolean>(false);
-  const isPanningRef = useRef<boolean>(false);
-  const justFinishedPinchRef = useRef<number>(0);
-  const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
+  const startTouchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const startPanRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastTapTimeRef = useRef<number>(0);
+  const gestureModeRef = useRef<'NONE' | 'SWIPE' | 'PAN' | 'PINCH'>('NONE');
+
+  // Helper to apply hardware-accelerated transform directly
+  const updateTransform = useCallback(() => {
+    if (imgRef.current) {
+      const { scale: currentScale, x, y } = transformRef.current;
+      imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0px) scale(${currentScale})`;
+      imgRef.current.style.transition =
+        gestureModeRef.current === 'NONE'
+          ? 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          : 'none';
+    }
+  }, []);
+
+  // Reset transform on image change
+  const resetZoom = useCallback(() => {
+    transformRef.current = { scale: 1, x: 0, y: 0 };
+    gestureModeRef.current = 'NONE';
+    scaleRef.current = 1;
+    positionRef.current = { x: 0, y: 0 };
+    setScale(1);
+    if (imgRef.current) {
+      imgRef.current.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
+      imgRef.current.style.transition = 'transform 0.25s ease';
+    }
+  }, []);
 
   const applyTransform = useCallback((newScale: number, newX: number, newY: number, animated = false, syncState = true) => {
+    transformRef.current = { scale: newScale, x: newX, y: newY };
     scaleRef.current = newScale;
     positionRef.current = { x: newX, y: newY };
     if (syncState) {
       setScale(newScale);
-      setPosition({ x: newX, y: newY });
     }
     if (imgRef.current) {
       imgRef.current.style.transition = animated ? 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none';
@@ -135,9 +157,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     scaleRef.current = 1;
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
-    setPosition({ x: 0, y: 0 });
     setShowControls(true);
-    setIsDragging(false);
     isDraggingRef.current = false;
     hasDraggedRef.current = false;
   }
@@ -153,7 +173,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const next = activeIdx + 1;
     setActiveIdx(next);
     applyTransform(1, 0, 0, false, true);
-    setIsDragging(false);
     isDraggingRef.current = false;
     hasDraggedRef.current = false;
     onIndexChange?.(next);
@@ -164,7 +183,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const prev = activeIdx - 1;
     setActiveIdx(prev);
     applyTransform(1, 0, 0, false, true);
-    setIsDragging(false);
     isDraggingRef.current = false;
     hasDraggedRef.current = false;
     onIndexChange?.(prev);
@@ -204,7 +222,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     scaleRef.current = 1;
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
-    setPosition({ x: 0, y: 0 });
   }, []);
 
   const toggleFullscreen = useCallback(() => {
@@ -334,7 +351,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
         const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
         positionRef.current = { x: nextX, y: nextY };
-        setPosition({ x: nextX, y: nextY });
+        updateTransform();
       }
     };
     window.addEventListener('resize', handleResize);
@@ -352,23 +369,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   }, [scale, activeIdx]);
 
   // -------------------------------------------------------------
-  // Mobile Touch Gestures & Desktop Zoom Handlers
+  // Dedicated Native Non-Passive Touch Engine & Gesture Handlers
   // -------------------------------------------------------------
+  useEffect(() => {
+    resetZoom();
+  }, [activeIdx, activeUrl, resetZoom]);
+
   const handleDoubleTap = useCallback((tapX?: number, tapY?: number) => {
-    // Clear single-tap timer so controls don't flicker
     if (singleTapTimerRef.current) {
       clearTimeout(singleTapTimerRef.current);
       singleTapTimerRef.current = null;
     }
 
-    if (scaleRef.current > 1.05) {
-      // If currentScale > 1: Reset to scale(1) with translateX(0), translateY(0)
-      applyTransform(1, 0, 0, true, true);
-      setIsDragging(false);
-      isDraggingRef.current = false;
-      hasDraggedRef.current = false;
+    if (transformRef.current.scale > 1.05) {
+      resetZoom();
     } else {
-      // If currentScale === 1: Zoom to scale(2.5) centered at tap position
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const targetScale = 2.5;
@@ -385,231 +400,167 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
       applyTransform(targetScale, initialX, initialY, true, true);
     }
-  }, [calculatePanLimits, applyTransform]);
+  }, [calculatePanLimits, applyTransform, resetZoom]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    lastTouchTimeRef.current = Date.now();
-    wakeFullscreenClose();
+  // ATTACH NATIVE NON-PASSIVE LISTENERS VIA USEEFFECT (Defeats mobile Chrome passive overrides)
+  useEffect(() => {
+    const container = imageContainerRef.current;
+    if (!container || type !== 'image') return;
 
-    if (e.touches.length === 2) {
-      // Two fingers: activate pinch zoom
-      isPinchingRef.current = true;
-      isPanningRef.current = false;
-      touchStartRef.current = null;
-      setTouchDeltaX(0);
+    const getDistance = (t1: Touch, t2: Touch) => {
+      return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    };
 
-      if (singleTapTimerRef.current) {
-        clearTimeout(singleTapTimerRef.current);
-        singleTapTimerRef.current = null;
-      }
+    const handleTouchStart = (e: TouchEvent) => {
+      wakeFullscreenClose();
 
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      initialDistanceRef.current = Math.max(10, dist);
-      initialScaleRef.current = scaleRef.current;
-    } else if (e.touches.length === 1) {
-      // Single finger: record starting position for swipe/pan
-      isPinchingRef.current = false;
-      const t = e.touches[0];
-      const currentTime = performance.now();
-      const lastTap = lastTapRef.current;
-      const timeDiff = currentTime - lastTap.time;
-      const distFromLastTap = Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y);
+      if (e.touches.length === 2) {
+        // Pinch Zoom Mode
+        gestureModeRef.current = 'PINCH';
+        initialDistanceRef.current = getDistance(e.touches[0], e.touches[1]);
+        initialScaleRef.current = transformRef.current.scale;
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        startTouchRef.current = { x: touch.clientX, y: touch.clientY };
+        startPanRef.current = { x: transformRef.current.x, y: transformRef.current.y };
 
-      // Double-Tap: if tapped twice within 300ms and < 30px, toggle zoom / reset
-      if (timeDiff < 300 && distFromLastTap < 30) {
-        lastTapRef.current = { time: 0, x: 0, y: 0 };
-        touchStartRef.current = null;
-        setTouchDeltaX(0);
-        if (singleTapTimerRef.current) {
-          clearTimeout(singleTapTimerRef.current);
-          singleTapTimerRef.current = null;
+        // Double-tap detection
+        const now = Date.now();
+        if (now - lastTapTimeRef.current < 280) {
+          e.preventDefault();
+          if (transformRef.current.scale > 1.05) {
+            // Reset to 1x
+            resetZoom();
+          } else {
+            // Zoom to 2.5x centered on tapped coordinate
+            const rect = container.getBoundingClientRect();
+            const tapOffsetX = touch.clientX - (rect.left + rect.width / 2);
+            const tapOffsetY = touch.clientY - (rect.top + rect.height / 2);
+            const targetScale = 2.5;
+            const maxPanX = Math.max(0, (rect.width * targetScale - rect.width) / 2);
+            const maxPanY = Math.max(0, (rect.height * targetScale - rect.height) / 2);
+            const targetX = Math.max(-maxPanX, Math.min(maxPanX, -tapOffsetX * (targetScale - 1)));
+            const targetY = Math.max(-maxPanY, Math.min(maxPanY, -tapOffsetY * (targetScale - 1)));
+
+            transformRef.current = { scale: targetScale, x: targetX, y: targetY };
+            scaleRef.current = targetScale;
+            positionRef.current = { x: targetX, y: targetY };
+            setScale(targetScale);
+            updateTransform();
+          }
+          gestureModeRef.current = 'NONE';
+          lastTapTimeRef.current = 0;
+          return;
         }
+        lastTapTimeRef.current = now;
 
-        handleDoubleTap(t.clientX, t.clientY);
-        return;
-      }
-
-      lastTapRef.current = { time: currentTime, x: t.clientX, y: t.clientY };
-      touchStartRef.current = {
-        x: t.clientX,
-        y: t.clientY,
-      };
-      setTouchDeltaX(0);
-
-      if (scaleRef.current > 1.05) {
-        isPanningRef.current = true;
-        setIsDragging(true);
-        isDraggingRef.current = true;
-      } else {
-        isPanningRef.current = false;
-        setIsDragging(false);
-        isDraggingRef.current = false;
-      }
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    lastTouchTimeRef.current = Date.now();
-    wakeFullscreenClose();
-
-    // Multi-touch: Calculate Pinch Zoom
-    if (e.touches.length === 2 && initialDistanceRef.current !== null) {
-      if (e.cancelable) e.preventDefault();
-      const currentDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const factor = currentDist / initialDistanceRef.current;
-      const nextScale = Math.min(Math.max(initialScaleRef.current * factor, 1), 4);
-
-      let nextX = positionRef.current.x;
-      let nextY = positionRef.current.y;
-      if (nextScale <= 1.05) {
-        nextX = 0;
-        nextY = 0;
-      } else {
-        const { maxPanX, maxPanY } = calculatePanLimits(nextScale);
-        nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
-        nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
-      }
-
-      applyTransform(nextScale, nextX, nextY, false, true);
-      return;
-    }
-
-    // Single-finger: Pan when zoomed in, or track swipe delta
-    if (e.touches.length === 1 && touchStartRef.current && !isPinchingRef.current) {
-      const t = e.touches[0];
-      const deltaX = t.clientX - touchStartRef.current.x;
-      const deltaY = t.clientY - touchStartRef.current.y;
-
-      if (scaleRef.current > 1.05) {
-        // Image is zoomed: allow panning, prevent page navigation
-        if (e.cancelable) e.preventDefault();
-        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-        const targetX = positionRef.current.x + deltaX;
-        const targetY = positionRef.current.y + deltaY;
-        const clampedX = Math.max(-maxPanX, Math.min(maxPanX, targetX));
-        const clampedY = Math.max(-maxPanY, Math.min(maxPanY, targetY));
-
-        applyTransform(scaleRef.current, clampedX, clampedY, false, true);
-        touchStartRef.current = {
-          x: t.clientX,
-          y: t.clientY,
-        };
-        return;
-      }
-
-      // Image is at 1x scale: track swipe delta for smooth visual feedback
-      if (Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
-        let delta = deltaX;
-        const isAtStart = activeIdx <= 0 && deltaX > 0;
-        const isAtEnd = hasItemList && activeIdx >= items.length - 1 && deltaX < 0;
-        if (isAtStart || isAtEnd) {
-          delta = deltaX * 0.28;
-        }
-        setTouchDeltaX(delta);
-      }
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    lastTouchTimeRef.current = Date.now();
-
-    // End of pinch when fewer than 2 touches remain
-    if (isPinchingRef.current || initialDistanceRef.current !== null) {
-      if (e.touches.length < 2) {
-        initialDistanceRef.current = null;
-        isPinchingRef.current = false;
-        justFinishedPinchRef.current = Date.now();
-        touchStartRef.current = null;
-        setTouchDeltaX(0);
-
-        if (scaleRef.current <= 1.05) {
-          applyTransform(1, 0, 0, true, true);
+        if (transformRef.current.scale > 1.05) {
+          gestureModeRef.current = 'PAN';
         } else {
-          const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-          const finalX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
-          const finalY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
-          applyTransform(scaleRef.current, finalX, finalY, true, true);
+          gestureModeRef.current = 'SWIPE';
         }
-        return;
       }
-    }
+    };
 
-    if (e.touches.length === 0) {
-      setIsDragging(false);
-      isDraggingRef.current = false;
-      isPanningRef.current = false;
+    const handleTouchMove = (e: TouchEvent) => {
+      wakeFullscreenClose();
 
-      // If user just finished pinching, prevent accidental swipe or tap
-      if (Date.now() - justFinishedPinchRef.current < 250) {
-        touchStartRef.current = null;
-        setTouchDeltaX(0);
-        return;
+      if (gestureModeRef.current === 'PINCH' && e.touches.length === 2) {
+        e.preventDefault();
+        const currentDist = getDistance(e.touches[0], e.touches[1]);
+        if (initialDistanceRef.current > 0) {
+          const factor = currentDist / initialDistanceRef.current;
+          const newScale = Math.min(Math.max(initialScaleRef.current * factor, 0.8), 4.5);
+          transformRef.current.scale = newScale;
+          scaleRef.current = newScale;
+          updateTransform();
+        }
+      } else if (gestureModeRef.current === 'PAN' && e.touches.length === 1) {
+        e.preventDefault();
+        const deltaX = e.touches[0].clientX - startTouchRef.current.x;
+        const deltaY = e.touches[0].clientY - startTouchRef.current.y;
+
+        const rect = container.getBoundingClientRect();
+        const currentScale = transformRef.current.scale;
+        const maxPanX = Math.max(0, (rect.width * currentScale - rect.width) / 2) + rect.width * 0.15;
+        const maxPanY = Math.max(0, (rect.height * currentScale - rect.height) / 2) + rect.height * 0.15;
+
+        const targetX = startPanRef.current.x + deltaX;
+        const targetY = startPanRef.current.y + deltaY;
+
+        transformRef.current.x = Math.max(-maxPanX, Math.min(maxPanX, targetX));
+        transformRef.current.y = Math.max(-maxPanY, Math.min(maxPanY, targetY));
+        positionRef.current = { x: transformRef.current.x, y: transformRef.current.y };
+        updateTransform();
+      } else if (gestureModeRef.current === 'SWIPE' && e.touches.length === 1) {
+        // Single finger at 1x scale: track swipe
       }
+    };
 
-      // Only trigger next/prev navigation if at 1x scale and user executed a clear horizontal flick
-      if (scaleRef.current <= 1.05 && touchStartRef.current && e.changedTouches.length === 1) {
-        const t = e.changedTouches[0];
-        const deltaX = t.clientX - touchStartRef.current.x;
-        const deltaY = t.clientY - touchStartRef.current.y;
-        const threshold = 50; // Minimum 50px swipe distance
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (gestureModeRef.current === 'PINCH') {
+        if (e.touches.length === 0) {
+          gestureModeRef.current = 'NONE';
+          // Snap back if scaled below 1x
+          if (transformRef.current.scale < 1) {
+            resetZoom();
+          } else if (transformRef.current.scale > 4) {
+            transformRef.current.scale = 4;
+            scaleRef.current = 4;
+            setScale(4);
+            updateTransform();
+          } else {
+            scaleRef.current = transformRef.current.scale;
+            setScale(transformRef.current.scale);
+          }
+        }
+      } else if (gestureModeRef.current === 'SWIPE') {
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - startTouchRef.current.x;
+        const deltaY = touch.clientY - startTouchRef.current.y;
+        const threshold = 45; // 45px swipe trigger
 
-        if (Math.hypot(deltaX, deltaY) < 12) {
-          // Stationary tap: toggle HUD controls with debounce
+        if (Math.abs(deltaX) > threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+          if (deltaX < 0) {
+            handleNext(); // Swipe left -> next
+          } else {
+            handlePrev(); // Swipe right -> prev
+          }
+        } else if (Math.hypot(deltaX, deltaY) < 10) {
+          // Stationary single tap: toggle HUD controls
           if (singleTapTimerRef.current) {
             clearTimeout(singleTapTimerRef.current);
           }
           singleTapTimerRef.current = setTimeout(() => {
             setShowControls((prev) => !prev);
             singleTapTimerRef.current = null;
-          }, 300);
-        } else if (Math.abs(deltaX) > threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-          // Horizontal swipe dominance check
-          if (deltaX < 0 && hasItemList && activeIdx < items.length - 1) {
-            handleNext(); // Swiped left -> next
-          } else if (deltaX > 0 && hasItemList && activeIdx > 0) {
-            handlePrev(); // Swiped right -> prev
-          }
+          }, 280);
+        }
+        gestureModeRef.current = 'NONE';
+      } else if (gestureModeRef.current === 'PAN') {
+        if (e.touches.length === 0) {
+          gestureModeRef.current = 'NONE';
+          scaleRef.current = transformRef.current.scale;
+          positionRef.current = { x: transformRef.current.x, y: transformRef.current.y };
+          setScale(transformRef.current.scale);
         }
       }
-
-      touchStartRef.current = null;
-      setTouchDeltaX(0);
-    }
-  };
-
-  // Native non-passive touch interceptor for seamless two-finger pinch-to-zoom & panning
-  // Do NOT preventDefault on touchstart so mobile browsers dispatch touch and click synthetic events properly.
-  useEffect(() => {
-    const el = mediaBoxRef.current;
-    if (!el || !isOpen || type !== 'image') return;
-
-    const onTouchMove = (e: TouchEvent) => {
-      // 2-finger pinch OR 1-finger pan while zoomed: prevent native page scroll/zoom
-      if (e.touches.length >= 2 || (e.touches.length === 1 && scaleRef.current > 1.05)) {
-        if (e.cancelable) e.preventDefault();
-      }
     };
 
-    const onGesture = (e: Event) => {
-      if (e.cancelable) e.preventDefault();
-    };
-
-    el.addEventListener('touchmove', onTouchMove, { passive: false });
-    el.addEventListener('gesturestart', onGesture, { passive: false });
-    el.addEventListener('gesturechange', onGesture, { passive: false });
+    // ATTACH WITH { passive: false } TO DEFEAT BROWSER OVERRIDES
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     return () => {
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('gesturestart', onGesture);
-      el.removeEventListener('gesturechange', onGesture);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [isOpen, activeIdx, type]);
+  }, [activeIdx, activeUrl, isFullscreen, type, handleNext, handlePrev, updateTransform, resetZoom, wakeFullscreenClose]);
 
   // Desktop Mouse Drag & Pan Handlers (Pan when scale > 1.05, Swipe when scale <= 1.05)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -629,7 +580,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const isZoomedIn = scaleRef.current > 1.05;
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
-    setIsDragging(true);
 
     dragStartRef.current = {
       x: e.clientX,
@@ -665,16 +615,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const nextX = Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.posX + dx));
       const nextY = Math.max(-maxPanY, Math.min(maxPanY, dragStartRef.current.posY + dy));
       applyTransform(scaleRef.current, nextX, nextY, false);
-      setPosition({ x: nextX, y: nextY });
-    } else if (dragStartRef.current.isSwipe) {
-      // Fluid horizontal swipe preview on desktop
-      let delta = dx;
-      const isAtStart = activeIdx <= 0 && dx > 0;
-      const isAtEnd = hasItemList && activeIdx >= items.length - 1 && dx < 0;
-      if (isAtStart || isAtEnd) {
-        delta = dx * 0.28;
-      }
-      setTouchDeltaX(delta);
     }
   };
 
@@ -682,7 +622,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (e.pointerType !== 'mouse') return;
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
-      setIsDragging(false);
 
       if (dragStartRef.current.isSwipe) {
         const dx = e.clientX - dragStartRef.current.x;
@@ -698,7 +637,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         } else if (isSwipeRight && hasItemList && activeIdx > 0) {
           handlePrev();
         }
-        setTouchDeltaX(0);
       }
 
       try {
@@ -715,8 +653,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (e.pointerType !== 'mouse') return;
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
-      setIsDragging(false);
-      setTouchDeltaX(0);
       try {
         if (e.currentTarget.hasPointerCapture(e.pointerId)) {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -761,8 +697,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     if (newScale <= 1.05) {
       applyTransform(1, 0, 0, true);
       setScale(1);
-      setPosition({ x: 0, y: 0 });
-      setIsDragging(false);
       isDraggingRef.current = false;
     } else {
       const { maxPanX, maxPanY } = calculatePanLimits(newScale);
@@ -770,7 +704,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
       applyTransform(newScale, nextX, nextY, false);
       setScale(newScale);
-      setPosition({ x: nextX, y: nextY });
     }
   };
 
@@ -836,9 +769,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         onClick={handleStageClick}
         onDoubleClick={handleStageDoubleClick}
         onMouseMove={wakeFullscreenClose}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -847,8 +777,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       >
         {/* Edge-to-Edge Pure Photo */}
         <div
-          className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
-          style={{ touchAction: 'none' }}
+          ref={imageContainerRef}
+          className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none overscroll-none"
+          style={{
+            touchAction: 'none',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            WebkitTouchCallout: 'none',
+            overscrollBehavior: 'none',
+          }}
         >
           {/* Ambient Blurred Background for Rich Cinematic Depth Outside Image */}
           <div
@@ -878,27 +815,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               }
             }}
             style={{
-              transform:
-                scale <= 1.05 && touchDeltaX !== 0 && !isPinchingRef.current
-                  ? `translate3d(${touchDeltaX}px, 0, 0)`
-                  : `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
-              transition:
-                isPinchingRef.current ||
-                isPanningRef.current ||
-                isDragging ||
-                touchDeltaX !== 0
-                  ? 'none'
-                  : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              transformOrigin: 'center center',
+              willChange: 'transform',
+              touchAction: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              overscrollBehavior: 'none',
             }}
-            className={`relative z-10 max-w-full max-h-full object-contain select-none will-change-transform animate-fade-in ${
-              isZoomed
-                ? isDragging
-                  ? 'cursor-grabbing'
-                  : 'cursor-grab'
-                : isDragging
-                  ? 'cursor-grabbing'
-                  : 'cursor-grab md:cursor-zoom-in'
-            }`}
+            className="relative z-10 max-w-full max-h-full object-contain select-none will-change-transform animate-fade-in"
             draggable={false}
           />
         </div>
@@ -1139,21 +1064,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* Main Media Stage */}
         <div
           ref={mediaBoxRef}
-          className={`flex-1 relative w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-6 transition-all overflow-hidden touch-none select-none ${
-            isZoomed
-              ? isDragging
-                ? 'cursor-grabbing'
-                : 'cursor-grab'
-              : isDragging
-                ? 'cursor-grabbing'
-                : 'cursor-grab md:cursor-pointer'
-          }`}
-          style={{ touchAction: 'none' }}
+          className="flex-1 relative w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-6 transition-all overflow-hidden touch-none select-none overscroll-none"
+          style={{
+            touchAction: 'none',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            WebkitTouchCallout: 'none',
+            overscrollBehavior: 'none',
+          }}
           onClick={handleStageClick}
           onDoubleClick={handleStageDoubleClick}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -1175,8 +1095,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             </div>
           ) : (
             <div
-              className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
-              style={{ touchAction: 'none' }}
+              ref={imageContainerRef}
+              className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none overscroll-none"
+              style={{
+                touchAction: 'none',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                WebkitTouchCallout: 'none',
+                overscrollBehavior: 'none',
+              }}
             >
               {/* Ambient Blurred Background for Rich Cinematic Depth Outside Image */}
               <div
@@ -1206,19 +1133,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   }
                 }}
                 style={{
-                  transform:
-                    scale <= 1.05 && touchDeltaX !== 0 && !isPinchingRef.current
-                      ? `translate3d(${touchDeltaX}px, 0, 0)`
-                      : `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
-                  transition:
-                    isPinchingRef.current || isPanningRef.current || isDragging || touchDeltaX !== 0
-                      ? 'none'
-                      : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  transformOrigin: 'center center',
+                  willChange: 'transform',
                   touchAction: 'none',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                  overscrollBehavior: 'none',
                 }}
-                className={`relative z-10 w-auto h-auto object-contain select-none will-change-transform animate-fade-in max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${
-                  isDragging ? 'cursor-grabbing' : isZoomed ? 'cursor-grab' : 'cursor-grab md:cursor-zoom-in'
-                }`}
+                className="relative z-10 w-auto h-auto object-contain select-none will-change-transform animate-fade-in max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]"
                 draggable={false}
               />
             </div>
@@ -1251,7 +1174,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               onSelectItem={(_, idx) => {
                 setActiveIdx(idx);
                 setScale(1);
-                setPosition({ x: 0, y: 0 });
                 onIndexChange?.(idx);
               }}
               mediaType="image"
