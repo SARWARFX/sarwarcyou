@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getLocalCachedPhotoUrl } from '../../services/photoSyncManager';
 
 export interface SmartThumbnailProps {
   src?: string | null;
@@ -25,7 +26,8 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
   decoding = 'async',
   onClick,
 }) => {
-  const cleanSrc = typeof src === 'string' && src.trim() !== '' ? src.trim() : null;
+  const localSrc = getLocalCachedPhotoUrl(src);
+  const cleanSrc = localSrc || (typeof src === 'string' && src.trim() !== '' ? src.trim() : null);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(!cleanSrc);
 

@@ -24,6 +24,7 @@ import { lockToLandscape, unlockOrientation } from '../utils/orientationManager'
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight, hapticMedium } from '../utils/hapticsManager';
 import { isItemFavorite, toggleFavorite } from '../utils/favoritesManager';
+import { getLocalCachedPhotoUrl } from '../services/photoSyncManager';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 
 interface MediaModalProps {
@@ -777,7 +778,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           <img
             key={currentItem?.id || activeUrl || activeIdx}
             ref={imgRef}
-            src={getMediaUrl(secureUrl)}
+            src={getLocalCachedPhotoUrl(currentItem) || getMediaUrl(secureUrl)}
             alt={cleanTitle}
             onLoad={(e) => {
               setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
@@ -1066,7 +1067,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               <img
                 key={currentItem?.id || activeUrl || activeIdx}
                 ref={imgRef}
-                src={getMediaUrl(secureUrl)}
+                src={getLocalCachedPhotoUrl(currentItem) || getMediaUrl(secureUrl)}
                 alt={cleanTitle}
                 onLoad={(e) => {
                   setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });

@@ -5,6 +5,7 @@
  */
 
 import { isVideoExtension } from './mediaTypeDetector';
+import { getLocalCachedPhotoUrl } from '../services/photoSyncManager';
 
 export function ensureHttps(url?: string): string {
   if (!url) return '';
@@ -237,7 +238,7 @@ export const HF_RESOLVE_BASE = 'https://huggingface.co/datasets/SARWARFX/stream-
  *
  * @param relativePath Relative file path or full Hugging Face resolve URL
  */
-export function getMediaUrl(relativePath?: string | null): string {
+export function getRawMediaUrl(relativePath?: string | null): string {
   if (!relativePath) return '';
   let path = relativePath.trim();
 
@@ -287,6 +288,13 @@ export function getMediaUrl(relativePath?: string | null): string {
   }
 
   return `${MEDIA_CDN_BASE}/${encodedPath}`;
+}
+
+export function getMediaUrl(relativePath?: string | null): string {
+  if (!relativePath) return '';
+  const localCached = getLocalCachedPhotoUrl(relativePath);
+  if (localCached) return localCached;
+  return getRawMediaUrl(relativePath);
 }
 
 /**
@@ -382,6 +390,9 @@ export function getThumbnailUrl(
   itemOrPath?: string | { url?: string; path?: string; id?: string; thumbnail?: string; poster?: string; posterUrl?: string; category?: string; parentAlbum?: string; name?: string; title?: string } | null
 ): string {
   if (!itemOrPath) return '';
+
+  const localCached = getLocalCachedPhotoUrl(itemOrPath);
+  if (localCached) return localCached;
 
   let raw = '';
   let folderHint = '';

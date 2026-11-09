@@ -13,6 +13,7 @@ import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { sortSubfolderNodesDescending, type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
 import { THEME_ACCENTS, useThemeAccent, setThemeAccent } from '../../utils/themeAccentManager';
+import { SyncStatusIndicator } from '../SyncStatusIndicator';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -506,6 +507,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <span className="font-['Google_Sans'] font-black tracking-[0.22em] text-xs uppercase text-white/90">
                 STREAM<span className="text-[var(--accent-color,#38bdf8)]">VAULT</span>
               </span>
+              <SyncStatusIndicator />
               {/* Theme Accent Switcher Dots */}
               <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.04] border border-white/10">
                 {THEME_ACCENTS.map((accent) => {
@@ -737,9 +739,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         >
           {/* Top Mobile Bar: Brand, Quick Search, Theme Accents */}
           <div className="absolute top-5 inset-x-0 px-6 flex items-center justify-between z-30 pointer-events-auto">
-            <span className="font-['Google_Sans'] font-black tracking-[0.2em] text-sm uppercase text-white/90">
-              STREAM<span className="text-[var(--accent-color,#38bdf8)]">VAULT</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-['Google_Sans'] font-black tracking-[0.2em] text-sm uppercase text-white/90">
+                STREAM<span className="text-[var(--accent-color,#38bdf8)]">VAULT</span>
+              </span>
+              <SyncStatusIndicator />
+            </div>
 
             <div className="flex items-center gap-2.5">
               {/* Theme Accents */}

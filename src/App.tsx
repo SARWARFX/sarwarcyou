@@ -10,6 +10,7 @@ import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { QuickSearchModal } from './components/QuickSearchModal';
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
+import { initializePhotoCache, startBackgroundPhotoSync } from './services/photoSyncManager';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { ComplianceSplashScreen } from './components/ComplianceSplashScreen';
@@ -181,6 +182,9 @@ function App() {
     // Initialize Theme Accent
     applyAccentToDom(getActiveAccent());
 
+    // Initialize Local Photo Cache for 0-latency offline viewing
+    initializePhotoCache().catch(() => {});
+
     // Edge-to-edge transparent status bar
     StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
     StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
@@ -229,6 +233,13 @@ function App() {
 
   // Organize raw catalog data into structured discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
+
+  // Background auto-sync all photos from the media catalog upon first launch
+  useEffect(() => {
+    if (rawFeed.allMediaPool && rawFeed.allMediaPool.length > 0) {
+      startBackgroundPhotoSync(rawFeed.allMediaPool).catch(() => {});
+    }
+  }, [rawFeed.allMediaPool]);
 
   // Universal Media Player / Lightbox Dispatcher with strict mutual exclusivity
   const openMediaItem = useCallback(
