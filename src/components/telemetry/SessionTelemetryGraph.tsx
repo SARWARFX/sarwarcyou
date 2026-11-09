@@ -4,10 +4,11 @@ const STORAGE_KEY = 'sarwar_daily_ledger_v1';
 
 interface DayStat {
   dateKey: string;      // YYYY-MM-DD
-  label: string;        // e.g., "NOV 02", "TODAY"
-  hoursFormatted: string; // e.g. "1.25", "0.45", "0.00"
+  label: string;        // "TODAY", "YESTERDAY", or "NOV 07"
+  hoursFormatted: string; // e.g. "1.25", "0.45"
   minutes: number;
   isToday: boolean;
+  isYesterday: boolean;
 }
 
 export interface SessionTelemetryGraphProps {
@@ -60,37 +61,57 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
       }
     };
 
-    // Build the 7 chronological days
+    // Build the reverse-chronological active days ledger (Today first, then Yesterday, then older)
     const computeStats = () => {
       const ledger = readLedger();
       const now = new Date();
-      const stats: DayStat[] = [];
+      const todayKey = toDateKey(now);
 
-      for (let i = 6; i >= 0; i--) {
+      // Ensure current active session for TODAY has at least an initial activity tick on mount
+      if (!ledger[todayKey] || ledger[todayKey] <= 0) {
+        ledger[todayKey] = 0.2; // 12 seconds initial session
+        saveLedger(ledger);
+      }
+
+      const rawTelemetryDays: DayStat[] = [];
+
+      // Scan up to the last 14 days to collect up to 7 active non-zero session days
+      for (let i = 0; i < 14; i++) {
         const targetDate = new Date(now);
         targetDate.setDate(now.getDate() - i);
         const key = toDateKey(targetDate);
         const isToday = i === 0;
+        const isYesterday = i === 1;
 
         const minutes = ledger[key] || 0;
 
         let label = '';
         if (isToday) {
           label = 'TODAY';
+        } else if (isYesterday) {
+          label = 'YESTERDAY';
         } else {
           label = targetDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
         }
 
-        stats.push({
+        rawTelemetryDays.push({
           dateKey: key,
           label,
           hoursFormatted: formatDuration(minutes),
           minutes,
           isToday,
+          isYesterday,
         });
       }
 
-      setDayStats(stats);
+      // 1. Sort reverse-chronologically (newest first: Today -> Yesterday -> Older)
+      // (Already generated in reverse chronological order i=0..13)
+      // 2. Filter out zero-data entries strictly (duration / minutes > 0)
+      const activeLedger = rawTelemetryDays
+        .filter((day) => day.minutes > 0)
+        .slice(0, 7);
+
+      setDayStats(activeLedger);
     };
 
     computeStats();
@@ -116,17 +137,25 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
   // Calculate highest minute value to scale graph bars
   const maxMinutes = Math.max(15, ...dayStats.map((d) => d.minutes));
 
+  // If no active data exists at all
+  if (dayStats.length === 0) {
+    return null;
+  }
+
+  // =========================================================================
+  // 1. DESKTOP DOCK VARIANT (LOCKED HOME SCREEN BOTTOM)
+  // =========================================================================
   if (variant === 'dock') {
     return (
       <div className={`w-full h-[120px] flex flex-col justify-end flex-shrink-0 pt-2 ${className}`}>
-        {/* Track: 7 Pillars distributed evenly across the width */}
-        <div className="w-full flex justify-between items-end gap-6 h-[85px]">
+        {/* Track: Active pillars distributed evenly across full width */}
+        <div className="w-full flex justify-between items-end gap-2 md:gap-4 lg:gap-6 h-[85px]">
           {dayStats.map((day) => {
-            const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
+            const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 8, 8);
 
             return (
               <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 group">
-                {/* Time readout on top: font-mono text-xs text-[#475569] (Today's readout is text-[#38bdf8] font-bold) */}
+                {/* Time readout on top: Today's readout is cyan font-bold, others slate */}
                 <span
                   className={`font-mono text-xs transition-colors ${
                     day.isToday
@@ -137,9 +166,9 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                   {day.hoursFormatted}
                 </span>
 
-                {/* Slot container: h-[56px] w-full max-w-[48px] bg-white/[0.03] rounded flex items-end overflow-hidden */}
+                {/* Slot container */}
                 <div className="h-[56px] w-full max-w-[48px] bg-white/[0.03] rounded flex items-end overflow-hidden">
-                  {/* Bar: linear-gradient(to top, rgba(255,255,255,0.15), rgba(255,255,255,0.45)). Today's bar glows with cyan shadow */}
+                  {/* Bar: Today is cyan glow gradient, others clean silver/slate gradient */}
                   <div
                     style={{
                       height: `${heightPct}%`,
@@ -153,7 +182,7 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                   />
                 </div>
 
-                {/* Date label below: font-mono text-[10px] text-[#475569] uppercase (e.g. NOV 03 ... TODAY) */}
+                {/* Date label below */}
                 <span
                   className={`font-mono text-[10px] uppercase tracking-wider text-center truncate w-full ${
                     day.isToday
@@ -171,11 +200,14 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
     );
   }
 
+  // =========================================================================
+  // 2. MOBILE VARIANT (SCREEN 1 BOTTOM DOCK)
+  // =========================================================================
   if (variant === 'mobile') {
     return (
-      <div className={`w-full flex justify-between items-end gap-2 h-[82px] ${className}`}>
+      <div className={`w-full flex justify-between items-end gap-2 md:gap-4 h-[82px] ${className}`}>
         {dayStats.map((day) => {
-          const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
+          const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 8, 8);
 
           return (
             <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full group">
@@ -205,7 +237,7 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                 />
               </div>
 
-              {/* Bottom: Date label (e.g. "NOV 03" ... "TODAY") -> MUST BE VISIBLE */}
+              {/* Bottom: Date label (e.g. "TODAY", "YESTERDAY", "NOV 07") */}
               <span
                 className={`font-mono text-[9px] tracking-wider uppercase mt-1.5 block whitespace-nowrap text-center ${
                   day.isToday
@@ -222,16 +254,17 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
     );
   }
 
+  // =========================================================================
+  // 3. COMPACT / DEFAULT VARIANT
+  // =========================================================================
   return (
     <div className={`w-full h-full flex items-end select-none bg-transparent border-none p-0 shrink-0 ${className}`}>
-      {/* 7-Day Monolith Historical Bar Track without outer containers or header text */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2 md:gap-3 w-full h-full items-end pb-0.5">
+      <div className="w-full flex justify-between items-end gap-2 md:gap-4 h-full pb-0.5">
         {dayStats.map((day) => {
-          // Height percentage with minimum 4% baseline tick for 0 values
-          const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 4, 4);
+          const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 8, 8);
 
           return (
-            <div key={day.dateKey} className="flex flex-col items-center h-full justify-end group">
+            <div key={day.dateKey} className="flex-1 flex flex-col items-center h-full justify-end group">
               {/* Tip: Duration in H.MM */}
               <span
                 className={`font-mono text-[7px] xs:text-[8px] sm:text-[10px] mb-0.5 sm:mb-1 transition-all ${
@@ -250,9 +283,7 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                   className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
                     day.isToday
                       ? 'bg-gradient-to-t from-[#0284c7] to-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.4)]'
-                      : day.minutes > 0
-                      ? 'bg-white/15 group-hover:bg-white/30 group-hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]'
-                      : 'bg-white/10 group-hover:bg-white/20'
+                      : 'bg-white/15 group-hover:bg-white/30 group-hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]'
                   }`}
                 />
               </div>
@@ -261,7 +292,7 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
               <span
                 className={`mt-0.5 sm:mt-1 font-['Google_Sans'] text-[6px] xs:text-[7px] sm:text-[8px] md:text-[9px] tracking-wider uppercase text-center truncate w-full ${
                   day.isToday
-                    ? 'text-white font-bold drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]'
+                    ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_6px_rgba(56,189,248,0.4)]'
                     : 'text-slate-500 group-hover:text-slate-300'
                 }`}
               >
