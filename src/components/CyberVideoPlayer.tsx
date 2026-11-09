@@ -10,13 +10,11 @@ import {
   Repeat,
   Repeat1,
   Gauge,
-  ListVideo,
   Check,
   Loader2,
   ChevronsLeft,
   ChevronsRight,
   Share2,
-  Info,
   X,
   AlertTriangle,
   MoreHorizontal,
@@ -1029,45 +1027,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        {/* Telemetry INFO Action */}
-        <button
-          type="button"
-          onClick={() => {
-            setShowTelemetry((prev) => !prev);
-            resetHudTimer();
-          }}
-          className={`bg-transparent border-none outline-none text-xs font-['Google_Sans'] font-medium tracking-widest text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 py-1 px-1.5 ${
-            showTelemetry ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : ''
-          }`}
-          title={showTelemetry ? 'Hide Stream Telemetry' : 'Show Stream Telemetry'}
-          aria-label="Stream Telemetry HUD"
-        >
-          <Info className="w-3.5 h-3.5" />
-          <span>INFO</span>
-        </button>
-
-        {/* QUEUE Action */}
-        <button
-          type="button"
-          onClick={() => {
-            setShowSidebar((prev) => !prev);
-            resetHudTimer();
-          }}
-          className={`bg-transparent border-none outline-none text-xs font-['Google_Sans'] font-medium tracking-widest text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 py-1 px-1.5 ${
-            showSidebar ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : ''
-          }`}
-          title={showSidebar ? 'Hide Queue & Suggestions' : 'Show Queue & Suggestions'}
-          aria-label="Queue & Suggestions"
-        >
-          <ListVideo className="w-3.5 h-3.5" />
-          <span>QUEUE</span>
-          {totalCount > 0 && (
-            <span className="text-[10px] font-mono opacity-70">
-              {totalCount}
-            </span>
-          )}
-        </button>
-
         {/* CLOSE (✕) Action */}
         <button
           type="button"

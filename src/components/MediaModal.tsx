@@ -7,10 +7,8 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  ListVideo,
   Share2,
   X,
-  Info,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -961,23 +959,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
           {/* Top Right Corner: Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            {/* Queue / Playlist Drawer Button */}
-            {hasItemList && (
-              <button
-                type="button"
-                onClick={() => setShowSidebar(!showSidebar)}
-                className={`p-2 rounded-full transition-all flex items-center gap-1.5 cursor-pointer border ${
-                  showSidebar
-                    ? 'text-white bg-white/20 border-white/40 shadow-sm'
-                    : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
-                }`}
-                title={showSidebar ? 'Hide Queue' : 'Show Queue'}
-                aria-label="Toggle queue"
-              >
-                <ListVideo className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            )}
-
             {/* Clean Original Download Button */}
             <button
               type="button"
@@ -1017,21 +998,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               ) : (
                 <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
-            </button>
-
-            {/* EXIF & Telemetry HUD Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setShowTelemetry((prev) => !prev)}
-              className={`p-2 rounded-full transition-all cursor-pointer border ${
-                showTelemetry
-                  ? 'text-white bg-white/20 border-white/40 shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
-              }`}
-              title="EXIF & Image Telemetry"
-              aria-label="Toggle telemetry HUD"
-            >
-              <Info className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Fullscreen Toggle Button */}
