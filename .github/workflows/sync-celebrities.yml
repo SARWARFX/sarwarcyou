@@ -1,4 +1,4 @@
-name: Daily Bollywood Intel Sync
+name: Daily Celebrity Intel Sync
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   sync:
-    name: Daily Bollywood Intel Sync
+    name: Daily Celebrity Intel Sync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,11 +20,11 @@ jobs:
       - name: Install Feed Parsers
         run: npm install rss-parser
       - name: Run Daily Sync Script
-        run: node scripts/sync-bollywood-daily.mjs
+        run: node scripts/sync-celebrity-daily.mjs
       - name: Commit & Push Daily Intel
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add src/data/celebrityGallery.json src/data/celebrityNews.json
-          git commit -m "chore(feed): daily sync of verified bollywood wallpapers and news" || exit 0
+          git commit -m "chore(feed): daily sync of verified celebrity wallpapers and news" || exit 0
           git push

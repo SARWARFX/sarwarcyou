@@ -83,17 +83,17 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
       <header className="newspaper-masthead">
         {/* Top Dateline & Publication Issue Bar */}
         <div className="masthead-top-bar flex-wrap gap-2">
-          <span>DAILY BOLLYWOOD DISPATCH</span>
+          <span>DAILY CELEBRITY DISPATCH</span>
           <span className="font-serif italic text-neutral-400">{currentDateFormatted}</span>
           <span>EDITORIAL EDITION</span>
         </div>
 
         {/* Elegant Broadsheet Masthead Title */}
-        <h1 className="masthead-title">THE BOLLYWOOD CHRONICLE</h1>
+        <h1 className="masthead-title">THE CELEBRITY CHRONICLE</h1>
 
         {/* Sub-Motto Rule */}
         <p className="masthead-motto">
-          Verified Celebrity Journalism, Film Culture & Cinema Archives
+          Curated High-Definition Portraits &amp; Verified Editorial Intelligence
         </p>
 
         {/* Subtle Double Hairline Rule */}
@@ -272,7 +272,7 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
 
           {/* Minimalist Colophon */}
           <div className="mt-auto pt-6 border-t border-white/[0.08] text-[11px] text-neutral-500 flex flex-col gap-1 text-center font-sans">
-            <span>The Bollywood Chronicle · Mumbai Editorial Bureau</span>
+            <span>The Celebrity Chronicle · Global Editorial Bureau</span>
             <span className="text-neutral-600">Verified syndicated entertainment reports</span>
           </div>
         </aside>

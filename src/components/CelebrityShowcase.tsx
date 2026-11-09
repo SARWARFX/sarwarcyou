@@ -53,6 +53,8 @@ const FILTER_CHIPS = [
   { id: 'Kareena Kapoor', label: 'KAREENA' },
   { id: 'Jacqueline Fernandez', label: 'JACQUELINE' },
   { id: 'Anushka Sharma', label: 'ANUSHKA' },
+  { id: 'Sunny Leone', label: 'SUNNY' },
+  { id: 'Phoebe Tonkin', label: 'PHOEBE' },
 ];
 
 function toStageMediaItem(entry: CelebrityItem): StageMediaItem {
@@ -63,10 +65,10 @@ function toStageMediaItem(entry: CelebrityItem): StageMediaItem {
     url: entry.src,
     path: entry.src,
     thumbnail: entry.thumb || entry.src,
-    category: entry.category || 'Bollywood',
+    category: entry.category || 'Celebrity',
     type: 'image',
     mediaType: 'photo',
-    parentAlbum: 'Bollywood Wallpapers',
+    parentAlbum: 'Celebrity Wallpapers',
   };
 }
 
@@ -192,10 +194,10 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
             <div className="flex items-center gap-3">
               <div>
                 <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  BOLLYWOOD ARCHIVE
+                  CELEBRITY ARCHIVE
                 </h1>
                 <p className="text-[11px] tracking-wide text-neutral-400">
-                  Curated Celebrity Photography & Cultural Chronicles
+                  Curated High-Definition Portraits &amp; Verified Editorial Intelligence
                 </p>
               </div>
             </div>

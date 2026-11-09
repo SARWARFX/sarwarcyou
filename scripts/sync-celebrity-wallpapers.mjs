@@ -19,6 +19,8 @@ export const CELEBRITIES = [
   'Kareena Kapoor',
   'Jacqueline Fernandez',
   'Anushka Sharma',
+  'Sunny Leone',
+  'Phoebe Tonkin',
 ];
 
 // Curated, strictly verified high-resolution portraits of the actual actresses
@@ -411,6 +413,80 @@ export const SEED_FALLBACK_GALLERY = [
     thumb: 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Anushka_Sharma%2C_6th-Nykaa_Femina_Beauty_Awards_2020_%281%29.jpg',
     aspect: 'portrait',
     timestamp: 1715000033000,
+  },
+
+  // --- Sunny Leone ---
+  {
+    id: 'sunny-leone-ginna-press-meet-portrait',
+    name: 'Sunny Leone',
+    title: 'Sunny Leone Ginna Press Conference Appearance',
+    category: 'Trending',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/Sunny_Leone_at_Ginna_press_meet_%281%29_%28cropped%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/Sunny_Leone_at_Ginna_press_meet_%281%29_%28cropped%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000034000,
+  },
+  {
+    id: 'sunny-leone-ginna-premiere',
+    name: 'Sunny Leone',
+    title: 'Sunny Leone Studio Film Showcase',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Sunny_Leone_at_Ginna_press_meet_%281%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Sunny_Leone_at_Ginna_press_meet_%281%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000035000,
+  },
+  {
+    id: 'sunny-leone-press-conference',
+    name: 'Sunny Leone',
+    title: 'Sunny Leone Press Meet Portrait',
+    category: 'Trending',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Sunny_Leone_at_Ginna_press_meet_%283%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Sunny_Leone_at_Ginna_press_meet_%283%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000036000,
+  },
+
+  // --- Phoebe Tonkin ---
+  {
+    id: 'phoebe-tonkin-paleyfest-gala',
+    name: 'Phoebe Tonkin',
+    title: 'Phoebe Tonkin at PaleyFest Red Carpet',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Phoebe_Tonkin_at_PaleyFest_2014.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Phoebe_Tonkin_at_PaleyFest_2014.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000037000,
+  },
+  {
+    id: 'phoebe-tonkin-studio-portrait-1',
+    name: 'Phoebe Tonkin',
+    title: 'Phoebe Tonkin Autumn Editorial Portrait',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/9/97/Phoebe_Tonkin_in_November_2012_%281%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/9/97/Phoebe_Tonkin_in_November_2012_%281%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000038000,
+  },
+  {
+    id: 'phoebe-tonkin-editorial-session',
+    name: 'Phoebe Tonkin',
+    title: 'Phoebe Tonkin Studio Fashion Session',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/b/bb/Phoebe_Tonkin_in_November_2012_%282%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/b/bb/Phoebe_Tonkin_in_November_2012_%282%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000039000,
+  },
+  {
+    id: 'phoebe-tonkin-gala-appearance',
+    name: 'Phoebe Tonkin',
+    title: 'Phoebe Tonkin Event Feature Showcase',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/3/36/Phoebe_Tonkin_October_2012_%288121867512%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/3/36/Phoebe_Tonkin_October_2012_%288121867512%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000040000,
   },
 ];
 
