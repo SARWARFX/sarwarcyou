@@ -101,65 +101,80 @@ export const CuratedHomeShowcase: React.FC<CuratedHomeShowcaseProps> = ({
 
   return (
     <div className="w-full flex flex-col space-y-6 md:space-y-8 animate-fade-in pb-16">
-      {/* 1. Favorite Video Clips (16:9) */}
-      {favoriteClips.length > 0 && (
-        <HorizontalMediaShelf
-          title="Favorite Video Clips"
-          subtitle="CLIPS / FAVORITE"
-          badge={`${favoriteClips.length} CLIPS`}
-          items={favoriteClips}
-          aspectRatio="video"
-          onOpenItem={(item) => onOpenVideo(item, favoriteClips)}
+      {/* Desktop Workspace Container for CyberTools Suite */}
+      <div className="desktop-workspace-container">
+        <iframe
+          id="tools-workspace-frame"
+          src="https://apps.sarwarfx.cfd"
+          title="CyberTools Fleet"
+          loading="lazy"
+          allow="clipboard-read; clipboard-write; fullscreen"
+          className="w-full h-full border-0 rounded-2xl"
         />
-      )}
+      </div>
 
-      {/* 2. Latest Shorts 2027 (9:16) */}
-      {latestShorts2027.length > 0 && (
-        <HorizontalMediaShelf
-          title="Latest Shorts"
-          subtitle="SHORTS / 2027"
-          badge={`${latestShorts2027.length} REELS`}
-          items={latestShorts2027}
-          aspectRatio="vertical"
-          onOpenItem={(item, list, idx) => onOpenShort(item, list, idx, 'Latest Shorts 2027')}
-        />
-      )}
+      {/* Media Cards Stream (Visible on Mobile / Hidden on Desktop Viewports) */}
+      <div className="cards-stream-container media-cards-grid w-full flex flex-col space-y-6 md:space-y-8">
+        {/* 1. Favorite Video Clips (16:9) */}
+        {favoriteClips.length > 0 && (
+          <HorizontalMediaShelf
+            title="Favorite Video Clips"
+            subtitle="CLIPS / FAVORITE"
+            badge={`${favoriteClips.length} CLIPS`}
+            items={favoriteClips}
+            aspectRatio="video"
+            onOpenItem={(item) => onOpenVideo(item, favoriteClips)}
+          />
+        )}
 
-      {/* 3. Favorite Images (4:5) */}
-      {favoriteImages.length > 0 && (
-        <HorizontalMediaShelf
-          title="Favorite Images"
-          subtitle="PHOTOGRAPHY / SELECTS"
-          badge={`${favoriteImages.length} STILLS`}
-          items={favoriteImages}
-          aspectRatio="portrait"
-          onOpenItem={(item, list, idx) => onOpenPhoto(item, list, idx)}
-        />
-      )}
+        {/* 2. Latest Shorts 2027 (9:16) */}
+        {latestShorts2027.length > 0 && (
+          <HorizontalMediaShelf
+            title="Latest Shorts"
+            subtitle="SHORTS / 2027"
+            badge={`${latestShorts2027.length} REELS`}
+            items={latestShorts2027}
+            aspectRatio="vertical"
+            onOpenItem={(item, list, idx) => onOpenShort(item, list, idx, 'Latest Shorts 2027')}
+          />
+        )}
 
-      {/* 4. Images 2027 (4:5) */}
-      {images2027.length > 0 && (
-        <HorizontalMediaShelf
-          title="Images 2027"
-          subtitle="PHOTOGRAPHY / 2027"
-          badge={`${images2027.length} STILLS`}
-          items={images2027}
-          aspectRatio="portrait"
-          onOpenItem={(item, list, idx) => onOpenPhoto(item, list, idx)}
-        />
-      )}
+        {/* 3. Favorite Images (4:5) */}
+        {favoriteImages.length > 0 && (
+          <HorizontalMediaShelf
+            title="Favorite Images"
+            subtitle="PHOTOGRAPHY / SELECTS"
+            badge={`${favoriteImages.length} STILLS`}
+            items={favoriteImages}
+            aspectRatio="portrait"
+            onOpenItem={(item, list, idx) => onOpenPhoto(item, list, idx)}
+          />
+        )}
 
-      {/* 5. Additional Selects (16:9) */}
-      {additionalSelectsClips.length > 0 && (
-        <HorizontalMediaShelf
-          title="Additional Selects"
-          subtitle="CLIPS / ARCHIVE"
-          badge={`${additionalSelectsClips.length} CLIPS`}
-          items={additionalSelectsClips}
-          aspectRatio="video"
-          onOpenItem={(item) => onOpenVideo(item, additionalSelectsClips)}
-        />
-      )}
+        {/* 4. Images 2027 (4:5) */}
+        {images2027.length > 0 && (
+          <HorizontalMediaShelf
+            title="Images 2027"
+            subtitle="PHOTOGRAPHY / 2027"
+            badge={`${images2027.length} STILLS`}
+            items={images2027}
+            aspectRatio="portrait"
+            onOpenItem={(item, list, idx) => onOpenPhoto(item, list, idx)}
+          />
+        )}
+
+        {/* 5. Additional Selects (16:9) */}
+        {additionalSelectsClips.length > 0 && (
+          <HorizontalMediaShelf
+            title="Additional Selects"
+            subtitle="CLIPS / ARCHIVE"
+            badge={`${additionalSelectsClips.length} CLIPS`}
+            items={additionalSelectsClips}
+            aspectRatio="video"
+            onOpenItem={(item) => onOpenVideo(item, additionalSelectsClips)}
+          />
+        )}
+      </div>
     </div>
   );
 };

@@ -443,5 +443,30 @@ html, body, #root {
 @keyframes rotateLeft { to { transform: rotate(-360deg); } }
 @keyframes loadProgress { 0% { width: 0%; } 100% { width: 100%; } }
 
+/* Desktop Workspace Container for CyberTools Suite */
+.desktop-workspace-container {
+  display: none;
+  width: 100%;
+  height: calc(100vh - 80px);
+  background: #030712;
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.6), inset 0 0 1px rgba(56, 189, 248, 0.2);
+}
+
+/* Show on desktop viewports */
+@media (min-width: 1024px) {
+  .desktop-workspace-container {
+    display: block;
+  }
+  /* Hide the desktop media card grid */
+  .media-cards-grid,
+  .cards-stream-container {
+    display: none !important;
+  }
+}
+
+
 
 
