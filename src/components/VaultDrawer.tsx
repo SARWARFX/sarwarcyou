@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { HardDrive, Loader2, CheckCircle2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { hapticMedium } from '../utils/hapticsManager';
 import type { DirectoryNode } from './DeepSpaceTreeExplorer';
 import fallbackJson from '../data/mediaFallback.json';
@@ -8,6 +10,15 @@ import {
   toggleKeepScreenOn,
   subscribeKeepScreenOn,
 } from '../utils/keepAwakeManager';
+import { useOfflineFilesSummary } from '../services/offlineFilesManager';
+import { OfflineFilesModal } from './OfflineFilesModal';
+import {
+  checkAppUpdate,
+  AppInstaller,
+  formatBytes,
+  type UpdateCheckResult,
+} from '../utils/updater';
+import type { StageMediaItem } from '../types';
 
 export interface VaultDrawerProps {
   isOpen: boolean;
@@ -17,6 +28,8 @@ export interface VaultDrawerProps {
     subfolderName?: string
   ) => void;
   rootMap?: Map<string, DirectoryNode>;
+  onOpenPhoto?: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
+  onOpenVideo?: (item: StageMediaItem) => void;
 }
 
 interface DrawerSubfolder {
@@ -105,10 +118,30 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
   onClose,
   onSelectFolder,
   rootMap,
+  onOpenPhoto,
+  onOpenVideo,
 }) => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
   const [telemetry, setTelemetry] = useState(() => getRolling7DayUsage());
   const [keepScreenOn, setKeepScreenOn] = useState<boolean>(() => getKeepScreenOnState());
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
+
+  // Live offline storage files summary
+  const { summary: offlineSummary, refresh: refreshOfflineSummary } = useOfflineFilesSummary();
+
+  // In-app updater state
+  const [updateState, setUpdateState] = useState<{
+    status: 'idle' | 'checking' | 'available' | 'latest' | 'error' | 'downloading';
+    result: UpdateCheckResult | null;
+    errorText?: string;
+    progressPercent: number;
+    bytesText: string;
+  }>({
+    status: 'idle',
+    result: null,
+    progressPercent: 0,
+    bytesText: '',
+  });
 
   useEffect(() => {
     return subscribeKeepScreenOn((active) => {
@@ -122,9 +155,45 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     setKeepScreenOn(nextVal);
   };
 
+  // Perform update check
+  const runUpdateCheck = useCallback(async () => {
+    setUpdateState((prev) => ({ ...prev, status: 'checking', errorText: undefined }));
+    try {
+      const res = await checkAppUpdate();
+      if (res && res.hasUpdate) {
+        setUpdateState({
+          status: 'available',
+          result: res,
+          progressPercent: 0,
+          bytesText: '',
+        });
+      } else if (res) {
+        setUpdateState({
+          status: 'latest',
+          result: res,
+          progressPercent: 0,
+          bytesText: '',
+        });
+      } else {
+        setUpdateState((prev) => ({ ...prev, status: 'idle' }));
+      }
+    } catch (err: any) {
+      setUpdateState((prev) => ({
+        ...prev,
+        status: 'error',
+        errorText: err?.message || 'Check failed',
+      }));
+    }
+  }, []);
+
+  // When drawer opens: refresh telemetry, offline storage count, and silently check for app updates
   useEffect(() => {
     if (!isOpen) return;
+
     setTelemetry(getRolling7DayUsage());
+    refreshOfflineSummary();
+    runUpdateCheck();
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -132,7 +201,65 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, refreshOfflineSummary, runUpdateCheck]);
+
+  // Handle in-app APK download & installation
+  const handleStartUpdate = async () => {
+    if (!updateState.result?.apkUrl) return;
+    hapticMedium();
+
+    if (!Capacitor.isNativePlatform()) {
+      window.open(updateState.result.apkUrl, '_blank');
+      return;
+    }
+
+    setUpdateState((prev) => ({
+      ...prev,
+      status: 'downloading',
+      progressPercent: 0,
+      bytesText: 'Starting download...',
+    }));
+
+    try {
+      try {
+        await AppInstaller.addListener(
+          'downloadProgress',
+          (data: { percent: number; bytesReceived: number; totalBytes: number }) => {
+            setUpdateState((prev) => ({
+              ...prev,
+              progressPercent: data.percent || 0,
+              bytesText:
+                data.totalBytes > 0
+                  ? `${formatBytes(data.bytesReceived)} / ${formatBytes(data.totalBytes)}`
+                  : formatBytes(data.bytesReceived),
+            }));
+          }
+        );
+
+        await AppInstaller.addListener('downloadComplete', () => {
+          setUpdateState((prev) => ({
+            ...prev,
+            status: 'latest',
+            progressPercent: 100,
+            bytesText: 'Launching installer...',
+          }));
+        });
+
+        await AppInstaller.addListener('downloadFailed', (err: { error: string }) => {
+          setUpdateState((prev) => ({
+            ...prev,
+            status: 'error',
+            errorText: err.error || 'Download failed',
+          }));
+        });
+      } catch (_) {}
+
+      await AppInstaller.downloadAndInstall({ url: updateState.result.apkUrl });
+    } catch (err) {
+      console.warn('[VaultDrawer] AppInstaller download failed, opening fallback URL:', err);
+      window.open(updateState.result.apkUrl, '_system');
+    }
+  };
 
   // Dynamically resolve actual subfolders from live rootMap or the media manifest
   const categoriesWithSubfolders = useMemo(() => {
@@ -245,10 +372,10 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           })}
         </div>
 
-        {/* Keep Screen On & Live Client-Side Usage Telemetry (7-Day Rolling) */}
-        <div className="drawer-footer-cluster mt-auto pt-3 border-t border-white/[0.08] flex flex-col gap-3">
+        {/* Drawer Footer Cluster: Controls & Telemetry */}
+        <div className="drawer-footer-cluster mt-auto pt-3 border-t border-white/[0.08] flex flex-col gap-2.5">
           {/* Keep Screen On Toggle Bar */}
-          <div className="flex items-center justify-between py-1 px-0.5">
+          <div className="flex items-center justify-between py-0.5 px-0.5">
             <div className="flex flex-col">
               <span className="text-xs font-sans font-medium text-neutral-200 tracking-wide">
                 Keep Screen On
@@ -277,6 +404,115 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                 }`}
               />
             </button>
+          </div>
+
+          <div className="border-t border-white/[0.06]" />
+
+          {/* Available Offline Files (File Count) */}
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              setIsOfflineModalOpen(true);
+            }}
+            className="flex items-center justify-between py-1 px-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group text-left"
+            title="Click to view files available offline"
+          >
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
+              <span className="text-xs font-sans font-medium text-neutral-200 tracking-wide group-hover:text-white transition-colors">
+                Available Offline Files
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/10 font-bold group-hover:bg-white group-hover:text-black transition-colors">
+                {offlineSummary.count}
+              </span>
+            </div>
+          </button>
+
+          {/* Check for App Update Notification (Under Available Offline Files & Right Above Graph) */}
+          <div className="flex flex-col gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+            {updateState.status === 'checking' && (
+              <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-mono py-0.5">
+                <Loader2 className="w-3 h-3 animate-spin text-neutral-300" />
+                <span>Checking for app updates...</span>
+              </div>
+            )}
+
+            {updateState.status === 'available' && updateState.result && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Update Available</span>
+                    </div>
+                    <span className="text-[10px] text-neutral-400 font-mono">
+                      {updateState.result.latestVersion} (Current: {updateState.result.currentVersion})
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleStartUpdate}
+                    className="px-2.5 py-1 rounded bg-white text-neutral-950 hover:bg-neutral-200 text-[10px] font-mono font-bold tracking-wider uppercase transition-colors shrink-0 cursor-pointer shadow-sm"
+                  >
+                    Update
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {updateState.status === 'downloading' && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] font-mono text-neutral-300">
+                  <span>Downloading update...</span>
+                  <span>{updateState.progressPercent}%</span>
+                </div>
+                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-400 transition-all duration-150"
+                    style={{ width: `${updateState.progressPercent}%` }}
+                  />
+                </div>
+                {updateState.bytesText && (
+                  <span className="text-[9px] font-mono text-neutral-400 text-right">
+                    {updateState.bytesText}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {updateState.status === 'latest' && updateState.result && (
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+                <div className="flex items-center gap-1.5 text-neutral-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Up to date ({updateState.result.currentVersion})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => runUpdateCheck()}
+                  className="text-[10px] text-neutral-500 hover:text-neutral-300 hover:underline cursor-pointer"
+                  title="Check for update again"
+                >
+                  Check
+                </button>
+              </div>
+            )}
+
+            {(updateState.status === 'idle' || updateState.status === 'error') && (
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+                <span>App Updates</span>
+                <button
+                  type="button"
+                  onClick={() => runUpdateCheck()}
+                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-neutral-300 text-[10px] font-mono transition-colors cursor-pointer"
+                >
+                  Check for App Update
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-white/[0.06]" />
@@ -330,6 +566,15 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           </div>
         </div>
       </aside>
+
+      {/* Available Offline Files Browser Modal */}
+      <OfflineFilesModal
+        isOpen={isOfflineModalOpen}
+        onClose={() => setIsOfflineModalOpen(false)}
+        summary={offlineSummary}
+        onOpenPhoto={onOpenPhoto}
+        onOpenVideo={onOpenVideo}
+      />
     </>
   );
 };

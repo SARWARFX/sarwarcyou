@@ -359,6 +359,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         onClose={() => setVaultDrawerOpen(false)}
         onSelectFolder={handleSelectDrawerFolder}
         rootMap={rootMap}
+        onOpenPhoto={onOpenPhoto}
+        onOpenVideo={(item) => onOpenVideo(item, [item])}
       />
 
       {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Stepped Breadcrumbs */}

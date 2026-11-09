@@ -94,25 +94,21 @@ export async function getCurrentAppVersion(): Promise<{ version: string; buildNu
  * Strictly restricted to native Android (Capacitor) platform.
  */
 export async function checkAppUpdate(): Promise<UpdateCheckResult | null> {
-  if (!Capacitor.isNativePlatform()) {
-    console.log('[Updater] Update check bypassed: running on web browser.');
-    return null;
-  }
-
   const current = await getCurrentAppVersion();
   const repo = 'SARWARFX/sarwarcyou';
   const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
 
-  const res = await fetch(apiUrl, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-    },
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(apiUrl, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+      },
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    throw new Error(`GitHub Releases API responded with status ${res.status}`);
-  }
+    if (!res.ok) {
+      throw new Error(`GitHub Releases API responded with status ${res.status}`);
+    }
 
   const data = await res.json();
   const tagName: string = data.tag_name || '';
@@ -144,6 +140,10 @@ export async function checkAppUpdate(): Promise<UpdateCheckResult | null> {
     remoteBuildNumber,
     currentBuildNumber: current.buildNumber,
   };
+  } catch (err) {
+    console.warn('[Updater] Check failed:', err);
+    return null;
+  }
 }
 
 /**
