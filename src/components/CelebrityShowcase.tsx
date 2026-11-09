@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Sparkles, Maximize2, Tag, Globe, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, Maximize2, Tag, Image as ImageIcon } from 'lucide-react';
 import celebrityData from '../data/celebrityGallery.json';
 import type { StageMediaItem } from '../types';
 import { MediaModal } from './MediaModal';
@@ -54,7 +54,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   onOpenPhoto,
   className = '',
 }) => {
-  const [viewMode, setViewMode] = useState<'gallery' | 'workspace'>('gallery');
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [internalModalState, setInternalModalState] = useState<{
     isOpen: boolean;
@@ -102,7 +101,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
 
   return (
     <div className={`w-full h-full flex flex-col min-w-0 select-none ${className}`}>
-      {/* 1. Header Bar: Title, View Switcher & Quick Filters */}
+      {/* 1. Header Bar: Title, Count Badge & Quick Filters */}
       <header className="flex-shrink-0 pb-3 mb-4 border-b border-white/[0.08] flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -120,85 +119,40 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
             </div>
           </div>
 
-          {/* View Mode Toggle: Wallpapers vs Tools Workspace */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10">
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  setViewMode('gallery');
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-['Roboto_Condensed'] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-                  viewMode === 'gallery'
-                    ? 'bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/40 shadow-sm'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>GALLERY ({filteredItems.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  setViewMode('workspace');
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-['Roboto_Condensed'] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-                  viewMode === 'workspace'
-                    ? 'bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/40 shadow-sm'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>TOOLS FLEET</span>
-              </button>
-            </div>
+          {/* Item Count Pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-['Roboto_Condensed'] font-bold tracking-wider text-[#38bdf8]">
+            <ImageIcon className="w-3.5 h-3.5" />
+            <span>{filteredItems.length} PORTRAITS</span>
           </div>
         </div>
 
-        {/* Quick Filter Chips (Shown when in Gallery View) */}
-        {viewMode === 'gallery' && (
-          <div className="flex items-center gap-2 overflow-x-auto space-scrollbar py-1">
-            {FILTER_CHIPS.map((chip) => {
-              const isActive = activeFilter === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setActiveFilter(chip.id);
-                  }}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-['Roboto_Condensed'] font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer flex-shrink-0 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-neutral-950 shadow-[0_0_15px_rgba(56,189,248,0.5)] scale-105'
-                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/10'
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Quick Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto space-scrollbar py-1">
+          {FILTER_CHIPS.map((chip) => {
+            const isActive = activeFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => {
+                  hapticMedium();
+                  setActiveFilter(chip.id);
+                }}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-['Roboto_Condensed'] font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer flex-shrink-0 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-neutral-950 shadow-[0_0_15px_rgba(56,189,248,0.5)] scale-105'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/10'
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
-      {/* 2. Main Body Content: Gallery Grid or Tools Workspace Iframe */}
-      {viewMode === 'workspace' ? (
-        <main className="flex-1 w-full h-[calc(100vh-140px)] rounded-2xl bg-[#030712] border border-[#38bdf8]/15 overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)]">
-          <iframe
-            id="tools-workspace-frame"
-            src="https://apps.sarwarfx.cfd"
-            title="CyberTools Fleet"
-            loading="lazy"
-            allow="clipboard-read; clipboard-write; fullscreen"
-            className="w-full h-full border-0 rounded-2xl"
-          />
-        </main>
-      ) : (
-        <main className="flex-1 overflow-y-auto space-scrollbar pr-1 pb-16">
+      {/* 2. Main Body Content: Gallery Grid */}
+      <main className="flex-1 overflow-y-auto space-scrollbar pr-1 pb-16">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
             {filteredItems.map((item, idx) => {
               return (
@@ -255,7 +209,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
             })}
           </div>
         </main>
-      )}
 
       {/* Fallback Internal MediaModal (used if onOpenPhoto is omitted) */}
       {!onOpenPhoto && internalModalState.isOpen && internalModalState.activeItem && (

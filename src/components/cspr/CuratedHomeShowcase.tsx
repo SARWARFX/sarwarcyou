@@ -101,21 +101,7 @@ export const CuratedHomeShowcase: React.FC<CuratedHomeShowcaseProps> = ({
 
   return (
     <div className="w-full flex flex-col space-y-6 md:space-y-8 animate-fade-in pb-16">
-      {/* Desktop Workspace Container for CyberTools Suite */}
-      <div className="desktop-workspace-container">
-        <iframe
-          id="tools-workspace-frame"
-          src="https://apps.sarwarfx.cfd"
-          title="CyberTools Fleet"
-          loading="lazy"
-          allow="clipboard-read; clipboard-write; fullscreen"
-          className="w-full h-full border-0 rounded-2xl"
-        />
-      </div>
-
-      {/* Media Cards Stream (Visible on Mobile / Hidden on Desktop Viewports) */}
-      <div className="cards-stream-container media-cards-grid w-full flex flex-col space-y-6 md:space-y-8">
-        {/* 1. Favorite Video Clips (16:9) */}
+      {/* 1. Favorite Video Clips (16:9) */}
         {favoriteClips.length > 0 && (
           <HorizontalMediaShelf
             title="Favorite Video Clips"
@@ -174,7 +160,6 @@ export const CuratedHomeShowcase: React.FC<CuratedHomeShowcaseProps> = ({
             onOpenItem={(item) => onOpenVideo(item, additionalSelectsClips)}
           />
         )}
-      </div>
     </div>
   );
 };
