@@ -5,14 +5,13 @@ import {
   Tag,
   Image as ImageIcon,
   Newspaper,
-  Clock,
-  ExternalLink,
 } from 'lucide-react';
 import celebrityData from '../data/celebrityGallery.json';
 import celebrityNewsData from '../data/celebrityNews.json';
 import type { StageMediaItem } from '../types';
 import { MediaModal } from './MediaModal';
 import { hapticMedium } from '../utils/hapticsManager';
+import { CelebrityNewsPaper } from './CelebrityNewsPaper';
 
 export interface CelebrityItem {
   id: string;
@@ -69,29 +68,6 @@ function toStageMediaItem(entry: CelebrityItem): StageMediaItem {
     mediaType: 'photo',
     parentAlbum: 'Bollywood Wallpapers',
   };
-}
-
-function formatTimeAgo(isoString: string): string {
-  try {
-    const pub = new Date(isoString).getTime();
-    if (isNaN(pub)) return 'Recent';
-    const diffMs = Date.now() - pub;
-    const diffSec = Math.floor(diffMs / 1000);
-    if (diffSec < 60) return 'Just now';
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
-    const diffDay = Math.floor(diffHr / 24);
-    if (diffDay === 1) return 'Yesterday';
-    if (diffDay < 7) return `${diffDay}d ago`;
-    return new Date(isoString).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return 'Recent';
-  }
 }
 
 export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
@@ -311,94 +287,12 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
             })}
           </div>
         ) : (
-          /* NEWS TELEMETRY FEED */
-          <div className="flex flex-col gap-4 max-w-5xl mx-auto">
-            {filteredNews.length === 0 ? (
-              <div className="p-12 text-center rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col items-center justify-center gap-3">
-                <Newspaper className="w-8 h-8 text-neutral-500" />
-                <p className="text-sm font-mono text-neutral-400">
-                  NO RECENT HEADLINES MATCHING THIS FILTER
-                </p>
-              </div>
-            ) : (
-              filteredNews.map((article) => {
-                return (
-                  <article
-                    key={article.id}
-                    className="group relative rounded-2xl p-4 sm:p-5 border border-[#38bdf8]/20 hover:border-[#38bdf8]/50 transition-all duration-300 flex flex-col sm:flex-row gap-4 items-start shadow-[0_8px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(56,189,248,0.15)]"
-                    style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)' }}
-                  >
-                    {/* Optional Thumbnail Preview */}
-                    {article.imageUrl && (
-                      <div className="w-full sm:w-44 h-36 sm:h-28 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-black/40 relative">
-                        <img
-                          src={article.imageUrl}
-                          alt={article.headline}
-                          loading="lazy"
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          onError={(e) => {
-                            // Hide image if broken
-                            (e.currentTarget as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div className="flex-1 min-w-0 flex flex-col gap-2">
-                      {/* Meta Tags Bar */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* Actress Badge */}
-                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider uppercase bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/30">
-                          [ {article.celebrity.toUpperCase()} ]
-                        </span>
-
-                        {/* Category Badge */}
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono tracking-wider uppercase text-neutral-300 bg-white/[0.05] border border-white/10">
-                          {article.category}
-                        </span>
-
-                        {/* Time-ago & Source Badge */}
-                        <span className="text-[11px] font-mono text-neutral-400 flex items-center gap-1.5 ml-auto">
-                          <Clock className="w-3 h-3 text-[#38bdf8]" />
-                          <span>{formatTimeAgo(article.publishedAt)}</span>
-                          <span className="text-neutral-600">•</span>
-                          <span className="text-neutral-300 font-semibold">{article.source}</span>
-                        </span>
-                      </div>
-
-                      {/* Headline */}
-                      <a
-                        href={article.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm sm:text-base font-bold text-white group-hover:text-[#38bdf8] group-hover:underline transition-colors leading-snug line-clamp-2"
-                      >
-                        {article.headline}
-                      </a>
-
-                      {/* Summary Excerpt */}
-                      <p className="text-xs sm:text-[13px] text-neutral-300/90 line-clamp-2 leading-relaxed">
-                        {article.summary}
-                      </p>
-
-                      {/* Action Button */}
-                      <div className="pt-1 flex items-center justify-between">
-                        <a
-                          href={article.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold tracking-wider text-[#38bdf8] hover:text-white bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/30 transition-all active:scale-95 cursor-pointer"
-                        >
-                          <span>READ FULL REPORT</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })
-            )}
-          </div>
+          /* BROADSHEET NEWSPAPER EDITORIAL SECTION */
+          <CelebrityNewsPaper
+            articles={filteredNews}
+            onResetFilter={() => setActiveFilter('ALL')}
+            activeFilter={activeFilter}
+          />
         )}
       </main>
 
