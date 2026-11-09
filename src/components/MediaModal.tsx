@@ -84,6 +84,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Desktop Mouse Drag & Pan State
   const isDraggingRef = useRef<boolean>(false);
   const hasDraggedRef = useRef<boolean>(false);
+  const lastGestureTimeRef = useRef<number>(0);
 
   // Dedicated isolated Pinch & Double-Tap Engine refs (Zero swipe conflict)
   const transform = useRef({ scale: 1, x: 0, y: 0 });
@@ -101,11 +102,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
     if (imgRef.current) {
-      imgRef.current.style.transition = 'transform 0.2s ease-out';
+      imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
       imgRef.current.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
       setTimeout(() => {
         if (imgRef.current) imgRef.current.style.transition = 'none';
-      }, 200);
+      }, 250);
     }
   }, []);
 
@@ -441,126 +442,172 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   hasPrevRef.current = Boolean(hasItemList && activeIdx > 0);
 
   // -------------------------------------------------------------
-  // Dedicated Hardware-Accelerated Pointer Events Engine
-  // (Directly bound to imgRef with pointer capture tracking)
+  // Dedicated Hardware-Accelerated Multi-Touch & Gesture Engine
+  // (Bound to stage container to cover full viewport + letterbox)
   // -------------------------------------------------------------
   useEffect(() => {
+    const container = imageContainerRef.current;
     const img = imgRef.current;
-    if (!img || type !== 'image') return;
+    if (!container || !img || type !== 'image') return;
 
-    // Active pointer tracker (pointerId -> { x, y })
-    const activePointers = new Map<number, { x: number; y: number }>();
-    let currentScale = 1;
-    let posX = 0;
-    let posY = 0;
-    let initialPinchDistance = 0;
-    let initialPinchMidX = 0;
-    let initialPinchMidY = 0;
-    let initialScale = 1;
-    let initialPosX = 0;
-    let initialPosY = 0;
-    let lastTapTime = 0;
-    let startPan = { x: 0, y: 0 };
-    let tapStartTime = 0;
-    let tapStartPos: { x: number; y: number } | null = null;
+    let currentScale = transform.current.scale || 1;
+    let posX = transform.current.x || 0;
+    let posY = transform.current.y || 0;
+
+    if (scaleRef.current === 1) {
+      currentScale = 1;
+      posX = 0;
+      posY = 0;
+    }
 
     const applyTransform = (smooth = false) => {
       if (!img) return;
       img.style.transition = smooth ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
       img.style.transform = `translate3d(${posX}px, ${posY}px, 0px) scale(${currentScale})`;
+      img.style.willChange = 'transform';
+      img.style.transformOrigin = 'center center';
       transform.current = { scale: currentScale, x: posX, y: posY };
       scaleRef.current = currentScale;
+      positionRef.current = { x: posX, y: posY };
     };
 
-    const onPointerDown = (e: PointerEvent) => {
-      // Capture pointer so movement is tracked even outside the element bounds
-      try {
-        img.setPointerCapture(e.pointerId);
-      } catch (_) {}
+    const handleDoubleTap = (clientX: number, clientY: number) => {
+      hapticMedium();
+      lastGestureTimeRef.current = Date.now();
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
 
-      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (currentScale > 1.05) {
+        currentScale = 1;
+        posX = 0;
+        posY = 0;
+        applyTransform(true);
+        setScale(1);
+      } else {
+        currentScale = 2.5;
+        const rect = container.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        posX = (cx - clientX) * 1.5;
+        posY = (cy - clientY) * 1.5;
+        applyTransform(true);
+        setScale(2.5);
+      }
+    };
 
-      if (activePointers.size === 1) {
-        tapStartTime = Date.now();
-        tapStartPos = { x: e.clientX, y: e.clientY };
+    // -------------------------------------------------------------
+    // Touch Events: 2-Finger Pinch, Double-Tap, Pan, and 1x Swipe
+    // -------------------------------------------------------------
+    let lastTapTime = 0;
+    let lastTapPos = { x: 0, y: 0 };
+    let startTouchX = 0;
+    let startTouchY = 0;
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    let startPanX = 0;
+    let startPanY = 0;
+    let isPinching = false;
+    let isPanning = false;
+    let initialPinchDist = 0;
+    let initialPinchScale = 1;
+    let initialPinchMidX = 0;
+    let initialPinchMidY = 0;
+    let initialPinchPosX = 0;
+    let initialPinchPosY = 0;
+    let touchMoved = false;
 
-        // Double-tap detection (< 280ms)
+    const onTouchStart = (e: TouchEvent) => {
+      touchMoved = false;
+
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
         const now = Date.now();
-        if (now - lastTapTime < 280) {
+        const timeDiff = now - lastTapTime;
+        const dist = Math.hypot(touch.clientX - lastTapPos.x, touch.clientY - lastTapPos.y);
+
+        // Double-tap detection (< 340ms and < 35px)
+        if (timeDiff > 40 && timeDiff < 340 && dist < 35) {
           e.preventDefault();
-          hapticMedium();
-          if (singleTapTimerRef.current) {
-            clearTimeout(singleTapTimerRef.current);
-            singleTapTimerRef.current = null;
-          }
-          if (currentScale > 1.05) {
-            currentScale = 1;
-            posX = 0;
-            posY = 0;
-          } else {
-            currentScale = 2.5;
-            const rect = img.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            posX = (centerX - e.clientX) * 1.5;
-            posY = (centerY - e.clientY) * 1.5;
-          }
-          applyTransform(true);
-          setScale(currentScale);
+          handleDoubleTap(touch.clientX, touch.clientY);
           lastTapTime = 0;
           return;
         }
+
         lastTapTime = now;
-        startPan = { x: posX - e.clientX, y: posY - e.clientY };
-      } else if (activePointers.size === 2) {
-        // Two pointers down: cancel single-tap and initialize pinch
+        lastTapPos = { x: touch.clientX, y: touch.clientY };
+        startTouchX = touch.clientX;
+        startTouchY = touch.clientY;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+
+        if (currentScale > 1.05) {
+          isPanning = true;
+          startPanX = touch.clientX - posX;
+          startPanY = touch.clientY - posY;
+        }
+      } else if (e.touches.length === 2) {
+        isPinching = true;
+        isPanning = false;
+        lastGestureTimeRef.current = Date.now();
         if (singleTapTimerRef.current) {
           clearTimeout(singleTapTimerRef.current);
           singleTapTimerRef.current = null;
         }
-        const pts = Array.from(activePointers.values());
-        initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        initialPinchMidX = (pts[0].x + pts[1].x) / 2;
-        initialPinchMidY = (pts[0].y + pts[1].y) / 2;
-        initialScale = currentScale;
-        initialPosX = posX;
-        initialPosY = posY;
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        initialPinchDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+        initialPinchMidX = (t0.clientX + t1.clientX) / 2;
+        initialPinchMidY = (t0.clientY + t1.clientY) / 2;
+        initialPinchScale = currentScale;
+        initialPinchPosX = posX;
+        initialPinchPosY = posY;
       }
     };
 
-    const onPointerMove = (e: PointerEvent) => {
-      if (!activePointers.has(e.pointerId)) return;
-      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-      // Two-finger pinch zoom with focal-point tracking
-      if (activePointers.size === 2 && initialPinchDistance > 0) {
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && isPinching && initialPinchDist > 0) {
         e.preventDefault();
-        const pts = Array.from(activePointers.values());
-        const currentDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        const currentMidX = (pts[0].x + pts[1].x) / 2;
-        const currentMidY = (pts[0].y + pts[1].y) / 2;
+        touchMoved = true;
+        lastGestureTimeRef.current = Date.now();
 
-        const scaleRatio = currentDistance / initialPinchDistance;
-        currentScale = Math.min(Math.max(initialScale * scaleRatio, 0.75), 4.5);
-        posX = initialPosX + (currentMidX - initialPinchMidX);
-        posY = initialPosY + (currentMidY - initialPinchMidY);
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const currentDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+        const currentMidX = (t0.clientX + t1.clientX) / 2;
+        const currentMidY = (t0.clientY + t1.clientY) / 2;
+
+        const scaleRatio = currentDist / initialPinchDist;
+        currentScale = Math.min(Math.max(initialPinchScale * scaleRatio, 0.75), 4.5);
+
+        const deltaX = currentMidX - initialPinchMidX;
+        const deltaY = currentMidY - initialPinchMidY;
+        posX = initialPinchPosX + deltaX;
+        posY = initialPinchPosY + deltaY;
+
         applyTransform(false);
-      }
-      // Single-finger interaction
-      else if (activePointers.size === 1) {
-        if (currentScale > 1.05) {
-          // Free panning across image bounds when zoomed in
+      } else if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+        const dx = touch.clientX - startTouchX;
+        const dy = touch.clientY - startTouchY;
+
+        if (Math.hypot(dx, dy) > 8) {
+          touchMoved = true;
+          lastGestureTimeRef.current = Date.now();
+        }
+
+        if (currentScale > 1.05 && isPanning) {
           e.preventDefault();
-          posX = e.clientX + startPan.x;
-          posY = e.clientY + startPan.y;
+          posX = touch.clientX - startPanX;
+          posY = touch.clientY - startPanY;
           applyTransform(false);
-        } else if (tapStartPos) {
-          // At 1x zoom: Horizontal swipe preview
-          const dx = e.clientX - tapStartPos.x;
-          const dy = e.clientY - tapStartPos.y;
-          if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+        } else if (currentScale <= 1.05) {
+          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
             e.preventDefault();
-            posX = dx;
+            posX = dx * 0.4;
             posY = 0;
             applyTransform(false);
           }
@@ -568,28 +615,42 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
     };
 
-    const onPointerUp = (e: PointerEvent) => {
-      activePointers.delete(e.pointerId);
-      try {
-        if (img.hasPointerCapture(e.pointerId)) {
-          img.releasePointerCapture(e.pointerId);
-        }
-      } catch (_) {}
+    const onTouchEnd = (e: TouchEvent) => {
+      const remainingTouches = e.touches.length;
 
-      if (activePointers.size < 2) {
-        initialPinchDistance = 0;
+      if (isPinching && remainingTouches < 2) {
+        isPinching = false;
+        initialPinchDist = 0;
+        lastGestureTimeRef.current = Date.now();
+
+        if (currentScale < 1) {
+          currentScale = 1;
+          posX = 0;
+          posY = 0;
+          applyTransform(true);
+          setScale(1);
+        } else if (currentScale > 4) {
+          currentScale = 4;
+          applyTransform(true);
+          setScale(4);
+        } else {
+          setScale(currentScale);
+        }
+        return;
       }
 
-      if (activePointers.size === 0) {
-        // 1. If at 1x zoom and swiped horizontally
-        if (currentScale <= 1.05 && tapStartPos) {
-          const deltaX = e.clientX - tapStartPos.x;
-          const deltaY = e.clientY - tapStartPos.y;
-          const isHorizontalSwipe = Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY);
+      if (remainingTouches === 0) {
+        isPanning = false;
+
+        // Horizontal swipe navigation at 1x
+        if (currentScale <= 1.05 && touchMoved) {
+          const dx = lastTouchX - startTouchX;
+          const dy = lastTouchY - startTouchY;
+          const isHorizontalSwipe = Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy);
 
           if (isHorizontalSwipe) {
-            if (deltaX < -50 && hasNextRef.current) {
-              // Swipe Left -> Next Image
+            lastGestureTimeRef.current = Date.now();
+            if (dx < -50 && hasNextRef.current) {
               img.style.transition = 'transform 0.16s ease-out, opacity 0.16s ease-out';
               img.style.transform = `translate3d(-80px, 0px, 0px) scale(1)`;
               img.style.opacity = '0.5';
@@ -604,10 +665,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   img.style.opacity = '1';
                 }
               }, 120);
-              tapStartPos = null;
               return;
-            } else if (deltaX > 50 && hasPrevRef.current) {
-              // Swipe Right -> Previous Image
+            } else if (dx > 50 && hasPrevRef.current) {
               img.style.transition = 'transform 0.16s ease-out, opacity 0.16s ease-out';
               img.style.transform = `translate3d(80px, 0px, 0px) scale(1)`;
               img.style.opacity = '0.5';
@@ -622,12 +681,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   img.style.opacity = '1';
                 }
               }, 120);
-              tapStartPos = null;
               return;
             }
           }
 
-          // Movement did not switch images, spring back smoothly to center
           if (posX !== 0 || posY !== 0) {
             posX = 0;
             posY = 0;
@@ -636,24 +693,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           }
         }
 
-        // 2. Pinch Snap-Back Bounds
-        if (currentScale < 1) {
-          currentScale = 1;
-          posX = 0;
-          posY = 0;
-          applyTransform(true);
-        } else if (currentScale > 4) {
-          currentScale = 4;
-          applyTransform(true);
-        }
-        setScale(currentScale);
-
-        // 3. Single tap detection (< 250ms & movement < 10px) to toggle HUD controls
-        if (
-          tapStartPos &&
-          Date.now() - tapStartTime < 250 &&
-          Math.hypot(e.clientX - tapStartPos.x, e.clientY - tapStartPos.y) < 10
-        ) {
+        // Single tap to toggle HUD controls
+        if (!touchMoved && Date.now() - lastTapTime < 250) {
           if (singleTapTimerRef.current) {
             clearTimeout(singleTapTimerRef.current);
           }
@@ -662,39 +703,110 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             singleTapTimerRef.current = null;
           }, 280);
         }
-        tapStartPos = null;
       }
     };
 
-    // Attach native PointerEvent listeners directly with pointer-events-auto
-    img.addEventListener('pointerdown', onPointerDown);
-    img.addEventListener('pointermove', onPointerMove);
-    img.addEventListener('pointerup', onPointerUp);
-    img.addEventListener('pointercancel', onPointerUp);
+    // -------------------------------------------------------------
+    // Desktop Mouse & Trackpad Gestures (DoubleClick, Pan, Wheel Zoom)
+    // -------------------------------------------------------------
+    const onDoubleClick = (e: MouseEvent) => {
+      e.preventDefault();
+      handleDoubleTap(e.clientX, e.clientY);
+    };
+
+    let isMouseDown = false;
+    let mouseStartX = 0;
+    let mouseStartY = 0;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      isMouseDown = true;
+      mouseStartX = e.clientX - posX;
+      mouseStartY = e.clientY - posY;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isMouseDown || currentScale <= 1.05) return;
+      e.preventDefault();
+      lastGestureTimeRef.current = Date.now();
+      posX = e.clientX - mouseStartX;
+      posY = e.clientY - mouseStartY;
+      applyTransform(false);
+    };
+
+    const onMouseUp = () => {
+      isMouseDown = false;
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      lastGestureTimeRef.current = Date.now();
+
+      const rect = container.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      if (e.ctrlKey) {
+        // Trackpad 2-finger pinch zoom
+        const zoomDelta = -e.deltaY * 0.012;
+        const factor = Math.exp(zoomDelta);
+        const targetScale = Math.min(Math.max(currentScale * factor, 1), 5);
+
+        if (targetScale <= 1.02) {
+          currentScale = 1;
+          posX = 0;
+          posY = 0;
+        } else {
+          const scaleChange = targetScale / currentScale;
+          posX = e.clientX - (e.clientX - posX) * scaleChange;
+          posY = e.clientY - (e.clientY - posY) * scaleChange;
+          currentScale = targetScale;
+        }
+        applyTransform(false);
+        setScale(currentScale);
+      } else {
+        // Mouse wheel scroll zoom
+        const factor = e.deltaY < 0 ? 1.25 : 0.8;
+        const targetScale = Math.min(Math.max(currentScale * factor, 1), 5);
+        if (targetScale <= 1.02) {
+          currentScale = 1;
+          posX = 0;
+          posY = 0;
+        } else {
+          posX = (cx - e.clientX) * (targetScale - 1);
+          posY = (cy - e.clientY) * (targetScale - 1);
+          currentScale = targetScale;
+        }
+        applyTransform(true);
+        setScale(currentScale);
+      }
+    };
+
+    // Attach native event listeners to container (non-passive for touch & wheel so preventDefault works!)
+    container.addEventListener('touchstart', onTouchStart, { passive: false });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd);
+    container.addEventListener('touchcancel', onTouchEnd);
+
+    container.addEventListener('dblclick', onDoubleClick);
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    container.addEventListener('wheel', onWheel, { passive: false });
 
     return () => {
-      img.removeEventListener('pointerdown', onPointerDown);
-      img.removeEventListener('pointermove', onPointerMove);
-      img.removeEventListener('pointerup', onPointerUp);
-      img.removeEventListener('pointercancel', onPointerUp);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+
+      container.removeEventListener('dblclick', onDoubleClick);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      container.removeEventListener('wheel', onWheel);
     };
   }, [activeUrl, activeIdx, isFullscreen, type]);
-
-  // Wheel zoom on desktop
-  const handleWheel = (e: React.WheelEvent) => {
-    if (type !== 'image') return;
-    const zoomFactor = e.deltaY < 0 ? 1.2 : 0.8;
-    const newScale = Math.max(1, Math.min(6, transform.current.scale * zoomFactor));
-    if (newScale <= 1.05) {
-      resetZoom();
-      isDraggingRef.current = false;
-    } else {
-      transform.current.scale = newScale;
-      scaleRef.current = newScale;
-      setScale(newScale);
-      applyTransform();
-    }
-  };
 
   const handleDownload = useCallback(async () => {
     if (!activeUrl || isDownloading) return;
@@ -756,12 +868,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           backgroundColor: 'rgba(2, 4, 8, 0.65)',
         }}
         onClick={(e) => {
+          if (Date.now() - lastGestureTimeRef.current < 400) return;
           if (!isTouchOnImage(e.clientX, e.clientY)) {
             exitFullscreen();
           }
         }}
         onMouseMove={wakeFullscreenClose}
-        onWheel={handleWheel}
       >
         {/* Edge-to-Edge Pure Photo */}
         <div
@@ -776,7 +888,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           }}
         >
           <img
-            key={currentItem?.id || activeUrl || activeIdx}
             ref={imgRef}
             src={getLocalCachedPhotoUrl(currentItem) || getMediaUrl(secureUrl)}
             alt={cleanTitle}
@@ -839,6 +950,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         backgroundColor: 'rgba(2, 4, 8, 0.65)',
       }}
       onClick={(e) => {
+        if (Date.now() - lastGestureTimeRef.current < 400) return;
         if (showSidebar) {
           setShowSidebar(false);
           return;
@@ -1029,6 +1141,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             overscrollBehavior: 'none',
           }}
           onClick={(e) => {
+            if (Date.now() - lastGestureTimeRef.current < 400) return;
             if (type === 'image' && !isTouchOnImage(e.clientX, e.clientY)) {
               if (singleTapTimerRef.current) {
                 clearTimeout(singleTapTimerRef.current);
@@ -1037,7 +1150,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               onClose();
             }
           }}
-          onWheel={handleWheel}
         >
           {type === 'video' ? (
             <div className="w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center border border-white/10">
@@ -1065,7 +1177,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               }}
             >
               <img
-                key={currentItem?.id || activeUrl || activeIdx}
                 ref={imgRef}
                 src={getLocalCachedPhotoUrl(currentItem) || getMediaUrl(secureUrl)}
                 alt={cleanTitle}
