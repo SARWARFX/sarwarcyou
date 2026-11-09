@@ -332,8 +332,11 @@ html, body, #root {
   animation: laserShimmer 2s infinite linear;
 }
 
-/* Cyber Lens Aperture & HUD Startup Animation */
-.cyber-splash-active {
+/* ==========================================================================
+   CYBER LENS APERTURE & HUD STARTUP ANIMATION (2.5s CINEMATIC)
+   ========================================================================== */
+
+.cyber-splash-root {
   position: fixed;
   inset: 0;
   z-index: 999999;
@@ -342,91 +345,95 @@ html, body, #root {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   -webkit-user-select: none;
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: all;
 }
 
-.cyber-splash-active.dismissed {
+.cyber-splash-root.dismissed {
   opacity: 0;
-  transform: scale(1.08);
+  transform: scale(1.06);
   pointer-events: none;
 }
 
-.aperture-backdrop-grid {
+.hud-grid-overlay {
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
   pointer-events: none;
 }
 
-.hud-corner {
+/* Reticle Corners */
+.hud-bracket {
   position: absolute;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: 2px solid rgba(56, 189, 248, 0.5);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  pointer-events: none;
 }
-.top-left { top: 28px; left: 28px; border-right: none; border-bottom: none; }
-.top-right { top: 28px; right: 28px; border-left: none; border-bottom: none; }
-.bottom-left { bottom: 28px; left: 28px; border-right: none; border-top: none; }
-.bottom-right { bottom: 28px; right: 28px; border-left: none; border-top: none; }
+.hud-top-left { top: 28px; left: 28px; border-right: none; border-bottom: none; }
+.hud-top-right { top: 28px; right: 28px; border-left: none; border-bottom: none; }
+.hud-bottom-left { bottom: 28px; left: 28px; border-right: none; border-top: none; }
+.hud-bottom-right { bottom: 28px; right: 28px; border-left: none; border-top: none; }
 
-.aperture-assembly {
+.lens-stage {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
   z-index: 2;
 }
 
-.telemetry-tag {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+.telemetry-readout {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   color: rgba(56, 189, 248, 0.7);
   letter-spacing: 2px;
   text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
 }
-.top-tag { margin-bottom: 24px; }
-.bottom-tag { margin-top: 24px; font-size: 10px; opacity: 0.6; }
+.telemetry-top { margin-bottom: 24px; }
+.telemetry-bottom { margin-top: 24px; font-size: 10px; opacity: 0.6; }
 
-.lens-chassis {
+/* Mechanical Aperture Core */
+.aperture-core {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 190px;
+  height: 190px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ring-track.outer-spin {
+.aperture-ring-outer {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px dashed rgba(56, 189, 248, 0.4);
-  animation: chassisSpin 12s linear infinite;
+  border: 1.5px dashed rgba(56, 189, 248, 0.45);
+  animation: rotateOuter 12s linear infinite;
 }
 
-.ring-track.inner-counter-spin {
+.aperture-ring-ticks {
   position: absolute;
-  inset: 12px;
+  inset: 10px;
   border-radius: 50%;
   border: 2px dotted rgba(56, 189, 248, 0.6);
-  box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.2);
-  animation: chassisSpinReverse 8s linear infinite;
+  box-shadow: inset 0 0 16px rgba(56, 189, 248, 0.2);
+  animation: rotateInner 8s linear infinite reverse;
 }
 
-.iris-chamber {
+.aperture-blade-iris {
   position: absolute;
-  inset: 26px;
+  inset: 24px;
   border-radius: 50%;
-  background: #030712;
   overflow: hidden;
-  border: 2px solid rgba(56, 189, 248, 0.5);
-  box-shadow: 0 0 25px rgba(56, 189, 248, 0.35), inset 0 0 30px rgba(0, 0, 0, 0.9);
+  border: 2px solid rgba(56, 189, 248, 0.55);
+  background: #030712;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.35), inset 0 0 25px rgba(0, 0, 0, 0.95);
 }
 
 .iris-blade {
@@ -436,8 +443,9 @@ html, body, #root {
   background: linear-gradient(135deg, #090e1a 0%, #172554 100%);
   border: 1px solid rgba(56, 189, 248, 0.35);
   transform-origin: 50% 50%;
-  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: irisBreathe 2.5s ease-in-out infinite alternate;
 }
+
 .blade-1 { transform: rotate(0deg) translate(0%, -28%); }
 .blade-2 { transform: rotate(60deg) translate(0%, -28%); }
 .blade-3 { transform: rotate(120deg) translate(0%, -28%); }
@@ -447,97 +455,124 @@ html, body, #root {
 
 .lens-flare-beam {
   position: absolute;
-  width: 320px;
-  height: 3px;
+  width: 300px;
+  height: 2px;
   background: linear-gradient(90deg, transparent, #38bdf8, #ffffff, #38bdf8, transparent);
   filter: drop-shadow(0 0 12px #38bdf8);
-  animation: flareSweep 2.5s ease-in-out infinite alternate;
+  animation: beamSweep 2.5s ease-in-out infinite alternate;
   z-index: 4;
 }
 
-.central-optic-core {
+.aperture-center-logo {
   position: relative;
   z-index: 5;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(56, 189, 248, 0.6);
+  width: 68px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 25px rgba(56, 189, 248, 0.5), inset 0 0 10px rgba(56, 189, 248, 0.3);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(56, 189, 248, 0.65);
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.5), inset 0 0 12px rgba(56, 189, 248, 0.35);
 }
 
-.optic-play-symbol {
-  width: 38px;
-  height: 38px;
+.aperture-play-svg {
+  width: 36px;
+  height: 36px;
   filter: drop-shadow(0 0 10px #38bdf8);
 }
 
-.aperture-readout {
+/* Identity & HUD Track */
+.hud-identity {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 28px;
+  margin-top: 26px;
 }
 
-.brand-logotype {
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 24px;
-  font-weight: 900;
-  letter-spacing: 7px;
+.hud-title {
+  margin: 0;
   color: #f8fafc;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 6px;
   text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
 }
 
-.sub-telemetry {
+.hud-status {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  color: #94a3b8;
-  letter-spacing: 2px;
   margin-top: 8px;
 }
 
-.blinking-indicator {
+.status-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: #38bdf8;
-  box-shadow: 0 0 10px #38bdf8;
-  animation: blinkDot 0.8s infinite alternate;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: pulseDot 0.9s infinite alternate;
 }
 
-.progress-bar-slot {
-  width: 160px;
+.status-text {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 2px;
+}
+
+.hud-progress-slot {
+  width: 150px;
   height: 3px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
-  margin-top: 20px;
+  margin-top: 18px;
   overflow: hidden;
 }
 
-.progress-bar-fill {
+.hud-progress-fill {
   width: 0%;
   height: 100%;
   background: #38bdf8;
   box-shadow: 0 0 12px #38bdf8;
-  animation: loadProgressBar 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: progressFill 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-@keyframes chassisSpin { to { transform: rotate(360deg); } }
-@keyframes chassisSpinReverse { to { transform: rotate(-360deg); } }
-@keyframes blinkDot { from { opacity: 0.2; } to { opacity: 1; } }
-@keyframes flareSweep {
+/* Animations */
+@keyframes rotateOuter {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateInner {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseDot {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+
+@keyframes beamSweep {
   0% { transform: scaleX(0.2); opacity: 0.3; }
-  50% { transform: scaleX(1.4); opacity: 1; filter: drop-shadow(0 0 16px #38bdf8); }
+  50% { transform: scaleX(1.3); opacity: 1; filter: drop-shadow(0 0 16px #38bdf8); }
   100% { transform: scaleX(0.8); opacity: 0.7; }
 }
-@keyframes loadProgressBar { 0% { width: 0%; } 100% { width: 100%; } }
+
+@keyframes progressFill {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+@keyframes irisBreathe {
+  0% { transform: scale(0.96); }
+  100% { transform: scale(1.04); }
+}
 
 
 

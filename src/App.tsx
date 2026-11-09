@@ -14,6 +14,7 @@ import { initializePhotoCache, startBackgroundPhotoSync } from './services/photo
 import { initializeVideoOfflineCache } from './services/videoOfflineManager';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
+import { CyberSplash } from './components/CyberSplash';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
 import { WinXPDesktop } from './components/winxp/WinXPDesktop';
 import { SilentHillShell } from './components/silenthill/SilentHillShell';
@@ -636,6 +637,8 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
+      <CyberSplash />
+
       {ENABLE_CSPR_SHOWCASE || ACTIVE_INTERFACE === 'CSPR_SHOWCASE' ? (
         <>
           {/* 1. CSPR Border-Attached Navigation and Curated Horizontal Carousel Home Page */}
