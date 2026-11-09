@@ -253,15 +253,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 <span>CHRONICLE</span>
               </button>
             </div>
-
-            {/* Item Count Pill */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#121215] border border-white/[0.08] text-xs text-neutral-400 shrink-0">
-              {activeTab === 'WALLPAPERS' ? (
-                <span>{filteredWallpapers.length} PORTRAITS</span>
-              ) : (
-                <span>{filteredNews.length} DISPATCHES</span>
-              )}
-            </div>
           </div>
         </div>
 

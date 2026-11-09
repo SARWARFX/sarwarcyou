@@ -378,12 +378,9 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
         aria-label="Media Archive Navigation"
       >
         {/* Minimalist Publication Header */}
-        <div className="drawer-header flex items-center justify-between pb-4 mb-4 border-b border-white/[0.08]">
+        <div className="drawer-header flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08]">
           <span className="font-serif text-sm font-bold tracking-wider text-[#f4f4f5] uppercase">
             MEDIA ARCHIVE
-          </span>
-          <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-sans">
-            COLLECTIONS
           </span>
         </div>
 
@@ -408,9 +405,6 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                     <span className={`folder-caret ${isExpanded ? 'open' : ''}`}>▸</span>
                     <span>{folder.name}</span>
                   </span>
-                  <span className="folder-badge">
-                    {folder.subfolders.length} {folder.subfolders.length === 1 ? 'ALBUM' : 'ALBUMS'}
-                  </span>
                 </button>
 
                 {isExpanded && (
@@ -428,9 +422,6 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                           onClick={() => navigateToSubfolder(folder.id, sub.name)}
                         >
                           <span className="sub-title">{sub.name}</span>
-                          {typeof sub.itemCount === 'number' && (
-                            <span className="sub-tag">{sub.itemCount}</span>
-                          )}
                         </button>
                       ))
                     )}
@@ -659,52 +650,41 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
             </>
           )}
 
-          <div className="flex items-center justify-between text-xs text-neutral-400">
-            <span className="font-sans font-medium text-neutral-300">Activity Telemetry</span>
-            <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-mono">
-              {telemetry.todayTotal} {telemetry.todayTotal === 1 ? 'EVENT TODAY' : 'EVENTS TODAY'}
+          {/* Streamlined Activity Telemetry Widget */}
+          <div className="flex flex-col gap-2 pt-1">
+            <span className="text-xs font-mono text-neutral-300 font-medium">
+              {telemetry.todayFormatted}
             </span>
-          </div>
 
-          {/* Real Proportional Bar Chart with Calendar Date Labels */}
-          <div className="flex items-end gap-1.5 h-10">
-            {telemetry.days.map((day, idx) => {
-              const isToday = idx === telemetry.days.length - 1;
-              const heightPercent = (telemetry.maxVal > 0 && day.count > 0)
-                ? Math.max(Math.round((day.count / telemetry.maxVal) * 100), 14)
-                : 0;
+            {/* 7 Activity Bars */}
+            <div className="flex items-end gap-1.5 h-9">
+              {telemetry.days.map((day, idx) => {
+                const isToday = idx === telemetry.days.length - 1;
+                const heightPercent = (telemetry.maxMinutes > 0 && day.minutes > 0)
+                  ? Math.max(Math.round((day.minutes / telemetry.maxMinutes) * 100), 14)
+                  : 0;
 
-              const dateNumber = day.label === 'TODAY'
-                ? 'TODAY'
-                : day.label === 'YEST'
-                ? 'YEST'
-                : day.label.split(' ')[1] || day.label;
-
-              return (
-                <div key={day.date} className="flex-1 flex flex-col items-center h-full justify-end gap-1">
-                  <div
-                    className={`bar-col w-full ${isToday ? 'active-bar' : ''}`}
-                    style={{
-                      height: day.count > 0 ? `${heightPercent}%` : '2px',
-                      opacity: day.count > 0 ? 1 : 0.25,
-                    }}
-                    title={`${day.label}: ${day.count} recorded events`}
-                  />
-                  <span
-                    className={`text-[8px] font-mono leading-none tracking-tighter ${
-                      isToday ? 'text-white font-bold' : 'text-neutral-500'
-                    }`}
-                  >
-                    {dateNumber}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center justify-between text-[10px] text-neutral-500 tracking-wider font-sans pt-1 border-t border-white/[0.04]">
-            <span className="text-neutral-400 font-medium">RECORDED ACTIVITY</span>
-            <span>ROLLING 7D</span>
+                return (
+                  <div key={day.date} className="flex-1 flex flex-col items-center h-full justify-end gap-1">
+                    <div
+                      className={`bar-col w-full ${isToday ? 'active-bar' : ''}`}
+                      style={{
+                        height: day.minutes > 0 ? `${heightPercent}%` : '2px',
+                        opacity: day.minutes > 0 ? 1 : 0.25,
+                      }}
+                      title={`${day.label}: ${day.formattedMinutes}`}
+                    />
+                    <span
+                      className={`text-[8px] font-mono leading-none tracking-tighter ${
+                        isToday ? 'text-white font-bold' : 'text-neutral-500'
+                      }`}
+                    >
+                      {day.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </aside>

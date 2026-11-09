@@ -81,11 +81,9 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
     <div className="newspaper-container rounded-2xl my-2">
       {/* 1. BROADSHEET MASTHEAD */}
       <header className="newspaper-masthead">
-        {/* Top Dateline & Publication Issue Bar */}
-        <div className="masthead-top-bar flex-wrap gap-2">
-          <span>DAILY CELEBRITY DISPATCH</span>
-          <span className="font-serif italic text-neutral-400">{currentDateFormatted}</span>
-          <span>EDITORIAL EDITION</span>
+        {/* Top Dateline */}
+        <div className="masthead-top-bar justify-center py-1">
+          <span className="font-serif italic text-xs text-neutral-400">{currentDateFormatted}</span>
         </div>
 
         {/* Elegant Broadsheet Masthead Title */}
@@ -135,8 +133,8 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
                       (e.currentTarget as HTMLElement).style.display = 'none';
                     }}
                   />
-                  <div className="px-3.5 py-2 bg-[#09090b]/90 border-t border-white/[0.06] text-xs font-serif italic text-neutral-400">
-                    Photograph: {leadArticle.celebrity} via {leadArticle.source}.
+                  <div className="px-3 py-1.5 bg-[#09090b]/90 border-t border-white/[0.06] text-[11px] font-sans text-neutral-400">
+                    {leadArticle.celebrity} · {leadArticle.source}
                   </div>
                 </div>
               )}
@@ -225,13 +223,10 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
 
         {/* RIGHT COLUMN: COMPACT NEWS DISPATCH LIST (4 Cols) */}
         <aside className="lg:col-span-4 border-t lg:border-t-0 lg:border-l border-white/[0.08] pt-6 lg:pt-0 lg:pl-8 flex flex-col gap-6">
-          <div className="border-b border-white/[0.08] pb-3">
-            <h3 className="font-['Playfair_Display'] text-lg font-bold text-[#f4f4f5] tracking-wide">
+          <div className="border-b border-white/[0.08] pb-2">
+            <h3 className="font-['Playfair_Display'] text-base font-bold text-[#f4f4f5] tracking-wide">
               Latest Dispatches
             </h3>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Continuous editorial coverage and syndicated reports
-            </p>
           </div>
 
           <div className="flex flex-col divide-y divide-white/[0.06]">
