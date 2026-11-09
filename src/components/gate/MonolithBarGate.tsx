@@ -344,7 +344,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   return (
     <div
-      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-row bg-[#020408] relative select-none font-['Google_Sans'] text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-row bg-[#020408] relative select-none font-['Roboto_Condensed'] font-sans text-white"
       style={{
         isolation: 'isolate',
         background: 'radial-gradient(circle at 50% 35%, rgba(8, 20, 38, 0.6) 0%, #020408 85%)',
@@ -445,13 +445,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             className="hidden md:flex flex-1 h-screen overflow-y-auto space-scrollbar p-8 lg:p-12 z-10 flex-col bg-transparent border-0"
           >
             <div className="flex items-center justify-between pb-3 mb-6 border-b border-white/8">
-              <span className="font-['Google_Sans'] font-bold text-sm tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+              <span className="font-['Roboto_Condensed'] font-sans font-bold text-sm tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
                 {selectedSubfolder}
               </span>
               <button
                 type="button"
                 onClick={handleSelectIdle}
-                className="font-['Google_Sans'] text-xs tracking-wider uppercase text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0 outline-none flex items-center gap-1.5"
+                className="font-['Roboto_Condensed'] font-sans text-xs tracking-wider uppercase text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0 outline-none flex items-center gap-1.5"
               >
                 ← RETURN TO OVERVIEW
               </button>
@@ -576,7 +576,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
             </button>
             {selectedSubfolder && (
-              <span className="font-['Google_Sans'] text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate max-w-[200px]">
+              <span className="font-['Roboto_Condensed'] font-sans text-xs font-bold text-[#38bdf8] uppercase tracking-wider truncate max-w-[200px]">
                 {selectedSubfolder}
               </span>
             )}

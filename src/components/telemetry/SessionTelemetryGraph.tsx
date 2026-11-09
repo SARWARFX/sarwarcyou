@@ -290,7 +290,7 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
 
               {/* Bottom: Date Label */}
               <span
-                className={`mt-0.5 sm:mt-1 font-['Google_Sans'] text-[6px] xs:text-[7px] sm:text-[8px] md:text-[9px] tracking-wider uppercase text-center truncate w-full ${
+                className={`mt-0.5 sm:mt-1 font-['Roboto_Condensed'] font-sans text-[6px] xs:text-[7px] sm:text-[8px] md:text-[9px] tracking-wider uppercase text-center truncate w-full ${
                   day.isToday
                     ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_6px_rgba(56,189,248,0.4)]'
                     : 'text-slate-500 group-hover:text-slate-300'

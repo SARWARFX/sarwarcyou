@@ -162,7 +162,7 @@ export const CyberCard: React.FC<CyberCardProps> = ({
       <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/85 via-black/45 to-transparent z-20 pointer-events-none flex items-center">
         <span
           title={cleanTitle}
-          className="text-[11px] font-['Google Sans'] font-medium tracking-[0.08em] text-white block truncate drop-shadow-sm"
+          className="text-[11px] font-['Roboto_Condensed'] font-sans font-medium tracking-[0.08em] text-white block truncate drop-shadow-sm"
           style={{
             whiteSpace: 'nowrap',
             overflow: 'hidden',

@@ -79,12 +79,12 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
         <div className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse mb-3.5" />
 
         {/* Notice Title */}
-        <h2 className="text-[11px] sm:text-xs font-['Google Sans'] font-medium tracking-[0.24em] uppercase text-white pb-2.5 mb-3 border-b border-white/10 w-full text-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+        <h2 className="text-[11px] sm:text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-[0.24em] uppercase text-white pb-2.5 mb-3 border-b border-white/10 w-full text-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
           PUBLIC DOMAIN & OPEN ACCESS NOTICE
         </h2>
 
         {/* Notice Body */}
-        <p className="text-xs sm:text-sm md:text-[13px] leading-relaxed text-slate-300 font-['Google Sans'] font-normal my-3 max-w-sm sm:max-w-md text-center">
+        <p className="text-xs sm:text-sm md:text-[13px] leading-relaxed text-slate-300 font-['Roboto_Condensed'] font-sans font-normal my-3 max-w-sm sm:max-w-md text-center">
           All content featured across this platform has been collected exclusively from publicly available sources on the internet. No private video, image, or shorts has been published or hosted on this site.
         </p>
 
@@ -92,7 +92,7 @@ export const ComplianceSplashScreen: React.FC<ComplianceSplashScreenProps> = ({ 
         <button
           type="button"
           onClick={handleDismiss}
-          className="mt-4 font-['Google Sans'] font-medium text-xs md:text-sm tracking-[0.28em] uppercase text-slate-400 hover:text-white transition-all duration-300 hover:drop-shadow-[0_0_16px_rgba(255,255,255,0.7)] cursor-pointer bg-transparent border-none outline-none py-2 px-4"
+          className="mt-4 font-['Roboto_Condensed'] font-sans font-medium text-xs md:text-sm tracking-[0.28em] uppercase text-slate-400 hover:text-white transition-all duration-300 hover:drop-shadow-[0_0_16px_rgba(255,255,255,0.7)] cursor-pointer bg-transparent border-none outline-none py-2 px-4"
         >
           ENTER ARCHIVE
         </button>

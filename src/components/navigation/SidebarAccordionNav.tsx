@@ -91,12 +91,12 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
               }}
               className={`pointer-events-auto relative z-40 select-none ${
                 isDesktop
-                  ? `font-['Google_Sans'] font-bold text-lg lg:text-xl tracking-[0.24em] uppercase transition-colors cursor-pointer flex items-center gap-3 text-left outline-none bg-transparent border-0 truncate ${
+                  ? `font-['Roboto_Condensed'] font-sans font-bold text-lg lg:text-xl tracking-[0.24em] uppercase transition-colors cursor-pointer flex items-center gap-3 text-left outline-none bg-transparent border-0 truncate ${
                       isAccordionOpen || isFolderActive
                         ? 'text-white'
                         : 'text-[#3b4252] hover:text-white'
                     }`
-                  : `font-['Google_Sans'] text-2xl md:text-3xl font-bold tracking-[0.22em] uppercase transition-colors cursor-pointer flex items-center gap-3.5 text-left outline-none bg-transparent border-0 truncate ${
+                  : `font-['Roboto_Condensed'] font-sans text-2xl md:text-3xl font-bold tracking-[0.22em] uppercase transition-colors cursor-pointer flex items-center gap-3.5 text-left outline-none bg-transparent border-0 truncate ${
                       isAccordionOpen || isFolderActive
                         ? 'text-white'
                         : 'text-slate-400 hover:text-white'
@@ -142,7 +142,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                         }}
                         className={
                           isDesktop
-                            ? `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-xs tracking-wider uppercase transform transition-all duration-200 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 truncate ${
+                            ? `pointer-events-auto relative z-40 select-none font-['Roboto_Condensed'] font-sans text-xs tracking-wider uppercase transform transition-all duration-200 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 truncate ${
                                 isAccordionOpen
                                   ? 'translate-x-0 opacity-100'
                                   : '-translate-x-2.5 opacity-0 pointer-events-none'
@@ -151,7 +151,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                                   ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] translate-x-1.5'
                                   : 'text-slate-400 hover:text-white hover:translate-x-1'
                               }`
-                            : `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-sm font-semibold tracking-[0.16em] uppercase py-1 pl-4 text-left transition-colors cursor-pointer outline-none bg-transparent border-0 truncate ${
+                            : `pointer-events-auto relative z-40 select-none font-['Roboto_Condensed'] font-sans text-sm font-semibold tracking-[0.16em] uppercase py-1 pl-4 text-left transition-colors cursor-pointer outline-none bg-transparent border-0 truncate ${
                                 isAccordionOpen
                                   ? 'opacity-100'
                                   : 'opacity-0 pointer-events-none'

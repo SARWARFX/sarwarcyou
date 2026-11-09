@@ -1010,7 +1010,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        <span className="font-['Google Sans'] font-medium uppercase truncate max-w-[180px] xs:max-w-xs sm:max-w-md tracking-wider">
+        <span className="font-['Roboto_Condensed'] font-sans font-medium uppercase truncate max-w-[180px] xs:max-w-xs sm:max-w-md tracking-wider">
           {albumName}
         </span>
         {totalCount > 0 && (
@@ -1034,7 +1034,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             e.stopPropagation();
             onClose();
           }}
-          className="bg-transparent border-none outline-none text-xs font-['Google_Sans'] font-medium tracking-widest text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 py-1 px-1.5"
+          className="bg-transparent border-none outline-none text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-widest text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 py-1 px-1.5"
           title="Close (Esc)"
           aria-label="Close"
         >
@@ -1461,7 +1461,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={togglePlay}
-              className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Google_Sans'] flex-shrink-0"
+              className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0"
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
@@ -1493,7 +1493,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 });
                 resetHudTimer();
               }}
-              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Google_Sans'] flex-shrink-0 ${
+              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0 ${
                 repeatMode !== 'off'
                   ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
                   : 'text-slate-300 hover:text-white'
@@ -1518,7 +1518,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleToggleLoop}
-              className={`bg-transparent border-none outline-none flex items-center gap-1 p-1.5 text-[10px] sm:text-xs font-['Google_Sans'] font-medium tracking-wider transition-all duration-200 hover:scale-110 cursor-pointer flex-shrink-0 ${
+              className={`bg-transparent border-none outline-none flex items-center gap-1 p-1.5 text-[10px] sm:text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-wider transition-all duration-200 hover:scale-110 cursor-pointer flex-shrink-0 ${
                 loopA !== null && loopB !== null
                   ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
                   : loopA !== null
@@ -1551,7 +1551,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
                 resetHudTimer();
               }}
-              className={`bg-transparent border-none outline-none p-1.5 text-[10px] sm:text-xs font-['Google_Sans'] font-medium tracking-wider transition-all duration-200 hover:scale-110 cursor-pointer flex-shrink-0 ${
+              className={`bg-transparent border-none outline-none p-1.5 text-[10px] sm:text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-wider transition-all duration-200 hover:scale-110 cursor-pointer flex-shrink-0 ${
                 fitMode === 'cover'
                   ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
                   : 'text-slate-300 hover:text-white'
@@ -1571,7 +1571,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               type="button"
               onClick={handleDownload}
               disabled={isDownloading}
-              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Google_Sans'] flex-shrink-0 ${
+              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0 ${
                 downloadSuccess
                   ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]'
                   : 'text-slate-300 hover:text-white'
@@ -1592,7 +1592,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleShareMedia}
-              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Google_Sans'] flex-shrink-0 ${
+              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0 ${
                 shareSuccess
                   ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
                   : 'text-slate-300 hover:text-white'
@@ -1613,7 +1613,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 ref={speedBtnRef}
                 type="button"
                 onClick={toggleSpeedMenu}
-                className={`bg-transparent border-none outline-none flex items-center gap-1 p-1.5 text-[10px] sm:text-xs font-['Google_Sans'] font-medium tracking-wider transition-all duration-200 hover:scale-110 cursor-pointer flex-shrink-0 ${
+                className={`bg-transparent border-none outline-none flex items-center gap-1 p-1.5 text-[10px] sm:text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-wider transition-all duration-200 hover:scale-110 cursor-pointer flex-shrink-0 ${
                   playbackSpeed !== 1
                     ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
                     : 'text-slate-300 hover:text-white'
@@ -1673,7 +1673,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleToggleMute}
-              className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Google_Sans'] flex-shrink-0"
+              className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0"
               title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
               aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
@@ -1684,7 +1684,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleFullscreenToggle}
-              className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Google_Sans'] flex-shrink-0"
+              className="bg-transparent border-none outline-none text-slate-300 hover:text-white transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0"
               title="Fullscreen (F)"
               aria-label="Toggle Fullscreen"
             >
@@ -1728,7 +1728,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
                 resetHudTimer();
               }}
-              className={`bg-transparent border-none outline-none p-1 text-[10px] font-['Google_Sans'] font-medium tracking-wider cursor-pointer flex-shrink-0 ${
+              className={`bg-transparent border-none outline-none p-1 text-[10px] font-['Roboto_Condensed'] font-sans font-medium tracking-wider cursor-pointer flex-shrink-0 ${
                 fitMode === 'cover'
                   ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
                   : 'text-slate-400 hover:text-white'
@@ -1787,7 +1787,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                       setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
                       resetHudTimer();
                     }}
-                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
                   >
                     {repeatMode === 'one' ? <Repeat1 className="w-3.5 h-3.5 text-[#38bdf8]" /> : <Repeat className={`w-3.5 h-3.5 ${repeatMode === 'all' ? 'text-[#38bdf8]' : ''}`} />}
                     <span>Loop: {repeatMode.toUpperCase()}</span>
@@ -1800,7 +1800,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                       e.stopPropagation();
                       handleToggleLoop();
                     }}
-                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
                   >
                     <Repeat className="w-3.5 h-3.5" />
                     <span>A-B: {loopA !== null && loopB !== null ? 'Active' : loopA !== null ? 'Set B' : 'Set A'}</span>
@@ -1814,7 +1814,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                       handleDownload();
                     }}
                     disabled={isDownloading}
-                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1 disabled:opacity-40"
+                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1 disabled:opacity-40"
                   >
                     {downloadSuccess ? (
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -1833,7 +1833,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                       e.stopPropagation();
                       handleShareMedia();
                     }}
-                    className="flex items-center gap-2 text-xs font-['Google_Sans'] text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
+                    className="flex items-center gap-2 text-xs font-['Roboto_Condensed'] font-sans text-slate-300 hover:text-white text-left cursor-pointer bg-transparent border-0 py-1"
                   >
                     {shareSuccess ? <Check className="w-3.5 h-3.5 text-[#38bdf8]" /> : <Share2 className="w-3.5 h-3.5" />}
                     <span>Share</span>
