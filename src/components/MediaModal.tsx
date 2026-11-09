@@ -828,9 +828,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         aria-modal="true"
         className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] select-none touch-none flex items-center justify-center animate-fade-in cursor-pointer"
         style={{
-          background: 'rgba(3, 5, 10, 0.65)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          background: 'rgba(2, 4, 8, 0.88)',
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
           touchAction: 'none',
         }}
         onClick={handleStageClick}
@@ -850,6 +850,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
           style={{ touchAction: 'none' }}
         >
+          {/* Ambient Blurred Background for Rich Cinematic Depth Outside Image */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0 flex items-center justify-center"
+          >
+            <img
+              src={getMediaUrl(secureUrl)}
+              alt=""
+              className="w-full h-full object-cover scale-125 filter blur-[40px] sm:blur-[60px] opacity-40 brightness-75 transition-opacity duration-300 pointer-events-none"
+            />
+            <div className="absolute inset-0 bg-[#020408]/50 backdrop-blur-md pointer-events-none" />
+          </div>
+
           <img
             key={currentItem?.id || activeUrl || activeIdx}
             ref={imgRef}
@@ -877,7 +890,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   ? 'none'
                   : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}
-            className={`max-w-full max-h-full object-contain select-none will-change-transform animate-fade-in ${
+            className={`relative z-10 max-w-full max-h-full object-contain select-none will-change-transform animate-fade-in ${
               isZoomed
                 ? isDragging
                   ? 'cursor-grabbing'
@@ -919,9 +932,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       aria-modal="true"
       className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row select-none animate-fade-in touch-none overscroll-contain"
       style={{
-        background: 'rgba(3, 5, 10, 0.65)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        background: 'rgba(2, 4, 8, 0.88)',
+        backdropFilter: 'blur(40px)',
+        WebkitBackdropFilter: 'blur(40px)',
       }}
       onClick={(e) => {
         if (showSidebar) {
@@ -1165,6 +1178,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
               style={{ touchAction: 'none' }}
             >
+              {/* Ambient Blurred Background for Rich Cinematic Depth Outside Image */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0 flex items-center justify-center"
+              >
+                <img
+                  src={getMediaUrl(secureUrl)}
+                  alt=""
+                  className="w-full h-full object-cover scale-125 filter blur-[40px] sm:blur-[60px] opacity-40 brightness-75 transition-opacity duration-300 pointer-events-none"
+                />
+                <div className="absolute inset-0 bg-[#020408]/50 backdrop-blur-md pointer-events-none" />
+              </div>
+
               <img
                 key={currentItem?.id || activeUrl || activeIdx}
                 ref={imgRef}
@@ -1190,7 +1216,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                       : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
                   touchAction: 'none',
                 }}
-                className={`w-auto h-auto object-contain select-none will-change-transform animate-fade-in max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${
+                className={`relative z-10 w-auto h-auto object-contain select-none will-change-transform animate-fade-in max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] ${
                   isDragging ? 'cursor-grabbing' : isZoomed ? 'cursor-grab' : 'cursor-grab md:cursor-zoom-in'
                 }`}
                 draggable={false}
