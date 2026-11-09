@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { HardDrive, Loader2, CheckCircle2 } from 'lucide-react';
+import { HardDrive, Loader2, CheckCircle2, ShieldAlert, AlertCircle } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { hapticMedium } from '../utils/hapticsManager';
 import type { DirectoryNode } from './DeepSpaceTreeExplorer';
@@ -131,7 +131,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
 
   // In-app updater state
   const [updateState, setUpdateState] = useState<{
-    status: 'idle' | 'checking' | 'available' | 'latest' | 'error' | 'downloading';
+    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'permission_needed' | 'latest' | 'error';
     result: UpdateCheckResult | null;
     errorText?: string;
     progressPercent: number;
@@ -217,47 +217,112 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
       ...prev,
       status: 'downloading',
       progressPercent: 0,
-      bytesText: 'Starting download...',
+      bytesText: 'Connecting to download server...',
+      errorText: undefined,
     }));
 
     try {
       try {
-        await AppInstaller.addListener(
-          'downloadProgress',
-          (data: { percent: number; bytesReceived: number; totalBytes: number }) => {
-            setUpdateState((prev) => ({
-              ...prev,
-              progressPercent: data.percent || 0,
-              bytesText:
-                data.totalBytes > 0
-                  ? `${formatBytes(data.bytesReceived)} / ${formatBytes(data.totalBytes)}`
-                  : formatBytes(data.bytesReceived),
-            }));
-          }
-        );
-
-        await AppInstaller.addListener('downloadComplete', () => {
-          setUpdateState((prev) => ({
-            ...prev,
-            status: 'latest',
-            progressPercent: 100,
-            bytesText: 'Launching installer...',
-          }));
-        });
-
-        await AppInstaller.addListener('downloadFailed', (err: { error: string }) => {
-          setUpdateState((prev) => ({
-            ...prev,
-            status: 'error',
-            errorText: err.error || 'Download failed',
-          }));
-        });
+        await AppInstaller.removeAllListeners();
       } catch (_) {}
 
-      await AppInstaller.downloadAndInstall({ url: updateState.result.apkUrl });
+      await AppInstaller.addListener(
+        'downloadProgress',
+        (data: { percent: number; bytesReceived: number; totalBytes: number }) => {
+          setUpdateState((prev) => ({
+            ...prev,
+            progressPercent: data.percent || 0,
+            bytesText:
+              data.totalBytes > 0
+                ? `${formatBytes(data.bytesReceived)} / ${formatBytes(data.totalBytes)} (${data.percent}%)`
+                : formatBytes(data.bytesReceived),
+          }));
+        }
+      );
+
+      await AppInstaller.addListener('downloadComplete', () => {
+        setUpdateState((prev) => ({
+          ...prev,
+          progressPercent: 100,
+          bytesText: 'APK package downloaded. Preparing installation...',
+        }));
+      });
+
+      await AppInstaller.addListener('permissionNeeded', () => {
+        setUpdateState((prev) => ({
+          ...prev,
+          status: 'permission_needed',
+          progressPercent: 100,
+          bytesText: 'Grant "Install unknown apps" permission to complete update',
+        }));
+      });
+
+      await AppInstaller.addListener('downloadFailed', (err: { error: string }) => {
+        setUpdateState((prev) => ({
+          ...prev,
+          status: 'error',
+          errorText: err.error || 'Download failed',
+        }));
+      });
+
+      const res = await AppInstaller.downloadAndInstall({ url: updateState.result.apkUrl });
+      if (res && res.needsPermission) {
+        setUpdateState((prev) => ({
+          ...prev,
+          status: 'permission_needed',
+          progressPercent: 100,
+          bytesText: 'Enable install permission in Settings to continue',
+        }));
+      } else if (res && res.success) {
+        setUpdateState((prev) => ({
+          ...prev,
+          status: 'downloaded',
+          progressPercent: 100,
+          bytesText: 'Package installer launched.',
+        }));
+      }
+    } catch (err: any) {
+      console.warn('[VaultDrawer] In-app download error:', err);
+      setUpdateState((prev) => ({
+        ...prev,
+        status: 'error',
+        errorText: err?.message || 'Download failed. Tap to retry.',
+      }));
+    }
+  };
+
+  const handleInstallDownloaded = async () => {
+    hapticMedium();
+    try {
+      const res = await AppInstaller.installApk();
+      if (res && res.needsPermission) {
+        setUpdateState((prev) => ({
+          ...prev,
+          status: 'permission_needed',
+          bytesText: 'Please allow "Install unknown apps" in Settings first',
+        }));
+      } else {
+        setUpdateState((prev) => ({
+          ...prev,
+          status: 'downloaded',
+          bytesText: 'Package installer launched.',
+        }));
+      }
+    } catch (err: any) {
+      setUpdateState((prev) => ({
+        ...prev,
+        status: 'error',
+        errorText: err?.message || 'Install failed',
+      }));
+    }
+  };
+
+  const handleOpenSettings = async () => {
+    hapticMedium();
+    try {
+      await AppInstaller.openInstallSettings();
     } catch (err) {
-      console.warn('[VaultDrawer] AppInstaller download failed, opening fallback URL:', err);
-      window.open(updateState.result.apkUrl, '_system');
+      console.warn('Could not open install settings', err);
     }
   };
 
@@ -467,7 +532,10 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
             {updateState.status === 'downloading' && (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-[10px] font-mono text-neutral-300">
-                  <span>Downloading update...</span>
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin text-emerald-400" />
+                    Downloading in-app...
+                  </span>
                   <span>{updateState.progressPercent}%</span>
                 </div>
                 <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
@@ -481,6 +549,55 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                     {updateState.bytesText}
                   </span>
                 )}
+              </div>
+            )}
+
+            {updateState.status === 'downloaded' && (
+              <div className="flex items-center justify-between gap-2 py-0.5">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Update Ready</span>
+                  </div>
+                  <span className="text-[9px] text-neutral-400 font-mono">
+                    {updateState.bytesText || 'Package downloaded'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleInstallDownloaded}
+                  className="px-2.5 py-1 rounded bg-emerald-400 text-neutral-950 hover:bg-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase transition-colors shrink-0 cursor-pointer shadow-sm"
+                >
+                  Install Now
+                </button>
+              </div>
+            )}
+
+            {updateState.status === 'permission_needed' && (
+              <div className="flex flex-col gap-1.5 py-0.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Permission Required</span>
+                </div>
+                <span className="text-[10px] text-neutral-300 leading-snug">
+                  Allow &quot;Install unknown apps&quot; for SARWARCYOU in Settings to proceed.
+                </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <button
+                    type="button"
+                    onClick={handleOpenSettings}
+                    className="px-2 py-0.5 rounded bg-amber-400 text-neutral-950 hover:bg-amber-300 text-[10px] font-mono font-bold tracking-wider uppercase transition-colors cursor-pointer"
+                  >
+                    Open Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleInstallDownloaded}
+                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono transition-colors cursor-pointer"
+                  >
+                    Try Install
+                  </button>
+                </div>
               </div>
             )}
 
@@ -501,7 +618,23 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
               </div>
             )}
 
-            {(updateState.status === 'idle' || updateState.status === 'error') && (
+            {updateState.status === 'error' && (
+              <div className="flex items-center justify-between gap-2 text-[11px] font-mono py-0.5">
+                <div className="flex items-center gap-1.5 text-rose-400 overflow-hidden">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate text-[10px]">{updateState.errorText || 'Update failed'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleStartUpdate}
+                  className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-neutral-200 text-[10px] font-mono transition-colors shrink-0 cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {updateState.status === 'idle' && (
               <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
                 <span>App Updates</span>
                 <button

@@ -4,7 +4,8 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 export interface AppInstallerPlugin {
   canRequestPackageInstalls(): Promise<{ value: boolean }>;
   openInstallSettings(): Promise<void>;
-  downloadAndInstall(options: { url: string; fileName?: string }): Promise<{ success: boolean }>;
+  downloadAndInstall(options: { url: string; fileName?: string }): Promise<{ success: boolean; needsPermission?: boolean }>;
+  installApk(options?: { fileName?: string }): Promise<{ success: boolean; needsPermission?: boolean }>;
   addListener(
     eventName: 'downloadProgress',
     listenerFunc: (progress: { percent: number; bytesReceived: number; totalBytes: number }) => void
@@ -16,6 +17,10 @@ export interface AppInstallerPlugin {
   addListener(
     eventName: 'downloadFailed',
     listenerFunc: (err: { error: string }) => void
+  ): Promise<any>;
+  addListener(
+    eventName: 'permissionNeeded',
+    listenerFunc: () => void
   ): Promise<any>;
   removeAllListeners(): Promise<void>;
 }
@@ -149,15 +154,10 @@ export async function checkAppUpdate(): Promise<UpdateCheckResult | null> {
 /**
  * Trigger in-app download and installation of the new APK (Native Android only)
  */
-export async function installAppUpdate(apkUrl: string): Promise<void> {
+export async function installAppUpdate(apkUrl: string): Promise<{ success: boolean; needsPermission?: boolean }> {
   if (!Capacitor.isNativePlatform()) {
     console.log('[Updater] Install bypassed: running on web browser.');
-    return;
+    return { success: false };
   }
-  try {
-    await AppInstaller.downloadAndInstall({ url: apkUrl });
-  } catch (err) {
-    console.warn('[Updater] AppInstaller native method failed, falling back to system browser:', err);
-    window.open(apkUrl, '_system');
-  }
+  return await AppInstaller.downloadAndInstall({ url: apkUrl });
 }
