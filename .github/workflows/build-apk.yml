@@ -56,23 +56,28 @@ jobs:
             -PversionCode=${{ github.run_number }} \
             -PversionName="1.0.${{ github.run_number }}" --no-daemon
           cd ..
+        env:
+          CI: true
 
-      - name: Prepare APK Assets
+      - name: Sign & Align Release APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKey: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Prepare Signed APK Asset
         run: |
-          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
-            SRC_APK="android/app/build/outputs/apk/release/app-release.apk"
-          elif [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-            SRC_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
-          else
-            SRC_APK=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
-          fi
-
-          echo "Using source APK: $SRC_APK"
-          cp "$SRC_APK" "SARWARCYOU-v${{ github.run_number }}.apk"
-          cp "$SRC_APK" "SARWARCYOU.apk"
-          cp "$SRC_APK" "StreamVault.apk"
-          mkdir -p android/app/build/outputs/apk/release
-          cp "$SRC_APK" android/app/build/outputs/apk/release/app-release-unsigned.apk
+          SIGNED_FILE="${{ steps.sign_app.outputs.signedReleaseFile }}"
+          echo "Signed release file: $SIGNED_FILE"
+          cp "$SIGNED_FILE" "SARWARCYOU-v${{ github.run_number }}.apk"
+          cp "$SIGNED_FILE" "SARWARCYOU.apk"
+          cp "$SIGNED_FILE" "StreamVault.apk"
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
@@ -91,7 +96,7 @@ jobs:
             ### 📱 SARWARCYOU v1.0.${{ github.run_number }} (Direct Download)
 
             - **Version:** `1.0.${{ github.run_number }}` (versionCode: `${{ github.run_number }}`)
-            - **Primary APK:** [`SARWARCYOU-v${{ github.run_number }}.apk`](https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/SARWARCYOU-v${{ github.run_number }}.apk)
+            - **Primary Signed APK:** [`SARWARCYOU-v${{ github.run_number }}.apk`](https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/SARWARCYOU-v${{ github.run_number }}.apk)
             - **Commit:** ${{ github.sha }}
 
             #### Installation on your Android phone:

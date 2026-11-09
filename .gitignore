@@ -34,3 +34,9 @@ src/data/thumbnails.json
 # Local Android builds
 *.apk
 *.aab
+
+# Keystores and private signing keys
+*.jks
+*.keystore
+KEYSTORE_BASE64_FOR_GITHUB.txt
+
