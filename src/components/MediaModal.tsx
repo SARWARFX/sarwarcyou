@@ -94,20 +94,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const hasDraggedRef = useRef<boolean>(false);
 
   // Touch Gesture Refs
-  const pinchStartDistRef = useRef<number>(0);
-  const pinchStartScaleRef = useRef<number>(1);
+  const initialDistanceRef = useRef<number | null>(null);
+  const initialScaleRef = useRef<number>(1);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const isPinchingRef = useRef<boolean>(false);
   const isPanningRef = useRef<boolean>(false);
-  const panStartPosRef = useRef<{ touchX: number; touchY: number; posX: number; posY: number }>({
-    touchX: 0,
-    touchY: 0,
-    posX: 0,
-    posY: 0,
-  });
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const touchDeltaRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
+  const justFinishedPinchRef = useRef<number>(0);
   const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
-  const preventSwipeRef = useRef<boolean>(false);
 
   const applyTransform = useCallback((newScale: number, newX: number, newY: number, animated = false, syncState = true) => {
     scaleRef.current = newScale;
@@ -400,16 +393,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     lastTouchTimeRef.current = Date.now();
     wakeFullscreenClose();
 
-    // 1. TOUCH EVENT SEGREGATION:
-    // If e.touches.length === 2: Enter PINCH mode.
-    // Record initial distance between touch points.
-    // Cancel any pending swipe detection.
     if (e.touches.length === 2) {
+      // Two fingers: activate pinch zoom
       isPinchingRef.current = true;
       isPanningRef.current = false;
-      preventSwipeRef.current = true;
       touchStartRef.current = null;
-      touchDeltaRef.current = { dx: 0, dy: 0 };
       setTouchDeltaX(0);
 
       if (singleTapTimerRef.current) {
@@ -417,16 +405,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         singleTapTimerRef.current = null;
       }
 
-      const p1 = e.touches[0];
-      const p2 = e.touches[1];
-      const dist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
-      pinchStartDistRef.current = Math.max(10, dist);
-      pinchStartScaleRef.current = scaleRef.current;
-      return;
-    }
-
-    // If e.touches.length === 1:
-    if (e.touches.length === 1) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialDistanceRef.current = Math.max(10, dist);
+      initialScaleRef.current = scaleRef.current;
+    } else if (e.touches.length === 1) {
+      // Single finger: record starting position for swipe/pan
       isPinchingRef.current = false;
       const t = e.touches[0];
       const currentTime = performance.now();
@@ -434,60 +420,29 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const timeDiff = currentTime - lastTap.time;
       const distFromLastTap = Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y);
 
-      // Double-Tap Check: Compare timestamp and coordinates with lastTapTime.
-      // If (currentTime - lastTapTime < 300ms) and distance < 25px:
-      //   -> Prevent swipe.
-      //   -> If currentScale > 1: Reset to scale(1) with translateX(0), translateY(0).
-      //   -> If currentScale === 1: Zoom to scale(2.5) centered at tap position.
-      //   -> Reset lastTapTime = 0.
-      if (timeDiff < 300 && distFromLastTap < 25) {
-        preventSwipeRef.current = true;
-        touchStartRef.current = null;
-        touchDeltaRef.current = { dx: 0, dy: 0 };
-        setTouchDeltaX(0);
+      // Double-Tap: if tapped twice within 300ms and < 30px, toggle zoom / reset
+      if (timeDiff < 300 && distFromLastTap < 30) {
         lastTapRef.current = { time: 0, x: 0, y: 0 };
-
+        touchStartRef.current = null;
+        setTouchDeltaX(0);
         if (singleTapTimerRef.current) {
           clearTimeout(singleTapTimerRef.current);
           singleTapTimerRef.current = null;
         }
 
-        if (scaleRef.current > 1.05) {
-          applyTransform(1, 0, 0, true, true);
-          setIsDragging(false);
-          isDraggingRef.current = false;
-        } else {
-          const vw = window.innerWidth;
-          const vh = window.innerHeight;
-          const targetScale = 2.5;
-
-          const tapOffsetX = t.clientX - vw / 2;
-          const tapOffsetY = t.clientY - vh / 2;
-          const { maxPanX, maxPanY } = calculatePanLimits(targetScale);
-
-          const initialX = Math.max(-maxPanX, Math.min(maxPanX, -tapOffsetX * (targetScale - 1)));
-          const initialY = Math.max(-maxPanY, Math.min(maxPanY, -tapOffsetY * (targetScale - 1)));
-
-          applyTransform(targetScale, initialX, initialY, true, true);
-        }
+        handleDoubleTap(t.clientX, t.clientY);
         return;
       }
 
-      // Else: Record touchStart coordinates (startX, startY) and set lastTapTime = currentTime.
       lastTapRef.current = { time: currentTime, x: t.clientX, y: t.clientY };
-      preventSwipeRef.current = false;
-      touchStartRef.current = { x: t.clientX, y: t.clientY, time: currentTime };
-      touchDeltaRef.current = { dx: 0, dy: 0 };
+      touchStartRef.current = {
+        x: t.clientX,
+        y: t.clientY,
+      };
       setTouchDeltaX(0);
 
       if (scaleRef.current > 1.05) {
         isPanningRef.current = true;
-        panStartPosRef.current = {
-          touchX: t.clientX,
-          touchY: t.clientY,
-          posX: positionRef.current.x,
-          posY: positionRef.current.y,
-        };
         setIsDragging(true);
         isDraggingRef.current = true;
       } else {
@@ -502,70 +457,61 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     lastTouchTimeRef.current = Date.now();
     wakeFullscreenClose();
 
-    // 2. SCALE-AWARE TOUCHMOVE:
-    // If e.touches.length === 2 (Pinch):
-    // * Calculate new distance: newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY).
-    // * Calculate new scale: currentScale * (newDist / initialDist).
-    // * Clamp scale between min (1x) and max (4x).
-    if (e.touches.length === 2) {
-      if (!isPinchingRef.current || pinchStartDistRef.current <= 0) {
-        const p1 = e.touches[0];
-        const p2 = e.touches[1];
-        pinchStartDistRef.current = Math.max(10, Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY));
-        pinchStartScaleRef.current = scaleRef.current;
-        isPinchingRef.current = true;
-      }
-
-      const p1 = e.touches[0];
-      const p2 = e.touches[1];
-      const newDist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
-      const scaleMultiplier = newDist / pinchStartDistRef.current;
-      const rawScale = pinchStartScaleRef.current * scaleMultiplier;
-      const newScale = Math.max(1, Math.min(4, rawScale));
+    // Multi-touch: Calculate Pinch Zoom
+    if (e.touches.length === 2 && initialDistanceRef.current !== null) {
+      if (e.cancelable) e.preventDefault();
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const factor = currentDist / initialDistanceRef.current;
+      const nextScale = Math.min(Math.max(initialScaleRef.current * factor, 1), 4);
 
       let nextX = positionRef.current.x;
       let nextY = positionRef.current.y;
-      if (newScale <= 1.05) {
+      if (nextScale <= 1.05) {
         nextX = 0;
         nextY = 0;
       } else {
-        const { maxPanX, maxPanY } = calculatePanLimits(newScale);
+        const { maxPanX, maxPanY } = calculatePanLimits(nextScale);
         nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
         nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
       }
 
-      applyTransform(newScale, nextX, nextY, false, false);
+      applyTransform(nextScale, nextX, nextY, false, true);
       return;
     }
 
-    // If e.touches.length === 1:
-    // * If scale > 1: Allow image panning (update translateX, translateY with pan bounds). DO NOT trigger swipe next/prev.
-    // * If scale === 1: Track deltaX and deltaY for horizontal swipe gesture.
-    if (e.touches.length === 1 && touchStartRef.current) {
+    // Single-finger: Pan when zoomed in, or track swipe delta
+    if (e.touches.length === 1 && touchStartRef.current && !isPinchingRef.current) {
       const t = e.touches[0];
-      const dx = t.clientX - touchStartRef.current.x;
-      const dy = t.clientY - touchStartRef.current.y;
-      touchDeltaRef.current = { dx, dy };
+      const deltaX = t.clientX - touchStartRef.current.x;
+      const deltaY = t.clientY - touchStartRef.current.y;
 
       if (scaleRef.current > 1.05) {
-        const panStart = panStartPosRef.current;
-        const targetX = panStart.posX + (t.clientX - panStart.touchX);
-        const targetY = panStart.posY + (t.clientY - panStart.touchY);
-
+        // Image is zoomed: allow panning, prevent page navigation
+        if (e.cancelable) e.preventDefault();
         const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+        const targetX = positionRef.current.x + deltaX;
+        const targetY = positionRef.current.y + deltaY;
         const clampedX = Math.max(-maxPanX, Math.min(maxPanX, targetX));
         const clampedY = Math.max(-maxPanY, Math.min(maxPanY, targetY));
 
-        applyTransform(scaleRef.current, clampedX, clampedY, false, false);
+        applyTransform(scaleRef.current, clampedX, clampedY, false, true);
+        touchStartRef.current = {
+          x: t.clientX,
+          y: t.clientY,
+        };
         return;
       }
 
-      if (!preventSwipeRef.current && Math.abs(dx) > 6) {
-        let delta = dx;
-        const isAtStart = activeIdx <= 0 && dx > 0;
-        const isAtEnd = hasItemList && activeIdx >= items.length - 1 && dx < 0;
+      // Image is at 1x scale: track swipe delta for smooth visual feedback
+      if (Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        let delta = deltaX;
+        const isAtStart = activeIdx <= 0 && deltaX > 0;
+        const isAtEnd = hasItemList && activeIdx >= items.length - 1 && deltaX < 0;
         if (isAtStart || isAtEnd) {
-          delta = dx * 0.28;
+          delta = deltaX * 0.28;
         }
         setTouchDeltaX(delta);
       }
@@ -575,21 +521,25 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const handleTouchEnd = (e: React.TouchEvent) => {
     lastTouchTimeRef.current = Date.now();
 
-    // End of 2-finger pinch
-    if (isPinchingRef.current && e.touches.length < 2) {
-      isPinchingRef.current = false;
-      if (scaleRef.current <= 1.05) {
-        applyTransform(1, 0, 0, true, true);
-      } else {
-        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-        const finalX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
-        const finalY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
-        applyTransform(scaleRef.current, finalX, finalY, true, true);
+    // End of pinch when fewer than 2 touches remain
+    if (isPinchingRef.current || initialDistanceRef.current !== null) {
+      if (e.touches.length < 2) {
+        initialDistanceRef.current = null;
+        isPinchingRef.current = false;
+        justFinishedPinchRef.current = Date.now();
+        touchStartRef.current = null;
+        setTouchDeltaX(0);
+
+        if (scaleRef.current <= 1.05) {
+          applyTransform(1, 0, 0, true, true);
+        } else {
+          const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+          const finalX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
+          const finalY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
+          applyTransform(scaleRef.current, finalX, finalY, true, true);
+        }
+        return;
       }
-      touchStartRef.current = null;
-      touchDeltaRef.current = { dx: 0, dy: 0 };
-      setTouchDeltaX(0);
-      return;
     }
 
     if (e.touches.length === 0) {
@@ -597,49 +547,41 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       isDraggingRef.current = false;
       isPanningRef.current = false;
 
-      // Sync final pan position with React state if zoomed
-      if (scaleRef.current > 1.05) {
-        setPosition({ x: positionRef.current.x, y: positionRef.current.y });
+      // If user just finished pinching, prevent accidental swipe or tap
+      if (Date.now() - justFinishedPinchRef.current < 250) {
+        touchStartRef.current = null;
+        setTouchDeltaX(0);
+        return;
       }
 
-      const touchStart = touchStartRef.current;
-      const { dx, dy } = touchDeltaRef.current;
+      // Only trigger next/prev navigation if at 1x scale and user executed a clear horizontal flick
+      if (scaleRef.current <= 1.05 && touchStartRef.current && e.changedTouches.length === 1) {
+        const t = e.changedTouches[0];
+        const deltaX = t.clientX - touchStartRef.current.x;
+        const deltaY = t.clientY - touchStartRef.current.y;
+        const threshold = 50; // Minimum 50px swipe distance
+
+        if (Math.hypot(deltaX, deltaY) < 12) {
+          // Stationary tap: toggle HUD controls with debounce
+          if (singleTapTimerRef.current) {
+            clearTimeout(singleTapTimerRef.current);
+          }
+          singleTapTimerRef.current = setTimeout(() => {
+            setShowControls((prev) => !prev);
+            singleTapTimerRef.current = null;
+          }, 300);
+        } else if (Math.abs(deltaX) > threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+          // Horizontal swipe dominance check
+          if (deltaX < 0 && hasItemList && activeIdx < items.length - 1) {
+            handleNext(); // Swiped left -> next
+          } else if (deltaX > 0 && hasItemList && activeIdx > 0) {
+            handlePrev(); // Swiped right -> prev
+          }
+        }
+      }
+
       touchStartRef.current = null;
-      touchDeltaRef.current = { dx: 0, dy: 0 };
       setTouchDeltaX(0);
-
-      // If double-tap or pinch was handled, do not swipe or toggle
-      if (preventSwipeRef.current) {
-        preventSwipeRef.current = false;
-        return;
-      }
-
-      // Check for stationary single tap to toggle controls
-      if (touchStart && Math.hypot(dx, dy) < 12 && scaleRef.current <= 1.05) {
-        if (singleTapTimerRef.current) {
-          clearTimeout(singleTapTimerRef.current);
-        }
-        singleTapTimerRef.current = setTimeout(() => {
-          setShowControls((prev) => !prev);
-          singleTapTimerRef.current = null;
-        }, 300);
-        return;
-      }
-
-      // 3. TOUCHEND HANDLING:
-      // If scale === 1 and Math.abs(deltaX) > 60px and Math.abs(deltaX) > Math.abs(deltaY) * 1.5:
-      // * If deltaX < -60: Trigger Next Image.
-      // * If deltaX > 60: Trigger Previous Image.
-      // * When switching to Next or Previous image, always reset zoom state to scale(1), translateX(0), translateY(0).
-      if (scaleRef.current <= 1.05 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx < -60 && hasItemList && activeIdx < items.length - 1) {
-          handleNext();
-          return;
-        } else if (dx > 60 && hasItemList && activeIdx > 0) {
-          handlePrev();
-          return;
-        }
-      }
     }
   };
 
@@ -926,8 +868,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             }}
             style={{
               transform:
-                touchDeltaX !== 0
-                  ? `translateX(${touchDeltaX}px)`
+                scale <= 1.05 && touchDeltaX !== 0 && !isPinchingRef.current
+                  ? `translate3d(${touchDeltaX}px, 0, 0)`
                   : `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
               transition:
                 isPinchingRef.current ||
@@ -1273,8 +1215,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 }}
                 style={{
                   transform:
-                    touchDeltaX !== 0
-                      ? `translateX(${touchDeltaX}px)`
+                    scale <= 1.05 && touchDeltaX !== 0 && !isPinchingRef.current
+                      ? `translate3d(${touchDeltaX}px, 0, 0)`
                       : `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
                   transition:
                     isPinchingRef.current || isPanningRef.current || isDragging || touchDeltaX !== 0
