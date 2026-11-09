@@ -1042,109 +1042,38 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
 
-      {/* Top Center Floating Action Bar: Loop, A-B, Speed, PiP, Download, Share (Website & App) */}
+      {/* Top-Left Corner: Download Button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDownload();
+          resetHudTimer();
+        }}
+        disabled={isDownloading}
+        className={`pointer-events-auto fixed top-4 left-4 sm:top-6 sm:left-6 z-40 p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all duration-300 cursor-pointer disabled:opacity-40 ${
+          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        title="Download Video"
+        aria-label="Download Video"
+      >
+        {downloadSuccess ? (
+          <Check className="w-5 h-5 text-emerald-400" />
+        ) : isDownloading ? (
+          <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+        ) : (
+          <Download className="w-5 h-5" />
+        )}
+      </button>
+
+      {/* Top-Right Corner: Share Button & Web Close Action */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
-        className={`fixed top-3 sm:top-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 sm:gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 shadow-2xl transition-all duration-300 pointer-events-auto ${
-          showHud ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+        className={`pointer-events-auto fixed top-4 right-4 sm:top-6 sm:right-6 z-40 flex items-center gap-2 transition-all duration-300 ${
+          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        {/* Loop Mode */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
-            resetHudTimer();
-          }}
-          className={`p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-xs font-mono flex items-center gap-1 cursor-pointer ${
-            repeatMode !== 'off' ? 'text-cyan-400 bg-cyan-500/10' : 'text-slate-300 hover:text-white'
-          }`}
-          title={`Loop: ${repeatMode.toUpperCase()}`}
-          aria-label="Loop Mode"
-        >
-          {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
-          <span className="text-[10px] uppercase font-bold tracking-wider hidden xs:inline">{repeatMode}</span>
-        </button>
-
-        {/* A-B Loop */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleLoop();
-            resetHudTimer();
-          }}
-          className={`p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-xs font-mono flex items-center gap-1 cursor-pointer ${
-            loopA !== null ? 'text-cyan-400 bg-cyan-500/10' : 'text-slate-300 hover:text-white'
-          }`}
-          title={loopA !== null && loopB !== null ? `A-B Loop (${formatTime(loopA)} - ${formatTime(loopB)})` : loopA !== null ? 'Set Point B' : 'Set Point A'}
-          aria-label="A-B Loop"
-        >
-          <span className="text-[10px] font-bold px-1 py-0.5 rounded bg-white/10">A-B</span>
-          <span className="text-[10px] uppercase font-bold tracking-wider hidden md:inline">
-            {loopA !== null && loopB !== null ? 'Active' : loopA !== null ? 'Set B' : 'Off'}
-          </span>
-        </button>
-
-        {/* Playback Speed */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowSpeedMenu((prev) => !prev);
-            resetHudTimer();
-          }}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-xs font-mono flex items-center gap-1 cursor-pointer text-slate-300 hover:text-white"
-          title="Playback Speed"
-          aria-label="Playback Speed"
-        >
-          <Gauge className="w-4 h-4" />
-          <span className="text-[10px] font-bold tracking-wider">{playbackSpeed}x</span>
-        </button>
-
-        {/* Picture-in-Picture */}
-        {isPiPSupported && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTogglePiP();
-              resetHudTimer();
-            }}
-            className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-slate-300 hover:text-white cursor-pointer"
-            title="Picture-in-Picture"
-            aria-label="Picture-in-Picture"
-          >
-            <PictureInPicture2 className="w-4 h-4" />
-          </button>
-        )}
-
-        <div className="w-[1px] h-4 bg-white/20 mx-0.5" />
-
-        {/* Download */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDownload();
-            resetHudTimer();
-          }}
-          disabled={isDownloading}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-slate-300 hover:text-white cursor-pointer disabled:opacity-40"
-          title="Download Video"
-          aria-label="Download Video"
-        >
-          {downloadSuccess ? (
-            <Check className="w-4 h-4 text-emerald-400" />
-          ) : isDownloading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-neutral-300" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-        </button>
-
-        {/* Share */}
+        {/* Share Button */}
         <button
           type="button"
           onClick={(e) => {
@@ -1152,42 +1081,33 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             handleShareMedia();
             resetHudTimer();
           }}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-slate-300 hover:text-white cursor-pointer"
+          className="p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all cursor-pointer"
           title={shareSuccess ? 'Link Copied!' : 'Share Video'}
           aria-label="Share Video"
         >
           {shareSuccess ? (
-            <Check className="w-4 h-4 text-emerald-400" />
+            <Check className="w-5 h-5 text-emerald-400" />
           ) : (
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-5 h-5" />
           )}
         </button>
-      </div>
 
-      {/* Top-Right: Borderless Floating Text Actions (Web only) */}
-      {!Capacitor.isNativePlatform() && (
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          className={`fixed top-4 right-4 sm:top-6 sm:right-7 z-30 flex items-center gap-3 sm:gap-4 transition-opacity duration-300 pointer-events-auto ${
-            showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          {/* CLOSE (✕) Action */}
+        {/* Web Close (✕) Action */}
+        {!Capacitor.isNativePlatform() && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
-            className="bg-transparent border-none outline-none text-xs font-['Roboto_Condensed'] font-sans font-medium tracking-widest text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 py-1 px-1.5"
+            className="p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 backdrop-blur-xl border border-white/15 text-slate-300 hover:text-white shadow-2xl transition-all cursor-pointer"
             title="Close (Esc)"
             aria-label="Close"
           >
-            <X className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">CLOSE</span>
+            <X className="w-5 h-5" />
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
       {showTelemetry && (
@@ -1878,8 +1798,40 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </span>
           </div>
 
-          {/* Center: FIT toggle, Speed button, and Overflow Menu */}
-          <div className="flex items-center gap-1 overflow-x-hidden min-w-0 justify-end">
+          {/* Center: Loop, A-B, FIT toggle, Speed button */}
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-hidden min-w-0 justify-end">
+            {/* Loop Mode */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
+                resetHudTimer();
+              }}
+              className={`p-1 rounded-md text-[10px] font-mono cursor-pointer flex-shrink-0 ${
+                repeatMode !== 'off' ? 'text-cyan-400 bg-cyan-500/20' : 'text-slate-400 hover:text-white'
+              }`}
+              title={`Loop: ${repeatMode.toUpperCase()}`}
+            >
+              {repeatMode === 'one' ? <Repeat1 className="w-3.5 h-3.5" /> : <Repeat className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* A-B Loop */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleLoop();
+                resetHudTimer();
+              }}
+              className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold cursor-pointer flex-shrink-0 ${
+                loopA !== null ? 'text-cyan-400 bg-cyan-500/20' : 'text-slate-400 hover:text-white'
+              }`}
+              title="A-B Loop"
+            >
+              A-B
+            </button>
+
             {/* Aspect Ratio Fit */}
             <button
               type="button"

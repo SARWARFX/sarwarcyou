@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Play, ArrowLeft, Maximize2 } from 'lucide-react';
+import { Play, ArrowLeft, Maximize2, CheckCircle2 } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -15,6 +15,7 @@ import { useBackButton } from '../../utils/backButtonManager';
 import { SyncStatusIndicator } from '../SyncStatusIndicator';
 import { Capacitor } from '@capacitor/core';
 import { AvailableOfflineBadge } from '../common/AvailableOfflineBadge';
+import { isMediaAvailableOffline } from '../../services/videoOfflineManager';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -289,13 +290,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return combined.slice(0, 24);
   }, [rootMap]);
 
-  // Active media assets list: loads selected subfolder files, or latest uploads when idle
+  // Offline items pool (App only)
+  const offlineItems = useMemo(() => {
+    if (!Capacitor.isNativePlatform() || !items) return [];
+    return items.filter((it) => isMediaAvailableOffline(it));
+  }, [items]);
+
+  // Active media assets list: loads selected subfolder files, or offline items, or latest uploads when idle
   const activeMediaList = useMemo(() => {
+    if (selectedAlbum === 'OFFLINE') {
+      return offlineItems;
+    }
     if (selectedSubfolder && activeDirectoryNode) {
       return activeDirectoryNode.files;
     }
     return latestUploads;
-  }, [selectedSubfolder, activeDirectoryNode, latestUploads]);
+  }, [selectedAlbum, offlineItems, selectedSubfolder, activeDirectoryNode, latestUploads]);
 
   // 4 Curated Full-Stage Showcase Tiles for Desktop Home Stage
   const curatedShowcaseTiles = useMemo(() => {
@@ -480,6 +490,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
   };
 
+  // Offline items view handler (App only)
+  const handleSelectOffline = () => {
+    setSelectedAlbum('OFFLINE');
+    setSelectedSubfolder('Available Offline');
+    setActiveMobilePane(1);
+    if (outerTrackRef.current) {
+      outerTrackRef.current.scrollTo({
+        left: outerTrackRef.current.clientWidth,
+        behavior: 'smooth',
+      });
+    }
+  };
+
   return (
     <div
       className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-row bg-[#020408] relative select-none font-['Roboto_Condensed'] font-sans text-white"
@@ -508,6 +531,31 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </span>
             <SyncStatusIndicator />
           </div>
+
+          {/* App-only Available Offline Option (Desktop) */}
+          {Capacitor.isNativePlatform() && (
+            <div className="absolute top-16 left-10 lg:left-12 right-6 z-30 pointer-events-auto">
+              <button
+                type="button"
+                onClick={handleSelectOffline}
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl backdrop-blur-xl border transition-all cursor-pointer ${
+                  selectedAlbum === 'OFFLINE'
+                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)]'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-['Roboto_Condensed'] font-bold tracking-wider text-xs uppercase">
+                    Available Offline
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+                  {offlineItems.length}
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* Middle-Left Folders (Exact Vertical Midpoint) */}
           <SidebarAccordionNav
@@ -629,58 +677,66 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
 
             {/* Subfolder Media Grid */}
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
-              {activeMediaList.map((item, idx) => {
-                const isPhoto =
-                  item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+            {activeMediaList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[50vh] text-white/60">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400/50 mb-3" />
+                <p className="text-white/90 text-sm font-semibold tracking-wider uppercase mb-1">No Offline Files Yet</p>
+                <p className="text-white/50 text-xs max-w-sm">Play any video or short in the app to automatically save it for offline playback.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
+                {activeMediaList.map((item, idx) => {
+                  const isPhoto =
+                    item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
 
-                const imageSrc =
-                  (item as any).thumbnail ||
-                  (item as any).src ||
-                  item.url ||
-                  (item as any).image ||
-                  item.path ||
-                  '';
-                const thumb = isPhoto
-                  ? getMediaUrl(imageSrc) || imageSrc
-                  : getImageUrl(item) ||
-                    getThumbnailUrl(item) ||
-                    resolveStaticVideoThumbnail(item) ||
-                    getMediaUrl(imageSrc) ||
-                    imageSrc;
+                  const imageSrc =
+                    (item as any).thumbnail ||
+                    (item as any).src ||
+                    item.url ||
+                    (item as any).image ||
+                    item.path ||
+                    '';
+                  const thumb = isPhoto
+                    ? getMediaUrl(imageSrc) || imageSrc
+                    : getImageUrl(item) ||
+                      getThumbnailUrl(item) ||
+                      resolveStaticVideoThumbnail(item) ||
+                      getMediaUrl(imageSrc) ||
+                      imageSrc;
 
-                return (
-                  <div
-                    key={item.id || item.url || idx}
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenItem(item, idx);
-                    }}
-                    style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
-                  >
-                    <SmartThumbnail
-                      src={thumb}
-                      alt=""
-                      aspectClass="aspect-[4/5]"
-                      containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  return (
+                    <div
+                      key={item.id || item.url || idx}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenItem(item, idx);
+                      }}
+                      style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+                      className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
                     >
-                      {!isPhoto && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                          <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                      <SmartThumbnail
+                        src={thumb}
+                        alt=""
+                        aspectClass="aspect-[4/5]"
+                        containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      >
+                        {!isPhoto && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                            <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
-                    </SmartThumbnail>
-                  </div>
-                );
-              })}
-            </div>
+                        )}
+                        <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
+                      </SmartThumbnail>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </main>
         )}
       </div>
@@ -708,6 +764,31 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </span>
             <SyncStatusIndicator />
           </div>
+
+          {/* App-only Available Offline Option (Mobile Screen 1) */}
+          {Capacitor.isNativePlatform() && (
+            <div className="absolute top-14 inset-x-0 px-6 z-30 pointer-events-auto">
+              <button
+                type="button"
+                onClick={handleSelectOffline}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl backdrop-blur-xl border transition-all cursor-pointer active:scale-95 ${
+                  selectedAlbum === 'OFFLINE'
+                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)]'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-['Roboto_Condensed'] font-bold tracking-wider text-xs uppercase">
+                    Available Offline
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+                  {offlineItems.length} files
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* Middle-Left Folders: Exact Vertical Midpoint top calc(50dvh - 100px) */}
           <SidebarAccordionNav
@@ -763,58 +844,66 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           )}
 
           {/* Media Grid: Takes full 100vw width */}
-          <div className="w-full grid grid-cols-2 gap-3.5 pb-20">
-            {activeMediaList.map((item, idx) => {
-              const isPhoto =
-                item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+          {activeMediaList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center my-auto min-h-[50vh] text-white/60">
+              <CheckCircle2 className="w-12 h-12 text-emerald-400/50 mb-3" />
+              <p className="text-white/90 text-sm font-semibold tracking-wider uppercase mb-1">No Offline Files Yet</p>
+              <p className="text-white/50 text-xs max-w-xs">Play any video or short in the app to automatically save it for offline playback.</p>
+            </div>
+          ) : (
+            <div className="w-full grid grid-cols-2 gap-3.5 pb-20">
+              {activeMediaList.map((item, idx) => {
+                const isPhoto =
+                  item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
 
-              const imageSrc =
-                (item as any).thumbnail ||
-                (item as any).src ||
-                item.url ||
-                (item as any).image ||
-                item.path ||
-                '';
-              const thumb = isPhoto
-                ? getMediaUrl(imageSrc) || imageSrc
-                : getImageUrl(item) ||
-                  getThumbnailUrl(item) ||
-                  resolveStaticVideoThumbnail(item) ||
-                  getMediaUrl(imageSrc) ||
-                  imageSrc;
+                const imageSrc =
+                  (item as any).thumbnail ||
+                  (item as any).src ||
+                  item.url ||
+                  (item as any).image ||
+                  item.path ||
+                  '';
+                const thumb = isPhoto
+                  ? getMediaUrl(imageSrc) || imageSrc
+                  : getImageUrl(item) ||
+                    getThumbnailUrl(item) ||
+                    resolveStaticVideoThumbnail(item) ||
+                    getMediaUrl(imageSrc) ||
+                    imageSrc;
 
-              return (
-                <div
-                  key={item.id || item.url || idx}
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenItem(item, idx);
-                  }}
-                  style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                  className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
-                >
-                  <SmartThumbnail
-                    src={thumb}
-                    alt=""
-                    aspectClass="aspect-[4/5]"
-                    containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                return (
+                  <div
+                    key={item.id || item.url || idx}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenItem(item, idx);
+                    }}
+                    style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 relative shadow-lg group cursor-pointer transition-transform duration-300 hover:scale-[1.02] select-none"
                   >
-                    {!isPhoto && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                        <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                    <SmartThumbnail
+                      src={thumb}
+                      alt=""
+                      aspectClass="aspect-[4/5]"
+                      containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    >
+                      {!isPhoto && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                          <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
-                  </SmartThumbnail>
-                </div>
-              );
-            })}
-          </div>
+                      )}
+                      <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
+                    </SmartThumbnail>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </main>
       </div>
     </div>

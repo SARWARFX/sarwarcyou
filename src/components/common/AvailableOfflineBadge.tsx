@@ -1,4 +1,5 @@
 import React from 'react';
+import { Capacitor } from '@capacitor/core';
 import { CheckCircle2 } from 'lucide-react';
 import { useOfflineStatus } from '../../services/videoOfflineManager';
 import type { StageMediaItem } from '../../types';
@@ -11,7 +12,7 @@ interface AvailableOfflineBadgeProps {
 export const AvailableOfflineBadge: React.FC<AvailableOfflineBadgeProps> = ({ item, className = '' }) => {
   const isOffline = useOfflineStatus(item);
 
-  if (!isOffline) return null;
+  if (!Capacitor.isNativePlatform() || !isOffline) return null;
 
   return (
     <div

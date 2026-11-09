@@ -180,14 +180,10 @@ function App() {
     // Initialize Theme Accent
     applyAccentToDom(getActiveAccent());
 
-    // Initialize Local Photo Cache for 0-latency offline viewing
-    initializePhotoCache().catch(() => {});
-
-    // Initialize Video Offline Cache
-    initializeVideoOfflineCache().catch(() => {});
-
-    // Immersive View: hide status bar on Android
+    // Initialize Local Photo Cache and Video Cache ONLY on native Android app
     if (Capacitor.isNativePlatform()) {
+      initializePhotoCache().catch(() => {});
+      initializeVideoOfflineCache().catch(() => {});
       StatusBar.hide().catch(() => {});
     } else {
       StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
@@ -212,9 +208,9 @@ function App() {
   // Organize raw catalog data into structured discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
 
-  // Background auto-sync all photos from the media catalog upon first launch
+  // Background auto-sync all photos ONLY on native Android app
   useEffect(() => {
-    if (rawFeed.allMediaPool && rawFeed.allMediaPool.length > 0) {
+    if (Capacitor.isNativePlatform() && rawFeed.allMediaPool && rawFeed.allMediaPool.length > 0) {
       startBackgroundPhotoSync(rawFeed.allMediaPool).catch(() => {});
     }
   }, [rawFeed.allMediaPool]);

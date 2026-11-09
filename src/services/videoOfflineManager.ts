@@ -83,13 +83,13 @@ export async function initializeVideoOfflineCache(): Promise<void> {
 }
 
 export function isMediaAvailableOffline(itemOrUrl: string | StageMediaItem | null | undefined): boolean {
-  if (!itemOrUrl) return false;
+  if (!Capacitor.isNativePlatform() || !itemOrUrl) return false;
   const keys = getLookupKeys(itemOrUrl);
   return keys.some((k) => cachedVideosMap.has(k));
 }
 
 export function getLocalCachedVideoUrl(itemOrUrl: string | StageMediaItem | null | undefined): string | null {
-  if (!itemOrUrl) return null;
+  if (!Capacitor.isNativePlatform() || !itemOrUrl) return null;
   const keys = getLookupKeys(itemOrUrl);
   for (const k of keys) {
     const cached = cachedVideosMap.get(k);
