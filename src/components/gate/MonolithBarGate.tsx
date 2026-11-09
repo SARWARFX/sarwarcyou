@@ -144,10 +144,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     };
 
-    ensureSubfolders('Clips', ['Featured Clips', 'Trailers', 'Studio Edits']);
+    ensureSubfolders('Clips', ['FEATURED CLIPS', 'TRAILERS & TEASERS', 'STUDIO EDITS']);
     ensureSubfolders('Shorts', ['SHORTS 2027', 'SHORTS CLASSIC']);
-    ensureSubfolders('Images', ['Editorial Sessions', 'Studio Vault', 'Landscape Archives']);
-    ensureSubfolders('REALTube', ['Long-form Media', 'Storage Volumes', 'Channel Feeds']);
+    ensureSubfolders('Images', ['EDITORIAL PORTRAITS', 'STUDIO SESSIONS', 'EVENT GALLERIES']);
+    ensureSubfolders('REALTube', ['LONG-FORM MEDIA', 'PRODUCTION STORAGE', 'SIMULATED VOLUMES']);
 
     // Sort files descending
     for (const rootNode of map.values()) {
@@ -269,19 +269,39 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     onOpenVideo(item, videoPool.length > 0 ? videoPool : [item]);
   };
 
-  // Drawer Category selection handler: strictly sets Category and opens Level 1
-  const handleSelectDrawerFolder = useCallback((folderId: 'clips' | 'shorts' | 'photography' | 'realtube') => {
-    const keyMap: Record<string, string> = {
-      clips: 'CLIPS',
-      shorts: 'SHORTS',
-      photography: 'PHOTOGRAPHY',
-      realtube: 'REALTUBE',
-    };
-    const targetKey = keyMap[folderId] || 'CLIPS';
-    setSelectedCategory(targetKey);
-    setSelectedSubfolder(null); // Level 1: child subfolders only
-    setVaultDrawerOpen(false);
-  }, []);
+  // Drawer Category selection handler: sets Category and opens Level 1 (or directly Level 2 if subfolder selected)
+  const handleSelectDrawerFolder = useCallback(
+    (folderId: 'clips' | 'shorts' | 'photography' | 'realtube', subfolderId?: string) => {
+      const keyMap: Record<string, string> = {
+        clips: 'CLIPS',
+        shorts: 'SHORTS',
+        photography: 'PHOTOGRAPHY',
+        realtube: 'REALTUBE',
+      };
+      const targetKey = keyMap[folderId] || 'CLIPS';
+      setSelectedCategory(targetKey);
+
+      if (!subfolderId) {
+        setSelectedSubfolder(null);
+      } else {
+        const activeAlbumConfig = MAJOR_FOLDERS.find((h) => h.key === targetKey);
+        const rootNode = activeAlbumConfig ? rootMap.get(activeAlbumConfig.rawName) : null;
+        let matchedName: string | null = null;
+        if (rootNode) {
+          const cleanSub = subfolderId.toLowerCase().replace(/[-_\s&]+/g, '');
+          for (const [name] of rootNode.subfolders.entries()) {
+            if (name.toLowerCase().replace(/[-_\s&]+/g, '') === cleanSub) {
+              matchedName = name;
+              break;
+            }
+          }
+        }
+        setSelectedSubfolder(matchedName || subfolderId);
+      }
+      setVaultDrawerOpen(false);
+    },
+    [rootMap]
+  );
 
   // Idle reset handler: returns to Public Bollywood Overview (Level 0)
   const handleExitToHome = useCallback(() => {
