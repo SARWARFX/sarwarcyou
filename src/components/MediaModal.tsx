@@ -430,6 +430,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
 
 
+  const handleNextRef = useRef(handleNext);
+  handleNextRef.current = handleNext;
+  const handlePrevRef = useRef(handlePrev);
+  handlePrevRef.current = handlePrev;
+  const hasNextRef = useRef(Boolean(hasItemList && activeIdx < items.length - 1));
+  hasNextRef.current = Boolean(hasItemList && activeIdx < items.length - 1);
+  const hasPrevRef = useRef(Boolean(hasItemList && activeIdx > 0));
+  hasPrevRef.current = Boolean(hasItemList && activeIdx > 0);
+
   // -------------------------------------------------------------
   // Dedicated Hardware-Accelerated Pointer Events Engine
   // (Directly bound to imgRef with pointer capture tracking)
@@ -444,7 +453,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     let posX = 0;
     let posY = 0;
     let initialPinchDistance = 0;
+    let initialPinchMidX = 0;
+    let initialPinchMidY = 0;
     let initialScale = 1;
+    let initialPosX = 0;
+    let initialPosY = 0;
     let lastTapTime = 0;
     let startPan = { x: 0, y: 0 };
     let tapStartTime = 0;
@@ -479,12 +492,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             clearTimeout(singleTapTimerRef.current);
             singleTapTimerRef.current = null;
           }
-          if (currentScale > 1) {
+          if (currentScale > 1.05) {
             currentScale = 1;
             posX = 0;
             posY = 0;
           } else {
             currentScale = 2.5;
+            const rect = img.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            posX = (centerX - e.clientX) * 1.5;
+            posY = (centerY - e.clientY) * 1.5;
           }
           applyTransform(true);
           setScale(currentScale);
@@ -494,14 +512,18 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         lastTapTime = now;
         startPan = { x: posX - e.clientX, y: posY - e.clientY };
       } else if (activePointers.size === 2) {
-        // Two pointers down: initialize pinch zoom
+        // Two pointers down: cancel single-tap and initialize pinch
         if (singleTapTimerRef.current) {
           clearTimeout(singleTapTimerRef.current);
           singleTapTimerRef.current = null;
         }
         const pts = Array.from(activePointers.values());
         initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        initialPinchMidX = (pts[0].x + pts[1].x) / 2;
+        initialPinchMidY = (pts[0].y + pts[1].y) / 2;
         initialScale = currentScale;
+        initialPosX = posX;
+        initialPosY = posY;
       }
     };
 
@@ -509,21 +531,39 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       if (!activePointers.has(e.pointerId)) return;
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      // Two-finger pinch zoom
+      // Two-finger pinch zoom with focal-point tracking
       if (activePointers.size === 2 && initialPinchDistance > 0) {
         e.preventDefault();
         const pts = Array.from(activePointers.values());
         const currentDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        const currentMidX = (pts[0].x + pts[1].x) / 2;
+        const currentMidY = (pts[0].y + pts[1].y) / 2;
+
         const scaleRatio = currentDistance / initialPinchDistance;
-        currentScale = Math.min(Math.max(initialScale * scaleRatio, 0.8), 4.5);
+        currentScale = Math.min(Math.max(initialScale * scaleRatio, 0.75), 4.5);
+        posX = initialPosX + (currentMidX - initialPinchMidX);
+        posY = initialPosY + (currentMidY - initialPinchMidY);
         applyTransform(false);
       }
-      // Single-finger panning when zoomed in
-      else if (activePointers.size === 1 && currentScale > 1) {
-        e.preventDefault();
-        posX = e.clientX + startPan.x;
-        posY = e.clientY + startPan.y;
-        applyTransform(false);
+      // Single-finger interaction
+      else if (activePointers.size === 1) {
+        if (currentScale > 1.05) {
+          // Free panning across image bounds when zoomed in
+          e.preventDefault();
+          posX = e.clientX + startPan.x;
+          posY = e.clientY + startPan.y;
+          applyTransform(false);
+        } else if (tapStartPos) {
+          // At 1x zoom: Horizontal swipe preview
+          const dx = e.clientX - tapStartPos.x;
+          const dy = e.clientY - tapStartPos.y;
+          if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+            e.preventDefault();
+            posX = dx;
+            posY = 0;
+            applyTransform(false);
+          }
+        }
       }
     };
 
@@ -538,8 +578,64 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       if (activePointers.size < 2) {
         initialPinchDistance = 0;
       }
+
       if (activePointers.size === 0) {
-        // Snap back to 1x if pinched smaller than 1x
+        // 1. If at 1x zoom and swiped horizontally
+        if (currentScale <= 1.05 && tapStartPos) {
+          const deltaX = e.clientX - tapStartPos.x;
+          const deltaY = e.clientY - tapStartPos.y;
+          const isHorizontalSwipe = Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY);
+
+          if (isHorizontalSwipe) {
+            if (deltaX < -50 && hasNextRef.current) {
+              // Swipe Left -> Next Image
+              img.style.transition = 'transform 0.16s ease-out, opacity 0.16s ease-out';
+              img.style.transform = `translate3d(-80px, 0px, 0px) scale(1)`;
+              img.style.opacity = '0.5';
+              setTimeout(() => {
+                handleNextRef.current();
+                posX = 0;
+                posY = 0;
+                currentScale = 1;
+                if (img) {
+                  img.style.transition = 'none';
+                  img.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
+                  img.style.opacity = '1';
+                }
+              }, 120);
+              tapStartPos = null;
+              return;
+            } else if (deltaX > 50 && hasPrevRef.current) {
+              // Swipe Right -> Previous Image
+              img.style.transition = 'transform 0.16s ease-out, opacity 0.16s ease-out';
+              img.style.transform = `translate3d(80px, 0px, 0px) scale(1)`;
+              img.style.opacity = '0.5';
+              setTimeout(() => {
+                handlePrevRef.current();
+                posX = 0;
+                posY = 0;
+                currentScale = 1;
+                if (img) {
+                  img.style.transition = 'none';
+                  img.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
+                  img.style.opacity = '1';
+                }
+              }, 120);
+              tapStartPos = null;
+              return;
+            }
+          }
+
+          // Movement did not switch images, spring back smoothly to center
+          if (posX !== 0 || posY !== 0) {
+            posX = 0;
+            posY = 0;
+            currentScale = 1;
+            applyTransform(true);
+          }
+        }
+
+        // 2. Pinch Snap-Back Bounds
         if (currentScale < 1) {
           currentScale = 1;
           posX = 0;
@@ -551,7 +647,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         }
         setScale(currentScale);
 
-        // Single tap detection (< 250ms & movement < 10px) to toggle controls
+        // 3. Single tap detection (< 250ms & movement < 10px) to toggle HUD controls
         if (
           tapStartPos &&
           Date.now() - tapStartTime < 250 &&
