@@ -52,21 +52,21 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   } else {
     if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short')) {
       root = 'Shorts';
-      sub = dirParts.length > 0 ? dirParts : ['SHORTS 2027'];
+      sub = dirParts.length > 0 ? dirParts : ['Shorts Classic'];
     } else if (item.type === 'image' || isPhotoExtension(item.url || item.name)) {
       root = 'Images';
-      sub = dirParts.length > 0 ? dirParts : ['Editorial Sessions'];
+      sub = dirParts.length > 0 ? dirParts : ['H2026'];
     } else {
       root = 'Clips';
-      sub = dirParts.length > 0 ? dirParts : ['Featured Clips'];
+      sub = dirParts.length > 0 ? dirParts : ['H2027'];
     }
   }
 
   if (sub.length === 0) {
-    if (root === 'Shorts') sub = ['SHORTS 2027'];
-    else if (root === 'REALTube') sub = ['Long-form Media'];
-    else if (root === 'Images') sub = ['Editorial Sessions'];
-    else sub = ['Featured Clips'];
+    if (root === 'Shorts') sub = ['Shorts Classic'];
+    else if (root === 'REALTube') sub = ['REALTube Shorts'];
+    else if (root === 'Images') sub = ['H2026'];
+    else sub = ['H2027'];
   }
 
   return { root, subfolders: sub };
@@ -144,10 +144,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     };
 
-    ensureSubfolders('Clips', ['FEATURED CLIPS', 'TRAILERS & TEASERS', 'STUDIO EDITS']);
-    ensureSubfolders('Shorts', ['SHORTS 2027', 'SHORTS CLASSIC']);
-    ensureSubfolders('Images', ['EDITORIAL PORTRAITS', 'STUDIO SESSIONS', 'EVENT GALLERIES']);
-    ensureSubfolders('REALTube', ['LONG-FORM MEDIA', 'PRODUCTION STORAGE', 'SIMULATED VOLUMES']);
+    ensureSubfolders('Clips', ['H2027', 'H2026', 'H2025', 'Favorite', 'Others']);
+    ensureSubfolders('Shorts', ['Shorts Classic', 'REALTube Shorts']);
+    ensureSubfolders('Images', ['H2026', 'H2025', 'Bandhobis', 'Works', 'Classic']);
+    ensureSubfolders('REALTube', ['REALTube Shorts', 'Archive Feeds']);
 
     // Sort files descending
     for (const rootNode of map.values()) {
@@ -351,11 +351,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* Permanent Midnight Obsidian Backdrop Canvas */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
-      {/* Option A: Concealed Left Terminal Drawer with Usage Telemetry */}
+      {/* Option A: Concealed Left Navigation Drawer */}
       <VaultDrawer
         isOpen={isVaultDrawerOpen}
         onClose={() => setVaultDrawerOpen(false)}
         onSelectFolder={handleSelectDrawerFolder}
+        rootMap={rootMap}
       />
 
       {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Stepped Breadcrumbs */}

@@ -1,74 +1,104 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { hapticMedium } from '../utils/hapticsManager';
+import type { DirectoryNode } from './DeepSpaceTreeExplorer';
+import fallbackJson from '../data/mediaFallback.json';
 
 export interface VaultDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectFolder: (
     folderId: 'clips' | 'shorts' | 'photography' | 'realtube',
-    subfolderId?: string
+    subfolderName?: string
   ) => void;
+  rootMap?: Map<string, DirectoryNode>;
 }
 
-interface SubFolder {
+interface DrawerSubfolder {
   id: string;
   name: string;
-  tag: string;
+  itemCount?: number;
 }
 
-interface VaultFolder {
+interface CategoryConfig {
   id: 'clips' | 'shorts' | 'photography' | 'realtube';
   name: string;
-  tag: string;
-  subfolders: SubFolder[];
+  rawName: string;
 }
 
-const folders: VaultFolder[] = [
-  {
-    id: 'clips',
-    name: 'CLIPS',
-    tag: 'STREAM',
-    subfolders: [
-      { id: 'featured-clips', name: 'FEATURED CLIPS', tag: 'STREAM' },
-      { id: 'trailers-teasers', name: 'TRAILERS & TEASERS', tag: '4K' },
-      { id: 'studio-edits', name: 'STUDIO EDITS', tag: 'RAW' },
-    ],
-  },
-  {
-    id: 'shorts',
-    name: 'SHORTS',
-    tag: 'REELS',
-    subfolders: [
-      { id: 'shorts-2027', name: 'SHORTS 2027', tag: 'SERIES' },
-      { id: 'shorts-classic', name: 'SHORTS CLASSIC', tag: 'VAULT' },
-    ],
-  },
-  {
-    id: 'photography',
-    name: 'PHOTOGRAPHY',
-    tag: 'VAULT',
-    subfolders: [
-      { id: 'editorial-portraits', name: 'EDITORIAL PORTRAITS', tag: 'HD' },
-      { id: 'studio-sessions', name: 'STUDIO SESSIONS', tag: 'ARCHIVE' },
-      { id: 'event-galleries', name: 'EVENT GALLERIES', tag: 'RAW' },
-    ],
-  },
-  {
-    id: 'realtube',
-    name: 'REALTUBE',
-    tag: 'DRIVE',
-    subfolders: [
-      { id: 'long-form-media', name: 'LONG-FORM MEDIA', tag: 'DRIVE A' },
-      { id: 'production-storage', name: 'PRODUCTION STORAGE', tag: 'DRIVE B' },
-      { id: 'simulated-volumes', name: 'SIMULATED VOLUMES', tag: 'SYSTEM' },
-    ],
-  },
+const CATEGORIES: CategoryConfig[] = [
+  { id: 'clips', name: 'CLIPS', rawName: 'Clips' },
+  { id: 'shorts', name: 'SHORTS', rawName: 'Shorts' },
+  { id: 'photography', name: 'PHOTOGRAPHY', rawName: 'Images' },
+  { id: 'realtube', name: 'REALTUBE', rawName: 'REALTube' },
 ];
+
+function extractFallbackSubfolders(rawName: string): DrawerSubfolder[] {
+  const catalog = fallbackJson as any;
+
+  if (rawName === 'Clips') {
+    const list = new Map<string, number>();
+    (catalog.clips || []).forEach((c: any) => {
+      const parts = (c.path || '').split('/');
+      if (parts.length > 2) {
+        const name = parts[1].trim();
+        list.set(name, (list.get(name) || 0) + 1);
+      }
+    });
+    return Array.from(list.entries()).map(([name, count]) => ({
+      id: name,
+      name,
+      itemCount: count,
+    }));
+  }
+
+  if (rawName === 'Images') {
+    const list = new Map<string, number>();
+    (catalog.images || []).forEach((c: any) => {
+      const parts = (c.path || '').split('/');
+      if (parts.length > 2) {
+        const name = parts[1].trim();
+        list.set(name, (list.get(name) || 0) + 1);
+      }
+    });
+    return Array.from(list.entries()).map(([name, count]) => ({
+      id: name,
+      name,
+      itemCount: count,
+    }));
+  }
+
+  if (rawName === 'Shorts') {
+    const list = new Map<string, number>();
+    (catalog.shorts || []).forEach((c: any) => {
+      const parts = (c.path || '').split('/');
+      if (parts.length > 2) {
+        const name = parts[1].trim();
+        list.set(name, (list.get(name) || 0) + 1);
+      }
+    });
+    if (list.size === 0) list.set('Shorts Classic', (catalog.shorts || []).length);
+    return Array.from(list.entries()).map(([name, count]) => ({
+      id: name,
+      name,
+      itemCount: count,
+    }));
+  }
+
+  if (rawName === 'REALTube') {
+    return [
+      { id: 'REALTube Shorts', name: 'REALTube Shorts', itemCount: 12 },
+      { id: 'Archive Feeds', name: 'Archive Feeds', itemCount: 6 },
+    ];
+  }
+
+  return [];
+}
 
 export const VaultDrawer: React.FC<VaultDrawerProps> = ({
   isOpen,
   onClose,
   onSelectFolder,
+  rootMap,
 }) => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
 
@@ -83,13 +113,36 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Dynamically resolve actual subfolders from live rootMap or the media manifest
+  const categoriesWithSubfolders = useMemo(() => {
+    return CATEGORIES.map((cat) => {
+      const rootNode = rootMap?.get(cat.rawName);
+      let subfolders: DrawerSubfolder[] = [];
+
+      if (rootNode && rootNode.subfolders.size > 0) {
+        subfolders = Array.from(rootNode.subfolders.values()).map((sub) => ({
+          id: sub.name,
+          name: sub.name.trim(),
+          itemCount: sub.files.length,
+        }));
+      } else {
+        subfolders = extractFallbackSubfolders(cat.rawName);
+      }
+
+      return {
+        ...cat,
+        subfolders,
+      };
+    });
+  }, [rootMap]);
+
   const navigateToSubfolder = (
     folderId: 'clips' | 'shorts' | 'photography' | 'realtube',
-    subfolderId: string
+    subfolderName: string
   ) => {
     hapticMedium();
     onClose();
-    onSelectFolder(folderId, subfolderId);
+    onSelectFolder(folderId, subfolderName);
   };
 
   return (
@@ -101,16 +154,24 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
         aria-hidden={!isOpen}
       />
 
-      {/* Sliding Side Panel */}
+      {/* Sliding Minimalist Side Panel */}
       <aside
         className={`vault-drawer-left ${isOpen ? 'open' : ''}`}
-        aria-label="Concealed Core Archive Terminal"
+        aria-label="Media Archive Navigation"
       >
-        <div className="vault-meta-tag">CORE ARCHIVE // TERMINAL</div>
+        {/* Minimalist Publication Header */}
+        <div className="drawer-header flex items-center justify-between pb-4 mb-4 border-b border-white/[0.08]">
+          <span className="font-serif text-sm font-bold tracking-wider text-[#f4f4f5] uppercase">
+            MEDIA ARCHIVE
+          </span>
+          <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-sans">
+            COLLECTIONS
+          </span>
+        </div>
 
-        {/* Inline Accordion Dropdown Navigation */}
+        {/* Dynamic Accordion Directory Tree */}
         <div className="folder-accordion-menu space-scrollbar">
-          {folders.map((folder) => {
+          {categoriesWithSubfolders.map((folder) => {
             const isExpanded = expandedFolder === folder.id;
             return (
               <div
@@ -119,7 +180,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
               >
                 <button
                   type="button"
-                  className="folder-btn"
+                  className={`folder-btn ${isExpanded ? 'expanded' : ''}`}
                   onClick={() => {
                     hapticMedium();
                     setExpandedFolder(isExpanded ? null : folder.id);
@@ -127,24 +188,34 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                 >
                   <span className="folder-label">
                     <span className={`folder-caret ${isExpanded ? 'open' : ''}`}>▸</span>
-                    {folder.name}
+                    <span>{folder.name}</span>
                   </span>
-                  <span className="folder-badge">{folder.tag}</span>
+                  <span className="folder-badge">
+                    {folder.subfolders.length} {folder.subfolders.length === 1 ? 'ALBUM' : 'ALBUMS'}
+                  </span>
                 </button>
 
                 {isExpanded && (
                   <div className="subfolder-tray">
-                    {folder.subfolders.map((sub) => (
-                      <button
-                        key={sub.id}
-                        type="button"
-                        className="subfolder-btn"
-                        onClick={() => navigateToSubfolder(folder.id, sub.id)}
-                      >
-                        <span className="sub-title">{sub.name}</span>
-                        <span className="sub-tag">{sub.tag}</span>
-                      </button>
-                    ))}
+                    {folder.subfolders.length === 0 ? (
+                      <div className="text-xs text-neutral-500 py-2 px-3 italic">
+                        No albums listed
+                      </div>
+                    ) : (
+                      folder.subfolders.map((sub) => (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          className="subfolder-btn"
+                          onClick={() => navigateToSubfolder(folder.id, sub.name)}
+                        >
+                          <span className="sub-title">{sub.name}</span>
+                          {typeof sub.itemCount === 'number' && (
+                            <span className="sub-tag">{sub.itemCount}</span>
+                          )}
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -152,54 +223,28 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           })}
         </div>
 
-        {/* Lively Telemetry Visualizer (Bottom-Left HUD) */}
-        <div className="vault-telemetry-cluster">
-          <div className="telemetry-bar-header">
-            <div className="telemetry-stat-box">
-              <span className="live-beacon"></span>
-              <span className="telemetry-stat">5.14 GB/s</span>
-            </div>
-            <span className="telemetry-history">141.10 · 98.00 · 64.00 · 147.00 · 115.00</span>
+        {/* Minimalist Activity Overview (No Sci-Fi / Cyberpunk Gimmicks) */}
+        <div className="drawer-footer-cluster mt-auto pt-4 border-t border-white/[0.08] flex flex-col gap-3">
+          <div className="flex items-center justify-between text-xs text-neutral-400">
+            <span className="font-sans font-medium text-neutral-300">Activity Overview</span>
+            <span className="text-[10px] text-neutral-500 uppercase tracking-wider">7 Days</span>
           </div>
 
-          <div className="telemetry-bars lively-eq">
-            <div className="bar-wrapper" title="TODAY: 75%">
-              <div className="bar p75 lively-pulse"></div>
-            </div>
-            <div className="bar-wrapper" title="YESTERDAY: 45%">
-              <div className="bar p45"></div>
-            </div>
-            <div className="bar-wrapper" title="NOV 07: 30%">
-              <div className="bar p30"></div>
-            </div>
-            <div className="bar-wrapper" title="NOV 06: 90%">
-              <div className="bar p90 lively-pulse"></div>
-            </div>
-            <div className="bar-wrapper" title="NOV 05: 55%">
-              <div className="bar p55"></div>
-            </div>
-            <div className="bar-wrapper" title="NOV 04: 65%">
-              <div className="bar p65"></div>
-            </div>
-            <div className="bar-wrapper" title="NOV 03: 85%">
-              <div className="bar p85"></div>
-            </div>
+          {/* Minimalist Bar Chart */}
+          <div className="minimal-bars flex items-end gap-1.5 h-8">
+            <div className="bar-col" style={{ height: '70%' }} title="Today" />
+            <div className="bar-col" style={{ height: '45%' }} title="Yesterday" />
+            <div className="bar-col" style={{ height: '30%' }} title="Nov 07" />
+            <div className="bar-col active-bar" style={{ height: '85%' }} title="Nov 06" />
+            <div className="bar-col" style={{ height: '55%' }} title="Nov 05" />
+            <div className="bar-col" style={{ height: '65%' }} title="Nov 04" />
+            <div className="bar-col" style={{ height: '80%' }} title="Nov 03" />
           </div>
 
-          <div className="telemetry-bar-footer">
-            <span className="active-tag">TODAY</span>
-            <span>YEST</span>
-            <span>NOV 07</span>
-            <span>NOV 06</span>
-            <span>NOV 05</span>
-            <span>NOV 04</span>
-            <span>NOV 03</span>
+          <div className="flex items-center justify-between text-[10px] text-neutral-500 tracking-wider font-sans">
+            <span className="text-neutral-400 font-medium">RECENT SYNC</span>
+            <span>VERIFIED ARCHIVE</span>
           </div>
-        </div>
-
-        <div className="vault-footer-status">
-          <span>ACCESS // GRANTED</span>
-          <span>SYS READY</span>
         </div>
       </aside>
     </>
