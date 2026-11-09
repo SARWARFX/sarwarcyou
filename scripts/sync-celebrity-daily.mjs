@@ -11,7 +11,8 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const NEWS_OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityNews.json');
 const GALLERY_OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityGallery.json');
 
-export const TARGET_CELEBRITIES = [
+export const TARGET_ACTRESSES = [
+  // Indian Cinema
   'Deepika Padukone',
   'Katrina Kaif',
   'Alia Bhatt',
@@ -22,9 +23,21 @@ export const TARGET_CELEBRITIES = [
   'Kareena Kapoor',
   'Jacqueline Fernandez',
   'Anushka Sharma',
+  'Aishwarya Rai',
+  'Priyanka Chopra',
   'Sunny Leone',
+  // International / Global Cinema
   'Phoebe Tonkin',
+  'Michelle Rodriguez',
+  'Scarlett Johansson',
+  'Gal Gadot',
+  'Ana de Armas',
+  'Margot Robbie',
+  'Sydney Sweeney',
+  'Zendaya',
 ];
+
+export const TARGET_CELEBRITIES = TARGET_ACTRESSES;
 
 const RSS_FEEDS = [
   // Indian / Regional Entertainment Feeds
@@ -111,27 +124,37 @@ function extractImage(item) {
   return undefined;
 }
 
-function matchCelebrity(title, description) {
-  // Check title first (highest precision)
-  for (const celeb of TARGET_CELEBRITIES) {
-    const escaped = celeb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const MALE_STAR_REGEX = /\b(virat kohli|virat|karan johar|shah rukh khan|srk|salman khan|aamir khan|ranbir kapoor|ranveer singh|kartik aaryan|akshay kumar|hrithik roshan|varun dhawan|sidharth malhotra|vicky kaushal|shahid kapoor|tiger shroff|saif ali khan|ajay devgn|john abraham|ayushmann khurrana|rajkummar rao|diljit dosanjh|prabhas|allu arjun|ram charan|yash|vijay devarakonda|jr ntr|chiranjeevi|nagarjuna|mahesh babu|abhishek bachchan|nick jonas|tom cruise|leonardo dicaprio|brad pitt|ryan reynolds|ryan gosling|robert downey|chris evans|chris hemsworth|timothee chalamet|cillian murphy|keanu reeves|channing tatum|tom holland)\b/i;
+
+function matchCelebrity(title, _description) {
+  // 1. Article headline must explicitly mention an approved actress from TARGET_ACTRESSES
+  let matchedActress = null;
+  let actressPos = -1;
+
+  for (const actress of TARGET_ACTRESSES) {
+    const escaped = actress.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-    if (regex.test(title)) {
-      return celeb;
+    const match = title.match(regex);
+    if (match && match.index !== undefined) {
+      if (actressPos === -1 || match.index < actressPos) {
+        matchedActress = actress;
+        actressPos = match.index;
+      }
     }
   }
 
-  // Check lead snippet
-  const lead = (description || '').slice(0, 350);
-  for (const celeb of TARGET_CELEBRITIES) {
-    const escaped = celeb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-    if (regex.test(lead)) {
-      return celeb;
-    }
+  if (!matchedActress) {
+    // Strictly require actress name in the headline
+    return null;
   }
 
-  return null;
+  // 2. Reject if a male actor is the primary headline subject before the actress
+  const maleMatch = title.match(MALE_STAR_REGEX);
+  if (maleMatch && maleMatch.index !== undefined && maleMatch.index < actressPos) {
+    return null;
+  }
+
+  return matchedActress;
 }
 
 function detectCategory(headline, summary, sourceName) {

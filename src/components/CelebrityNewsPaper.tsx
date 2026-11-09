@@ -93,7 +93,7 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
 
         {/* Sub-Motto Rule */}
         <p className="masthead-motto">
-          Curated High-Definition Portraits &amp; Verified Editorial Intelligence
+          Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses
         </p>
 
         {/* Subtle Double Hairline Rule */}

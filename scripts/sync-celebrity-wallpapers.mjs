@@ -8,7 +8,8 @@ const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityGallery.json');
 
-export const CELEBRITIES = [
+export const TARGET_ACTRESSES = [
+  // Indian Cinema
   'Deepika Padukone',
   'Katrina Kaif',
   'Alia Bhatt',
@@ -19,9 +20,21 @@ export const CELEBRITIES = [
   'Kareena Kapoor',
   'Jacqueline Fernandez',
   'Anushka Sharma',
+  'Aishwarya Rai',
+  'Priyanka Chopra',
   'Sunny Leone',
+  // International / Global Cinema
   'Phoebe Tonkin',
+  'Michelle Rodriguez',
+  'Scarlett Johansson',
+  'Gal Gadot',
+  'Ana de Armas',
+  'Margot Robbie',
+  'Sydney Sweeney',
+  'Zendaya',
 ];
+
+export const CELEBRITIES = TARGET_ACTRESSES;
 
 // Curated, strictly verified high-resolution portraits of the actual actresses
 export const SEED_FALLBACK_GALLERY = [
@@ -488,6 +501,164 @@ export const SEED_FALLBACK_GALLERY = [
     aspect: 'portrait',
     timestamp: 1715000040000,
   },
+
+  // --- Aishwarya Rai ---
+  {
+    id: 'aishwarya-rai-portrait-1',
+    name: 'Aishwarya Rai',
+    title: 'Aishwarya Rai High Glamour Portrait',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/7/77/Aishwarya_Rai_11.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/7/77/Aishwarya_Rai_11.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000041000,
+  },
+  {
+    id: 'aishwarya-rai-cannes',
+    name: 'Aishwarya Rai',
+    title: 'Aishwarya Rai Cannes Film Festival Gala',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Aishwarya_Rai_Cannes_2014.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Aishwarya_Rai_Cannes_2014.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000042000,
+  },
+
+  // --- Priyanka Chopra ---
+  {
+    id: 'priyanka-chopra-jaipur',
+    name: 'Priyanka Chopra',
+    title: 'Priyanka Chopra Studio Feature Showcase',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/19/Priyanka_Chopra_in_Jaipur_%285%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/1/19/Priyanka_Chopra_in_Jaipur_%285%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000043000,
+  },
+  {
+    id: 'priyanka-chopra-tiff',
+    name: 'Priyanka Chopra',
+    title: 'Priyanka Chopra International Premiere Appearance',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Priyanka_Chopra_at_TIFF_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Priyanka_Chopra_at_TIFF_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000044000,
+  },
+
+  // --- Michelle Rodriguez ---
+  {
+    id: 'michelle-rodriguez-portrait',
+    name: 'Michelle Rodriguez',
+    title: 'Michelle Rodriguez Action Icon Portrait',
+    category: 'Trending',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/2/2b/DJ_Michelle_Rodriguez.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/2/2b/DJ_Michelle_Rodriguez.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000045000,
+  },
+
+  // --- Scarlett Johansson ---
+  {
+    id: 'scarlett-johansson-portrait',
+    name: 'Scarlett Johansson',
+    title: 'Scarlett Johansson Global Cinema Portrait',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Scarlett_Johansson_in_Kuwait_02.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Scarlett_Johansson_in_Kuwait_02.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000046000,
+  },
+  {
+    id: 'scarlett-johansson-taormina',
+    name: 'Scarlett Johansson',
+    title: 'Scarlett Johansson Film Festival Feature',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Scarlett_Johansson_Taormina_Film_Fest_2023.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Scarlett_Johansson_Taormina_Film_Fest_2023.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000047000,
+  },
+
+  // --- Gal Gadot ---
+  {
+    id: 'gal-gadot-sdcc',
+    name: 'Gal Gadot',
+    title: 'Gal Gadot Comic-Con Gala Appearance',
+    category: 'Trending',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/SDCC_2015_-_Gal_Gadot_%2819524051538%29_%28cropped%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/SDCC_2015_-_Gal_Gadot_%2819524051538%29_%28cropped%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000048000,
+  },
+
+  // --- Ana de Armas ---
+  {
+    id: 'ana-de-armas-editorial',
+    name: 'Ana de Armas',
+    title: 'Ana de Armas Editorial Portrait Session',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/6/61/Ana_de_Armas_2017_crop.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/6/61/Ana_de_Armas_2017_crop.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000049000,
+  },
+  {
+    id: 'ana-de-armas-festival',
+    name: 'Ana de Armas',
+    title: 'Ana de Armas International Film Gala',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Ana_de_Armas_at_San_Sebastian_Film_Festival_2022.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Ana_de_Armas_at_San_Sebastian_Film_Festival_2022.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000050000,
+  },
+
+  // --- Margot Robbie ---
+  {
+    id: 'margot-robbie-sdcc',
+    name: 'Margot Robbie',
+    title: 'Margot Robbie Studio Spotlight Portrait',
+    category: 'Trending',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/6/67/Margot_Robbie_SDCC_2015.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/6/67/Margot_Robbie_SDCC_2015.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000051000,
+  },
+
+  // --- Sydney Sweeney ---
+  {
+    id: 'sydney-sweeney-gala',
+    name: 'Sydney Sweeney',
+    title: 'Sydney Sweeney Fashion Editorial Gala',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/4/4f/Sydney_Sweeney_2019_by_Glenn_Francis.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/4/4f/Sydney_Sweeney_2019_by_Glenn_Francis.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000052000,
+  },
+
+  // --- Zendaya ---
+  {
+    id: 'zendaya-fashion',
+    name: 'Zendaya',
+    title: 'Zendaya Haute Couture Editorial',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Zendaya_2012.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Zendaya_2012.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000053000,
+  },
+  {
+    id: 'zendaya-dune',
+    name: 'Zendaya',
+    title: 'Zendaya Paris Film Premiere Gala',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/2/28/Zendaya_-_Dune_Part_Two_-_Paris_2024.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/2/28/Zendaya_-_Dune_Part_Two_-_Paris_2024.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000054000,
+  },
 ];
 
 /**
@@ -595,7 +766,7 @@ async function fetchCelebrityImages(celebrityName) {
     // 2. Exclude other people's names or multi-person / group / non-portrait subjects
     if (
       lowerTitle.match(
-        /raai laxmi|sheetal agashe|akwaboah|morgan berry|munnycat|salman khan|ranbir kapoor|ranveer singh|shah|sharma with|\band\b|&|\bwith\b|\balongside\b|,|\bsisters\b|\bfamily\b|\bgroup\b|statue|tussauds|figure|wax|poster/i
+        /raai laxmi|sheetal agashe|akwaboah|morgan berry|munnycat|salman|ranbir|ranveer|shah rukh|shahrukh|kartik|akshay|hrithik|varun|sidharth|vicky|abhishek|nick jonas|tom holland|channing tatum|husband|father|son|brother|man|male|\band\b|&|\bwith\b|\balongside\b|,|\bsisters\b|\bfamily\b|\bgroup\b|statue|tussauds|figure|wax|poster/i
       )
     ) {
       continue;

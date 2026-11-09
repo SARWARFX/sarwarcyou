@@ -53,8 +53,17 @@ const FILTER_CHIPS = [
   { id: 'Kareena Kapoor', label: 'KAREENA' },
   { id: 'Jacqueline Fernandez', label: 'JACQUELINE' },
   { id: 'Anushka Sharma', label: 'ANUSHKA' },
+  { id: 'Aishwarya Rai', label: 'AISHWARYA' },
+  { id: 'Priyanka Chopra', label: 'PRIYANKA' },
   { id: 'Sunny Leone', label: 'SUNNY' },
   { id: 'Phoebe Tonkin', label: 'PHOEBE' },
+  { id: 'Michelle Rodriguez', label: 'MICHELLE' },
+  { id: 'Scarlett Johansson', label: 'SCARLETT' },
+  { id: 'Gal Gadot', label: 'GAL' },
+  { id: 'Ana de Armas', label: 'ANA' },
+  { id: 'Margot Robbie', label: 'MARGOT' },
+  { id: 'Sydney Sweeney', label: 'SYDNEY' },
+  { id: 'Zendaya', label: 'ZENDAYA' },
 ];
 
 function toStageMediaItem(entry: CelebrityItem): StageMediaItem {
@@ -197,7 +206,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                   CELEBRITY ARCHIVE
                 </h1>
                 <p className="text-[11px] tracking-wide text-neutral-400">
-                  Curated High-Definition Portraits &amp; Verified Editorial Intelligence
+                  Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses
                 </p>
               </div>
             </div>
