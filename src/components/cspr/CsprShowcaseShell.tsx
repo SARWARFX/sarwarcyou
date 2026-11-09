@@ -5,6 +5,7 @@ import { CuratedHomeShowcase } from './CuratedHomeShowcase';
 import { SubfolderArchiveView } from './SubfolderArchiveView';
 import { MIDNIGHT_OBSIDIAN_THEME } from '../gate/themeManager';
 import { CinematicBackdropCanvas } from '../gate/CinematicBackdropCanvas';
+import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 
 export interface CsprShowcaseShellProps {
   items: StageMediaItem[];
@@ -54,19 +55,16 @@ export const CsprShowcaseShell: React.FC<CsprShowcaseShellProps> = ({
 
       {/* 2. Top Header Bar */}
       <header className="fixed top-0 left-0 right-0 z-30 h-14 md:h-16 bg-black/60 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 sm:px-6 md:px-10 shadow-lg">
-        {/* Left: SARWAR.CYOU Signature Logo (Click returns to Home) */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setActiveTab('HOME')}
-          className="flex items-center gap-3 cursor-pointer select-none group"
-        >
-          <span className="font-['Google Sans'] font-bold text-sm sm:text-base tracking-[0.22em] text-white uppercase group-hover:text-neutral-200 transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-            SARWAR.CYOU
-          </span>
-          <span className="text-[10px] sm:text-xs font-mono tracking-widest text-neutral-400 uppercase hidden sm:inline">
+        {/* Left: SARWAR.CYOU Signature Logo (Click checks for updates, subtitle returns to Home) */}
+        <div className="flex items-center gap-3 select-none">
+          <HeaderBrandLogo variant="cspr" trackingClass="tracking-[0.22em]" />
+          <button
+            type="button"
+            onClick={() => setActiveTab('HOME')}
+            className="text-[10px] sm:text-xs font-mono tracking-widest text-neutral-400 uppercase hidden sm:inline hover:text-neutral-200 transition-colors cursor-pointer bg-transparent border-0 p-0"
+          >
             {activeTab === 'HOME' ? '// CURATED SHOWCASE' : `// ARCHIVE: ${activeTab}`}
-          </span>
+          </button>
         </div>
 
         {/* Right: Quick Home Return or Status Stamp */}

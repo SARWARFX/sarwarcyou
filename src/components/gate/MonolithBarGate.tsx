@@ -16,6 +16,7 @@ import { SyncStatusIndicator } from '../SyncStatusIndicator';
 import { Capacitor } from '@capacitor/core';
 import { AvailableOfflineBadge } from '../common/AvailableOfflineBadge';
 import { isMediaAvailableOffline } from '../../services/videoOfflineManager';
+import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -526,9 +527,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         >
           {/* Top-Left Header: Brand & Sync Status */}
           <div className="absolute top-7 left-10 lg:left-12 right-6 flex items-center justify-between z-30 pointer-events-auto">
-            <span className="font-['Roboto_Condensed'] font-black tracking-[0.25em] text-sm uppercase text-white/95">
-              SARWAR<span className="text-[#00f0ff]">CYOU</span>
-            </span>
+            <HeaderBrandLogo trackingClass="tracking-[0.25em]" />
             <SyncStatusIndicator />
           </div>
 
@@ -759,9 +758,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         >
           {/* Top Mobile Bar: Brand & Sync Status */}
           <div className="absolute top-5 inset-x-0 px-6 flex items-center justify-between z-30 pointer-events-auto">
-            <span className="font-['Roboto_Condensed'] font-black tracking-[0.22em] text-sm uppercase text-white/95">
-              SARWAR<span className="text-[#00f0ff]">CYOU</span>
-            </span>
+            <HeaderBrandLogo trackingClass="tracking-[0.22em]" />
             <SyncStatusIndicator />
           </div>
 
