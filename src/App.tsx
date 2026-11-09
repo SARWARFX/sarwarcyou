@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
 import { CyberVideoPlayer } from './components/CyberVideoPlayer';
@@ -172,6 +174,36 @@ function App() {
 
   // Cyberpunk Command Palette State
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Native Android Device Integration (Capacitor)
+  useEffect(() => {
+    // Edge-to-edge transparent status bar
+    StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let listenerHandle: { remove: () => void } | null = null;
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      if (theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen) {
+        handleCloseModal();
+      } else if (isCommandPaletteOpen) {
+        setIsCommandPaletteOpen(false);
+      } else if (canGoBack) {
+        window.history.back();
+      } else {
+        CapacitorApp.exitApp();
+      }
+    }).then((handle) => {
+      listenerHandle = handle;
+    }).catch(() => {});
+
+    return () => {
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
+    };
+  }, [theaterState.isOpen, shortsState.isOpen, lightboxState.isOpen, viewAllState.isOpen, isCommandPaletteOpen, handleCloseModal]);
 
   // Global Command Palette Shortcut (Ctrl+K / Cmd+K, or "/" when no input is focused)
   useEffect(() => {

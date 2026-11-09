@@ -30,3 +30,7 @@ generated_thumbs/
 thumbnails.json
 public/thumbnails.json
 src/data/thumbnails.json
+
+# Local Android builds
+*.apk
+*.aab
