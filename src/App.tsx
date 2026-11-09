@@ -40,6 +40,7 @@ import {
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import { trackActivityEvent } from './utils/usageTelemetry';
+import { initKeepAwake } from './utils/keepAwakeManager';
 import {
   parseUrlState,
   syncUrlState,
@@ -208,6 +209,11 @@ function App() {
 
   // Organize raw catalog data into structured discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
+
+  // Restore Keep Screen On preferences and attach wake lock handlers
+  useEffect(() => {
+    initKeepAwake();
+  }, []);
 
   // Background auto-sync all photos ONLY on native Android app
   useEffect(() => {

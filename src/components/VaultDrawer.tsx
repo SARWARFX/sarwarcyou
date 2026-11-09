@@ -3,6 +3,11 @@ import { hapticMedium } from '../utils/hapticsManager';
 import type { DirectoryNode } from './DeepSpaceTreeExplorer';
 import fallbackJson from '../data/mediaFallback.json';
 import { getRolling7DayUsage, trackActivityEvent } from '../utils/usageTelemetry';
+import {
+  getKeepScreenOnState,
+  toggleKeepScreenOn,
+  subscribeKeepScreenOn,
+} from '../utils/keepAwakeManager';
 
 export interface VaultDrawerProps {
   isOpen: boolean;
@@ -103,6 +108,19 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
 }) => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
   const [telemetry, setTelemetry] = useState(() => getRolling7DayUsage());
+  const [keepScreenOn, setKeepScreenOn] = useState<boolean>(() => getKeepScreenOnState());
+
+  useEffect(() => {
+    return subscribeKeepScreenOn((active) => {
+      setKeepScreenOn(active);
+    });
+  }, []);
+
+  const handleToggleKeepScreenOn = async () => {
+    hapticMedium();
+    const nextVal = await toggleKeepScreenOn();
+    setKeepScreenOn(nextVal);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -227,8 +245,42 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           })}
         </div>
 
-        {/* Live Client-Side Usage Telemetry (7-Day Rolling) */}
-        <div className="drawer-footer-cluster mt-auto pt-4 border-t border-white/[0.08] flex flex-col gap-3">
+        {/* Keep Screen On & Live Client-Side Usage Telemetry (7-Day Rolling) */}
+        <div className="drawer-footer-cluster mt-auto pt-3 border-t border-white/[0.08] flex flex-col gap-3">
+          {/* Keep Screen On Toggle Bar */}
+          <div className="flex items-center justify-between py-1 px-0.5">
+            <div className="flex flex-col">
+              <span className="text-xs font-sans font-medium text-neutral-200 tracking-wide">
+                Keep Screen On
+              </span>
+              <span className="text-[10px] text-neutral-400 font-mono tracking-wider">
+                {keepScreenOn ? 'ALWAYS AWAKE' : 'SYSTEM SLEEP'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={keepScreenOn}
+              onClick={handleToggleKeepScreenOn}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full p-0.5 border border-white/10 transition-colors duration-200 ease-in-out focus:outline-none ${
+                keepScreenOn ? 'bg-white' : 'bg-neutral-800/90'
+              }`}
+              title={keepScreenOn ? 'Keep screen on: Enabled' : 'Keep screen on: Disabled'}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full shadow-md transition duration-200 ease-in-out ${
+                  keepScreenOn
+                    ? 'translate-x-4 bg-neutral-950'
+                    : 'translate-x-0 bg-neutral-400'
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="border-t border-white/[0.06]" />
+
           <div className="flex items-center justify-between text-xs text-neutral-400">
             <span className="font-sans font-medium text-neutral-300">Activity Telemetry</span>
             <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-mono">
