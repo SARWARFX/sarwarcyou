@@ -463,24 +463,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* LEFT SIDEBAR (DESKTOP) */}
         <aside
           aria-label="Desktop Sidebar Navigation and Telemetry"
-          className="hidden md:flex w-[300px] lg:w-[320px] h-screen flex-col justify-between pl-10 lg:pl-12 py-10 flex-shrink-0 z-20 border-r border-white/[0.03] select-none"
+          className="hidden md:flex relative w-[300px] lg:w-[320px] h-screen flex-col flex-shrink-0 z-20 border-r border-white/[0.03] select-none overflow-hidden"
         >
-          {/* Middle-Left Folders */}
-          <div className="flex flex-col gap-6 pt-[14vh] justify-start w-full">
-            <SidebarAccordionNav
-              variant="desktop"
-              rootMap={rootMap}
-              selectedAlbum={selectedAlbum}
-              selectedSubfolder={selectedSubfolder}
-              openFolder={openFolder}
-              onToggleFolder={handleToggleFolder}
-              onSelectSubfolder={handleSelectSubfolder}
-              onSelectIdle={handleSelectIdle}
-            />
-          </div>
+          {/* Middle-Left Folders (Exact Vertical Midpoint) */}
+          <SidebarAccordionNav
+            variant="desktop"
+            rootMap={rootMap}
+            selectedAlbum={selectedAlbum}
+            selectedSubfolder={selectedSubfolder}
+            openFolder={openFolder}
+            onToggleFolder={handleToggleFolder}
+            onSelectSubfolder={handleSelectSubfolder}
+            onSelectIdle={handleSelectIdle}
+          />
 
           {/* Bottom-Left Telemetry Dock */}
-          <div className="w-[240px] flex flex-col justify-end pointer-events-auto">
+          <div className="absolute bottom-8 left-10 lg:left-12 w-[240px] flex flex-col justify-end pointer-events-auto z-20">
             <SessionTelemetryGraph variant="dock" />
           </div>
         </aside>
@@ -656,24 +654,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* SCREEN 1 (100vw): HOME / FOLDERS & FULL-WIDTH BOTTOM GRAPH */}
         <section
           aria-label="Mobile Navigation and Telemetry"
-          className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between relative bg-[#020408] flex-none snap-start shrink-0 z-30 pointer-events-auto"
+          className="relative w-screen h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#020408] flex-none snap-start shrink-0 z-30 pointer-events-auto"
         >
-          {/* Middle-Left Folders: Top-anchored downward-only expansion */}
-          <div className="flex-1 flex flex-col justify-start z-20 select-none relative pointer-events-auto">
-            <SidebarAccordionNav
-              variant="mobile"
-              rootMap={rootMap}
-              selectedAlbum={selectedAlbum}
-              selectedSubfolder={selectedSubfolder}
-              openFolder={openFolder}
-              onToggleFolder={handleToggleFolder}
-              onSelectSubfolder={handleMobileSelectSubfolder}
-              onSelectIdle={handleSelectIdle}
-            />
-          </div>
+          {/* Middle-Left Folders: Exact Vertical Midpoint top calc(50dvh - 100px) */}
+          <SidebarAccordionNav
+            variant="mobile"
+            rootMap={rootMap}
+            selectedAlbum={selectedAlbum}
+            selectedSubfolder={selectedSubfolder}
+            openFolder={openFolder}
+            onToggleFolder={handleToggleFolder}
+            onSelectSubfolder={handleMobileSelectSubfolder}
+            onSelectIdle={handleSelectIdle}
+          />
 
           {/* Full-Width Bottom Graph Dock */}
-          <div className="w-full px-5 pb-5 pt-1 flex flex-col justify-end flex-shrink-0 z-10 relative pointer-events-auto">
+          <div className="absolute bottom-4 left-0 right-0 px-5 flex flex-col justify-end flex-shrink-0 z-10 pointer-events-auto">
             <SessionTelemetryGraph variant="mobile" />
           </div>
         </section>
