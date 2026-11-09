@@ -70,7 +70,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
       aria-label="Major Folders Navigation"
       className={
         isDesktop
-          ? `hidden md:flex w-[260px] h-screen flex-col justify-start pt-[28vh] pl-12 gap-7 flex-shrink-0 z-30 pointer-events-auto bg-transparent select-none ${className}`
+          ? `w-full flex flex-col justify-start gap-6 select-none pointer-events-auto ${className}`
           : `relative z-30 pointer-events-auto flex flex-col justify-start pt-[26vh] md:pt-[28vh] pl-8 md:pl-12 gap-7 select-none w-full ${className}`
       }
     >

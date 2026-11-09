@@ -147,17 +147,17 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
   // =========================================================================
   if (variant === 'dock') {
     return (
-      <div className={`w-full h-[120px] flex flex-col justify-end flex-shrink-0 pt-2 ${className}`}>
-        {/* Track: Active pillars distributed evenly across full width */}
-        <div className="w-full flex justify-between items-end gap-2 md:gap-4 lg:gap-6 h-[85px]">
+      <div className={`w-full flex flex-col justify-end flex-shrink-0 select-none ${className}`}>
+        {/* Track: Active pillars distributed evenly across full dock width */}
+        <div className="w-full flex justify-between items-end gap-1.5 sm:gap-2 h-[76px]">
           {dayStats.map((day) => {
             const heightPct = Math.max(day.minutes > 0 ? (day.minutes / maxMinutes) * 100 : 8, 8);
 
             return (
-              <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 group">
+              <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1 group">
                 {/* Time readout on top: Today's readout is cyan font-bold, others slate */}
                 <span
-                  className={`font-mono text-xs transition-colors ${
+                  className={`font-mono text-[10px] sm:text-[11px] transition-colors leading-none ${
                     day.isToday
                       ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]'
                       : 'text-[#475569] group-hover:text-slate-300'
@@ -167,7 +167,7 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                 </span>
 
                 {/* Slot container */}
-                <div className="h-[56px] w-full max-w-[48px] bg-white/[0.03] rounded flex items-end overflow-hidden">
+                <div className="h-[46px] w-full max-w-[32px] sm:max-w-[36px] bg-white/[0.03] rounded flex items-end overflow-hidden my-0.5">
                   {/* Bar: Today is cyan glow gradient, others clean silver/slate gradient */}
                   <div
                     style={{
@@ -184,7 +184,7 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
 
                 {/* Date label below */}
                 <span
-                  className={`font-mono text-[10px] uppercase tracking-wider text-center truncate w-full ${
+                  className={`font-mono text-[8px] sm:text-[9px] uppercase tracking-wider text-center truncate w-full leading-none mt-0.5 ${
                     day.isToday
                       ? 'text-[#38bdf8] font-semibold'
                       : 'text-[#475569] group-hover:text-slate-400'
