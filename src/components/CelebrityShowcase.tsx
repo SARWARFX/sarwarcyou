@@ -11,6 +11,7 @@ import type { StageMediaItem } from '../types';
 import { MediaModal } from './MediaModal';
 import { hapticMedium } from '../utils/hapticsManager';
 import { CelebrityNewsPaper } from './CelebrityNewsPaper';
+import { trackActivityEvent } from '../utils/usageTelemetry';
 
 export interface CelebrityItem {
   id: string;
@@ -157,6 +158,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   const handleCardClick = useCallback(
     (index: number) => {
       hapticMedium();
+      trackActivityEvent(1);
       const targetStageItem = stagePlaylist[index];
       if (!targetStageItem) return;
 

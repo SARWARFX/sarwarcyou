@@ -17,6 +17,7 @@ import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 import { CelebrityShowcase } from '../CelebrityShowcase';
 import { VaultDrawer } from '../VaultDrawer';
 import { hapticMedium } from '../../utils/hapticsManager';
+import { trackActivityEvent } from '../../utils/usageTelemetry';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -209,6 +210,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   // Handler to open item from media grid
   const handleOpenItem = (item: StageMediaItem, _idx: number) => {
+    trackActivityEvent(1);
     try {
       const STORAGE_KEY = 'sarwar_media_views_stats_v1';
       const raw = localStorage.getItem(STORAGE_KEY);

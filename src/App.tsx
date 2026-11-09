@@ -39,6 +39,7 @@ import {
 } from './config/themeConfig';
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
+import { trackActivityEvent } from './utils/usageTelemetry';
 import {
   parseUrlState,
   syncUrlState,
@@ -224,6 +225,7 @@ function App() {
       pushHistory = true,
       indexHint?: number
     ) => {
+      trackActivityEvent(1);
       const isShort = Boolean(
         item.mediaType === 'short' ||
         item.category?.toLowerCase().includes('short') ||

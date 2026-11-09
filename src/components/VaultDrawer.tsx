@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { hapticMedium } from '../utils/hapticsManager';
 import type { DirectoryNode } from './DeepSpaceTreeExplorer';
 import fallbackJson from '../data/mediaFallback.json';
+import { getRolling7DayUsage, trackActivityEvent } from '../utils/usageTelemetry';
 
 export interface VaultDrawerProps {
   isOpen: boolean;
@@ -101,9 +102,11 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
   rootMap,
 }) => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
+  const [telemetry, setTelemetry] = useState(() => getRolling7DayUsage());
 
   useEffect(() => {
     if (!isOpen) return;
+    setTelemetry(getRolling7DayUsage());
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -141,6 +144,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     subfolderName: string
   ) => {
     hapticMedium();
+    trackActivityEvent(1);
     onClose();
     onSelectFolder(folderId, subfolderName);
   };
@@ -223,27 +227,51 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           })}
         </div>
 
-        {/* Minimalist Activity Overview (No Sci-Fi / Cyberpunk Gimmicks) */}
+        {/* Live Client-Side Usage Telemetry (7-Day Rolling) */}
         <div className="drawer-footer-cluster mt-auto pt-4 border-t border-white/[0.08] flex flex-col gap-3">
           <div className="flex items-center justify-between text-xs text-neutral-400">
-            <span className="font-sans font-medium text-neutral-300">Activity Overview</span>
-            <span className="text-[10px] text-neutral-500 uppercase tracking-wider">7 Days</span>
+            <span className="font-sans font-medium text-neutral-300">Activity Telemetry</span>
+            <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-mono">
+              {telemetry.todayTotal} {telemetry.todayTotal === 1 ? 'EVENT TODAY' : 'EVENTS TODAY'}
+            </span>
           </div>
 
-          {/* Minimalist Bar Chart */}
-          <div className="minimal-bars flex items-end gap-1.5 h-8">
-            <div className="bar-col" style={{ height: '70%' }} title="Today" />
-            <div className="bar-col" style={{ height: '45%' }} title="Yesterday" />
-            <div className="bar-col" style={{ height: '30%' }} title="Nov 07" />
-            <div className="bar-col active-bar" style={{ height: '85%' }} title="Nov 06" />
-            <div className="bar-col" style={{ height: '55%' }} title="Nov 05" />
-            <div className="bar-col" style={{ height: '65%' }} title="Nov 04" />
-            <div className="bar-col" style={{ height: '80%' }} title="Nov 03" />
+          {/* Real Proportional Bar Chart with Calendar Date Labels */}
+          <div className="flex items-end gap-1.5 h-10">
+            {telemetry.days.map((day, idx) => {
+              const isToday = idx === telemetry.days.length - 1;
+              const heightPercent = telemetry.maxVal > 0
+                ? Math.max(Math.round((day.count / telemetry.maxVal) * 100), day.count > 0 ? 16 : 8)
+                : 8;
+
+              const dateNumber = day.label === 'TODAY'
+                ? 'TODAY'
+                : day.label === 'YEST'
+                ? 'YEST'
+                : day.label.split(' ')[1] || day.label;
+
+              return (
+                <div key={day.date} className="flex-1 flex flex-col items-center h-full justify-end gap-1">
+                  <div
+                    className={`bar-col w-full ${isToday ? 'active-bar' : ''}`}
+                    style={{ height: `${heightPercent}%` }}
+                    title={`${day.label}: ${day.count} recorded events`}
+                  />
+                  <span
+                    className={`text-[8px] font-mono leading-none tracking-tighter ${
+                      isToday ? 'text-white font-bold' : 'text-neutral-500'
+                    }`}
+                  >
+                    {dateNumber}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-neutral-500 tracking-wider font-sans">
-            <span className="text-neutral-400 font-medium">RECENT SYNC</span>
-            <span>VERIFIED ARCHIVE</span>
+          <div className="flex items-center justify-between text-[10px] text-neutral-500 tracking-wider font-sans pt-1 border-t border-white/[0.04]">
+            <span className="text-neutral-400 font-medium">RECORDED ACTIVITY</span>
+            <span>ROLLING 7D</span>
           </div>
         </div>
       </aside>
