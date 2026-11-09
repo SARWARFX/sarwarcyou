@@ -49,37 +49,75 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x ./android/gradlew
 
-      - name: Compile Debug APK
+      - name: Build Android Release APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease \
+            -PversionCode=${{ github.run_number }} \
+            -PversionName="1.0.${{ github.run_number }}" --no-daemon
           cd ..
-          cp android/app/build/outputs/apk/debug/app-debug.apk StreamVault.apk
+
+      - name: Prepare APK Assets
+        run: |
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            SRC_APK="android/app/build/outputs/apk/release/app-release.apk"
+          elif [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            SRC_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          else
+            SRC_APK=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          fi
+
+          echo "Using source APK: $SRC_APK"
+          cp "$SRC_APK" "SARWARCYOU-v${{ github.run_number }}.apk"
+          cp "$SRC_APK" "SARWARCYOU.apk"
+          cp "$SRC_APK" "StreamVault.apk"
+          mkdir -p android/app/build/outputs/apk/release
+          cp "$SRC_APK" android/app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StreamVault-Android-APK
-          path: StreamVault.apk
+          name: SARWARCYOU-v${{ github.run_number }}
+          path: SARWARCYOU-v${{ github.run_number }}.apk
           retention-days: 30
 
-      - name: Publish or Update GitHub Release (Direct Download)
+      - name: Publish Versioned GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: apk-latest
-          name: "StreamVault Android App (Latest Build)"
+          tag_name: "v1.0.${{ github.run_number }}"
+          name: "SARWARCYOU v1.0.${{ github.run_number }}"
           body: |
-            ### 📱 StreamVault Android App (Direct Download)
+            ### 📱 SARWARCYOU v1.0.${{ github.run_number }} (Direct Download)
 
-            - **File:** `StreamVault.apk`
-            - **Direct Download Link:** [Download StreamVault.apk](https://github.com/${{ github.repository }}/releases/download/apk-latest/StreamVault.apk)
+            - **Version:** `1.0.${{ github.run_number }}` (versionCode: `${{ github.run_number }}`)
+            - **Primary APK:** [`SARWARCYOU-v${{ github.run_number }}.apk`](https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/SARWARCYOU-v${{ github.run_number }}.apk)
             - **Commit:** ${{ github.sha }}
 
             #### Installation on your Android phone:
             1. Tap the download link above on your phone's browser.
             2. When the download finishes, tap **Open**.
-            3. If prompted, allow "Install from unknown sources" (or "Install unknown apps" for Chrome/browser).
-            4. Tap **Install** and enjoy StreamVault natively!
+            3. If prompted, allow "Install from unknown sources" (or "Install unknown apps").
+            4. Tap **Install** / **Update** and launch SARWARCYOU!
           files: |
+            SARWARCYOU-v${{ github.run_number }}.apk
+            SARWARCYOU.apk
+            StreamVault.apk
+
+      - name: Update Latest Release Tag (apk-latest)
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: apk-latest
+          name: "SARWARCYOU Android App (Latest Build)"
+          body: |
+            ### 📱 SARWARCYOU Android App (Latest Build)
+
+            - **Latest Version:** `1.0.${{ github.run_number }}` (versionCode: `${{ github.run_number }}`)
+            - **Direct Download Link:** [Download SARWARCYOU.apk](https://github.com/${{ github.repository }}/releases/download/apk-latest/SARWARCYOU.apk)
+            - **Legacy Link:** [Download StreamVault.apk](https://github.com/${{ github.repository }}/releases/download/apk-latest/StreamVault.apk)
+            - **Commit:** ${{ github.sha }}
+          files: |
+            SARWARCYOU-v${{ github.run_number }}.apk
+            SARWARCYOU.apk
             StreamVault.apk
