@@ -17,6 +17,7 @@ import { Capacitor } from '@capacitor/core';
 import { AvailableOfflineBadge } from '../common/AvailableOfflineBadge';
 import { isMediaAvailableOffline } from '../../services/videoOfflineManager';
 import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
+import { CelebrityShowcase } from '../CelebrityShowcase';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -486,25 +487,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
         </aside>
 
-        {/* DESKTOP RIGHT CANVAS: CYBERTOOLS FLEET WORKSPACE OR SUBFOLDER MEDIA GALLERY */}
+        {/* DESKTOP RIGHT CANVAS: BOLLYWOOD ARCHIVE SHOWCASE OR SUBFOLDER MEDIA GALLERY */}
         {selectedSubfolder === null ? (
           /* ===================================================================== */
-          /* DESKTOP HOME STAGE: APPS.SARWARFX.CFD SUITE WORKSPACE                 */
+          /* DESKTOP HOME STAGE: BOLLYWOOD CELEBRITY HD SHOWCASE                   */
           /* ===================================================================== */
           <main
             aria-label="Desktop Home Overview"
-            className="hidden md:flex flex-1 h-screen p-6 lg:p-8 flex-col justify-center min-w-0 overflow-hidden z-10"
+            className="hidden md:flex flex-1 h-screen p-6 lg:p-8 flex-col min-w-0 overflow-hidden z-10"
           >
-            <div className="desktop-workspace-container">
-              <iframe
-                id="tools-workspace-frame"
-                src="https://apps.sarwarfx.cfd"
-                title="CyberTools Fleet"
-                loading="lazy"
-                allow="clipboard-read; clipboard-write; fullscreen"
-                className="w-full h-full border-0 rounded-2xl"
-              />
-            </div>
+            <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
           </main>
         ) : (
           /* ===================================================================== */

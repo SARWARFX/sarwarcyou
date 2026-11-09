@@ -1,0 +1,34 @@
+name: Sync Celebrity Wallpapers
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync Bollywood Celebrity Wallpapers
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch and Update Wallpaper Catalog
+        run: node scripts/sync-celebrity-wallpapers.mjs
+
+      - name: Commit & Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/celebrityGallery.json
+          git commit -m "chore(data): auto-sync top-tier bollywood celebrity wallpapers" || exit 0
+          git push

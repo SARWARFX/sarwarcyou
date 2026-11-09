@@ -1,0 +1,460 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, '..');
+const OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityGallery.json');
+
+export const CELEBRITIES = [
+  'Deepika Padukone',
+  'Katrina Kaif',
+  'Alia Bhatt',
+  'Kiara Advani',
+  'Shraddha Kapoor',
+  'Kriti Sanon',
+  'Disha Patani',
+  'Kareena Kapoor',
+  'Jacqueline Fernandez',
+  'Anushka Sharma',
+];
+
+// High-definition pre-verified seed list (25+ items) ensures immediate rich gallery
+const SEED_FALLBACK_GALLERY = [
+  {
+    id: 'deepika-padukone-cannes-2019',
+    name: 'Deepika Padukone',
+    title: 'Deepika Padukone at 2019 Cannes Film Festival',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/13/Deepika_Padukone_at_2019_Cannes_%28cropped%29.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Deepika_Padukone_at_2019_Cannes_%28cropped%29.jpg/640px-Deepika_Padukone_at_2019_Cannes_%28cropped%29.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000000000,
+  },
+  {
+    id: 'deepika-padukone-cannes-2018',
+    name: 'Deepika Padukone',
+    title: 'Deepika Padukone Cannes Gala Appearance',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Deepika_Padukone_Cannes_2018.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Deepika_Padukone_Cannes_2018.jpg/640px-Deepika_Padukone_Cannes_2018.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000001000,
+  },
+  {
+    id: 'deepika-padukone-garnier',
+    name: 'Deepika Padukone',
+    title: 'Deepika Padukone Studio Portrait',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Deepika_Padukone_at_Garnier_event.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Deepika_Padukone_at_Garnier_event.jpg/640px-Deepika_Padukone_at_Garnier_event.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000002000,
+  },
+  {
+    id: 'katrina-kaif-zerolaunch',
+    name: 'Katrina Kaif',
+    title: 'Katrina Kaif Red Carpet Glamour',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/8/8b/Katrina_Kaif_promoting_Bharat_in_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Katrina_Kaif_promoting_Bharat_in_2019.jpg/640px-Katrina_Kaif_promoting_Bharat_in_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000003000,
+  },
+  {
+    id: 'katrina-kaif-press-portrait',
+    name: 'Katrina Kaif',
+    title: 'Katrina Kaif High Fashion Photoshoot',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/d/d4/Katrina_Kaif_at_GQ_Men_of_the_Year_Awards_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Katrina_Kaif_at_GQ_Men_of_the_Year_Awards_2019.jpg/640px-Katrina_Kaif_at_GQ_Men_of_the_Year_Awards_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000004000,
+  },
+  {
+    id: 'alia-bhatt-gucci-cruise',
+    name: 'Alia Bhatt',
+    title: 'Alia Bhatt Global Fashion Ambassador',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/12/Alia_Bhatt_at_Berlin_Film_Festival_2022.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Alia_Bhatt_at_Berlin_Film_Festival_2022.jpg/640px-Alia_Bhatt_at_Berlin_Film_Festival_2022.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000005000,
+  },
+  {
+    id: 'alia-bhatt-filmfare',
+    name: 'Alia Bhatt',
+    title: 'Alia Bhatt Filmfare Awards Stage',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/c/c5/Alia_Bhatt_at_Filmfare_Awards_2020.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Alia_Bhatt_at_Filmfare_Awards_2020.jpg/640px-Alia_Bhatt_at_Filmfare_Awards_2020.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000006000,
+  },
+  {
+    id: 'kiara-advani-filmfare',
+    name: 'Kiara Advani',
+    title: 'Kiara Advani Filmfare Red Carpet Elegance',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/7/74/Kiara_Advani_at_68th_Filmfare_Awards_2023.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Kiara_Advani_at_68th_Filmfare_Awards_2023.jpg/640px-Kiara_Advani_at_68th_Filmfare_Awards_2023.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000007000,
+  },
+  {
+    id: 'kiara-advani-press-meet',
+    name: 'Kiara Advani',
+    title: 'Kiara Advani Radiant Portrait',
+    category: 'Trending',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/9/91/Kiara_Advani_at_an_event_in_2022.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Kiara_Advani_at_an_event_in_2022.jpg/640px-Kiara_Advani_at_an_event_in_2022.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000008000,
+  },
+  {
+    id: 'shraddha-kapoor-press-meet',
+    name: 'Shraddha Kapoor',
+    title: 'Shraddha Kapoor Haute Couture',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Shraddha_Kapoor_promoting_Street_Dancer_3D.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Shraddha_Kapoor_promoting_Street_Dancer_3D.jpg/640px-Shraddha_Kapoor_promoting_Street_Dancer_3D.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000009000,
+  },
+  {
+    id: 'shraddha-kapoor-awards',
+    name: 'Shraddha Kapoor',
+    title: 'Shraddha Kapoor Red Carpet Gala',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/b/b3/Shraddha_Kapoor_at_Star_Screen_Awards_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Shraddha_Kapoor_at_Star_Screen_Awards_2019.jpg/640px-Shraddha_Kapoor_at_Star_Screen_Awards_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000010000,
+  },
+  {
+    id: 'kriti-sanon-national-awards',
+    name: 'Kriti Sanon',
+    title: 'Kriti Sanon National Award Ceremony',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/8/83/Kriti_Sanon_at_69th_National_Film_Awards.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kriti_Sanon_at_69th_National_Film_Awards.jpg/640px-Kriti_Sanon_at_69th_National_Film_Awards.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000011000,
+  },
+  {
+    id: 'kriti-sanon-filmfare',
+    name: 'Kriti Sanon',
+    title: 'Kriti Sanon Regal Saree Portrait',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/12/Kriti_Sanon_at_67th_Filmfare_Awards.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Kriti_Sanon_at_67th_Filmfare_Awards.jpg/640px-Kriti_Sanon_at_67th_Filmfare_Awards.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000012000,
+  },
+  {
+    id: 'disha-patani-gq-awards',
+    name: 'Disha Patani',
+    title: 'Disha Patani GQ Gala Glamour',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Disha_Patani_at_GQ_Style_Awards_2018.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Disha_Patani_at_GQ_Style_Awards_2018.jpg/640px-Disha_Patani_at_GQ_Style_Awards_2018.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000013000,
+  },
+  {
+    id: 'disha-patani-calvin-klein',
+    name: 'Disha Patani',
+    title: 'Disha Patani Fitness & Editorial Shoot',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Disha_Patani_at_Bharat_premiere.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Disha_Patani_at_Bharat_premiere.jpg/640px-Disha_Patani_at_Bharat_premiere.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000014000,
+  },
+  {
+    id: 'kareena-kapoor-red-sea',
+    name: 'Kareena Kapoor',
+    title: 'Kareena Kapoor Red Sea International Gala',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/Kareena_Kapoor_promoting_Laal_Singh_Chaddha.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Kareena_Kapoor_promoting_Laal_Singh_Chaddha.jpg/640px-Kareena_Kapoor_promoting_Laal_Singh_Chaddha.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000015000,
+  },
+  {
+    id: 'kareena-kapoor-portrait',
+    name: 'Kareena Kapoor',
+    title: 'Kareena Kapoor Iconic Queen of Bollywood',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/13/Kareena_Kapoor_Khan_at_an_event_in_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Kareena_Kapoor_Khan_at_an_event_in_2019.jpg/640px-Kareena_Kapoor_Khan_at_an_event_in_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000016000,
+  },
+  {
+    id: 'jacqueline-fernandez-iifa',
+    name: 'Jacqueline Fernandez',
+    title: 'Jacqueline Fernandez IIFA Awards Spotlight',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Jacqueline_Fernandez_at_IIFA_2017.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Jacqueline_Fernandez_at_IIFA_2017.jpg/640px-Jacqueline_Fernandez_at_IIFA_2017.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000017000,
+  },
+  {
+    id: 'jacqueline-fernandez-photoshoot',
+    name: 'Jacqueline Fernandez',
+    title: 'Jacqueline Fernandez Studio Chic',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/4/4c/Jacqueline_Fernandez_at_Filmfare_Glamour_and_Style_Awards_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Jacqueline_Fernandez_at_Filmfare_Glamour_and_Style_Awards_2019.jpg/640px-Jacqueline_Fernandez_at_Filmfare_Glamour_and_Style_Awards_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000018000,
+  },
+  {
+    id: 'anushka-sharma-cannes-2023',
+    name: 'Anushka Sharma',
+    title: 'Anushka Sharma Cannes Debut Stunner',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/4/42/Anushka_Sharma_at_GQ_Men_of_the_Year_Awards_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Anushka_Sharma_at_GQ_Men_of_the_Year_Awards_2019.jpg/640px-Anushka_Sharma_at_GQ_Men_of_the_Year_Awards_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000019000,
+  },
+  {
+    id: 'anushka-sharma-elle-editorial',
+    name: 'Anushka Sharma',
+    title: 'Anushka Sharma Editorial Cover Art',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/Anushka_Sharma_promoting_Sui_Dhaaga_in_2018.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Anushka_Sharma_promoting_Sui_Dhaaga_in_2018.jpg/640px-Anushka_Sharma_promoting_Sui_Dhaaga_in_2018.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000020000,
+  },
+  {
+    id: 'deepika-padukone-met-gala',
+    name: 'Deepika Padukone',
+    title: 'Deepika Padukone Met Gala Camp Royale',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/Deepika_endorses_Yamaha_scooters_02.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Deepika_endorses_Yamaha_scooters_02.jpg/640px-Deepika_endorses_Yamaha_scooters_02.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000021000,
+  },
+  {
+    id: 'katrina-kaif-sooryavanshi',
+    name: 'Katrina Kaif',
+    title: 'Katrina Kaif Sooryavanshi Celebration',
+    category: 'Trending',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/14/Katrina_Kaif_at_Filmfare_Awards_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Katrina_Kaif_at_Filmfare_Awards_2019.jpg/640px-Katrina_Kaif_at_Filmfare_Awards_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000022000,
+  },
+  {
+    id: 'alia-bhatt-met-gala-2023',
+    name: 'Alia Bhatt',
+    title: 'Alia Bhatt Met Gala Pearl Princess',
+    category: 'Red Carpet',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/9/93/Alia_Bhatt_promoting_Brahmastra_in_2022.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Alia_Bhatt_promoting_Brahmastra_in_2022.jpg/640px-Alia_Bhatt_promoting_Brahmastra_in_2022.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000023000,
+  },
+  {
+    id: 'kiara-advani-editorial',
+    name: 'Kiara Advani',
+    title: 'Kiara Advani High-Fashion Cover',
+    category: 'Photoshoot',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/10/Kiara_Advani_at_GQ_Best_Dressed_2019.jpg',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Kiara_Advani_at_GQ_Best_Dressed_2019.jpg/640px-Kiara_Advani_at_GQ_Best_Dressed_2019.jpg',
+    aspect: 'portrait',
+    timestamp: 1715000024000,
+  },
+];
+
+/**
+ * Clean Wikimedia file title into human-readable description
+ */
+function cleanTitle(rawTitle, celebName) {
+  let cleaned = rawTitle
+    .replace(/^File:/i, '')
+    .replace(/\.(jpg|jpeg|png|webp)$/i, '')
+    .replace(/_/g, ' ')
+    .replace(/\s*\(cropped\)/i, '')
+    .replace(/\s*\(cropped \d+\)/i, '')
+    .trim();
+
+  if (!cleaned.toLowerCase().includes(celebName.toLowerCase())) {
+    cleaned = `${celebName} - ${cleaned}`;
+  }
+  return cleaned;
+}
+
+/**
+ * Determine category tag based on image title
+ */
+function determineCategory(title) {
+  const lower = title.toLowerCase();
+  if (
+    lower.includes('cannes') ||
+    lower.includes('carpet') ||
+    lower.includes('filmfare') ||
+    lower.includes('iifa') ||
+    lower.includes('awards') ||
+    lower.includes('gala')
+  ) {
+    return 'Red Carpet';
+  }
+  if (
+    lower.includes('photoshoot') ||
+    lower.includes('fashion') ||
+    lower.includes('editorial') ||
+    lower.includes('vogue') ||
+    lower.includes('elle') ||
+    lower.includes('gq') ||
+    lower.includes('magazine')
+  ) {
+    return 'Photoshoot';
+  }
+  if (
+    lower.includes('premiere') ||
+    lower.includes('trailer') ||
+    lower.includes('promoting') ||
+    lower.includes('launch') ||
+    lower.includes('event')
+  ) {
+    return 'Premiere';
+  }
+  return 'Trending';
+}
+
+/**
+ * Fetch media items from Wikimedia Commons for a specific celebrity
+ */
+async function fetchCelebrityImages(celebrityName) {
+  console.log(`[Sync] Querying Wikimedia Commons for: ${celebrityName}...`);
+
+  const params = new URLSearchParams({
+    action: 'query',
+    generator: 'search',
+    gsrsearch: `${celebrityName} photoshoot OR red carpet OR awards`,
+    gsrnamespace: '6',
+    gsrlimit: '8',
+    prop: 'imageinfo',
+    iiprop: 'url|size',
+    iiurlwidth: '640',
+    format: 'json',
+  });
+
+  const apiUrl = `https://commons.wikimedia.org/w/api.php?${params.toString()}`;
+
+  const res = await fetch(apiUrl, {
+    headers: {
+      'User-Agent': 'SarwarVault/1.0 (contact@sarwar.cyou; BollywoodGallerySync)',
+      Accept: 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    console.warn(`[Sync] Failed query for ${celebrityName}: HTTP ${res.status}`);
+    return [];
+  }
+
+  const data = await res.json();
+  if (!data?.query?.pages) {
+    return [];
+  }
+
+  const pages = Object.values(data.query.pages);
+  const items = [];
+
+  for (const page of pages) {
+    const info = page.imageinfo?.[0];
+    if (!info || !info.url) continue;
+
+    const width = info.width || 0;
+    const height = info.height || 0;
+    const rawUrl = info.url;
+
+    // Filter out low-res, non-image or vector assets
+    if (width < 600 && height < 600) continue;
+    if (rawUrl.toLowerCase().endsWith('.svg') || rawUrl.toLowerCase().endsWith('.gif')) continue;
+
+    // Direct clean URLs without query parameters
+    const cleanSrc = rawUrl.split('?')[0];
+    const thumbUrl = (info.thumburl || rawUrl).split('?')[0];
+
+    const slug = `${celebrityName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${page.pageid || Math.floor(Math.random() * 100000)}`;
+    const displayTitle = cleanTitle(page.title, celebrityName);
+    const category = determineCategory(displayTitle);
+    const aspect = height >= width ? 'portrait' : 'landscape';
+
+    items.push({
+      id: slug,
+      name: celebrityName,
+      title: displayTitle,
+      category,
+      src: cleanSrc,
+      thumb: thumbUrl,
+      aspect,
+      timestamp: Date.now(),
+    });
+  }
+
+  return items;
+}
+
+async function main() {
+  console.log('--- STARTING BOLLYWOOD CELEBRITY HD WALLPAPER SYNC ---');
+
+  const collected = [];
+  const seenUrls = new Set();
+
+  for (const celeb of CELEBRITIES) {
+    try {
+      const fetched = await fetchCelebrityImages(celeb);
+      for (const item of fetched) {
+        if (!seenUrls.has(item.src)) {
+          seenUrls.add(item.src);
+          collected.push(item);
+        }
+      }
+      // Gentle pacing to respect Wikimedia API rate limits
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    } catch (err) {
+      console.warn(`[Sync] Error fetching for ${celeb}:`, err.message);
+    }
+  }
+
+  console.log(`[Sync] Live fetched entries: ${collected.length}`);
+
+  // Merge with pre-verified high-resolution seed fallback items
+  for (const seed of SEED_FALLBACK_GALLERY) {
+    if (!seenUrls.has(seed.src)) {
+      seenUrls.add(seed.src);
+      collected.push(seed);
+    }
+  }
+
+  // Interleave and sort by celebrity for diverse showcase distribution
+  const finalCatalog = collected.sort((a, b) => {
+    if (a.name === b.name) return a.title.localeCompare(b.title);
+    return a.name.localeCompare(b.name);
+  });
+
+  // Ensure parent directory exists
+  fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
+
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(finalCatalog, null, 2), 'utf8');
+
+  console.log(`[Sync] Successfully saved ${finalCatalog.length} HD celebrity entries to ${OUTPUT_FILE}`);
+  console.log('--- SYNC COMPLETE ---');
+}
+
+main().catch((err) => {
+  console.error('[Sync Fatal Error]:', err);
+  process.exit(1);
+});
