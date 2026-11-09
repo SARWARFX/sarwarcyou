@@ -115,8 +115,8 @@ function extractFallbackSubfolders(rawName: string): DrawerSubfolder[] {
 
   if (rawName === 'YouTube') {
     return [
-      { id: 'FAVORITE TRACKS', name: 'FAVORITE TRACKS', itemCount: 14, tag: '14' },
-      { id: 'HD REMASTERS', name: 'HD REMASTERS', itemCount: 14, tag: '8K/4K' },
+      { id: 'FAVORITE CLASSICS', name: 'FAVORITE CLASSICS', itemCount: 14, tag: '14' },
+      { id: 'LATEST DISPATCHES', name: 'LATEST DISPATCHES', itemCount: 20, tag: 'NEW' },
     ];
   }
 
@@ -409,7 +409,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                   onClick={() => {
                     hapticMedium();
                     if (folder.id === 'youtube') {
-                      navigateToSubfolder('youtube', 'FAVORITE TRACKS');
+                      navigateToSubfolder('youtube', 'FAVORITE CLASSICS');
                     } else {
                       setExpandedFolder(isExpanded ? null : folder.id);
                     }

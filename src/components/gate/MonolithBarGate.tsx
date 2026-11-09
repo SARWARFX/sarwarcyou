@@ -18,6 +18,7 @@ import { CelebrityShowcase } from '../CelebrityShowcase';
 import { VaultDrawer } from '../VaultDrawer';
 import { YouTubeTheaterModal } from '../YouTubeTheaterModal';
 import youtubeMusicData from '../../data/youtubeMusic.json';
+import latestMusicReleasesData from '../../data/latestMusicReleases.json';
 import { hapticMedium } from '../../utils/hapticsManager';
 import { trackActivityEvent } from '../../utils/usageTelemetry';
 
@@ -95,8 +96,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Concealed Option A Terminal Drawer State
   const [isVaultDrawerOpen, setVaultDrawerOpen] = useState(false);
 
-  // YouTube Music dataset mapped to StageMediaItem[]
-  const youtubeMediaItems: StageMediaItem[] = useMemo(() => {
+  // Permanent 14 Curated Classics
+  const favoriteClassicsItems: StageMediaItem[] = useMemo(() => {
     return (youtubeMusicData as Array<{
       id: string;
       title: string;
@@ -112,7 +113,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       category: 'YOUTUBE',
       type: 'video' as const,
       mediaType: 'clip' as const,
-      parentAlbum: 'YOUTUBE',
+      parentAlbum: 'FAVORITE CLASSICS',
       poster: track.thumbnail,
       posterUrl: track.thumbnail,
       date: Date.now(),
@@ -121,19 +122,51 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     } as StageMediaItem & { artist?: string; album?: string }));
   }, []);
 
+  // Automated Ingested Actress Music Releases (Latest Dispatches)
+  const latestDispatchesItems: StageMediaItem[] = useMemo(() => {
+    return (latestMusicReleasesData as Array<{
+      id: string;
+      title: string;
+      actress: string;
+      channel: string;
+      publishedAt: string;
+      thumbnail: string;
+    }>).map((rel) => ({
+      id: rel.id,
+      title: rel.title,
+      name: `${rel.title} - ${rel.actress}`,
+      url: `https://www.youtube-nocookie.com/embed/${rel.id}`,
+      thumbnail: rel.thumbnail,
+      category: 'YOUTUBE',
+      type: 'video' as const,
+      mediaType: 'clip' as const,
+      parentAlbum: 'LATEST DISPATCHES',
+      poster: rel.thumbnail,
+      posterUrl: rel.thumbnail,
+      date: new Date(rel.publishedAt).getTime(),
+      actress: rel.actress,
+      channel: rel.channel,
+      publishedAt: rel.publishedAt,
+    } as StageMediaItem & { actress?: string; channel?: string; publishedAt?: string }));
+  }, []);
+
   const [isYouTubeTheaterOpen, setIsYouTubeTheaterOpen] = useState(false);
   const [youTubeTheaterIndex, setYouTubeTheaterIndex] = useState(0);
 
+  // Active YouTube tab & active playlist for Theater Modal
+  const isLatestDispatches = selectedSubfolder === 'LATEST DISPATCHES';
+  const currentYouTubeList = isLatestDispatches ? latestDispatchesItems : favoriteClassicsItems;
+
   const youTubeAlbumData: AlbumData = useMemo(() => ({
-    id: 'youtube-vault-archive',
+    id: isLatestDispatches ? 'youtube-dispatches-archive' : 'youtube-classics-archive',
     index: 0,
-    name: 'YOUTUBE',
+    name: isLatestDispatches ? 'LATEST DISPATCHES' : 'FAVORITE CLASSICS',
     type: 'video' as const,
-    itemCount: youtubeMediaItems.length,
-    items: youtubeMediaItems,
+    itemCount: currentYouTubeList.length,
+    items: currentYouTubeList,
     layoutType: 'grid-wall' as const,
-    subtitle: 'Official Curated Music Videos',
-  }), [youtubeMediaItems]);
+    subtitle: isLatestDispatches ? 'Automated Official Releases' : 'Curated Official Music Videos',
+  }), [isLatestDispatches, currentYouTubeList]);
 
   const handlePlayYouTubeTrack = useCallback((index: number) => {
     hapticMedium();
@@ -515,38 +548,38 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 </span>
               </div>
               <span className="text-xs font-mono text-neutral-400">
-                ({youtubeMediaItems.length} curated tracks)
+                ({currentYouTubeList.length} tracks)
               </span>
 
-              {/* Subfolder Collection Tabs */}
+              {/* Minimalist Two-Tab Toggle */}
               <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/10 ml-0 sm:ml-3">
                 <button
                   type="button"
                   onClick={() => {
                     hapticMedium();
-                    setSelectedSubfolder('FAVORITE TRACKS');
+                    setSelectedSubfolder('FAVORITE CLASSICS');
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
-                    selectedSubfolder === 'FAVORITE TRACKS' || !selectedSubfolder
+                    !isLatestDispatches
                       ? 'bg-[#38bdf8] text-neutral-950 font-bold shadow-md'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  FAVORITE TRACKS (14)
+                  FAVORITE CLASSICS ({favoriteClassicsItems.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     hapticMedium();
-                    setSelectedSubfolder('HD REMASTERS');
+                    setSelectedSubfolder('LATEST DISPATCHES');
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
-                    selectedSubfolder === 'HD REMASTERS'
+                    isLatestDispatches
                       ? 'bg-[#38bdf8] text-neutral-950 font-bold shadow-md'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  HD REMASTERS (8K/4K)
+                  LATEST DISPATCHES ({latestDispatchesItems.length})
                 </button>
               </div>
             </div>
@@ -562,8 +595,27 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
           {/* Editorial Masonry/Grid of Curated Tracks */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 pb-24">
-            {youtubeMediaItems.map((track, idx) => {
+            {currentYouTubeList.map((track, idx) => {
               const trackAny = track as any;
+              const formattedDate = trackAny.publishedAt
+                ? new Date(trackAny.publishedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                : '';
+
+              const channelBadgeClass =
+                trackAny.channel === 'T-Series'
+                  ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                  : trackAny.channel === 'Zee Music Company'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : trackAny.channel === 'Sony Music India'
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                  : trackAny.channel === 'YRF'
+                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                  : 'bg-[#38bdf8]/20 text-[#38bdf8] border-[#38bdf8]/40';
+
               return (
                 <div
                   key={track.id}
@@ -590,11 +642,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     {/* Ambient Obsidian Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#090d16] via-[#090d16]/30 to-transparent pointer-events-none" />
 
-                    {/* Quality Pill Tag */}
+                    {/* Top Right Label/Badge: Channel label for dispatches, Quality for classics */}
                     <div className="absolute top-2.5 right-2.5 z-10">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-black/80 backdrop-blur-md border border-[#38bdf8]/30 shadow-md">
-                        {selectedSubfolder === 'HD REMASTERS' ? '8K REMASTER' : '4K UHD'}
-                      </span>
+                      {isLatestDispatches ? (
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase backdrop-blur-md border shadow-md ${channelBadgeClass}`}
+                        >
+                          {trackAny.channel || 'OFFICIAL'}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-black/80 backdrop-blur-md border border-[#38bdf8]/30 shadow-md">
+                          4K UHD
+                        </span>
+                      )}
                     </div>
 
                     {/* Discreet Play Badge Overlay on Hover */}
@@ -607,18 +667,29 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
                   {/* Editorial Typography & Metadata */}
                   <div className="p-4 flex flex-col gap-2 flex-1 justify-between bg-gradient-to-b from-transparent to-[#05080e]">
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-1">
                       <h3 className="font-['Roboto_Condensed'] font-bold text-base sm:text-lg text-white group-hover:text-[#38bdf8] transition-colors line-clamp-1">
                         {track.title}
                       </h3>
-                      <p className="text-xs text-neutral-400 font-sans line-clamp-1">
-                        {trackAny.artist}
-                      </p>
+                      {isLatestDispatches ? (
+                        <div className="flex items-center gap-1.5 text-xs text-neutral-300 font-sans">
+                          <span className="text-neutral-500 text-[11px] font-mono uppercase tracking-wider">
+                            LEAD:
+                          </span>
+                          <span className="text-[#38bdf8] font-semibold">
+                            {trackAny.actress}
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neutral-400 font-sans line-clamp-1">
+                          {trackAny.artist}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400">
                       <span className="truncate max-w-[140px] px-2 py-0.5 rounded bg-white/[0.04] border border-white/5 text-[10px]">
-                        {trackAny.album}
+                        {isLatestDispatches ? formattedDate : trackAny.album}
                       </span>
                       <span className="text-[#38bdf8] text-[10px] uppercase font-bold tracking-wider flex items-center gap-1">
                         <Play className="w-2.5 h-2.5 fill-current" />
