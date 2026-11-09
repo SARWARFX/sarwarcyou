@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Download,
   Loader2,
@@ -88,50 +89,33 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   }>({ x: 0, y: 0, posX: 0, posY: 0, time: 0, isPan: false, isSwipe: false });
   const hasDraggedRef = useRef<boolean>(false);
 
-  // Gesture Tracking State (kept in refs for 60fps performance without React re-render lag)
-  const transformRef = useRef({ scale: 1, x: 0, y: 0 });
-  const initialDistanceRef = useRef<number>(0);
-  const initialScaleRef = useRef<number>(1);
-  const startTouchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const startPanRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const lastTapTimeRef = useRef<number>(0);
-  const gestureModeRef = useRef<'NONE' | 'SWIPE' | 'PAN' | 'PINCH'>('NONE');
+  // Dedicated isolated Pinch & Double-Tap Engine refs (Zero swipe conflict)
+  const transform = useRef({ scale: 1, x: 0, y: 0 });
+  const initialPinchDist = useRef<number | null>(null);
+  const initialScale = useRef<number>(1);
+  const startTouch = useRef<{ x: number; y: number } | null>(null);
+  const startPan = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastTap = useRef<number>(0);
+  const singleTouchStartPos = useRef<{ x: number; y: number } | null>(null);
 
-  // Helper to apply hardware-accelerated transform directly
-  const updateTransform = useCallback(() => {
+  const applyTransform = useCallback(() => {
     if (imgRef.current) {
-      const { scale: currentScale, x, y } = transformRef.current;
+      const { scale: currentScale, x, y } = transform.current;
       imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0px) scale(${currentScale})`;
-      imgRef.current.style.transition =
-        gestureModeRef.current === 'NONE'
-          ? 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-          : 'none';
     }
   }, []);
 
-  // Reset transform on image change
   const resetZoom = useCallback(() => {
-    transformRef.current = { scale: 1, x: 0, y: 0 };
-    gestureModeRef.current = 'NONE';
+    transform.current = { scale: 1, x: 0, y: 0 };
     scaleRef.current = 1;
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
     if (imgRef.current) {
+      imgRef.current.style.transition = 'transform 0.2s ease-out';
       imgRef.current.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
-      imgRef.current.style.transition = 'transform 0.25s ease';
-    }
-  }, []);
-
-  const applyTransform = useCallback((newScale: number, newX: number, newY: number, animated = false, syncState = true) => {
-    transformRef.current = { scale: newScale, x: newX, y: newY };
-    scaleRef.current = newScale;
-    positionRef.current = { x: newX, y: newY };
-    if (syncState) {
-      setScale(newScale);
-    }
-    if (imgRef.current) {
-      imgRef.current.style.transition = animated ? 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none';
-      imgRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale(${newScale})`;
+      setTimeout(() => {
+        if (imgRef.current) imgRef.current.style.transition = 'none';
+      }, 200);
     }
   }, []);
 
@@ -168,25 +152,30 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const activeUrl = currentItem?.url || url;
   const activeTitle = currentItem?.title || title || (type === 'video' ? 'Video Stream' : 'Photograph');
 
+  // Reset whenever displayed photo changes
+  useEffect(() => {
+    resetZoom();
+  }, [activeIdx, activeUrl, resetZoom]);
+
   const handleNext = useCallback(() => {
     if (!hasItemList || activeIdx >= items.length - 1) return;
     const next = activeIdx + 1;
     setActiveIdx(next);
-    applyTransform(1, 0, 0, false, true);
+    resetZoom();
     isDraggingRef.current = false;
     hasDraggedRef.current = false;
     onIndexChange?.(next);
-  }, [hasItemList, activeIdx, items.length, onIndexChange, applyTransform]);
+  }, [hasItemList, activeIdx, items.length, onIndexChange, resetZoom]);
 
   const handlePrev = useCallback(() => {
     if (!hasItemList || activeIdx <= 0) return;
     const prev = activeIdx - 1;
     setActiveIdx(prev);
-    applyTransform(1, 0, 0, false, true);
+    resetZoom();
     isDraggingRef.current = false;
     hasDraggedRef.current = false;
     onIndexChange?.(prev);
-  }, [hasItemList, activeIdx, onIndexChange, applyTransform]);
+  }, [hasItemList, activeIdx, onIndexChange, resetZoom]);
 
   // Sync native fullscreen state
   useEffect(() => {
@@ -351,7 +340,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
         const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
         positionRef.current = { x: nextX, y: nextY };
-        updateTransform();
+        applyTransform();
       }
     };
     window.addEventListener('resize', handleResize);
@@ -375,33 +364,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     resetZoom();
   }, [activeIdx, activeUrl, resetZoom]);
 
-  const handleDoubleTap = useCallback((tapX?: number, tapY?: number) => {
-    if (singleTapTimerRef.current) {
-      clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = null;
-    }
-
-    if (transformRef.current.scale > 1.05) {
-      resetZoom();
-    } else {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const targetScale = 2.5;
-
-      const clientX = typeof tapX === 'number' ? tapX : vw / 2;
-      const clientY = typeof tapY === 'number' ? tapY : vh / 2;
-
-      const tapOffsetX = clientX - vw / 2;
-      const tapOffsetY = clientY - vh / 2;
-      const { maxPanX, maxPanY } = calculatePanLimits(targetScale);
-
-      const initialX = Math.max(-maxPanX, Math.min(maxPanX, -tapOffsetX * (targetScale - 1)));
-      const initialY = Math.max(-maxPanY, Math.min(maxPanY, -tapOffsetY * (targetScale - 1)));
-
-      applyTransform(targetScale, initialX, initialY, true, true);
-    }
-  }, [calculatePanLimits, applyTransform, resetZoom]);
-
+  // -------------------------------------------------------------
+  // Dedicated Isolated Pinch-to-Zoom & Double-Tap Engine (No Swipe Conflict)
+  // -------------------------------------------------------------
   const isTouchOnImage = useCallback((clientX: number, clientY: number) => {
     if (!imgRef.current) return false;
     const rect = imgRef.current.getBoundingClientRect();
@@ -413,296 +378,229 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     );
   }, []);
 
-  // ATTACH NATIVE NON-PASSIVE LISTENERS VIA USEEFFECT (Defeats mobile Chrome passive overrides)
+  const handleDoubleTap = useCallback(() => {
+    if (singleTapTimerRef.current) {
+      clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = null;
+    }
+    if (transform.current.scale > 1.05) {
+      resetZoom();
+    } else {
+      transform.current = { scale: 2.5, x: 0, y: 0 };
+      scaleRef.current = 2.5;
+      setScale(2.5);
+      if (imgRef.current) {
+        imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+        applyTransform();
+        setTimeout(() => {
+          if (imgRef.current) imgRef.current.style.transition = 'none';
+        }, 250);
+      }
+    }
+  }, [applyTransform, resetZoom]);
+
   useEffect(() => {
     const container = imageContainerRef.current;
     if (!container || type !== 'image') return;
 
-    const getDistance = (t1: Touch, t2: Touch) => {
-      return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
+    const onTouchStart = (e: TouchEvent) => {
       wakeFullscreenClose();
 
       if (e.touches.length === 2) {
-        // Pinch Zoom Mode
-        gestureModeRef.current = 'PINCH';
-        initialDistanceRef.current = getDistance(e.touches[0], e.touches[1]);
-        initialScaleRef.current = transformRef.current.scale;
-        e.preventDefault();
+        // Two fingers: Pinch Zoom
+        if (e.cancelable) e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialPinchDist.current = dist;
+        initialScale.current = transform.current.scale;
+        startTouch.current = null;
+        singleTouchStartPos.current = null;
       } else if (e.touches.length === 1) {
-        const touch = e.touches[0];
-        startTouchRef.current = { x: touch.clientX, y: touch.clientY };
-        startPanRef.current = { x: transformRef.current.x, y: transformRef.current.y };
-
-        // Double-tap detection
         const now = Date.now();
-        if (now - lastTapTimeRef.current < 280) {
-          e.preventDefault();
-          if (transformRef.current.scale > 1.05) {
-            // Reset to 1x
+        const touch = e.touches[0];
+        singleTouchStartPos.current = { x: touch.clientX, y: touch.clientY };
+
+        // Double-Tap Logic (< 280ms delta)
+        if (now - lastTap.current < 280) {
+          if (e.cancelable) e.preventDefault();
+          if (transform.current.scale > 1.05) {
             resetZoom();
           } else {
-            // Zoom to 2.5x centered on tapped coordinate
-            const rect = container.getBoundingClientRect();
-            const tapOffsetX = touch.clientX - (rect.left + rect.width / 2);
-            const tapOffsetY = touch.clientY - (rect.top + rect.height / 2);
-            const targetScale = 2.5;
-            const maxPanX = Math.max(0, (rect.width * targetScale - rect.width) / 2);
-            const maxPanY = Math.max(0, (rect.height * targetScale - rect.height) / 2);
-            const targetX = Math.max(-maxPanX, Math.min(maxPanX, -tapOffsetX * (targetScale - 1)));
-            const targetY = Math.max(-maxPanY, Math.min(maxPanY, -tapOffsetY * (targetScale - 1)));
-
-            transformRef.current = { scale: targetScale, x: targetX, y: targetY };
-            scaleRef.current = targetScale;
-            positionRef.current = { x: targetX, y: targetY };
-            setScale(targetScale);
-            updateTransform();
+            transform.current = { scale: 2.5, x: 0, y: 0 };
+            scaleRef.current = 2.5;
+            setScale(2.5);
+            if (imgRef.current) {
+              imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+              applyTransform();
+              setTimeout(() => {
+                if (imgRef.current) imgRef.current.style.transition = 'none';
+              }, 250);
+            }
           }
-          gestureModeRef.current = 'NONE';
-          lastTapTimeRef.current = 0;
+          lastTap.current = 0;
           return;
         }
-        lastTapTimeRef.current = now;
+        lastTap.current = now;
 
-        if (transformRef.current.scale > 1.05) {
-          gestureModeRef.current = 'PAN';
+        // If already zoomed in, single-finger pans the photo
+        if (transform.current.scale > 1.05) {
+          startTouch.current = { x: touch.clientX, y: touch.clientY };
+          startPan.current = { x: transform.current.x, y: transform.current.y };
         } else {
-          gestureModeRef.current = 'SWIPE';
+          startTouch.current = null;
         }
       }
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
+    const onTouchMove = (e: TouchEvent) => {
       wakeFullscreenClose();
 
-      if (gestureModeRef.current === 'PINCH' && e.touches.length === 2) {
-        e.preventDefault();
-        const currentDist = getDistance(e.touches[0], e.touches[1]);
-        if (initialDistanceRef.current > 0) {
-          const factor = currentDist / initialDistanceRef.current;
-          const newScale = Math.min(Math.max(initialScaleRef.current * factor, 0.8), 4.5);
-          transformRef.current.scale = newScale;
-          scaleRef.current = newScale;
-          updateTransform();
-        }
-      } else if (gestureModeRef.current === 'PAN' && e.touches.length === 1) {
-        e.preventDefault();
-        const deltaX = e.touches[0].clientX - startTouchRef.current.x;
-        const deltaY = e.touches[0].clientY - startTouchRef.current.y;
-
-        const rect = container.getBoundingClientRect();
-        const currentScale = transformRef.current.scale;
-        const maxPanX = Math.max(0, (rect.width * currentScale - rect.width) / 2) + rect.width * 0.15;
-        const maxPanY = Math.max(0, (rect.height * currentScale - rect.height) / 2) + rect.height * 0.15;
-
-        const targetX = startPanRef.current.x + deltaX;
-        const targetY = startPanRef.current.y + deltaY;
-
-        transformRef.current.x = Math.max(-maxPanX, Math.min(maxPanX, targetX));
-        transformRef.current.y = Math.max(-maxPanY, Math.min(maxPanY, targetY));
-        positionRef.current = { x: transformRef.current.x, y: transformRef.current.y };
-        updateTransform();
-      } else if (gestureModeRef.current === 'SWIPE' && e.touches.length === 1) {
-        // Single finger at 1x scale: track swipe
+      // Multi-touch pinch zoom
+      if (e.touches.length === 2 && initialPinchDist.current !== null) {
+        if (e.cancelable) e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = dist / initialPinchDist.current;
+        const nextScale = Math.min(Math.max(initialScale.current * factor, 0.9), 4.5);
+        transform.current.scale = nextScale;
+        scaleRef.current = nextScale;
+        applyTransform();
+      }
+      // Single-finger panning when zoomed in (Zero swipe navigation)
+      else if (e.touches.length === 1 && startTouch.current && transform.current.scale > 1.05) {
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+        const dx = touch.clientX - startTouch.current.x;
+        const dy = touch.clientY - startTouch.current.y;
+        transform.current.x = startPan.current.x + dx;
+        transform.current.y = startPan.current.y + dy;
+        positionRef.current = { x: transform.current.x, y: transform.current.y };
+        applyTransform();
       }
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (gestureModeRef.current === 'PINCH') {
-        if (e.touches.length === 0) {
-          gestureModeRef.current = 'NONE';
-          // Snap back if scaled below 1x
-          if (transformRef.current.scale < 1) {
-            resetZoom();
-          } else if (transformRef.current.scale > 4) {
-            transformRef.current.scale = 4;
-            scaleRef.current = 4;
-            setScale(4);
-            updateTransform();
-          } else {
-            scaleRef.current = transformRef.current.scale;
-            setScale(transformRef.current.scale);
-          }
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        initialPinchDist.current = null;
+      }
+      if (e.touches.length === 0) {
+        startTouch.current = null;
+
+        // Snap back to 1x if pinched smaller than 1x
+        if (transform.current.scale < 1) {
+          resetZoom();
+        } else if (transform.current.scale > 4) {
+          transform.current.scale = 4;
+          scaleRef.current = 4;
+          setScale(4);
+          applyTransform();
+        } else {
+          scaleRef.current = transform.current.scale;
+          setScale(transform.current.scale);
         }
-      } else if (gestureModeRef.current === 'SWIPE') {
+
+        // Tap handling: outside closes image, inside toggles controls
         const touch = e.changedTouches[0];
-        const deltaX = touch.clientX - startTouchRef.current.x;
-        const deltaY = touch.clientY - startTouchRef.current.y;
-        const threshold = 45; // 45px swipe trigger
+        if (touch && singleTouchStartPos.current) {
+          const dx = touch.clientX - singleTouchStartPos.current.x;
+          const dy = touch.clientY - singleTouchStartPos.current.y;
 
-        if (Math.abs(deltaX) > threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
-          if (deltaX < 0) {
-            handleNext(); // Swipe left -> next
-          } else {
-            handlePrev(); // Swipe right -> prev
-          }
-        } else if (Math.hypot(deltaX, deltaY) < 12) {
-          // Stationary tap: check if tapped outside the image
-          const wasOutside =
-            !isTouchOnImage(touch.clientX, touch.clientY) &&
-            !isTouchOnImage(startTouchRef.current.x, startTouchRef.current.y);
-
-          if (wasOutside) {
-            if (singleTapTimerRef.current) {
-              clearTimeout(singleTapTimerRef.current);
-              singleTapTimerRef.current = null;
-            }
-            onClose();
-          } else {
-            // Stationary single tap on the image: toggle HUD controls
-            if (singleTapTimerRef.current) {
-              clearTimeout(singleTapTimerRef.current);
-            }
-            singleTapTimerRef.current = setTimeout(() => {
-              setShowControls((prev) => !prev);
-              singleTapTimerRef.current = null;
-            }, 280);
-          }
-        }
-        gestureModeRef.current = 'NONE';
-      } else if (gestureModeRef.current === 'PAN') {
-        if (e.touches.length === 0) {
-          gestureModeRef.current = 'NONE';
-          scaleRef.current = transformRef.current.scale;
-          positionRef.current = { x: transformRef.current.x, y: transformRef.current.y };
-          setScale(transformRef.current.scale);
-
-          // If stationary tap occurred outside the image even if in PAN mode:
-          const touch = e.changedTouches[0];
-          if (touch) {
-            const deltaX = touch.clientX - startTouchRef.current.x;
-            const deltaY = touch.clientY - startTouchRef.current.y;
-            if (
-              Math.hypot(deltaX, deltaY) < 12 &&
+          if (Math.hypot(dx, dy) < 12) {
+            const wasOutside =
               !isTouchOnImage(touch.clientX, touch.clientY) &&
-              !isTouchOnImage(startTouchRef.current.x, startTouchRef.current.y)
-            ) {
+              !isTouchOnImage(singleTouchStartPos.current.x, singleTouchStartPos.current.y);
+
+            if (wasOutside) {
               if (singleTapTimerRef.current) {
                 clearTimeout(singleTapTimerRef.current);
                 singleTapTimerRef.current = null;
               }
               onClose();
+            } else if (transform.current.scale <= 1.05) {
+              // Stationary tap on the image: toggle HUD controls
+              if (singleTapTimerRef.current) {
+                clearTimeout(singleTapTimerRef.current);
+              }
+              singleTapTimerRef.current = setTimeout(() => {
+                setShowControls((prev) => !prev);
+                singleTapTimerRef.current = null;
+              }, 280);
             }
           }
         }
+        singleTouchStartPos.current = null;
       }
     };
 
-    // ATTACH WITH { passive: false } TO DEFEAT BROWSER OVERRIDES
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, { passive: false });
-    container.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    container.addEventListener('touchstart', onTouchStart, { passive: false });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: false });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: false });
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('touchcancel', handleTouchEnd);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, [activeIdx, activeUrl, isFullscreen, type, handleNext, handlePrev, updateTransform, resetZoom, wakeFullscreenClose, isTouchOnImage, onClose]);
+  }, [activeIdx, activeUrl, isFullscreen, type, applyTransform, resetZoom, wakeFullscreenClose, isTouchOnImage, onClose]);
 
-  // Desktop Mouse Drag & Pan Handlers (Pan when scale > 1.05, Swipe when scale <= 1.05)
+  // Desktop Mouse Drag & Pan Handlers (Pan only when scale > 1.05, no swipe)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only handle primary mouse button drag for images
-    if (e.pointerType !== 'mouse' || e.button !== 0 || type !== 'image') {
-      return;
-    }
-    // Prevent default browser image ghost drag or selection for mouse only
-    if (e.pointerType === 'mouse' && e.cancelable && e.nativeEvent?.cancelable) {
-      try {
-        e.preventDefault();
-      } catch {
-        // ignore passive violations
-      }
-    }
+    if (e.pointerType !== 'mouse' || e.button !== 0 || type !== 'image') return;
+    if (transform.current.scale <= 1.05) return;
 
-    const isZoomedIn = scaleRef.current > 1.05;
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
-
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      posX: positionRef.current.x,
-      posY: positionRef.current.y,
+      posX: transform.current.x,
+      posY: transform.current.y,
       time: performance.now(),
-      isPan: isZoomedIn,
-      isSwipe: !isZoomedIn,
+      isPan: true,
+      isSwipe: false,
     };
 
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // In case setPointerCapture is unsupported or element disconnected
-    }
+    } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current || e.pointerType !== 'mouse') return;
+    if (!isDraggingRef.current || e.pointerType !== 'mouse' || !dragStartRef.current.isPan) return;
 
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
-
-    // Movement threshold to distinguish drag from stationary click
     if (Math.hypot(dx, dy) > 4) {
       hasDraggedRef.current = true;
     }
 
-    if (dragStartRef.current.isPan) {
-      // Boundary clamp to keep the image covering the viewport without leaving empty gaps
-      const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-      const nextX = Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.posX + dx));
-      const nextY = Math.max(-maxPanY, Math.min(maxPanY, dragStartRef.current.posY + dy));
-      applyTransform(scaleRef.current, nextX, nextY, false);
-    }
+    transform.current.x = dragStartRef.current.posX + dx;
+    transform.current.y = dragStartRef.current.posY + dy;
+    positionRef.current = { x: transform.current.x, y: transform.current.y };
+    applyTransform();
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== 'mouse') return;
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
-
-      if (dragStartRef.current.isSwipe) {
-        const dx = e.clientX - dragStartRef.current.x;
-        const dy = e.clientY - dragStartRef.current.y;
-        const dt = Math.max(1, performance.now() - dragStartRef.current.time);
-        const velocityX = Math.abs(dx) / dt;
-
-        const isSwipeLeft = (dx <= -40 || (dx <= -20 && velocityX >= 0.22)) && Math.abs(dx) > Math.abs(dy) * 0.55;
-        const isSwipeRight = (dx >= 40 || (dx >= 20 && velocityX >= 0.22)) && Math.abs(dx) > Math.abs(dy) * 0.55;
-
-        if (isSwipeLeft && hasItemList && activeIdx < items.length - 1) {
-          handleNext();
-        } else if (isSwipeRight && hasItemList && activeIdx > 0) {
-          handlePrev();
-        }
-      }
-
       try {
         if (e.currentTarget.hasPointerCapture(e.pointerId)) {
           e.currentTarget.releasePointerCapture(e.pointerId);
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
   };
 
   const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== 'mouse') return;
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false;
-      try {
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        }
-      } catch {
-        // ignore
-      }
-    }
+    isDraggingRef.current = false;
   };
 
   // Stage Click and Double Click handlers
@@ -738,24 +636,22 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       hasDraggedRef.current = false;
       return;
     }
-    handleDoubleTap(e.clientX, e.clientY);
+    handleDoubleTap();
   };
 
   // Wheel zoom on desktop
   const handleWheel = (e: React.WheelEvent) => {
     if (type !== 'image') return;
     const zoomFactor = e.deltaY < 0 ? 1.2 : 0.8;
-    const newScale = Math.max(1, Math.min(6, scaleRef.current * zoomFactor));
+    const newScale = Math.max(1, Math.min(6, transform.current.scale * zoomFactor));
     if (newScale <= 1.05) {
-      applyTransform(1, 0, 0, true);
-      setScale(1);
+      resetZoom();
       isDraggingRef.current = false;
     } else {
-      const { maxPanX, maxPanY } = calculatePanLimits(newScale);
-      const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
-      const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
-      applyTransform(newScale, nextX, nextY, false);
+      transform.current.scale = newScale;
+      scaleRef.current = newScale;
       setScale(newScale);
+      applyTransform();
     }
   };
 
@@ -797,7 +693,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   }, [currentItem]);
 
-  if (!isOpen || !activeUrl) return null;
+  if (!isOpen || !activeUrl || typeof document === 'undefined') return null;
 
   const secureUrl = activeUrl.replace(/^http:\/\//i, 'https://');
   const cleanTitle = sanitizeMediaTitle(activeTitle, type === 'video' ? 'Video' : 'Photograph');
@@ -806,16 +702,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // 1. TRULY FULL SCREEN IMMERSIVE PHOTO CANVAS
   // =========================================================================
   if (isFullscreen && type === 'image') {
-    return (
+    return createPortal(
       <div
         ref={mediaBoxRef}
         role="dialog"
         aria-modal="true"
-        className="fixed inset-0 w-full h-[100dvh] overflow-hidden z-[9999] select-none touch-none flex items-center justify-center animate-fade-in cursor-pointer"
+        className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-fade-in cursor-pointer"
         style={{
-          background: 'rgba(2, 4, 8, 0.88)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
           touchAction: 'none',
         }}
         onClick={handleStageClick}
@@ -896,22 +789,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         >
           <Minimize className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   // =========================================================================
   // 2. NORMAL TWO-PANE SPLIT VIEW IMAGE VIEWER
   // =========================================================================
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 w-full max-w-full h-[100dvh] overflow-hidden z-[9999] flex flex-col md:flex-row select-none animate-fade-in touch-none overscroll-contain"
+      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col md:flex-row items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-fade-in"
       style={{
-        background: 'rgba(2, 4, 8, 0.88)',
-        backdropFilter: 'blur(40px)',
-        WebkitBackdropFilter: 'blur(40px)',
+        touchAction: 'none',
       }}
       onClick={(e) => {
         if (showSidebar) {
@@ -1243,7 +1135,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 
