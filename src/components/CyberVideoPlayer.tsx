@@ -1016,10 +1016,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const primaryStreamUrl = getMediaUrl(item.url || item.path || item.id);
   const directHfUrl = getDirectHfVideoUrl(item);
   const streamUrl = sourceOverride || cachedLocalUrl || primaryStreamUrl || directHfUrl;
-  const albumName = item.category || item.parentAlbum || 'Cinema Vault';
-  const activeIdx = playlist.findIndex((v) => v.id === item.id || v.url === item.url);
-  const currentItemIndex = activeIdx >= 0 ? activeIdx + 1 : 1;
-  const totalCount = playlist.length;
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferPct = duration > 0 ? (buffered / duration) * 100 : 0;
 
@@ -1045,25 +1041,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     >
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
-
-      {/* 2. Top-Left: Unboxed Floating HUD Stamp (Web only) */}
-      {!Capacitor.isNativePlatform() && (
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          className={`fixed top-4 left-4 sm:top-6 sm:left-7 z-30 font-mono text-xs tracking-widest text-white/90 flex items-center gap-2.5 transition-opacity duration-300 select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
-            showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          <span className="font-['Roboto_Condensed'] font-sans font-medium uppercase truncate max-w-[180px] xs:max-w-xs sm:max-w-md tracking-wider">
-            {albumName}
-          </span>
-          {totalCount > 0 && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/80 border border-white/15 flex-shrink-0 font-mono">
-              {currentItemIndex} / {totalCount}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Top Center Floating Action Bar: Loop, A-B, Speed, PiP, Download, Share (Website & App) */}
       <div
