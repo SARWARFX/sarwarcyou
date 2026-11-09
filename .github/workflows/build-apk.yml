@@ -49,7 +49,11 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x ./android/gradlew
 
-      - name: Build Android Release APK
+      - name: Decode Keystore File
+        run: |
+          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release-key.jks
+
+      - name: Build & Sign Android Release APK
         run: |
           cd android
           ./gradlew assembleRelease \
@@ -58,24 +62,19 @@ jobs:
           cd ..
         env:
           CI: true
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Sign & Align Release APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: android/app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-
-      - name: Prepare Signed APK Asset
+      - name: Prepare Release Asset
         run: |
-          SIGNED_FILE="${{ steps.sign_app.outputs.signedReleaseFile }}"
-          echo "Signed release file: $SIGNED_FILE"
-          cp "$SIGNED_FILE" "SARWARCYOU-v${{ github.run_number }}.apk"
-          cp "$SIGNED_FILE" "SARWARCYOU.apk"
-          cp "$SIGNED_FILE" "StreamVault.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk SARWARCYOU-v${{ github.run_number }}.apk
+          cp android/app/build/outputs/apk/release/app-release.apk SARWARCYOU.apk
+          cp android/app/build/outputs/apk/release/app-release.apk StreamVault.apk
+
+      - name: Clean Keystore
+        if: always()
+        run: rm -f android/app/release-key.jks
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
