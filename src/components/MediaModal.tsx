@@ -63,8 +63,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
   const isFullscreen = isNativeFullscreen || isLightboxFullscreen;
 
-  // Media Stream & EXIF Telemetry HUD
-  const [showTelemetry, setShowTelemetry] = useState(false);
   const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
 
   // Auto-hiding close button for truly full screen photo mode
@@ -78,25 +76,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   // Desktop Mouse Drag & Pan State
   const isDraggingRef = useRef<boolean>(false);
-  const dragStartRef = useRef<{
-    x: number;
-    y: number;
-    posX: number;
-    posY: number;
-    time: number;
-    isPan: boolean;
-    isSwipe: boolean;
-  }>({ x: 0, y: 0, posX: 0, posY: 0, time: 0, isPan: false, isSwipe: false });
   const hasDraggedRef = useRef<boolean>(false);
 
   // Dedicated isolated Pinch & Double-Tap Engine refs (Zero swipe conflict)
   const transform = useRef({ scale: 1, x: 0, y: 0 });
-  const initialPinchDist = useRef<number | null>(null);
-  const initialScale = useRef<number>(1);
-  const startTouch = useRef<{ x: number; y: number } | null>(null);
-  const startPan = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const lastTap = useRef<number>(0);
-  const singleTouchStartPos = useRef<{ x: number; y: number } | null>(null);
 
   const applyTransform = useCallback(() => {
     if (imgRef.current) {
@@ -378,266 +361,159 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     );
   }, []);
 
-  const handleDoubleTap = useCallback(() => {
-    if (singleTapTimerRef.current) {
-      clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = null;
-    }
-    if (transform.current.scale > 1.05) {
-      resetZoom();
-    } else {
-      transform.current = { scale: 2.5, x: 0, y: 0 };
-      scaleRef.current = 2.5;
-      setScale(2.5);
-      if (imgRef.current) {
-        imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-        applyTransform();
-        setTimeout(() => {
-          if (imgRef.current) imgRef.current.style.transition = 'none';
-        }, 250);
-      }
-    }
-  }, [applyTransform, resetZoom]);
 
+
+  // -------------------------------------------------------------
+  // Dedicated Hardware-Accelerated Pointer Events Engine
+  // (Directly bound to imgRef with pointer capture tracking)
+  // -------------------------------------------------------------
   useEffect(() => {
-    const container = imageContainerRef.current;
-    if (!container || type !== 'image') return;
+    const img = imgRef.current;
+    if (!img || type !== 'image') return;
 
-    const onTouchStart = (e: TouchEvent) => {
-      wakeFullscreenClose();
+    // Active pointer tracker (pointerId -> { x, y })
+    const activePointers = new Map<number, { x: number; y: number }>();
+    let currentScale = 1;
+    let posX = 0;
+    let posY = 0;
+    let initialPinchDistance = 0;
+    let initialScale = 1;
+    let lastTapTime = 0;
+    let startPan = { x: 0, y: 0 };
+    let tapStartTime = 0;
+    let tapStartPos: { x: number; y: number } | null = null;
 
-      if (e.touches.length === 2) {
-        // Two fingers: Pinch Zoom
-        if (e.cancelable) e.preventDefault();
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        initialPinchDist.current = dist;
-        initialScale.current = transform.current.scale;
-        startTouch.current = null;
-        singleTouchStartPos.current = null;
-      } else if (e.touches.length === 1) {
+    const applyTransform = (smooth = false) => {
+      if (!img) return;
+      img.style.transition = smooth ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+      img.style.transform = `translate3d(${posX}px, ${posY}px, 0px) scale(${currentScale})`;
+      transform.current = { scale: currentScale, x: posX, y: posY };
+      scaleRef.current = currentScale;
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      // Capture pointer so movement is tracked even outside the element bounds
+      try {
+        img.setPointerCapture(e.pointerId);
+      } catch (_) {}
+
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 1) {
+        tapStartTime = Date.now();
+        tapStartPos = { x: e.clientX, y: e.clientY };
+
+        // Double-tap detection (< 280ms)
         const now = Date.now();
-        const touch = e.touches[0];
-        singleTouchStartPos.current = { x: touch.clientX, y: touch.clientY };
-
-        // Double-Tap Logic (< 280ms delta)
-        if (now - lastTap.current < 280) {
-          if (e.cancelable) e.preventDefault();
-          if (transform.current.scale > 1.05) {
-            resetZoom();
-          } else {
-            transform.current = { scale: 2.5, x: 0, y: 0 };
-            scaleRef.current = 2.5;
-            setScale(2.5);
-            if (imgRef.current) {
-              imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-              applyTransform();
-              setTimeout(() => {
-                if (imgRef.current) imgRef.current.style.transition = 'none';
-              }, 250);
-            }
+        if (now - lastTapTime < 280) {
+          e.preventDefault();
+          if (singleTapTimerRef.current) {
+            clearTimeout(singleTapTimerRef.current);
+            singleTapTimerRef.current = null;
           }
-          lastTap.current = 0;
+          if (currentScale > 1) {
+            currentScale = 1;
+            posX = 0;
+            posY = 0;
+          } else {
+            currentScale = 2.5;
+          }
+          applyTransform(true);
+          setScale(currentScale);
+          lastTapTime = 0;
           return;
         }
-        lastTap.current = now;
-
-        // If already zoomed in, single-finger pans the photo
-        if (transform.current.scale > 1.05) {
-          startTouch.current = { x: touch.clientX, y: touch.clientY };
-          startPan.current = { x: transform.current.x, y: transform.current.y };
-        } else {
-          startTouch.current = null;
+        lastTapTime = now;
+        startPan = { x: posX - e.clientX, y: posY - e.clientY };
+      } else if (activePointers.size === 2) {
+        // Two pointers down: initialize pinch zoom
+        if (singleTapTimerRef.current) {
+          clearTimeout(singleTapTimerRef.current);
+          singleTapTimerRef.current = null;
         }
+        const pts = Array.from(activePointers.values());
+        initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        initialScale = currentScale;
       }
     };
 
-    const onTouchMove = (e: TouchEvent) => {
-      wakeFullscreenClose();
+    const onPointerMove = (e: PointerEvent) => {
+      if (!activePointers.has(e.pointerId)) return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      // Multi-touch pinch zoom
-      if (e.touches.length === 2 && initialPinchDist.current !== null) {
-        if (e.cancelable) e.preventDefault();
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const factor = dist / initialPinchDist.current;
-        const nextScale = Math.min(Math.max(initialScale.current * factor, 0.9), 4.5);
-        transform.current.scale = nextScale;
-        scaleRef.current = nextScale;
-        applyTransform();
+      // Two-finger pinch zoom
+      if (activePointers.size === 2 && initialPinchDistance > 0) {
+        e.preventDefault();
+        const pts = Array.from(activePointers.values());
+        const currentDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        const scaleRatio = currentDistance / initialPinchDistance;
+        currentScale = Math.min(Math.max(initialScale * scaleRatio, 0.8), 4.5);
+        applyTransform(false);
       }
-      // Single-finger panning when zoomed in (Zero swipe navigation)
-      else if (e.touches.length === 1 && startTouch.current && transform.current.scale > 1.05) {
-        if (e.cancelable) e.preventDefault();
-        const touch = e.touches[0];
-        const dx = touch.clientX - startTouch.current.x;
-        const dy = touch.clientY - startTouch.current.y;
-        transform.current.x = startPan.current.x + dx;
-        transform.current.y = startPan.current.y + dy;
-        positionRef.current = { x: transform.current.x, y: transform.current.y };
-        applyTransform();
+      // Single-finger panning when zoomed in
+      else if (activePointers.size === 1 && currentScale > 1) {
+        e.preventDefault();
+        posX = e.clientX + startPan.x;
+        posY = e.clientY + startPan.y;
+        applyTransform(false);
       }
     };
 
-    const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        initialPinchDist.current = null;
-      }
-      if (e.touches.length === 0) {
-        startTouch.current = null;
+    const onPointerUp = (e: PointerEvent) => {
+      activePointers.delete(e.pointerId);
+      try {
+        if (img.hasPointerCapture(e.pointerId)) {
+          img.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
 
+      if (activePointers.size < 2) {
+        initialPinchDistance = 0;
+      }
+      if (activePointers.size === 0) {
         // Snap back to 1x if pinched smaller than 1x
-        if (transform.current.scale < 1) {
-          resetZoom();
-        } else if (transform.current.scale > 4) {
-          transform.current.scale = 4;
-          scaleRef.current = 4;
-          setScale(4);
-          applyTransform();
-        } else {
-          scaleRef.current = transform.current.scale;
-          setScale(transform.current.scale);
+        if (currentScale < 1) {
+          currentScale = 1;
+          posX = 0;
+          posY = 0;
+          applyTransform(true);
+        } else if (currentScale > 4) {
+          currentScale = 4;
+          applyTransform(true);
         }
+        setScale(currentScale);
 
-        // Tap handling: outside closes image, inside toggles controls
-        const touch = e.changedTouches[0];
-        if (touch && singleTouchStartPos.current) {
-          const dx = touch.clientX - singleTouchStartPos.current.x;
-          const dy = touch.clientY - singleTouchStartPos.current.y;
-
-          if (Math.hypot(dx, dy) < 12) {
-            const wasOutside =
-              !isTouchOnImage(touch.clientX, touch.clientY) &&
-              !isTouchOnImage(singleTouchStartPos.current.x, singleTouchStartPos.current.y);
-
-            if (wasOutside) {
-              if (singleTapTimerRef.current) {
-                clearTimeout(singleTapTimerRef.current);
-                singleTapTimerRef.current = null;
-              }
-              onClose();
-            } else if (transform.current.scale <= 1.05) {
-              // Stationary tap on the image: toggle HUD controls
-              if (singleTapTimerRef.current) {
-                clearTimeout(singleTapTimerRef.current);
-              }
-              singleTapTimerRef.current = setTimeout(() => {
-                setShowControls((prev) => !prev);
-                singleTapTimerRef.current = null;
-              }, 280);
-            }
+        // Single tap detection (< 250ms & movement < 10px) to toggle controls
+        if (
+          tapStartPos &&
+          Date.now() - tapStartTime < 250 &&
+          Math.hypot(e.clientX - tapStartPos.x, e.clientY - tapStartPos.y) < 10
+        ) {
+          if (singleTapTimerRef.current) {
+            clearTimeout(singleTapTimerRef.current);
           }
+          singleTapTimerRef.current = setTimeout(() => {
+            setShowControls((prev) => !prev);
+            singleTapTimerRef.current = null;
+          }, 280);
         }
-        singleTouchStartPos.current = null;
+        tapStartPos = null;
       }
     };
 
-    container.addEventListener('touchstart', onTouchStart, { passive: false });
-    container.addEventListener('touchmove', onTouchMove, { passive: false });
-    container.addEventListener('touchend', onTouchEnd, { passive: false });
-    container.addEventListener('touchcancel', onTouchEnd, { passive: false });
+    // Attach native PointerEvent listeners directly with pointer-events-auto
+    img.addEventListener('pointerdown', onPointerDown);
+    img.addEventListener('pointermove', onPointerMove);
+    img.addEventListener('pointerup', onPointerUp);
+    img.addEventListener('pointercancel', onPointerUp);
 
     return () => {
-      container.removeEventListener('touchstart', onTouchStart);
-      container.removeEventListener('touchmove', onTouchMove);
-      container.removeEventListener('touchend', onTouchEnd);
-      container.removeEventListener('touchcancel', onTouchEnd);
+      img.removeEventListener('pointerdown', onPointerDown);
+      img.removeEventListener('pointermove', onPointerMove);
+      img.removeEventListener('pointerup', onPointerUp);
+      img.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [activeIdx, activeUrl, isFullscreen, type, applyTransform, resetZoom, wakeFullscreenClose, isTouchOnImage, onClose]);
-
-  // Desktop Mouse Drag & Pan Handlers (Pan only when scale > 1.05, no swipe)
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse' || e.button !== 0 || type !== 'image') return;
-    if (transform.current.scale <= 1.05) return;
-
-    isDraggingRef.current = true;
-    hasDraggedRef.current = false;
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      posX: transform.current.x,
-      posY: transform.current.y,
-      time: performance.now(),
-      isPan: true,
-      isSwipe: false,
-    };
-
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current || e.pointerType !== 'mouse' || !dragStartRef.current.isPan) return;
-
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
-    if (Math.hypot(dx, dy) > 4) {
-      hasDraggedRef.current = true;
-    }
-
-    transform.current.x = dragStartRef.current.posX + dx;
-    transform.current.y = dragStartRef.current.posY + dy;
-    positionRef.current = { x: transform.current.x, y: transform.current.y };
-    applyTransform();
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse') return;
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false;
-      try {
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        }
-      } catch {}
-    }
-  };
-
-  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse') return;
-    isDraggingRef.current = false;
-  };
-
-  // Stage Click and Double Click handlers
-  const handleStageClick = (e: React.MouseEvent) => {
-    // Suppress controls toggle if the user just completed dragging
-    if (hasDraggedRef.current) {
-      hasDraggedRef.current = false;
-      return;
-    }
-
-    // If clicked/tapped outside the image, close the image viewer
-    if (type === 'image' && !isTouchOnImage(e.clientX, e.clientY)) {
-      if (singleTapTimerRef.current) {
-        clearTimeout(singleTapTimerRef.current);
-        singleTapTimerRef.current = null;
-      }
-      onClose();
-      return;
-    }
-
-    if (singleTapTimerRef.current) {
-      clearTimeout(singleTapTimerRef.current);
-    }
-    singleTapTimerRef.current = setTimeout(() => {
-      setShowControls((prev) => !prev);
-      singleTapTimerRef.current = null;
-    }, 300);
-  };
-
-  const handleStageDoubleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (hasDraggedRef.current) {
-      hasDraggedRef.current = false;
-      return;
-    }
-    handleDoubleTap();
-  };
+  }, [activeUrl, activeIdx, isFullscreen, type]);
 
   // Wheel zoom on desktop
   const handleWheel = (e: React.WheelEvent) => {
@@ -714,19 +590,18 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           backdropFilter: 'blur(20px)',
           backgroundColor: 'rgba(2, 4, 8, 0.65)',
         }}
-        onClick={handleStageClick}
-        onDoubleClick={handleStageDoubleClick}
+        onClick={(e) => {
+          if (!isTouchOnImage(e.clientX, e.clientY)) {
+            exitFullscreen();
+          }
+        }}
         onMouseMove={wakeFullscreenClose}
         onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
       >
         {/* Edge-to-Edge Pure Photo */}
         <div
           ref={imageContainerRef}
-          className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none overscroll-none"
+          className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden touch-none"
           style={{
             touchAction: 'none',
             userSelect: 'none',
@@ -758,7 +633,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               WebkitTouchCallout: 'none',
               overscrollBehavior: 'none',
             }}
-            className="relative z-10 max-w-full max-h-full object-contain select-none will-change-transform animate-fade-in"
+            className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform animate-fade-in"
             draggable={false}
           />
         </div>
@@ -770,9 +645,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             exitFullscreen();
           }}
-          className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[160] w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer ${
+          className={`pointer-events-auto fixed top-4 right-4 sm:top-6 sm:right-6 z-[160] w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer ${
             showControls && showFullscreenClose
-              ? 'opacity-100 scale-100 pointer-events-auto'
+              ? 'opacity-100 scale-100'
               : 'opacity-0 scale-90 pointer-events-none'
           }`}
           title="Exit Fullscreen (Esc)"
@@ -816,193 +691,134 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     >
       {/* 1. Left Pane: Primary Media Stage (~65-70% desktop width, 100% mobile) */}
       <div className="flex-1 relative flex flex-col justify-between overflow-hidden h-full min-h-[50vh] md:min-h-0 bg-transparent">
-        {/* Top Bar Header */}
-        <header
-          className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-b from-black/60 via-transparent to-transparent transition-opacity duration-300 ${
-            showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Top Left Corner: Info Only */}
-          <div className="flex items-center gap-3 text-white/90 min-w-0 pr-4">
-            <span
-              className="text-sm font-semibold tracking-wide truncate max-w-xs md:max-w-md"
-              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
-            >
-              {currentItem?.title || currentItem?.name || cleanTitle}
-            </span>
-            {hasItemList && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/80 font-serif flex-shrink-0 border border-white/10">
-                {activeIdx + 1} / {items.length}
-              </span>
-            )}
-          </div>
-
-          {/* Top Right Corner: Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            {/* Clean Original Download Button */}
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className={`p-2 rounded-full transition-all cursor-pointer border ${
-                downloadSuccess
-                  ? 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40'
-                  : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
-              } disabled:opacity-40`}
-              title="Download Original Media"
-              aria-label="Download image"
-            >
-              {downloadSuccess ? (
-                <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-              ) : isDownloading ? (
-                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-neutral-300" />
-              ) : (
-                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
-
-            {/* Share / Copy Direct Link Button */}
-            <button
-              type="button"
-              onClick={handleSharePhoto}
-              className={`p-2 rounded-full transition-all cursor-pointer border ${
-                shareSuccess
-                  ? 'text-white bg-white/20 border-white/40 shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
-              }`}
-              title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Image Link'}
-              aria-label="Share image"
-            >
-              {shareSuccess ? (
-                <Check className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-200" />
-              ) : (
-                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
-
-            {/* Fullscreen Toggle Button */}
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full border border-white/10 hover:border-white/30 transition-all cursor-pointer"
-              title="Toggle Fullscreen (F)"
-              aria-label="Toggle fullscreen"
-            >
-              {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
-            </button>
-
-            {/* Floating Minimal Glass Close Button (✕) */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-md flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ml-1"
-              title="Close (Esc)"
-              aria-label="Close"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* EXIF & Media Telemetry HUD */}
-        {showTelemetry && (
-          <div
-            className="absolute top-16 left-4 md:top-20 md:left-8 z-50 p-4 rounded-lg border border-neutral-700 font-serif text-xs text-neutral-300 select-text max-w-sm pointer-events-auto shadow-2xl animate-fade-in"
-            style={{
-              background: 'rgba(12, 13, 16, 0.9)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              textShadow: '0 1px 4px #000, 0 0 8px #000',
-            }}
+        {/* Full-screen controls overlay wrapper: pointer-events-none lets pointer hits pass straight through */}
+        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+          {/* Top Bar Header */}
+          <header
+            className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-b from-black/60 via-transparent to-transparent transition-opacity duration-300 pointer-events-none ${
+              showControls ? 'opacity-100' : 'opacity-0'
+            }`}
           >
-            <div className="flex items-center justify-between border-b border-neutral-700 pb-2 mb-2.5">
-              <span className="text-neutral-200 font-normal tracking-wider text-[11px] flex items-center gap-1.5 uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-neutral-300" />
-                EXIF / Metadata
+            {/* Top Left Corner: Info Only */}
+            <div className="flex items-center gap-3 text-white/90 min-w-0 pr-4 pointer-events-none">
+              <span
+                className="text-sm font-semibold tracking-wide truncate max-w-xs md:max-w-md pointer-events-none"
+                style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+              >
+                {currentItem?.title || currentItem?.name || cleanTitle}
               </span>
+              {hasItemList && (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/80 font-serif flex-shrink-0 border border-white/10 pointer-events-none">
+                  {activeIdx + 1} / {items.length}
+                </span>
+              )}
+            </div>
+
+            {/* Top Right Corner: Action Buttons */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 pointer-events-none">
+              {/* Clean Original Download Button */}
               <button
                 type="button"
-                onClick={() => setShowTelemetry(false)}
-                className="text-white/60 hover:text-white text-xs font-serif px-1"
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className={`pointer-events-auto p-2 rounded-full transition-all cursor-pointer border ${
+                  downloadSuccess
+                    ? 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40'
+                    : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
+                } disabled:opacity-40`}
+                title="Download Original Media"
+                aria-label="Download image"
               >
-                ✕
+                {downloadSuccess ? (
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                ) : isDownloading ? (
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-neutral-300" />
+                ) : (
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+              </button>
+
+              {/* Share / Copy Direct Link Button */}
+              <button
+                type="button"
+                onClick={handleSharePhoto}
+                className={`pointer-events-auto p-2 rounded-full transition-all cursor-pointer border ${
+                  shareSuccess
+                    ? 'text-white bg-white/20 border-white/40 shadow-sm'
+                    : 'text-white/80 hover:text-white hover:bg-white/10 border-white/10 hover:border-white/30'
+                }`}
+                title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Image Link'}
+                aria-label="Share image"
+              >
+                {shareSuccess ? (
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-200" />
+                ) : (
+                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+              </button>
+
+              {/* Fullscreen Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="pointer-events-auto p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full border border-white/10 hover:border-white/30 transition-all cursor-pointer"
+                title="Toggle Fullscreen (F)"
+                aria-label="Toggle fullscreen"
+              >
+                {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
+              </button>
+
+              {/* Floating Minimal Glass Close Button (✕) */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-md flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ml-1"
+                title="Close (Esc)"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between gap-4">
-                <span className="text-white/50">NAME:</span>
-                <span className="text-white font-medium truncate max-w-[200px]" title={cleanTitle}>
-                  {cleanTitle}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-white/50">FORMAT:</span>
-                <span className="text-white font-bold uppercase">
-                  {secureUrl.split('.').pop()?.split('?')[0] || (type === 'video' ? 'MP4' : 'IMAGE')}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-white/50">DIMENSIONS:</span>
-                <span className="text-white">
-                  {imgDimensions ? `${imgDimensions.width} × ${imgDimensions.height} px` : 'Auto / Responsive'}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-white/50">INDEX:</span>
-                <span className="text-white">{activeIdx + 1} / {items.length}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-white/50">STORAGE REPO:</span>
-                <span className="text-neutral-300 truncate max-w-[180px]">SARWARFX/stream-vault</span>
-              </div>
-              <div className="flex flex-col gap-0.5 pt-1 border-t border-white/10">
-                <span className="text-white/50 text-[10px]">SOURCE PATH:</span>
-                <span className="text-[10px] text-white/70 break-all bg-black/40 p-1.5 rounded border border-white/5 select-all">
-                  {secureUrl}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+          </header>
 
-        {/* Side Arrow Navigation within Left Pane: Floating minimal glass buttons */}
-        {hasItemList && items.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrev();
-              }}
-              disabled={activeIdx <= 0}
-              className={`absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-20 disabled:pointer-events-none active:scale-95 ${
-                showControls && !isZoomed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-              }`}
-              title="Previous (Left Arrow)"
-            >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+          {/* Side Arrow Navigation within Left Pane: Floating minimal glass buttons */}
+          {hasItemList && items.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrev();
+                }}
+                disabled={activeIdx <= 0}
+                className={`pointer-events-auto absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-20 disabled:pointer-events-none active:scale-95 ${
+                  showControls && !isZoomed ? 'opacity-100' : 'opacity-0 !pointer-events-none'
+                }`}
+                title="Previous (Left Arrow)"
+              >
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-              disabled={activeIdx >= items.length - 1}
-              className={`absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-20 disabled:pointer-events-none active:scale-95 ${
-                showControls && !isZoomed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-              }`}
-              title="Next (Right Arrow)"
-            >
-              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          </>
-        )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                disabled={activeIdx >= items.length - 1}
+                className={`pointer-events-auto absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-white/10 backdrop-blur-md border border-white/[0.12] hover:border-white/40 text-white/90 hover:text-white hover:shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-20 disabled:pointer-events-none active:scale-95 ${
+                  showControls && !isZoomed ? 'opacity-100' : 'opacity-0 !pointer-events-none'
+                }`}
+                title="Next (Right Arrow)"
+              >
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </>
+          )}
+        </div>
 
         {/* Main Media Stage */}
         <div
@@ -1015,13 +831,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             WebkitTouchCallout: 'none',
             overscrollBehavior: 'none',
           }}
-          onClick={handleStageClick}
-          onDoubleClick={handleStageDoubleClick}
+          onClick={(e) => {
+            if (type === 'image' && !isTouchOnImage(e.clientX, e.clientY)) {
+              if (singleTapTimerRef.current) {
+                clearTimeout(singleTapTimerRef.current);
+                singleTapTimerRef.current = null;
+              }
+              onClose();
+            }
+          }}
           onWheel={handleWheel}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
         >
           {type === 'video' ? (
             <div className="w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center border border-white/10">
@@ -1039,7 +858,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           ) : (
             <div
               ref={imageContainerRef}
-              className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none select-none overscroll-none"
+              className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden touch-none"
               style={{
                 touchAction: 'none',
                 userSelect: 'none',
@@ -1071,7 +890,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                   WebkitTouchCallout: 'none',
                   overscrollBehavior: 'none',
                 }}
-                className="relative z-10 w-auto h-auto object-contain select-none will-change-transform animate-fade-in max-w-full max-h-[82dvh] md:max-h-[85dvh] rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]"
+                className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform animate-fade-in rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]"
                 draggable={false}
               />
             </div>
