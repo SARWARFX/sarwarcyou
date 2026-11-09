@@ -735,33 +735,48 @@ html, body, #root {
 }
 
 /* ==========================================================================
-   SMART AUTO-HIDING SHOWCASE HEADER
+   SMART AUTO-HIDING SHOWCASE HEADER (DECOUPLED FROM DOCUMENT FLOW)
    ========================================================================== */
 
+.celebrity-header-wrapper,
 .showcase-control-header {
-  position: sticky;
+  position: absolute;
   top: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  z-index: 40;
   background: rgba(9, 9, 11, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding: 14px 24px 10px 24px;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.25s ease;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
+.celebrity-header-wrapper.hidden,
 .showcase-control-header.hidden {
-  transform: translateY(-100%);
-  opacity: 0;
+  transform: translate3d(0, -115%, 0);
   pointer-events: none;
 }
 
+.celebrity-header-wrapper.visible,
 .showcase-control-header.visible {
-  transform: translateY(0);
-  opacity: 1;
+  transform: translate3d(0, 0, 0);
   pointer-events: all;
+}
+
+/* Static spacer ensures document layout height remains constant whether header is visible or hidden */
+.celebrity-header-spacer {
+  height: 120px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .celebrity-header-spacer {
+    height: 140px;
+  }
 }
 
 

@@ -97,49 +97,61 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     activeItem: null,
   });
 
-  // Smart auto-hiding sticky header state
+  // 1. Scroll Controller with Top Guard & Direction Hysteresis
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const accumulatedDelta = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleScroll = useCallback((currentScrollY: number) => {
-    const delta = currentScrollY - lastScrollY.current;
-
-    // Always keep header visible near the absolute top
-    if (currentScrollY < 60) {
-      setHeaderVisible(true);
-    }
-    // Scrolling DOWN -> Hide header for 100% immersive view
-    else if (delta > 8) {
-      setHeaderVisible(false);
-    }
-    // Scrolling UP -> Reveal header smoothly
-    else if (delta < -8) {
-      setHeaderVisible(true);
-    }
-
-    lastScrollY.current = currentScrollY;
-  }, []);
-
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+    const handleScroll = (currentScrollY: number) => {
+      const scrollPos = Math.max(0, currentScrollY);
+      const delta = scrollPos - lastScrollY.current;
 
-    const onContainerScroll = () => {
-      handleScroll(container.scrollTop);
+      // Guard: Always show and never oscillate when within 140px from the top
+      if (scrollPos <= 140) {
+        setHeaderVisible(true);
+        accumulatedDelta.current = 0;
+        lastScrollY.current = scrollPos;
+        return;
+      }
+
+      // Accumulate direction delta (reset on direction reversal)
+      if ((delta > 0 && accumulatedDelta.current < 0) || (delta < 0 && accumulatedDelta.current > 0)) {
+        accumulatedDelta.current = 0;
+      }
+      accumulatedDelta.current += delta;
+
+      // Require deliberate 35px continuous threshold before toggling
+      if (accumulatedDelta.current > 35) {
+        setHeaderVisible(false); // Definite scroll down
+      } else if (accumulatedDelta.current < -35) {
+        setHeaderVisible(true);  // Definite scroll up
+      }
+
+      lastScrollY.current = scrollPos;
     };
 
-    container.addEventListener('scroll', onContainerScroll, { passive: true });
-    return () => container.removeEventListener('scroll', onContainerScroll);
-  }, [handleScroll]);
-
-  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const onContainerScroll = () => {
+      if (container) handleScroll(container.scrollTop);
+    };
     const onWindowScroll = () => {
       handleScroll(window.scrollY);
     };
+
+    if (container) {
+      container.addEventListener('scroll', onContainerScroll, { passive: true });
+    }
     window.addEventListener('scroll', onWindowScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onWindowScroll);
-  }, [handleScroll]);
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', onContainerScroll);
+      }
+      window.removeEventListener('scroll', onWindowScroll);
+    };
+  }, []);
 
   const rawWallpapers = (celebrityData as CelebrityItem[]) || [];
   const rawNews = (celebrityNewsData as CelebrityNewsItem[]) || [];
@@ -188,100 +200,103 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
 
   return (
     <div className={`w-full h-full flex flex-col min-w-0 select-none relative overflow-hidden bg-[#09090b] ${className}`}>
-      {/* Scrollable Container with Auto-Hiding Sticky Control Header */}
+      {/* 1. Header Bar: Title, View Switcher & Minimalist Flat Filters (Decoupled from Document Flow) */}
+      <header
+        className={`celebrity-header-wrapper showcase-control-header ${
+          headerVisible ? 'visible' : 'hidden'
+        } flex flex-col gap-3.5`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
+                CELEBRITY ARCHIVE
+              </h1>
+              <p className="text-[11px] tracking-wide text-neutral-400">
+                Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {/* View Toggle Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-[#121215] border border-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => {
+                  hapticMedium();
+                  setActiveTab('WALLPAPERS');
+                }}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
+                  activeTab === 'WALLPAPERS'
+                    ? 'bg-white text-neutral-950 font-semibold shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>GALLERY</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  hapticMedium();
+                  setActiveTab('NEWS');
+                }}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
+                  activeTab === 'NEWS'
+                    ? 'bg-white text-neutral-950 font-semibold shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Newspaper className="w-3.5 h-3.5" />
+                <span>CHRONICLE</span>
+              </button>
+            </div>
+
+            {/* Item Count Pill */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#121215] border border-white/[0.08] text-xs text-neutral-400 shrink-0">
+              {activeTab === 'WALLPAPERS' ? (
+                <span>{filteredWallpapers.length} PORTRAITS</span>
+              ) : (
+                <span>{filteredNews.length} DISPATCHES</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Minimalist Flat Filter Bar with Generous Spacing & Subtle Underline */}
+        <div className="flex items-center gap-6 overflow-x-auto space-scrollbar pt-1.5 pb-0.5 border-t border-white/[0.06]">
+          {FILTER_CHIPS.map((chip) => {
+            const isActive = activeFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => {
+                  hapticMedium();
+                  setActiveFilter(chip.id);
+                }}
+                className={`text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer flex-shrink-0 pb-1.5 ${
+                  isActive
+                    ? 'text-white font-bold border-b-2 border-white'
+                    : 'text-neutral-400 hover:text-neutral-200 border-b-2 border-transparent'
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+      </header>
+
+      {/* Scrollable Container with Static Dummy Spacer (Decoupled from Header Visibility) */}
       <div
         ref={scrollContainerRef}
         className="w-full h-full overflow-y-auto space-scrollbar relative"
       >
-        {/* 1. Header Bar: Title, View Switcher & Minimalist Flat Filters (Auto-Hiding Sticky) */}
-        <header
-          className={`showcase-control-header ${
-            headerVisible ? 'visible' : 'hidden'
-          } flex flex-col gap-3.5`}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  CELEBRITY ARCHIVE
-                </h1>
-                <p className="text-[11px] tracking-wide text-neutral-400">
-                  Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              {/* View Toggle Tabs */}
-              <div className="flex items-center gap-1 p-1 rounded-lg bg-[#121215] border border-white/[0.08]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setActiveTab('WALLPAPERS');
-                  }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
-                    activeTab === 'WALLPAPERS'
-                      ? 'bg-white text-neutral-950 font-semibold shadow-sm'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>GALLERY</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setActiveTab('NEWS');
-                  }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
-                    activeTab === 'NEWS'
-                      ? 'bg-white text-neutral-950 font-semibold shadow-sm'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  <Newspaper className="w-3.5 h-3.5" />
-                  <span>CHRONICLE</span>
-                </button>
-              </div>
-
-              {/* Item Count Pill */}
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#121215] border border-white/[0.08] text-xs text-neutral-400 shrink-0">
-                {activeTab === 'WALLPAPERS' ? (
-                  <span>{filteredWallpapers.length} PORTRAITS</span>
-                ) : (
-                  <span>{filteredNews.length} DISPATCHES</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Minimalist Flat Filter Bar with Generous Spacing & Subtle Underline */}
-          <div className="flex items-center gap-6 overflow-x-auto space-scrollbar pt-1.5 pb-0.5 border-t border-white/[0.06]">
-            {FILTER_CHIPS.map((chip) => {
-              const isActive = activeFilter === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setActiveFilter(chip.id);
-                  }}
-                  className={`text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer flex-shrink-0 pb-1.5 ${
-                    isActive
-                      ? 'text-white font-bold border-b-2 border-white'
-                      : 'text-neutral-400 hover:text-neutral-200 border-b-2 border-transparent'
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              );
-            })}
-          </div>
-        </header>
+        {/* Static persistent spacer ensures document layout height never changes */}
+        <div className="celebrity-header-spacer shrink-0" aria-hidden="true" />
 
         {/* 2. Main Body Content: Wallpapers vs News Feed */}
         <main className="p-4 sm:p-6 lg:p-8 pb-20">
