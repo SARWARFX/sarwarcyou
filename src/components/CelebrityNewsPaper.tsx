@@ -59,7 +59,7 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
       <div className="newspaper-container rounded-2xl text-center py-20 px-6 flex flex-col items-center justify-center">
         <NewspaperIcon className="w-10 h-10 text-neutral-600 mb-4" />
         <h2 className="font-['Playfair_Display'] text-2xl font-bold text-[#f4f4f5] mb-2">
-          No Dispatches on File
+          No dispatches recorded today.
         </h2>
         <p className="font-serif italic text-sm text-neutral-400 max-w-md mb-6">
           There are currently no verified reports on file for {activeFilter === 'ALL' ? 'the selected filter' : activeFilter}.

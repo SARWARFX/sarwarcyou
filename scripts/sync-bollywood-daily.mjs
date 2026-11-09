@@ -13,8 +13,8 @@ const GALLERY_OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityGallery
 
 const RSS_FEEDS = [
   {
-    name: 'Filmfare',
-    url: 'https://www.filmfare.com/feeds/rss.xml',
+    name: 'Times of India Entertainment',
+    url: 'https://timesofindia.indiatimes.com/rssfeeds/1081479906.cms',
     defaultCategory: 'Filmfare',
   },
   {
@@ -31,65 +31,6 @@ const RSS_FEEDS = [
     name: 'Indian Express Cinema',
     url: 'https://indianexpress.com/section/entertainment/bollywood/feed/',
     defaultCategory: 'Production',
-  },
-];
-
-// Fallback seed articles for instantaneous verification and cold boots
-const SEED_NEWS = [
-  {
-    id: 'deepika-padukone-kalki-record',
-    celebrity: 'Deepika Padukone',
-    headline: 'Deepika Padukone Sets Global Box Office Milestone with Kalki 2898 AD',
-    summary: 'Deepika Padukone adds another blockbuster feat to her cinematic record with unanimous international praise for her poised and powerful performance.',
-    source: 'Filmfare',
-    sourceUrl: 'https://www.filmfare.com',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Deepika_Padukone_at_Kalki_2898_AD_pre_release_event_in_Mumbai_%282%29.jpg',
-    publishedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    category: 'Filmfare',
-  },
-  {
-    id: 'alia-bhatt-cannes-fashion',
-    celebrity: 'Alia Bhatt',
-    headline: 'Alia Bhatt Graces Global Fashion Gala: Behind The Haute Couture Look',
-    summary: 'Alia Bhatt captivates international fashion critics with an ethereal bespoke ensemble blending traditional Indian artisanal embroidery with modern silhouette architecture.',
-    source: 'NDTV Movies',
-    sourceUrl: 'https://www.ndtv.com/entertainment',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Alia_Bhatt_attends_at_the_2026_Cannes_Film_Festival_%28cropped%29.jpg',
-    publishedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    category: 'Event',
-  },
-  {
-    id: 'kiara-advani-game-changer-interview',
-    celebrity: 'Kiara Advani',
-    headline: 'Kiara Advani on Collaborating with Shankar: "A Truly Transformative Journey"',
-    summary: 'Kiara Advani discusses intense prep, high-octane sequences, and character subtleties in an exclusive in-depth film conversation.',
-    source: 'Bollywood Hungama',
-    sourceUrl: 'https://www.bollywoodhungama.com',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/90/Kiara_Advani_at_GQ_Men_of_the_Year_Awards_2022_%28cropped%29.jpg',
-    publishedAt: new Date(Date.now() - 3600000 * 9).toISOString(),
-    category: 'Interview',
-  },
-  {
-    id: 'katrina-kaif-action-franchise',
-    celebrity: 'Katrina Kaif',
-    headline: 'Katrina Kaif Expands Action Stunt Credentials in Next High-Stakes Thriller',
-    summary: 'Industry insiders reveal Katrina Kaif is slated to headline a thrilling new international espionage chapter featuring advanced martial arts choreography.',
-    source: 'Filmfare',
-    sourceUrl: 'https://www.filmfare.com',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/71/Katrina_Kaif_at_IIFA_2017_%28cropped%29.jpg',
-    publishedAt: new Date(Date.now() - 3600000 * 14).toISOString(),
-    category: 'Production',
-  },
-  {
-    id: 'kriti-sanon-national-award-lineup',
-    celebrity: 'Kriti Sanon',
-    headline: 'Kriti Sanon Unveils Next Slate of Ambitious Feature Productions',
-    summary: 'Riding high on National Award acclaim, Kriti Sanon greenlights diverse slate of director-driven scripts highlighting modern multifaceted roles.',
-    source: 'Bollywood Hungama',
-    sourceUrl: 'https://www.bollywoodhungama.com',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/Kriti_Sanon_at_IIFA_2024.jpg',
-    publishedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-    category: 'Production',
   },
 ];
 
@@ -282,15 +223,6 @@ export async function fetchDailyNews() {
   }
 
   console.log(`[RSS] Total verified celebrity articles scraped: ${allArticles.length}`);
-
-  // Merge with verified seed fallback articles to ensure depth
-  for (const seed of SEED_NEWS) {
-    const normTitle = seed.headline.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (!seenHeadlines.has(normTitle)) {
-      seenHeadlines.add(normTitle);
-      allArticles.push(seed);
-    }
-  }
 
   // Sort descending by publication date
   allArticles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());

@@ -1,25 +1,15 @@
 [
   {
-    "id": "deepika-padukone-kalki-record",
-    "celebrity": "Deepika Padukone",
-    "headline": "Deepika Padukone Sets Global Box Office Milestone with Kalki 2898 AD",
-    "summary": "Deepika Padukone adds another blockbuster feat to her cinematic record with unanimous international praise for her poised and powerful performance.",
-    "source": "Filmfare",
-    "sourceUrl": "https://www.filmfare.com",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/05/Deepika_Padukone_at_Kalki_2898_AD_pre_release_event_in_Mumbai_%282%29.jpg",
-    "publishedAt": "2026-11-09T15:17:43.684Z",
-    "category": "Filmfare"
-  },
-  {
-    "id": "alia-bhatt-cannes-fashion",
-    "celebrity": "Alia Bhatt",
-    "headline": "Alia Bhatt Graces Global Fashion Gala: Behind The Haute Couture Look",
-    "summary": "Alia Bhatt captivates international fashion critics with an ethereal bespoke ensemble blending traditional Indian artisanal embroidery with modern silhouette architecture.",
-    "source": "NDTV Movies",
-    "sourceUrl": "https://www.ndtv.com/entertainment",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Alia_Bhatt_attends_at_the_2026_Cannes_Film_Festival_%28cropped%29.jpg",
-    "publishedAt": "2026-11-09T12:17:43.685Z",
-    "category": "Event"
+    "id": "kriti-sanon-kriti-sanon-celebrates-diwali-with-family-rumoured-bf-kabir-",
+    "celebrity": "Kriti Sanon",
+    "headline": "Kriti Sanon celebrates Diwali with family, rumoured BF Kabir Bahia, Nupur and Stebin Ben",
+    "summary": "Kriti Sanon celebrated Diwali last year at her home in Mumbai, surrounded by family and cherished friends. She posted vibrant photos featuring her family dressed in stunning traditional wear for the festive occasion. Accompanied by Kabir Ba...",
+    "source": "Times of India Entertainment",
+    "sourceUrl": "https://timesofindia.indiatimes.com/entertainment/hindi/bollywood/news/kriti-sanon-celebrates-diwali-with-family-rumoured-boyfriend-kabir-bahia-nupur-sanon-and-stebin-ben-my-favvvv-time-of-the-year-with-some-of-my-fav-ppl/articleshow/135685285.cms",
+    "imageUrl": "https://static.toiimg.com/photo/msid-135685685,imgsize-964752.cms",
+    "publishedAt": "2026-11-09T15:01:16.000Z",
+    "category": "Production",
+    "isFresh48h": true
   },
   {
     "id": "kareena-kapoor-karan-johar-declares-kareena-kapoor-the-queen-of-pout-in-ado",
@@ -46,17 +36,6 @@
     "isFresh48h": true
   },
   {
-    "id": "kiara-advani-game-changer-interview",
-    "celebrity": "Kiara Advani",
-    "headline": "Kiara Advani on Collaborating with Shankar: \"A Truly Transformative Journey\"",
-    "summary": "Kiara Advani discusses intense prep, high-octane sequences, and character subtleties in an exclusive in-depth film conversation.",
-    "source": "Bollywood Hungama",
-    "sourceUrl": "https://www.bollywoodhungama.com",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/90/Kiara_Advani_at_GQ_Men_of_the_Year_Awards_2022_%28cropped%29.jpg",
-    "publishedAt": "2026-11-09T08:17:43.685Z",
-    "category": "Interview"
-  },
-  {
     "id": "alia-bhatt-alia-bhatt-ranbir-kapoor-s-diwali-celebrations-have-two-r-mo",
     "celebrity": "Alia Bhatt",
     "headline": "Alia Bhatt-Ranbir Kapoor's Diwali Celebrations Have Two 'R' Moments - Raha And Rishi Kapoor",
@@ -67,28 +46,6 @@
     "publishedAt": "2026-11-09T03:37:34.000Z",
     "category": "Production",
     "isFresh48h": true
-  },
-  {
-    "id": "katrina-kaif-action-franchise",
-    "celebrity": "Katrina Kaif",
-    "headline": "Katrina Kaif Expands Action Stunt Credentials in Next High-Stakes Thriller",
-    "summary": "Industry insiders reveal Katrina Kaif is slated to headline a thrilling new international espionage chapter featuring advanced martial arts choreography.",
-    "source": "Filmfare",
-    "sourceUrl": "https://www.filmfare.com",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/71/Katrina_Kaif_at_IIFA_2017_%28cropped%29.jpg",
-    "publishedAt": "2026-11-09T03:17:43.685Z",
-    "category": "Production"
-  },
-  {
-    "id": "kriti-sanon-national-award-lineup",
-    "celebrity": "Kriti Sanon",
-    "headline": "Kriti Sanon Unveils Next Slate of Ambitious Feature Productions",
-    "summary": "Riding high on National Award acclaim, Kriti Sanon greenlights diverse slate of director-driven scripts highlighting modern multifaceted roles.",
-    "source": "Bollywood Hungama",
-    "sourceUrl": "https://www.bollywoodhungama.com",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Kriti_Sanon_at_IIFA_2024.jpg",
-    "publishedAt": "2026-11-08T21:17:43.685Z",
-    "category": "Production"
   },
   {
     "id": "katrina-kaif-our-brightest-diwali-yet-katrina-kaif-and-vicky-kaushal-reve",

@@ -240,9 +240,9 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           <div className="flex items-end gap-1.5 h-10">
             {telemetry.days.map((day, idx) => {
               const isToday = idx === telemetry.days.length - 1;
-              const heightPercent = telemetry.maxVal > 0
-                ? Math.max(Math.round((day.count / telemetry.maxVal) * 100), day.count > 0 ? 16 : 8)
-                : 8;
+              const heightPercent = (telemetry.maxVal > 0 && day.count > 0)
+                ? Math.max(Math.round((day.count / telemetry.maxVal) * 100), 14)
+                : 0;
 
               const dateNumber = day.label === 'TODAY'
                 ? 'TODAY'
@@ -254,7 +254,10 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                 <div key={day.date} className="flex-1 flex flex-col items-center h-full justify-end gap-1">
                   <div
                     className={`bar-col w-full ${isToday ? 'active-bar' : ''}`}
-                    style={{ height: `${heightPercent}%` }}
+                    style={{
+                      height: day.count > 0 ? `${heightPercent}%` : '2px',
+                      opacity: day.count > 0 ? 1 : 0.25,
+                    }}
                     title={`${day.label}: ${day.count} recorded events`}
                   />
                   <span
