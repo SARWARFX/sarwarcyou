@@ -402,6 +402,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   }, [calculatePanLimits, applyTransform, resetZoom]);
 
+  const isTouchOnImage = useCallback((clientX: number, clientY: number) => {
+    if (!imgRef.current) return false;
+    const rect = imgRef.current.getBoundingClientRect();
+    return (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    );
+  }, []);
+
   // ATTACH NATIVE NON-PASSIVE LISTENERS VIA USEEFFECT (Defeats mobile Chrome passive overrides)
   useEffect(() => {
     const container = imageContainerRef.current;
@@ -527,15 +538,28 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           } else {
             handlePrev(); // Swipe right -> prev
           }
-        } else if (Math.hypot(deltaX, deltaY) < 10) {
-          // Stationary single tap: toggle HUD controls
-          if (singleTapTimerRef.current) {
-            clearTimeout(singleTapTimerRef.current);
+        } else if (Math.hypot(deltaX, deltaY) < 12) {
+          // Stationary tap: check if tapped outside the image
+          const wasOutside =
+            !isTouchOnImage(touch.clientX, touch.clientY) &&
+            !isTouchOnImage(startTouchRef.current.x, startTouchRef.current.y);
+
+          if (wasOutside) {
+            if (singleTapTimerRef.current) {
+              clearTimeout(singleTapTimerRef.current);
+              singleTapTimerRef.current = null;
+            }
+            onClose();
+          } else {
+            // Stationary single tap on the image: toggle HUD controls
+            if (singleTapTimerRef.current) {
+              clearTimeout(singleTapTimerRef.current);
+            }
+            singleTapTimerRef.current = setTimeout(() => {
+              setShowControls((prev) => !prev);
+              singleTapTimerRef.current = null;
+            }, 280);
           }
-          singleTapTimerRef.current = setTimeout(() => {
-            setShowControls((prev) => !prev);
-            singleTapTimerRef.current = null;
-          }, 280);
         }
         gestureModeRef.current = 'NONE';
       } else if (gestureModeRef.current === 'PAN') {
@@ -544,6 +568,24 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           scaleRef.current = transformRef.current.scale;
           positionRef.current = { x: transformRef.current.x, y: transformRef.current.y };
           setScale(transformRef.current.scale);
+
+          // If stationary tap occurred outside the image even if in PAN mode:
+          const touch = e.changedTouches[0];
+          if (touch) {
+            const deltaX = touch.clientX - startTouchRef.current.x;
+            const deltaY = touch.clientY - startTouchRef.current.y;
+            if (
+              Math.hypot(deltaX, deltaY) < 12 &&
+              !isTouchOnImage(touch.clientX, touch.clientY) &&
+              !isTouchOnImage(startTouchRef.current.x, startTouchRef.current.y)
+            ) {
+              if (singleTapTimerRef.current) {
+                clearTimeout(singleTapTimerRef.current);
+                singleTapTimerRef.current = null;
+              }
+              onClose();
+            }
+          }
         }
       }
     };
@@ -560,7 +602,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [activeIdx, activeUrl, isFullscreen, type, handleNext, handlePrev, updateTransform, resetZoom, wakeFullscreenClose]);
+  }, [activeIdx, activeUrl, isFullscreen, type, handleNext, handlePrev, updateTransform, resetZoom, wakeFullscreenClose, isTouchOnImage, onClose]);
 
   // Desktop Mouse Drag & Pan Handlers (Pan when scale > 1.05, Swipe when scale <= 1.05)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -664,10 +706,20 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   };
 
   // Stage Click and Double Click handlers
-  const handleStageClick = () => {
+  const handleStageClick = (e: React.MouseEvent) => {
     // Suppress controls toggle if the user just completed dragging
     if (hasDraggedRef.current) {
       hasDraggedRef.current = false;
+      return;
+    }
+
+    // If clicked/tapped outside the image, close the image viewer
+    if (type === 'image' && !isTouchOnImage(e.clientX, e.clientY)) {
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
+      onClose();
       return;
     }
 
@@ -866,7 +918,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           setShowSidebar(false);
           return;
         }
-        if (e.target === e.currentTarget) {
+        if (type === 'image' && !isTouchOnImage(e.clientX, e.clientY)) {
+          if (singleTapTimerRef.current) {
+            clearTimeout(singleTapTimerRef.current);
+            singleTapTimerRef.current = null;
+          }
+          onClose();
+        } else if (e.target === e.currentTarget) {
           onClose();
         }
       }}
