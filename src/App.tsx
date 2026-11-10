@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { StatusBar, Style } from '@capacitor/status-bar';
 import { useBackButton } from './utils/backButtonManager';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
@@ -10,8 +8,6 @@ import { MediaModal } from './components/MediaModal';
 import { FullAlbumViewModal } from './components/FullAlbumViewModal';
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
-import { initializePhotoCache, startBackgroundPhotoSync } from './services/photoSyncManager';
-import { initializeVideoOfflineCache } from './services/videoOfflineManager';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { CyberSplash } from './components/CyberSplash';
@@ -177,25 +173,9 @@ function App() {
     window.history.replaceState({ tab: 'all' }, '', targetUrl);
   }, []);
 
-  // Native Android Device Integration (Capacitor)
+  // Web Theme Accent Initialization
   useEffect(() => {
-    // Initialize Theme Accent
     applyAccentToDom(getActiveAccent());
-
-    // Initialize Local Photo Cache and Video Cache ONLY on native Android app
-    if (Capacitor.isNativePlatform()) {
-      initializePhotoCache().catch(() => {});
-      initializeVideoOfflineCache().catch(() => {});
-      StatusBar.hide().catch(() => {});
-    } else {
-      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
-      StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-    }
-
-    // Keep screen awake (prevent phone sleep / lock)
-    if ('wakeLock' in navigator) {
-      (navigator as any).wakeLock?.request('screen').catch(() => {});
-    }
   }, []);
 
   // Global fallback back handler for active modals
@@ -214,13 +194,6 @@ function App() {
   useEffect(() => {
     initKeepAwake();
   }, []);
-
-  // Background auto-sync all photos ONLY on native Android app
-  useEffect(() => {
-    if (Capacitor.isNativePlatform() && rawFeed.allMediaPool && rawFeed.allMediaPool.length > 0) {
-      startBackgroundPhotoSync(rawFeed.allMediaPool).catch(() => {});
-    }
-  }, [rawFeed.allMediaPool]);
 
   // Universal Media Player / Lightbox Dispatcher with strict mutual exclusivity
   const openMediaItem = useCallback(

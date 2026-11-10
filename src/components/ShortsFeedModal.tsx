@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Capacitor } from '@capacitor/core';
 import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause, Heart, FastForward } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
@@ -8,7 +7,6 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight, hapticMedium } from '../utils/hapticsManager';
-import { cacheVideoForOffline, getLocalCachedVideoUrl } from '../services/videoOfflineManager';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -51,15 +49,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const lastTapTimeRef = useRef(0);
   const tapTimeoutRef = useRef<number | null>(null);
 
-  // Auto-cache active short on native app for offline use
-  useEffect(() => {
-    const currentItem = shorts[activeIndex];
-    if (isOpen && currentItem && Capacitor.isNativePlatform()) {
-      cacheVideoForOffline(currentItem).catch(() => {});
-    }
-  }, [isOpen, activeIndex, shorts]);
-
-  // Android Native Hardware Back Button handler
+  // Web Escape and History Back navigation handler
   useBackButton(
     useCallback(() => {
       onClose();
@@ -476,7 +466,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       >
         {shorts.map((item, idx) => {
           if (!item) return null;
-          const streamUrl = overrides[idx] || getLocalCachedVideoUrl(item) || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
+          const streamUrl = overrides[idx] || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
           const posterUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
           const isLandscape = landscapeMap[idx];
 

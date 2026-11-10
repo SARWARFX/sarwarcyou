@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Capacitor } from '@capacitor/core';
 import {
   Play,
   Pause,
@@ -29,7 +28,6 @@ import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight } from '../utils/hapticsManager';
-import { cacheVideoForOffline, getLocalCachedVideoUrl } from '../services/videoOfflineManager';
 
 export type VideoRepeatMode = 'off' | 'all' | 'one';
 
@@ -88,13 +86,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // Picture-in-Picture State
   const [isPiPSupported, setIsPiPSupported] = useState(false);
-
-  // Auto-cache video on native app when opened/played
-  useEffect(() => {
-    if (isOpen && item && Capacitor.isNativePlatform()) {
-      cacheVideoForOffline(item).catch(() => {});
-    }
-  }, [isOpen, item]);
 
   useEffect(() => {
     if (typeof document !== 'undefined' && 'pictureInPictureEnabled' in document) {
@@ -714,7 +705,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   };
 
-  // Toggle Fullscreen with Landscape Auto-Rotate via Native Capacitor Screen Orientation
+  // Toggle Fullscreen with Landscape Auto-Rotate via Web Screen Orientation API
   const handleFullscreenToggle = useCallback(async () => {
     hapticLight();
     const container = playerContainerRef.current;
@@ -1012,10 +1003,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   if (!isOpen || !item) return null;
 
-  const cachedLocalUrl = getLocalCachedVideoUrl(item);
   const primaryStreamUrl = getMediaUrl(item.url || item.path || item.id);
   const directHfUrl = getDirectHfVideoUrl(item);
-  const streamUrl = sourceOverride || cachedLocalUrl || primaryStreamUrl || directHfUrl;
+  const streamUrl = sourceOverride || primaryStreamUrl || directHfUrl;
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferPct = duration > 0 ? (buffered / duration) * 100 : 0;
 
@@ -1092,21 +1082,19 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           )}
         </button>
 
-        {/* Web Close (✕) Action */}
-        {!Capacitor.isNativePlatform() && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 backdrop-blur-xl border border-white/15 text-slate-300 hover:text-white shadow-2xl transition-all cursor-pointer"
-            title="Close (Esc)"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
+        {/* Close (✕) Action */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 backdrop-blur-xl border border-white/15 text-slate-300 hover:text-white shadow-2xl transition-all cursor-pointer"
+          title="Close (Esc)"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}

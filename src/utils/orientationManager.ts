@@ -1,25 +1,19 @@
-import { ScreenOrientation } from '@capacitor/screen-orientation';
-
+/**
+ * Web-Standard Orientation Manager
+ * Uses Screen Orientation API when available
+ */
 export async function lockToLandscape(): Promise<void> {
-  try {
-    await ScreenOrientation.lock({ orientation: 'landscape' });
-  } catch (_) {
-    if (typeof screen !== 'undefined' && 'orientation' in screen && 'lock' in (screen.orientation as any)) {
-      try {
-        await (screen.orientation as any).lock('landscape');
-      } catch (__) {}
-    }
+  if (typeof screen !== 'undefined' && 'orientation' in screen && 'lock' in (screen.orientation as any)) {
+    try {
+      await (screen.orientation as any).lock('landscape');
+    } catch (_) {}
   }
 }
 
 export async function unlockOrientation(): Promise<void> {
-  try {
-    await ScreenOrientation.unlock();
-  } catch (_) {
-    if (typeof screen !== 'undefined' && 'orientation' in screen && 'unlock' in (screen.orientation as any)) {
-      try {
-        (screen.orientation as any).unlock();
-      } catch (__) {}
-    }
+  if (typeof screen !== 'undefined' && 'orientation' in screen && 'unlock' in (screen.orientation as any)) {
+    try {
+      (screen.orientation as any).unlock();
+    } catch (_) {}
   }
 }

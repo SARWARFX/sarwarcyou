@@ -1,6 +1,3 @@
-import { KeepAwake } from '@capacitor-community/keep-awake';
-import { Capacitor } from '@capacitor/core';
-
 const STORAGE_KEY = 'sarwarcyou_keep_screen_on';
 
 let wakeLockSentinel: any = null;
@@ -18,59 +15,36 @@ function notifyListeners() {
 }
 
 /**
- * Acquire wake lock on native Android or Web WakeLock API
+ * Acquire screen wake lock via standard Web Screen Wake Lock API
  */
 async function acquireLock(): Promise<boolean> {
-  let success = false;
-
-  // 1. Native Capacitor Android keep-awake
-  if (Capacitor.isNativePlatform()) {
-    try {
-      await KeepAwake.keepAwake();
-      success = true;
-    } catch (err) {
-      console.warn('[KeepAwake] Native KeepAwake error:', err);
-    }
-  }
-
-  // 2. Web Screen Wake Lock API (Web / PWA / fallback)
-  if ('wakeLock' in navigator && (navigator as any).wakeLock?.request) {
+  if (typeof navigator !== 'undefined' && 'wakeLock' in navigator && (navigator as any).wakeLock?.request) {
     try {
       if (wakeLockSentinel && !wakeLockSentinel.released) {
-        // already acquired
-      } else {
-        wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
-        wakeLockSentinel.addEventListener('release', () => {
-          wakeLockSentinel = null;
-        });
+        return true;
       }
-      success = true;
+      wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+      wakeLockSentinel.addEventListener('release', () => {
+        wakeLockSentinel = null;
+      });
+      return true;
     } catch (err: any) {
-      // Not allowed or user interaction needed
-      console.warn('[KeepAwake] Web WakeLock request error:', err?.message || err);
+      console.warn('[KeepAwake] Web WakeLock request notice:', err?.message || err);
+      return false;
     }
   }
-
-  return success;
+  return false;
 }
 
 /**
  * Release wake lock
  */
 async function releaseLock(): Promise<void> {
-  if (Capacitor.isNativePlatform()) {
-    try {
-      await KeepAwake.allowSleep();
-    } catch (err) {
-      console.warn('[KeepAwake] Native allowSleep error:', err);
-    }
-  }
-
   if (wakeLockSentinel) {
     try {
       await wakeLockSentinel.release();
     } catch (err) {
-      console.warn('[KeepAwake] Web WakeLock release error:', err);
+      console.warn('[KeepAwake] Web WakeLock release notice:', err);
     }
     wakeLockSentinel = null;
   }
@@ -136,7 +110,7 @@ export function subscribeKeepScreenOn(callback: (active: boolean) => void): () =
 }
 
 /**
- * Initialize on app startup (restores user preference from localStorage)
+ * Initialize on web startup (restores user preference from localStorage)
  */
 export function initKeepAwake(): void {
   try {
@@ -154,7 +128,7 @@ export function initKeepAwake(): void {
     releaseLock().catch(() => {});
   }
 
-  // Handle re-acquiring lock when app comes back to foreground
+  // Handle re-acquiring lock when tab/window comes back to foreground
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && isKeepAwakeEnabled) {

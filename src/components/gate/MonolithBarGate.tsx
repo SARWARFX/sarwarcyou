@@ -11,8 +11,6 @@ import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
-import { SyncStatusIndicator } from '../SyncStatusIndicator';
-import { AvailableOfflineBadge } from '../common/AvailableOfflineBadge';
 import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 import { CelebrityShowcase } from '../CelebrityShowcase';
 import { VaultDrawer } from '../VaultDrawer';
@@ -465,10 +463,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           trackingClass="tracking-[0.22em] sm:tracking-[0.25em]"
           onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
         />
-
-        <div className="flex items-center gap-2.5">
-          <SyncStatusIndicator />
-        </div>
       </header>
 
       {/* MAIN VIEWPORT STAGE */}
@@ -833,7 +827,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                           </div>
                         </div>
                       )}
-                      <AvailableOfflineBadge item={item} className="absolute bottom-2 left-2 z-10" />
                     </SmartThumbnail>
                   </div>
                 );

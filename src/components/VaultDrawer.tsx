@@ -1,24 +1,13 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { HardDrive, Loader2, CheckCircle2, ShieldAlert, AlertCircle } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
+import React, { useEffect, useState, useMemo } from 'react';
 import { hapticMedium } from '../utils/hapticsManager';
 import type { DirectoryNode } from './DeepSpaceTreeExplorer';
 import fallbackJson from '../data/mediaFallback.json';
-import { getRolling7DayUsage, trackActivityEvent } from '../utils/usageTelemetry';
+import { getRolling7DayUsage } from '../utils/usageTelemetry';
 import {
   getKeepScreenOnState,
   toggleKeepScreenOn,
   subscribeKeepScreenOn,
 } from '../utils/keepAwakeManager';
-import { useOfflineFilesSummary } from '../services/offlineFilesManager';
-import { OfflineFilesModal } from './OfflineFilesModal';
-import {
-  checkAppUpdate,
-  getCurrentAppVersion,
-  AppInstaller,
-  formatBytes,
-  type UpdateCheckResult,
-} from '../utils/updater';
 import type { StageMediaItem } from '../types';
 
 export interface VaultDrawerProps {
@@ -123,38 +112,16 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
   onSelectFolder,
   onSelectHome,
   rootMap,
-  onOpenPhoto,
-  onOpenVideo,
 }) => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
-  const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
   const [telemetry, setTelemetry] = useState(() => getRolling7DayUsage());
   const [keepScreenOn, setKeepScreenOn] = useState<boolean>(() => getKeepScreenOnState());
-  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
-
-  // Live offline storage files summary
-  const { summary: offlineSummary, refresh: refreshOfflineSummary } = useOfflineFilesSummary();
-
-  // In-app updater state
-  const [updateState, setUpdateState] = useState<{
-    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'permission_needed' | 'latest' | 'error';
-    result: UpdateCheckResult | null;
-    errorText?: string;
-    progressPercent: number;
-    bytesText: string;
-  }>({
-    status: 'idle',
-    result: null,
-    progressPercent: 0,
-    bytesText: '',
-  });
 
   useEffect(() => {
-    if (!isNative) return;
     return subscribeKeepScreenOn((active) => {
       setKeepScreenOn(active);
     });
-  }, [isNative]);
+  }, []);
 
   const handleToggleKeepScreenOn = async () => {
     hapticMedium();
@@ -162,55 +129,11 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     setKeepScreenOn(nextVal);
   };
 
-  // Perform update check
-  const runUpdateCheck = useCallback(async () => {
-    setUpdateState((prev) => ({ ...prev, status: 'checking', errorText: undefined }));
-    try {
-      const res = await checkAppUpdate();
-      if (res && res.hasUpdate) {
-        setUpdateState({
-          status: 'available',
-          result: res,
-          progressPercent: 0,
-          bytesText: '',
-        });
-      } else {
-        setUpdateState({
-          status: 'latest',
-          result: res,
-          progressPercent: 0,
-          bytesText: '',
-        });
-      }
-    } catch (_err) {
-      const current = await getCurrentAppVersion();
-      const vStr = current.version.startsWith('v') ? current.version : `v${current.version}`;
-      setUpdateState({
-        status: 'latest',
-        result: {
-          hasUpdate: false,
-          currentVersion: vStr,
-          latestVersion: vStr,
-          apkUrl: '',
-          releaseNotes: '',
-          remoteBuildNumber: current.buildNumber,
-          currentBuildNumber: current.buildNumber,
-        },
-        progressPercent: 0,
-        bytesText: '',
-      });
-    }
-  }, []);
-
-  // When drawer opens: refresh telemetry, and on native app refresh offline storage count and check updates
+  // When drawer opens: refresh telemetry
   useEffect(() => {
     if (!isOpen) return;
 
     setTelemetry(getRolling7DayUsage());
-    if (isNative) {
-      refreshOfflineSummary();
-      runUpdateCheck();
-    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -219,130 +142,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, refreshOfflineSummary, runUpdateCheck, isNative]);
-
-  // Handle in-app APK download & installation
-  const handleStartUpdate = async () => {
-    if (!updateState.result?.apkUrl) return;
-    hapticMedium();
-
-    if (!Capacitor.isNativePlatform()) {
-      window.open(updateState.result.apkUrl, '_blank');
-      return;
-    }
-
-    setUpdateState((prev) => ({
-      ...prev,
-      status: 'downloading',
-      progressPercent: 0,
-      bytesText: 'Connecting to download server...',
-      errorText: undefined,
-    }));
-
-    try {
-      try {
-        await AppInstaller.removeAllListeners();
-      } catch (_) {}
-
-      await AppInstaller.addListener(
-        'downloadProgress',
-        (data: { percent: number; bytesReceived: number; totalBytes: number }) => {
-          setUpdateState((prev) => ({
-            ...prev,
-            progressPercent: data.percent || 0,
-            bytesText:
-              data.totalBytes > 0
-                ? `${formatBytes(data.bytesReceived)} / ${formatBytes(data.totalBytes)} (${data.percent}%)`
-                : formatBytes(data.bytesReceived),
-          }));
-        }
-      );
-
-      await AppInstaller.addListener('downloadComplete', () => {
-        setUpdateState((prev) => ({
-          ...prev,
-          progressPercent: 100,
-          bytesText: 'APK package downloaded. Preparing installation...',
-        }));
-      });
-
-      await AppInstaller.addListener('permissionNeeded', () => {
-        setUpdateState((prev) => ({
-          ...prev,
-          status: 'permission_needed',
-          progressPercent: 100,
-          bytesText: 'Grant "Install unknown apps" permission to complete update',
-        }));
-      });
-
-      await AppInstaller.addListener('downloadFailed', (err: { error: string }) => {
-        setUpdateState((prev) => ({
-          ...prev,
-          status: 'error',
-          errorText: err.error || 'Download failed',
-        }));
-      });
-
-      const res = await AppInstaller.downloadAndInstall({ url: updateState.result.apkUrl });
-      if (res && res.needsPermission) {
-        setUpdateState((prev) => ({
-          ...prev,
-          status: 'permission_needed',
-          progressPercent: 100,
-          bytesText: 'Enable install permission in Settings to continue',
-        }));
-      } else if (res && res.success) {
-        setUpdateState((prev) => ({
-          ...prev,
-          status: 'downloaded',
-          progressPercent: 100,
-          bytesText: 'Package installer launched.',
-        }));
-      }
-    } catch (err: any) {
-      console.warn('[VaultDrawer] In-app download error:', err);
-      setUpdateState((prev) => ({
-        ...prev,
-        status: 'error',
-        errorText: err?.message || 'Download failed. Tap to retry.',
-      }));
-    }
-  };
-
-  const handleInstallDownloaded = async () => {
-    hapticMedium();
-    try {
-      const res = await AppInstaller.installApk();
-      if (res && res.needsPermission) {
-        setUpdateState((prev) => ({
-          ...prev,
-          status: 'permission_needed',
-          bytesText: 'Please allow "Install unknown apps" in Settings first',
-        }));
-      } else {
-        setUpdateState((prev) => ({
-          ...prev,
-          status: 'downloaded',
-          bytesText: 'Package installer launched.',
-        }));
-      }
-    } catch (err: any) {
-      setUpdateState((prev) => ({
-        ...prev,
-        status: 'error',
-        errorText: err?.message || 'Install failed',
-      }));
-    }
-  };
-
-  const handleOpenSettings = async () => {
-    hapticMedium();
-    try {
-      await AppInstaller.openInstallSettings();
-    } catch (err) {
-      console.warn('Could not open install settings', err);
-    }
-  };
+  }, [isOpen, onClose]);
 
   // Dynamically resolve actual subfolders from live rootMap or the media manifest
   const categoriesWithSubfolders = useMemo(() => {
@@ -367,115 +167,132 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     });
   }, [rootMap]);
 
-  const navigateToHome = () => {
-    hapticMedium();
-    trackActivityEvent(1);
-    onClose();
-    if (onSelectHome) {
-      onSelectHome();
-    }
-  };
-
-  const navigateToSubfolder = (
-    folderId: 'clips' | 'shorts' | 'photography' | 'realtube' | 'youtube',
-    subfolderName: string
-  ) => {
-    hapticMedium();
-    trackActivityEvent(1);
-    onClose();
-    onSelectFolder(folderId, subfolderName);
-  };
-
   return (
     <>
-      {/* Blurred Backdrop Overlay Mask */}
+      {/* Backdrop */}
       <div
-        className={`vault-overlay-mask ${isOpen ? 'active' : ''}`}
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
         onClick={onClose}
-        aria-hidden={!isOpen}
       />
 
-      {/* Sliding Minimalist Side Panel */}
+      {/* Pure Monochrome Apple-Style Drawer Panel */}
       <aside
-        className={`vault-drawer-left ${isOpen ? 'open' : ''}`}
-        aria-label="Media Archive Navigation"
+        role="dialog"
+        aria-label="Media Vault Navigation"
+        className={`fixed top-0 left-0 bottom-0 z-50 w-80 max-w-[85vw] bg-neutral-950 border-r border-white/10 flex flex-col p-5 shadow-2xl transition-transform duration-300 ease-out select-none ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        {/* Minimalist Publication Header */}
-        <div className="drawer-header flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08]">
-          <span className="font-serif text-sm font-bold tracking-wider text-[#f4f4f5] uppercase">
-            MEDIA ARCHIVE
-          </span>
-        </div>
-
-        {/* Dynamic Accordion Directory Tree */}
-        <div className="folder-accordion-menu space-scrollbar">
-          {/* Top-Level Portal Home Item */}
+        {/* Masthead */}
+        <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+          <div className="flex flex-col">
+            <span className="text-base font-semibold tracking-wider text-white">SARWARCYOU</span>
+            <span className="text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+              VAULT DIRECTORY
+            </span>
+          </div>
           <button
             type="button"
-            onClick={navigateToHome}
-            className="w-full flex items-center justify-between py-3.5 px-4 text-left border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors cursor-pointer group"
+            onClick={onClose}
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            title="Close drawer"
+            aria-label="Close drawer"
           >
-            <span className="text-xs uppercase tracking-[0.2em] font-medium text-white/90 group-hover:text-white transition-colors">
+            <span className="text-sm font-mono">✕</span>
+          </button>
+        </div>
+
+        {/* Directory Listing */}
+        <div className="flex-1 overflow-y-auto py-3 space-y-1">
+          {/* CELEBRITY ARCHIVE (MAIN PORTAL ENTRY) */}
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              if (onSelectHome) {
+                onSelectHome();
+              }
+              onClose();
+            }}
+            className="w-full flex items-center justify-between py-3.5 px-3 rounded-lg text-left hover:bg-white/5 transition-colors cursor-pointer group"
+          >
+            <span className="text-xs font-sans uppercase tracking-[0.2em] font-medium text-white/90 group-hover:text-white transition-colors">
               CELEBRITY ARCHIVE
             </span>
-            <span className="text-[10px] text-white/30 uppercase tracking-widest font-mono">
+            <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono group-hover:text-white/70 transition-colors">
               MAIN PORTAL
             </span>
           </button>
 
-          {categoriesWithSubfolders.map((folder) => {
-            const isExpanded = expandedFolder === folder.id;
+          <div className="border-t border-white/[0.06] my-2" />
+
+          {/* 4 Core Media Categories */}
+          {categoriesWithSubfolders.map((cat) => {
+            const isExpanded = expandedFolder === cat.id;
+
             return (
-              <div
-                key={folder.id}
-                className={`accordion-group ${isExpanded ? 'active' : ''}`}
-              >
-                <button
-                  type="button"
-                  className={`folder-btn ${isExpanded ? 'expanded' : ''}`}
-                  onClick={() => {
-                    hapticMedium();
-                    setExpandedFolder(isExpanded ? null : folder.id);
-                  }}
-                >
-                  <span className="folder-label">
-                    <span
-                      className={`folder-caret ${isExpanded ? 'open' : ''}`}
+              <div key={cat.id} className="flex flex-col">
+                <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/5 transition-colors group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticMedium();
+                      onSelectFolder(cat.id);
+                      onClose();
+                    }}
+                    className="flex-1 text-left flex items-center justify-between pr-2 cursor-pointer"
+                  >
+                    <span className="text-xs font-sans tracking-widest uppercase font-medium text-neutral-300 group-hover:text-white transition-colors">
+                      {cat.name}
+                    </span>
+                    {cat.tag && (
+                      <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-white/10 text-neutral-400">
+                        {cat.tag}
+                      </span>
+                    )}
+                  </button>
+
+                  {cat.subfolders.length > 0 && (
+                    <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         hapticMedium();
-                        setExpandedFolder(isExpanded ? null : folder.id);
+                        setExpandedFolder(isExpanded ? null : cat.id);
                       }}
+                      className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                      title={isExpanded ? 'Collapse subfolders' : 'Expand subfolders'}
                     >
-                      ▸
-                    </span>
-                    <span>{folder.name}</span>
-                  </span>
-                  {folder.tag && (
-                    <span className="folder-badge font-mono text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] text-neutral-400">
-                      {folder.tag}
-                    </span>
+                      <span className="text-xs font-mono">{isExpanded ? '−' : '+'}</span>
+                    </button>
                   )}
-                </button>
+                </div>
 
+                {/* Subfolder list */}
                 {isExpanded && (
-                  <div className="subfolder-tray">
-                    {folder.subfolders.length === 0 ? (
-                      <div className="text-xs text-neutral-500 py-2 px-3 italic">
-                        No albums listed
-                      </div>
+                  <div className="ml-4 pl-3 border-l border-white/10 py-1 space-y-1">
+                    {cat.subfolders.length === 0 ? (
+                      <span className="text-[11px] font-mono text-neutral-400 px-2 py-1 block">
+                        No subfolders
+                      </span>
                     ) : (
-                      folder.subfolders.map((sub) => (
+                      cat.subfolders.map((sub) => (
                         <button
                           key={sub.id}
                           type="button"
-                          className="subfolder-btn flex items-center justify-between w-full"
-                          onClick={() => navigateToSubfolder(folder.id, sub.name)}
+                          onClick={() => {
+                            hapticMedium();
+                            onSelectFolder(cat.id, sub.name);
+                            onClose();
+                          }}
+                          className="w-full text-left py-1.5 px-2.5 rounded hover:bg-white/5 text-[11px] font-sans text-neutral-400 hover:text-white flex items-center justify-between transition-colors cursor-pointer group"
                         >
-                          <span className="sub-title">{sub.name}</span>
-                          {sub.tag && (
-                            <span className="sub-tag font-mono text-[9px] text-neutral-400">
-                              {sub.tag}
+                          <span className="truncate pr-2">{sub.name}</span>
+                          {sub.itemCount !== undefined && (
+                            <span className="text-[10px] font-mono text-neutral-400 group-hover:text-neutral-300 shrink-0">
+                              {sub.itemCount}
                             </span>
                           )}
                         </button>
@@ -488,225 +305,43 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           })}
         </div>
 
-        {/* Drawer Footer Cluster: Controls & Telemetry */}
+        {/* Drawer Footer Cluster: Keep Screen On & Telemetry */}
         <div className="drawer-footer-cluster mt-auto pt-3 border-t border-white/[0.08] flex flex-col gap-2.5">
-          {/* Native App-Only Controls: Keep Screen On, Available Offline Files, App Updates */}
-          {isNative && (
-            <>
-              {/* Keep Screen On Toggle Bar */}
-              <div className="flex items-center justify-between py-0.5 px-0.5">
-                <div className="flex flex-col">
-                  <span className="text-xs font-sans font-medium text-neutral-200 tracking-wide">
-                    Keep Screen On
-                  </span>
-                  <span className="text-[10px] text-neutral-400 font-mono tracking-wider">
-                    {keepScreenOn ? 'ALWAYS AWAKE' : 'SYSTEM SLEEP'}
-                  </span>
-                </div>
+          {/* Keep Screen On Toggle Bar (Web WakeLock) */}
+          <div className="flex items-center justify-between py-0.5 px-0.5">
+            <div className="flex flex-col">
+              <span className="text-xs font-sans font-medium text-neutral-200 tracking-wide">
+                Keep Screen On
+              </span>
+              <span className="text-[10px] text-neutral-400 font-mono tracking-wider">
+                {keepScreenOn ? 'ALWAYS AWAKE' : 'SYSTEM SLEEP'}
+              </span>
+            </div>
 
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={keepScreenOn}
-                  onClick={handleToggleKeepScreenOn}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full p-0.5 border border-white/10 transition-colors duration-200 ease-in-out focus:outline-none ${
-                    keepScreenOn ? 'bg-white' : 'bg-neutral-800/90'
-                  }`}
-                  title={keepScreenOn ? 'Keep screen on: Enabled' : 'Keep screen on: Disabled'}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full shadow-md transition duration-200 ease-in-out ${
-                      keepScreenOn
-                        ? 'translate-x-4 bg-neutral-950'
-                        : 'translate-x-0 bg-neutral-400'
-                    }`}
-                  />
-                </button>
-              </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={keepScreenOn}
+              onClick={handleToggleKeepScreenOn}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full p-0.5 border border-white/10 transition-colors duration-200 ease-in-out focus:outline-none ${
+                keepScreenOn ? 'bg-white' : 'bg-neutral-800/90'
+              }`}
+              title={keepScreenOn ? 'Keep screen on: Enabled' : 'Keep screen on: Disabled'}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full shadow-md transition duration-200 ease-in-out ${
+                  keepScreenOn
+                    ? 'translate-x-4 bg-neutral-950'
+                    : 'translate-x-0 bg-neutral-400'
+                }`}
+              />
+            </button>
+          </div>
 
-              <div className="border-t border-white/[0.06]" />
+          <div className="border-t border-white/[0.06]" />
 
-              {/* Available Offline Files (File Count) */}
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  setIsOfflineModalOpen(true);
-                }}
-                className="flex items-center justify-between py-1 px-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group text-left"
-                title="Click to view files available offline"
-              >
-                <div className="flex items-center gap-2">
-                  <HardDrive className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
-                  <span className="text-xs font-sans font-medium text-neutral-200 tracking-wide group-hover:text-white transition-colors">
-                    Available Offline Files
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/10 font-bold group-hover:bg-white group-hover:text-black transition-colors">
-                    {offlineSummary.count}
-                  </span>
-                </div>
-              </button>
-
-              {/* Check for App Update Notification (Under Available Offline Files & Right Above Graph) */}
-              <div className="flex flex-col gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                {updateState.status === 'checking' && (
-                  <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-mono py-0.5">
-                    <Loader2 className="w-3 h-3 animate-spin text-neutral-300" />
-                    <span>Checking for app updates...</span>
-                  </div>
-                )}
-
-                {updateState.status === 'available' && updateState.result && (
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>Update Available</span>
-                        </div>
-                        <span className="text-[10px] text-neutral-400 font-mono">
-                          {updateState.result.latestVersion} (Current: {updateState.result.currentVersion})
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleStartUpdate}
-                        className="px-2.5 py-1 rounded bg-white text-neutral-950 hover:bg-neutral-200 text-[10px] font-mono font-bold tracking-wider uppercase transition-colors shrink-0 cursor-pointer shadow-sm"
-                      >
-                        Update
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {updateState.status === 'downloading' && (
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-neutral-300">
-                      <span className="flex items-center gap-1.5">
-                        <Loader2 className="w-2.5 h-2.5 animate-spin text-emerald-400" />
-                        Downloading in-app...
-                      </span>
-                      <span>{updateState.progressPercent}%</span>
-                    </div>
-                    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-400 transition-all duration-150"
-                        style={{ width: `${updateState.progressPercent}%` }}
-                      />
-                    </div>
-                    {updateState.bytesText && (
-                      <span className="text-[9px] font-mono text-neutral-400 text-right">
-                        {updateState.bytesText}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {updateState.status === 'downloaded' && (
-                  <div className="flex items-center justify-between gap-2 py-0.5">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Update Ready</span>
-                      </div>
-                      <span className="text-[9px] text-neutral-400 font-mono">
-                        {updateState.bytesText || 'Package downloaded'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleInstallDownloaded}
-                      className="px-2.5 py-1 rounded bg-emerald-400 text-neutral-950 hover:bg-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase transition-colors shrink-0 cursor-pointer shadow-sm"
-                    >
-                      Install Now
-                    </button>
-                  </div>
-                )}
-
-                {updateState.status === 'permission_needed' && (
-                  <div className="flex flex-col gap-1.5 py-0.5">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>Permission Required</span>
-                    </div>
-                    <span className="text-[10px] text-neutral-300 leading-snug">
-                      Allow &quot;Install unknown apps&quot; for SARWARCYOU in Settings to proceed.
-                    </span>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <button
-                        type="button"
-                        onClick={handleOpenSettings}
-                        className="px-2 py-0.5 rounded bg-amber-400 text-neutral-950 hover:bg-amber-300 text-[10px] font-mono font-bold tracking-wider uppercase transition-colors cursor-pointer"
-                      >
-                        Open Settings
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleInstallDownloaded}
-                        className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono transition-colors cursor-pointer"
-                      >
-                        Try Install
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {updateState.status === 'latest' && updateState.result && (
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
-                    <div className="flex items-center gap-1.5 text-neutral-400">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>App is up to date ({updateState.result.currentVersion})</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => runUpdateCheck()}
-                      className="text-[10px] text-neutral-500 hover:text-neutral-300 hover:underline cursor-pointer"
-                      title="Check for update again"
-                    >
-                      Check
-                    </button>
-                  </div>
-                )}
-
-                {updateState.status === 'error' && (
-                  <div className="flex items-center justify-between gap-2 text-[11px] font-mono py-0.5">
-                    <div className="flex items-center gap-1.5 text-rose-400 overflow-hidden">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate text-[10px]">{updateState.errorText || 'Update failed'}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleStartUpdate}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-neutral-200 text-[10px] font-mono transition-colors shrink-0 cursor-pointer"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                )}
-
-                {updateState.status === 'idle' && (
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
-                    <span>App Updates</span>
-                    <button
-                      type="button"
-                      onClick={() => runUpdateCheck()}
-                      className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-neutral-300 text-[10px] font-mono transition-colors cursor-pointer"
-                    >
-                      Check for App Update
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-white/[0.06]" />
-            </>
-          )}
-
-          {/* Streamlined Activity Telemetry Widget */}
+          {/* Activity Telemetry Widget */}
           <div className="flex flex-col gap-2 pt-1">
             <span className="text-xs font-mono text-neutral-300 font-medium">
               {telemetry.todayFormatted}
@@ -716,9 +351,10 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
             <div className="flex items-end gap-1.5 h-9">
               {telemetry.days.map((day, idx) => {
                 const isToday = idx === telemetry.days.length - 1;
-                const heightPercent = (telemetry.maxMinutes > 0 && day.minutes > 0)
-                  ? Math.max(Math.round((day.minutes / telemetry.maxMinutes) * 100), 14)
-                  : 0;
+                const heightPercent =
+                  telemetry.maxMinutes > 0 && day.minutes > 0
+                    ? Math.max(Math.round((day.minutes / telemetry.maxMinutes) * 100), 14)
+                    : 0;
 
                 return (
                   <div key={day.date} className="flex-1 flex flex-col items-center h-full justify-end gap-1">
@@ -744,17 +380,6 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           </div>
         </div>
       </aside>
-
-      {/* Available Offline Files Browser Modal (Native App only) */}
-      {isNative && (
-        <OfflineFilesModal
-          isOpen={isOfflineModalOpen}
-          onClose={() => setIsOfflineModalOpen(false)}
-          summary={offlineSummary}
-          onOpenPhoto={onOpenPhoto}
-          onOpenVideo={onOpenVideo}
-        />
-      )}
     </>
   );
 };
