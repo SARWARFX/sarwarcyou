@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Wifi, WifiOff, X } from 'lucide-react';
+import { Network } from '@capacitor/network';
+import { Capacitor } from '@capacitor/core';
 
 export interface NetworkStatusHUDProps {
   className?: string;
@@ -8,7 +10,7 @@ export interface NetworkStatusHUDProps {
 
 export const NetworkStatusHUD: React.FC<NetworkStatusHUDProps> = ({
   className = '',
-  autoDismissOnlineMs = 4000,
+  autoDismissOnlineMs = 3500,
 }) => {
   const [status, setStatus] = useState<'online' | 'offline' | 'idle'>(() => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -31,41 +33,86 @@ export const NetworkStatusHUD: React.FC<NetworkStatusHUDProps> = ({
     }
   }, []);
 
-  useEffect(() => {
-    const handleOnline = () => {
-      clearTimer();
-      // Only show the "back online" notification if the user was detected offline
-      if (wasOfflineRef.current) {
-        setStatus('online');
-        setIsVisible(true);
-        wasOfflineRef.current = false;
+  const handleOfflineTransition = useCallback(() => {
+    clearTimer();
+    wasOfflineRef.current = true;
+    setStatus('offline');
+    setIsVisible(true);
+  }, [clearTimer]);
 
-        // Auto-dismiss after configured duration
-        dismissTimerRef.current = setTimeout(() => {
-          setIsVisible(false);
-          dismissTimerRef.current = setTimeout(() => {
-            setStatus('idle');
-          }, 350);
-        }, autoDismissOnlineMs);
-      }
-    };
-
-    const handleOffline = () => {
-      clearTimer();
-      wasOfflineRef.current = true;
-      setStatus('offline');
+  const handleOnlineTransition = useCallback(() => {
+    clearTimer();
+    if (wasOfflineRef.current) {
+      setStatus('online');
       setIsVisible(true);
-    };
+      wasOfflineRef.current = false;
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+      dismissTimerRef.current = setTimeout(() => {
+        setIsVisible(false);
+        dismissTimerRef.current = setTimeout(() => {
+          setStatus('idle');
+        }, 350);
+      }, autoDismissOnlineMs);
+    }
+  }, [clearTimer, autoDismissOnlineMs]);
+
+  useEffect(() => {
+    let isSubscribed = true;
+
+    // 1. Initial status query via native Capacitor Network API
+    Network.getStatus().then((netStatus) => {
+      if (!isSubscribed) return;
+      if (!netStatus.connected) {
+        handleOfflineTransition();
+      }
+    }).catch(() => {});
+
+    // 2. Native Capacitor Android Network Listener (detects real-time carrier & Wi-Fi changes)
+    const listenerPromise = Network.addListener('networkStatusChange', (netStatus) => {
+      if (!isSubscribed) return;
+      if (!netStatus.connected) {
+        handleOfflineTransition();
+      } else {
+        handleOnlineTransition();
+      }
+    });
+
+    // 3. Browser DOM Events Fallback
+    const handleDomOnline = () => handleOnlineTransition();
+    const handleDomOffline = () => handleOfflineTransition();
+
+    window.addEventListener('online', handleDomOnline);
+    window.addEventListener('offline', handleDomOffline);
+
+    // 4. Periodic heartbeat check (every 5 seconds) to catch silent drops
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        if (Capacitor.isNativePlatform()) {
+          const s = await Network.getStatus();
+          if (!s.connected) {
+            handleOfflineTransition();
+          } else if (wasOfflineRef.current) {
+            handleOnlineTransition();
+          }
+        } else {
+          if (!navigator.onLine) {
+            handleOfflineTransition();
+          } else if (wasOfflineRef.current) {
+            handleOnlineTransition();
+          }
+        }
+      } catch (_) {}
+    }, 5000);
 
     return () => {
+      isSubscribed = false;
       clearTimer();
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      clearInterval(heartbeatInterval);
+      window.removeEventListener('online', handleDomOnline);
+      window.removeEventListener('offline', handleDomOffline);
+      listenerPromise.then((handle) => handle.remove()).catch(() => {});
     };
-  }, [clearTimer, autoDismissOnlineMs]);
+  }, [clearTimer, handleOfflineTransition, handleOnlineTransition]);
 
   const handleDismiss = () => {
     clearTimer();
@@ -87,65 +134,63 @@ export const NetworkStatusHUD: React.FC<NetworkStatusHUDProps> = ({
     <div
       role="status"
       aria-live="polite"
-      className={`fixed top-4 sm:top-6 inset-x-0 mx-auto z-[10005] max-w-sm sm:max-w-md w-[calc(100%-2rem)] transition-all duration-300 ease-out select-none font-serif ${
+      className={`fixed top-4 sm:top-6 inset-x-0 mx-auto z-[10005] max-w-sm sm:max-w-md w-[calc(100%-2rem)] transition-all duration-300 ease-out select-none ${
         isVisible
           ? 'translate-y-0 opacity-100 scale-100 pointer-events-auto'
           : '-translate-y-6 opacity-0 scale-95 pointer-events-none'
       } ${className}`}
     >
       <div
-        className={`relative flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-lg border backdrop-blur-xl transition-all duration-300 shadow-xl ${
+        className={`relative flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl border backdrop-blur-2xl transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.85)] ${
           isOffline
-            ? 'bg-[#121110]/95 border-amber-800/60 text-amber-100'
-            : 'bg-[#0f1412]/95 border-neutral-700 text-neutral-100'
+            ? 'bg-[#0f1015]/95 border-white/15 text-white'
+            : 'bg-[#0f1015]/95 border-white/20 text-white'
         }`}
       >
-        {/* Ambient icon */}
+        {/* Left: Icon & Notification Text */}
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md flex items-center justify-center flex-shrink-0 border transition-all ${
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
               isOffline
-                ? 'bg-amber-950/40 border-amber-700/50 text-amber-400'
-                : 'bg-neutral-900 border-neutral-700 text-neutral-200'
+                ? 'bg-white/10 border-white/15 text-white'
+                : 'bg-white text-black border-transparent'
             }`}
           >
             {isOffline ? (
-              <WifiOff className="w-5 h-5" />
+              <WifiOff className="w-5 h-5 text-white" />
             ) : (
-              <div className="relative">
-                <Wifi className="w-5 h-5" />
-              </div>
+              <Wifi className="w-5 h-5 text-black" />
             )}
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h4 className="text-xs sm:text-sm font-normal text-white">
-                {isOffline ? 'You Are Currently Offline' : 'Connection Restored'}
+              <h4 className="text-xs sm:text-sm font-['Roboto_Condensed'] font-bold uppercase tracking-wider text-white">
+                {isOffline ? "You're Offline" : 'Back Online'}
               </h4>
               <span
-                className={`text-[9px] font-normal px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
                   isOffline
-                    ? 'bg-amber-950/30 text-amber-300 border-amber-800/40'
-                    : 'bg-neutral-800 text-neutral-300 border-neutral-700'
+                    ? 'bg-white/10 text-white/90 border-white/20'
+                    : 'bg-white text-black border-transparent'
                 }`}
               >
                 {isOffline ? 'OFFLINE' : 'ONLINE'}
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-neutral-400 truncate mt-0.5 font-normal">
+            <p className="text-[11px] sm:text-xs text-zinc-400 truncate mt-0.5 font-sans">
               {isOffline
-                ? 'Your device has lost internet connectivity.'
-                : 'Your device is connected to the internet again.'}
+                ? 'Device has lost internet connection. Saved files remain available.'
+                : 'Internet connectivity restored.'}
             </p>
           </div>
         </div>
 
-        {/* Dismiss button */}
+        {/* Right: Dismiss button */}
         <button
           type="button"
           onClick={handleDismiss}
-          className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] text-zinc-400 hover:text-white transition-all flex-shrink-0 cursor-pointer border border-white/10 active:scale-95"
+          className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] text-zinc-400 hover:text-white transition-all shrink-0 cursor-pointer border border-white/10 active:scale-95"
           title="Dismiss notification"
           aria-label="Dismiss notification"
         >
