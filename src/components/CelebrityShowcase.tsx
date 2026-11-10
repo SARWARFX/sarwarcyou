@@ -762,11 +762,22 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                         }}
                       />
 
-                      {/* 16:9 Thumbnail Cover */}
+                      {/* 16:9 Thumbnail Cover with Auto Fallback */}
                       <img
                         src={item.thumbnail}
                         alt={item.title}
                         loading="lazy"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src.includes('maxresdefault.jpg')) {
+                            target.src = target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+                          } else {
+                            const found = (actressesRegistryData as any[]).find((a) => a.name === itemAny.actress);
+                            if (found?.avatar) {
+                              target.src = found.avatar;
+                            }
+                          }
+                        }}
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
 
