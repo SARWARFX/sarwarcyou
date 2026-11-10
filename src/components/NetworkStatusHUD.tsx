@@ -106,39 +106,61 @@ export const NetworkStatusHUD: React.FC<NetworkStatusHUDProps> = ({
     <aside
       role="status"
       aria-live="polite"
-      className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] pointer-events-auto transition-all duration-300 ease-out ${
-        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-3 scale-95 pointer-events-none'
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[999999] pointer-events-auto transition-all duration-300 ease-out select-none ${
+        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
       } ${className}`}
     >
       <div
-        className={`flex items-center gap-2.5 px-4 py-2 rounded-full border shadow-2xl backdrop-blur-xl text-xs font-mono transition-colors duration-200 ${
+        className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border shadow-2xl backdrop-blur-2xl text-xs font-mono transition-all duration-300 ${
           isOffline
-            ? 'bg-neutral-900/95 border-rose-500/40 text-rose-300 shadow-rose-950/40'
-            : 'bg-neutral-900/95 border-emerald-500/40 text-emerald-300 shadow-emerald-950/40'
+            ? 'bg-[#050505]/95 border-[#ff0055] text-white shadow-[0_0_35px_rgba(255,0,85,0.35)]'
+            : 'bg-[#050505]/95 border-[#ccff00] text-white shadow-[0_0_35px_rgba(204,255,0,0.35)]'
         }`}
       >
         {isOffline ? (
           <>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff0055] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ff0055]" />
             </span>
-            <WifiOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <div className="flex flex-col">
-              <span className="font-semibold tracking-wide text-rose-200">YOU'RE OFFLINE</span>
-              <span className="text-[10px] text-rose-400/80">Check your internet connection</span>
+            <div className="w-7 h-7 rounded-full bg-[#ff0055]/15 border border-[#ff0055]/30 flex items-center justify-center shrink-0">
+              <WifiOff className="w-3.5 h-3.5 text-[#ff0055]" />
+            </div>
+            <div className="flex flex-col pr-1 min-w-[200px]">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold tracking-widest text-[#ff0055] uppercase text-[11px]">
+                  INTERNET DISCONNECTED
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-[#ff0055]/20 text-[#ff0055] text-[9px] font-bold tracking-wider">
+                  OFFLINE
+                </span>
+              </div>
+              <span className="text-[10px] text-neutral-400 tracking-wide mt-0.5">
+                SARWAR.CYOU // Running on cached memory
+              </span>
             </div>
           </>
         ) : (
           <>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ccff00] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ccff00]" />
             </span>
-            <Wifi className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <div className="flex flex-col">
-              <span className="font-semibold tracking-wide text-emerald-200">ONLINE</span>
-              <span className="text-[10px] text-emerald-400/80">Connection restored</span>
+            <div className="w-7 h-7 rounded-full bg-[#ccff00]/15 border border-[#ccff00]/30 flex items-center justify-center shrink-0">
+              <Wifi className="w-3.5 h-3.5 text-[#ccff00]" />
+            </div>
+            <div className="flex flex-col pr-1 min-w-[200px]">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold tracking-widest text-[#ccff00] uppercase text-[11px]">
+                  CONNECTION RESTORED
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-[#ccff00]/20 text-black font-bold tracking-wider text-[9px] bg-[#ccff00]">
+                  LIVE
+                </span>
+              </div>
+              <span className="text-[10px] text-neutral-400 tracking-wide mt-0.5">
+                Cloud uplink synchronized // Biennale 2026
+              </span>
             </div>
           </>
         )}
@@ -146,11 +168,11 @@ export const NetworkStatusHUD: React.FC<NetworkStatusHUDProps> = ({
         <button
           type="button"
           onClick={handleDismiss}
-          className="ml-1 p-0.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+          className="ml-2 p-1 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer border border-transparent hover:border-white/10 shrink-0"
           title="Dismiss notification"
           aria-label="Dismiss notification"
         >
-          <X className="w-3 h-3" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
     </aside>

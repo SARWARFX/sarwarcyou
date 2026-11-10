@@ -636,9 +636,6 @@ function App() {
             onOpenVideo={handleOpenVideo}
             onOpenShort={handleOpenShort}
           />
-
-          {/* Global Network Connectivity Indicator */}
-          <NetworkStatusHUD />
         </>
       ) : ENABLE_TRAILER_GATE || ACTIVE_INTERFACE === 'TRAILER_GATE' ? (
         <>
@@ -656,9 +653,6 @@ function App() {
             onOpenVideo={handleOpenVideo}
             onOpenShort={handleOpenShort}
           />
-
-          {/* Global Network Connectivity Indicator */}
-          <NetworkStatusHUD />
         </>
       ) : ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE' ? (
         <>
@@ -676,9 +670,6 @@ function App() {
             onOpenVideo={handleOpenVideo}
             onOpenShort={handleOpenShort}
           />
-
-          {/* Global Network Connectivity Indicator */}
-          <NetworkStatusHUD />
         </>
       ) : ENABLE_AURA_FLOW || ACTIVE_INTERFACE === 'AURA_FLOW' ? (
         <>
@@ -776,9 +767,6 @@ function App() {
               onOpenShort={handleOpenShort}
             />
           )}
-
-          {/* Global Network Connectivity Indicator (Online/Offline HUD) */}
-          <NetworkStatusHUD />
         </>
       )}
 
@@ -882,6 +870,9 @@ function App() {
           />
         </PlayerErrorBoundary>
       )}
+
+      {/* Global Top-Level Internet Connectivity Notification HUD (Acid Avant-Garde Theme) */}
+      <NetworkStatusHUD />
     </div>
   );
 }
