@@ -1,6 +1,8 @@
 export interface DailyUsage {
   date: string; // YYYY-MM-DD
-  label: string; // "4", "5", "YEST", "TODAY"
+  label: string; // "TODAY", "YEST", or day number
+  weekday: string; // "Sun", "Mon", "Tue"...
+  formattedDate: string; // e.g. "Nov 10"
   minutes: number; // active session minutes
   formattedMinutes: string; // e.g. "45m" or "1h 10m"
   count: number; // Backwards-compatibility alias for minutes
@@ -8,6 +10,9 @@ export interface DailyUsage {
 
 export interface TelemetrySummary {
   days: DailyUsage[];
+  activeDays: DailyUsage[]; // Days with minutes > 0
+  totalWeekMinutes: number;
+  averageMinutes: number;
   todayMinutes: number;
   todayFormatted: string; // e.g. "48m today" or "1h 12m today"
   maxMinutes: number;
@@ -17,6 +22,9 @@ export interface TelemetrySummary {
 
 const STORAGE_KEY = 'sarwarcyou_usage_telemetry_v1';
 const TIME_STORAGE_KEY = 'sarwarcyou_time_telemetry_v1';
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function formatDuration(minutes: number): string {
   if (!minutes || minutes < 1) return '<1m today';
@@ -93,9 +101,14 @@ export const getRolling7DayUsage = (): TelemetrySummary => {
       if (i === 0) label = 'TODAY';
       else if (i === 1) label = 'YEST';
 
+      const weekday = DAY_NAMES[d.getDay()];
+      const formattedDate = `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+
       days.push({
         date: iso,
         label,
+        weekday,
+        formattedDate,
         minutes: mins,
         formattedMinutes: formatShortDuration(mins),
         count: mins,
@@ -103,10 +116,16 @@ export const getRolling7DayUsage = (): TelemetrySummary => {
     }
 
     const todayMinutes = days[days.length - 1].minutes;
+    const activeDays = days.filter((d) => d.minutes > 0);
+    const totalWeekMinutes = days.reduce((acc, d) => acc + d.minutes, 0);
+    const averageMinutes = activeDays.length > 0 ? Math.round(totalWeekMinutes / activeDays.length) : 0;
     const maxMinutes = Math.max(...days.map((d) => d.minutes), 1);
 
     return {
       days,
+      activeDays,
+      totalWeekMinutes,
+      averageMinutes,
       todayMinutes,
       todayFormatted: formatDuration(todayMinutes),
       maxMinutes,
@@ -117,6 +136,9 @@ export const getRolling7DayUsage = (): TelemetrySummary => {
     console.warn('Telemetry read failed', e);
     return {
       days: [],
+      activeDays: [],
+      totalWeekMinutes: 0,
+      averageMinutes: 0,
       todayMinutes: 0,
       todayFormatted: '<1m today',
       maxMinutes: 1,
