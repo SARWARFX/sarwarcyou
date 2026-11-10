@@ -619,7 +619,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       ref={mediaBoxRef}
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-fade-in"
+      className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-keynote-modal"
       style={{
         touchAction: 'none',
         WebkitBackdropFilter: 'blur(20px)',

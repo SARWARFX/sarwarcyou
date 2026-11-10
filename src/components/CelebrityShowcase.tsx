@@ -415,7 +415,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
         {/* 2. Main Body Content: Portraits vs News Feed vs Cinema Reels */}
         <main className="p-4 sm:p-6 lg:p-8 pb-20">
           {activeTab === 'PORTRAITS' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
+            <div key={`portraits-${activeFilter}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
               {filteredWallpapers.map((item, idx) => {
                 return (
                   <div
@@ -429,7 +429,8 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                         handleCardClick(idx);
                       }
                     }}
-                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-end aspect-[3/4]"
+                    style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
+                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade cursor-pointer flex flex-col justify-end aspect-[3/4]"
                   >
                     {/* Background Image Loading Shimmer Layer */}
                     <div
@@ -503,7 +504,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
+              <div key={`reels-${activeFilter}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
                 {filteredCinemaReels.map((item, idx) => {
                   const itemAny = item as any;
                   const formattedDate = itemAny.publishedAt
@@ -537,7 +538,8 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                           handleOpenCinemaReel(idx);
                         }
                       }}
-                      className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-between aspect-video select-none"
+                      style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
+                      className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade cursor-pointer flex flex-col justify-between aspect-video select-none"
                     >
                       {/* Background Image Loading Shimmer Layer */}
                       <div

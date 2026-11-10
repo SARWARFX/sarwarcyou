@@ -1273,7 +1273,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         transform: dismissOffsetY > 0 ? `translate3d(0, ${dismissOffsetY}px, 0) scale(${Math.max(0.85, 1 - dismissOffsetY / 1200)})` : 'none',
         transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
       }}
-      className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-keynote-modal select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
       <div className="viewer-top-bar player-header-bar w-full bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-b border-white/[0.08] px-4 py-2.5">

@@ -1022,7 +1022,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
       onClick={resetHudTimer}
-      className="fixed inset-0 z-50 bg-black/95 text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-50 bg-black/95 text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-keynote-modal"
       style={{
         background: 'rgba(2, 4, 8, 0.96)',
         backdropFilter: 'blur(16px)',

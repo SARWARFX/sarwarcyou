@@ -621,7 +621,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         <main
           aria-label="Bollywood Celebrity Archive Overview"
-          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-hidden flex flex-col min-w-0 z-10"
+          className={`flex-1 w-full h-[calc(100dvh-60px)] overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
+          }`}
         >
           <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
         </main>
@@ -631,7 +633,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         <main
           aria-label="YouTube Music Vault Archive"
-          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent"
+          className={`flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
+          }`}
         >
           {/* Header & Subfolder Navigation Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-white/10">
@@ -681,7 +685,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
 
           {/* Editorial Masonry/Grid of Curated Tracks */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 pb-24">
+          <div key={selectedSubfolder || 'classics'} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 pb-24">
             {currentYouTubeList.map((track, idx) => {
               const trackAny = track as any;
               const formattedDate = trackAny.publishedAt
@@ -715,7 +719,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       handlePlayYouTubeTrack(idx);
                     }
                   }}
-                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-white/30 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(255,255,255,0.06)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col select-none"
+                  style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
+                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-white/30 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(255,255,255,0.06)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade cursor-pointer flex flex-col select-none"
                 >
                   {/* 16:9 Thumbnail Stage */}
                   <div className="relative aspect-video w-full overflow-hidden bg-black/60">
@@ -795,10 +800,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         <main
           aria-label={`${selectedCategory} Media Hub`}
-          className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent min-h-0"
+          className={`flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent min-h-0 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
+          }`}
         >
           {/* Section Hero Header */}
-          <div className="flex flex-col gap-2 pb-6 mb-6 border-b border-white/10 shrink-0">
+          <div key={selectedCategory} className="flex flex-col gap-2 pb-6 mb-6 border-b border-white/10 shrink-0 animate-velvet-cascade">
             <div className="flex items-center gap-2.5 font-mono text-[10px] sm:text-xs text-[#ccff00] uppercase tracking-widest">
               <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.8)] animate-pulse" />
               <span>
@@ -949,6 +956,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           ) : (
             <div
+              key={`${selectedCategory}-${selectedSubfolder || 'all'}`}
               className={`w-full pb-20 ${
                 selectedCategory === 'SHORTS'
                   ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4'
@@ -992,8 +1000,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                         e.stopPropagation();
                         handleOpenItem(item, idx);
                       }}
-                      style={{ animationDelay: `${Math.min(idx * 25, 200)}ms` }}
-                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] aspect-[9/16] cursor-pointer transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end select-none"
+                      style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
+                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] aspect-[9/16] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade flex flex-col justify-end select-none"
                     >
                       <SmartThumbnail
                         src={thumb}
@@ -1048,8 +1056,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                         e.stopPropagation();
                         handleOpenItem(item, idx);
                       }}
-                      style={{ animationDelay: `${Math.min(idx * 25, 200)}ms` }}
-                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] aspect-[3/4] cursor-pointer transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end select-none"
+                      style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
+                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] aspect-[3/4] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade flex flex-col justify-end select-none"
                     >
                       <SmartThumbnail
                         src={thumb}
@@ -1087,8 +1095,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       e.stopPropagation();
                       handleOpenItem(item, idx);
                     }}
-                    style={{ animationDelay: `${Math.min(idx * 25, 200)}ms` }}
-                    className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] cursor-pointer transition-all duration-300 hover:scale-[1.02] flex flex-col select-none"
+                    style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
+                    className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade flex flex-col select-none"
                   >
                     <div className="relative aspect-video w-full overflow-hidden bg-[#050505]">
                       <SmartThumbnail

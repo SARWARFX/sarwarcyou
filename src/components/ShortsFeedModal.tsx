@@ -397,7 +397,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       onMouseMove={handleMouseMove}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif"
+      className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-keynote-modal"
     >
       {/* Top HUD Controls - Auto-hides on mobile during playback */}
       <header
