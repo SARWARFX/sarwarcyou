@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SARWAR.CYOU // Redirecting...</title>
+    <script>
+      // Single Page Application Redirect for GitHub Pages
+      // Converts direct path routes (e.g. /shorts or /deepika) into short ID queries (/?id=shorts)
+      (function() {
+        var path = window.location.pathname.replace(/^\/+|\/+$/g, '').trim();
+        var search = window.location.search || '';
+        var hash = window.location.hash || '';
+
+        if (path && path !== 'index.html') {
+          var params = new URLSearchParams(search);
+          if (!params.has('id') && !params.has('p')) {
+            params.set('id', path);
+          }
+          var newQuery = params.toString() ? '?' + params.toString() : '';
+          window.location.replace('/' + newQuery + hash);
+        } else {
+          window.location.replace('/' + search + hash);
+        }
+      })();
+    </script>
+  </head>
+  <body style="background:#050505;color:#ccff00;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+    <p>REDIRECTING TO SARWAR.CYOU...</p>
+  </body>
+</html>

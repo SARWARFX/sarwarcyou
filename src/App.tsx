@@ -52,33 +52,18 @@ function buildHomeUrl(): string {
   return window.location.pathname || '/';
 }
 
-function buildMediaUrl(item: StageMediaItem, albumContext?: string): string {
+function buildMediaUrl(item: StageMediaItem, _albumContext?: string): string {
   if (typeof window === 'undefined') return '';
-  const url = new URL(window.location.href);
-  const searchParams = url.searchParams;
-  const albumTarget = albumContext || item.category || item.parentAlbum;
-  if (albumTarget) {
-    searchParams.set('album', getAlbumSlug(albumTarget));
-  }
-  searchParams.set('media', getMediaSlug(item));
-  searchParams.delete('tab');
-  searchParams.delete('filter');
-  const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
-  return `${url.pathname}${queryPart}${url.hash}`;
+  return `/?id=${encodeURIComponent(item.id || getMediaSlug(item))}`;
 }
 
 function buildAlbumUrl(albumNameOrSlug: string): string {
   if (typeof window === 'undefined') return '';
-  const url = new URL(window.location.href);
-  const searchParams = url.searchParams;
-  searchParams.set('album', getAlbumSlug(albumNameOrSlug));
-  searchParams.delete('media');
-  searchParams.delete('item');
-  searchParams.delete('view');
-  searchParams.delete('tab');
-  searchParams.delete('filter');
-  const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
-  return `${url.pathname}${queryPart}${url.hash}`;
+  const clean = albumNameOrSlug.toLowerCase().trim();
+  if (clean === 'shorts' || clean === 'clips' || clean === 'reels' || clean === 'photo' || clean === 'realtube') {
+    return `/?id=${clean}`;
+  }
+  return `/?id=${getAlbumSlug(albumNameOrSlug)}`;
 }
 
 function App() {
@@ -586,12 +571,14 @@ function App() {
         replace: true,
       });
     } else {
-      syncUrlState({
-        album: null,
-        mediaItem: null,
-        sort: sortOrder,
-        replace: true,
-      });
+      if (!ENABLE_MONOLITH_GATE && ACTIVE_INTERFACE !== 'MONOLITH_GATE') {
+        syncUrlState({
+          album: null,
+          mediaItem: null,
+          sort: sortOrder,
+          replace: true,
+        });
+      }
     }
   }, [
     theaterState.isOpen,

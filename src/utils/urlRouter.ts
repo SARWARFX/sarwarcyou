@@ -65,8 +65,16 @@ export function parseUrlState(): ParsedRouteState {
   }
 
   const searchParams = new URLSearchParams(window.location.search);
+  const idQuery = searchParams.get('id') || searchParams.get('p');
   let albumQuery = searchParams.get('album');
-  let mediaQuery = searchParams.get('media') || searchParams.get('item') || searchParams.get('view');
+  let mediaQuery = searchParams.get('media') || searchParams.get('item') || searchParams.get('view') || searchParams.get('v');
+  if (idQuery) {
+    if (!mediaQuery && (/^[a-zA-Z0-9_-]{11}$/.test(idQuery) || idQuery.includes('.') || idQuery.startsWith('aishwarya-') || idQuery.includes('-'))) {
+      mediaQuery = idQuery;
+    } else if (!albumQuery) {
+      albumQuery = idQuery;
+    }
+  }
   let sortQuery = searchParams.get('sort');
   let rawTab = searchParams.get('tab') || searchParams.get('filter');
 
@@ -849,4 +857,295 @@ export function anchorToAlbumSection(albumIndex: number): void {
     }
   });
 }
+
+/* ==========================================================================
+   MICROSOFT-STYLE CONCISE ID ROUTING ENGINE
+   Uniform ?id=<ID> links across all hubs, subfolders, celebrities, and media
+   ========================================================================== */
+
+export const CELEBRITY_SLUG_MAP: Record<string, string> = {
+  deepika: 'Deepika Padukone',
+  deepikapadukone: 'Deepika Padukone',
+  katrina: 'Katrina Kaif',
+  katrinakaif: 'Katrina Kaif',
+  alia: 'Alia Bhatt',
+  aliabhatt: 'Alia Bhatt',
+  kiara: 'Kiara Advani',
+  kiaraadvani: 'Kiara Advani',
+  shraddha: 'Shraddha Kapoor',
+  shraddhakapoor: 'Shraddha Kapoor',
+  kriti: 'Kriti Sanon',
+  kritisanon: 'Kriti Sanon',
+  disha: 'Disha Patani',
+  dishapatani: 'Disha Patani',
+  kareena: 'Kareena Kapoor',
+  kareenakapoor: 'Kareena Kapoor',
+  jacqueline: 'Jacqueline Fernandez',
+  jacquelinefernandez: 'Jacqueline Fernandez',
+  anushka: 'Anushka Sharma',
+  anushkasharma: 'Anushka Sharma',
+  aishwarya: 'Aishwarya Rai',
+  aishwaryarai: 'Aishwarya Rai',
+  priyanka: 'Priyanka Chopra',
+  priyankachopra: 'Priyanka Chopra',
+  sunny: 'Sunny Leone',
+  sunnyleone: 'Sunny Leone',
+  phoebe: 'Phoebe Tonkin',
+  phoebetonkin: 'Phoebe Tonkin',
+  michelle: 'Michelle Rodriguez',
+  michellerodriguez: 'Michelle Rodriguez',
+  scarlett: 'Scarlett Johansson',
+  scarlettjohansson: 'Scarlett Johansson',
+  gal: 'Gal Gadot',
+  galgadot: 'Gal Gadot',
+  ana: 'Ana de Armas',
+  anadearmas: 'Ana de Armas',
+  margot: 'Margot Robbie',
+  margotrobbie: 'Margot Robbie',
+  sydney: 'Sydney Sweeney',
+  sydneysweeney: 'Sydney Sweeney',
+  zendaya: 'Zendaya',
+};
+
+export function getStarSlug(fullName: string): string {
+  if (!fullName) return '';
+  const first = fullName.trim().split(/\s+/)[0].toLowerCase();
+  return first.replace(/[^a-z0-9]/g, '');
+}
+
+export interface AppIdRoute {
+  category: 'ARCHIVE' | 'YOUTUBE' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'REALTUBE' | null;
+  subfolder: string | null;
+  celebrityStar: string | null;
+  celebrityTab: 'PORTRAITS' | 'DISPATCHES' | 'REELS' | null;
+  videoId: string | null;
+  mediaId: string | null;
+}
+
+export function parseIdRoute(): AppIdRoute {
+  if (typeof window === 'undefined') {
+    return {
+      category: null,
+      subfolder: null,
+      celebrityStar: null,
+      celebrityTab: null,
+      videoId: null,
+      mediaId: null,
+    };
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hash = window.location.hash.replace(/^#\/?/, '').trim();
+  const hashParams = hash.includes('=') ? new URLSearchParams(hash) : null;
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, '').trim();
+
+  let rawId = (
+    searchParams.get('id') ||
+    searchParams.get('p') ||
+    searchParams.get('page') ||
+    searchParams.get('category') ||
+    hashParams?.get('id') ||
+    hashParams?.get('p') ||
+    ''
+  ).trim();
+
+  let videoId = (
+    searchParams.get('v') ||
+    searchParams.get('video') ||
+    hashParams?.get('v') ||
+    ''
+  ).trim();
+
+  let mediaId = (
+    searchParams.get('m') ||
+    searchParams.get('media') ||
+    searchParams.get('item') ||
+    hashParams?.get('m') ||
+    hashParams?.get('media') ||
+    ''
+  ).trim();
+
+  const starParam = (
+    searchParams.get('star') ||
+    searchParams.get('celebrity') ||
+    hashParams?.get('star') ||
+    ''
+  ).trim();
+
+  const tabParam = (
+    searchParams.get('tab') ||
+    searchParams.get('view') ||
+    hashParams?.get('tab') ||
+    ''
+  ).trim();
+
+  const subParam = (
+    searchParams.get('sub') ||
+    searchParams.get('folder') ||
+    hashParams?.get('sub') ||
+    ''
+  ).trim();
+
+  if (!rawId) {
+    if (hash && !hash.includes('=')) {
+      rawId = hash;
+    } else if (path && path !== 'index.html') {
+      rawId = path;
+    }
+  }
+
+  let category: AppIdRoute['category'] = null;
+  let celebrityStar: string | null = null;
+  let celebrityTab: AppIdRoute['celebrityTab'] = null;
+
+  if (rawId.startsWith('v/')) {
+    videoId = rawId.replace(/^v\//, '');
+    rawId = '';
+  } else if (
+    !videoId &&
+    rawId &&
+    /^[a-zA-Z0-9_-]{11}$/.test(rawId) &&
+    !['photography', 'realtubevod'].includes(rawId.toLowerCase())
+  ) {
+    videoId = rawId;
+  }
+
+  if (rawId.startsWith('m/')) {
+    mediaId = rawId.replace(/^m\//, '');
+    rawId = '';
+  }
+
+  const cleanId = rawId.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (['archive', 'home', 'main'].includes(cleanId)) {
+    category = null;
+  } else if (['reels', 'youtube', 'music'].includes(cleanId)) {
+    category = 'YOUTUBE';
+  } else if (['shorts', 'short'].includes(cleanId)) {
+    category = 'SHORTS';
+  } else if (['clips', 'clip', 'cinema'].includes(cleanId)) {
+    category = 'CLIPS';
+  } else if (['photo', 'photography', 'photos', 'images'].includes(cleanId)) {
+    category = 'PHOTOGRAPHY';
+  } else if (['realtube', 'channel'].includes(cleanId)) {
+    category = 'REALTUBE';
+  } else if (['news', 'dispatches'].includes(cleanId)) {
+    category = null;
+    celebrityTab = 'DISPATCHES';
+  } else if (['videos', 'cinemareels'].includes(cleanId)) {
+    category = null;
+    celebrityTab = 'REELS';
+  } else if (['portraits'].includes(cleanId)) {
+    category = null;
+    celebrityTab = 'PORTRAITS';
+  } else if (CELEBRITY_SLUG_MAP[cleanId]) {
+    category = null;
+    celebrityStar = CELEBRITY_SLUG_MAP[cleanId];
+  } else if (cleanId && !videoId && !mediaId) {
+    const matched = Object.keys(CELEBRITY_SLUG_MAP).find(
+      (k) => cleanId.startsWith(k) || k.startsWith(cleanId)
+    );
+    if (matched) {
+      category = null;
+      celebrityStar = CELEBRITY_SLUG_MAP[matched];
+    } else if (rawId.length >= 6) {
+      mediaId = rawId;
+    }
+  }
+
+  if (starParam) {
+    const cleanStar = starParam.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (CELEBRITY_SLUG_MAP[cleanStar]) {
+      celebrityStar = CELEBRITY_SLUG_MAP[cleanStar];
+    } else {
+      celebrityStar = starParam;
+    }
+  }
+
+  if (tabParam) {
+    const cleanTab = tabParam.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (['photo', 'photos', 'portraits', 'photography', 'images'].includes(cleanTab)) {
+      celebrityTab = 'PORTRAITS';
+    } else if (['news', 'dispatches', 'articles', 'feed'].includes(cleanTab)) {
+      celebrityTab = 'DISPATCHES';
+    } else if (['videos', 'reels', 'cinema', 'cinemareels', 'clips'].includes(cleanTab)) {
+      celebrityTab = 'REELS';
+    }
+  }
+
+  return {
+    category,
+    subfolder: subParam || null,
+    celebrityStar,
+    celebrityTab,
+    videoId: videoId || null,
+    mediaId: mediaId || null,
+  };
+}
+
+export function buildIdUrl(route: Partial<AppIdRoute>): string {
+  if (typeof window === 'undefined') return '/';
+
+  if (route.videoId) {
+    return `/?id=${encodeURIComponent(route.videoId)}`;
+  }
+
+  if (route.mediaId) {
+    return `/?id=${encodeURIComponent(route.mediaId)}`;
+  }
+
+  if (route.category === 'YOUTUBE') {
+    return route.subfolder ? `/?id=reels&sub=${encodeURIComponent(route.subfolder)}` : '/?id=reels';
+  }
+  if (route.category === 'SHORTS') {
+    return route.subfolder ? `/?id=shorts&sub=${encodeURIComponent(route.subfolder)}` : '/?id=shorts';
+  }
+  if (route.category === 'CLIPS') {
+    return route.subfolder ? `/?id=clips&sub=${encodeURIComponent(route.subfolder)}` : '/?id=clips';
+  }
+  if (route.category === 'PHOTOGRAPHY') {
+    return route.subfolder ? `/?id=photo&sub=${encodeURIComponent(route.subfolder)}` : '/?id=photo';
+  }
+  if (route.category === 'REALTUBE') {
+    return route.subfolder ? `/?id=realtube&sub=${encodeURIComponent(route.subfolder)}` : '/?id=realtube';
+  }
+
+  const starSlug = route.celebrityStar ? getStarSlug(route.celebrityStar) : null;
+  const tabSlug =
+    route.celebrityTab === 'REELS'
+      ? 'videos'
+      : route.celebrityTab === 'DISPATCHES'
+      ? 'news'
+      : null;
+
+  if (starSlug && starSlug !== 'all') {
+    if (tabSlug) {
+      return `/?id=${starSlug}&tab=${tabSlug}`;
+    }
+    return `/?id=${starSlug}`;
+  }
+
+  if (tabSlug) {
+    return `/?id=${tabSlug}`;
+  }
+
+  return '/';
+}
+
+export function syncAppRoute(route: Partial<AppIdRoute>, replace = false): void {
+  if (typeof window === 'undefined') return;
+
+  const newUrl = buildIdUrl(route);
+  const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+  if (newUrl !== currentFull) {
+    const stateObj = { route };
+    if (replace) {
+      window.history.replaceState(stateObj, '', newUrl);
+    } else {
+      window.history.pushState(stateObj, '', newUrl);
+    }
+  }
+}
+
 

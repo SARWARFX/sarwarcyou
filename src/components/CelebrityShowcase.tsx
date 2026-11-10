@@ -44,6 +44,12 @@ export interface CelebrityNewsItem {
 export interface CelebrityShowcaseProps {
   onOpenPhoto?: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
   className?: string;
+  initialTab?: 'PORTRAITS' | 'DISPATCHES' | 'REELS';
+  initialFilter?: string;
+  initialVideoId?: string | null;
+  onTabChange?: (tab: 'PORTRAITS' | 'DISPATCHES' | 'REELS') => void;
+  onFilterChange?: (filter: string) => void;
+  onVideoChange?: (videoId: string | null) => void;
 }
 
 const FILTER_CHIPS = [
@@ -89,8 +95,14 @@ function toStageMediaItem(entry: CelebrityItem): StageMediaItem {
 export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   onOpenPhoto,
   className = '',
+  initialTab,
+  initialFilter,
+  initialVideoId,
+  onTabChange,
+  onFilterChange,
+  onVideoChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>('PORTRAITS');
+  const [activeTab, setActiveTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>(initialTab || 'PORTRAITS');
   const [showcaseDirection, setShowcaseDirection] = useState<'right' | 'left'>('right');
   const SHOWCASE_TABS = useMemo(() => ['PORTRAITS', 'DISPATCHES', 'REELS'], []);
 
@@ -100,9 +112,27 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     const newIdx = SHOWCASE_TABS.indexOf(newTab);
     setShowcaseDirection(newIdx >= oldIdx ? 'right' : 'left');
     setActiveTab(newTab);
-  }, [activeTab, SHOWCASE_TABS]);
+    onTabChange?.(newTab);
+  }, [activeTab, SHOWCASE_TABS, onTabChange]);
 
-  const [activeFilter, setActiveFilter] = useState<string>('ALL');
+  const [activeFilter, setActiveFilter] = useState<string>(initialFilter || 'ALL');
+
+  const handleSelectFilter = useCallback((filterId: string) => {
+    setActiveFilter(filterId);
+    onFilterChange?.(filterId);
+  }, [onFilterChange]);
+
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (initialFilter && initialFilter !== activeFilter) {
+      setActiveFilter(initialFilter);
+    }
+  }, [initialFilter]);
   const [internalModalState, setInternalModalState] = useState<{
     isOpen: boolean;
     currentIndex: number;
@@ -192,16 +222,34 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     trackActivityEvent(1);
     setTheaterIndex(index);
     setIsTheaterOpen(true);
-  }, []);
+    const videoItem = filteredCinemaReels[index];
+    if (videoItem) {
+      onVideoChange?.(videoItem.id);
+    }
+  }, [filteredCinemaReels, onVideoChange]);
+
+  const handleCloseTheater = useCallback(() => {
+    setIsTheaterOpen(false);
+    onVideoChange?.(null);
+  }, [onVideoChange]);
+
+  useEffect(() => {
+    if (!initialVideoId) return;
+    const idx = cinemaReelItems.findIndex((it) => it.id === initialVideoId);
+    if (idx !== -1) {
+      setTheaterIndex(idx);
+      setIsTheaterOpen(true);
+    }
+  }, [initialVideoId, cinemaReelItems]);
 
   useBackButton(
     useCallback(() => {
       if (isTheaterOpen) {
-        setIsTheaterOpen(false);
+        handleCloseTheater();
         return true;
       }
       return false;
-    }, [isTheaterOpen])
+    }, [isTheaterOpen, handleCloseTheater])
   );
 
   // 1. Scroll Controller with Dynamic Height Measurement & Direction Hysteresis
@@ -433,7 +481,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setActiveFilter(chip.id);
+                  handleSelectFilter(chip.id);
                 }}
                 className={`text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer flex-shrink-0 pb-1.5 font-mono ${
                   isActive
@@ -533,7 +581,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
             <div key="dispatches-section" className={showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}>
               <CelebrityNewsPaper
                 articles={filteredNews}
-                onResetFilter={() => setActiveFilter('ALL')}
+                onResetFilter={() => handleSelectFilter('ALL')}
                 activeFilter={activeFilter}
               />
             </div>
@@ -547,7 +595,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 </p>
                 <button
                   type="button"
-                  onClick={() => setActiveFilter('ALL')}
+                  onClick={() => handleSelectFilter('ALL')}
                   className="mt-3 px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-mono tracking-wider uppercase transition-all cursor-pointer"
                 >
                   Show All Releases
@@ -674,12 +722,15 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
       {/* In-App Native YouTube Theater Modal for Cinema Reels */}
       <YouTubeTheaterModal
         isOpen={isTheaterOpen}
-        onClose={() => setIsTheaterOpen(false)}
+        onClose={handleCloseTheater}
         album={cinemaReelsAlbum}
         allAlbums={[cinemaReelsAlbum]}
         initialIndex={theaterIndex}
         title={filteredCinemaReels[theaterIndex]?.title}
-        onIndexChange={setTheaterIndex}
+        onIndexChange={(newIdx) => {
+          setTheaterIndex(newIdx);
+          onVideoChange?.(filteredCinemaReels[newIdx]?.id || null);
+        }}
       />
     </div>
   );

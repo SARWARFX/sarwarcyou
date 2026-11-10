@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Play, Folder, Music2, Film } from 'lucide-react';
 import type { StageMediaItem, AlbumData } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
@@ -19,6 +19,11 @@ import youtubeMusicData from '../../data/youtubeMusic.json';
 import latestMusicReleasesData from '../../data/latestMusicReleases.json';
 import { hapticMedium } from '../../utils/hapticsManager';
 import { trackActivityEvent } from '../../utils/usageTelemetry';
+import {
+  parseIdRoute,
+  syncAppRoute,
+  type AppIdRoute,
+} from '../../utils/urlRouter';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -84,13 +89,72 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   initialAlbum,
   isModalOpen = false,
 }) => {
+  // 0. Parse initial route from short ID URL (?id=..., ?v=..., ?star=..., etc.)
+  const initialRoute = useMemo(() => parseIdRoute(), []);
+
   // Navigation states:
   // Level 0: selectedCategory === null && selectedSubfolder === null (Bollywood Overview)
   // Level 1: selectedCategory !== null && selectedSubfolder === null (Child Subfolders Grid)
   // Level 2: selectedCategory !== null && selectedSubfolder !== null (Direct Media Items)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialRoute.category);
+  const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(initialRoute.subfolder);
+  const [activeCelebrityFilter, setActiveCelebrityFilter] = useState<string>(initialRoute.celebrityStar || 'ALL');
+  const [activeCelebrityTab, setActiveCelebrityTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>(
+    initialRoute.celebrityTab || 'PORTRAITS'
+  );
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
   const [slideDirection, setSlideDirection] = useState<'right' | 'left'>('right');
+
+  // Synchronize route state with browser address bar
+  const updateRoute = useCallback(
+    (newRoute: Partial<AppIdRoute>, replace = false) => {
+      syncAppRoute(
+        {
+          category: newRoute.category !== undefined ? newRoute.category : (selectedCategory as any),
+          subfolder: newRoute.subfolder !== undefined ? newRoute.subfolder : selectedSubfolder,
+          celebrityStar:
+            newRoute.celebrityStar !== undefined ? newRoute.celebrityStar : activeCelebrityFilter,
+          celebrityTab: newRoute.celebrityTab !== undefined ? newRoute.celebrityTab : activeCelebrityTab,
+          videoId: newRoute.videoId !== undefined ? newRoute.videoId : activeVideoId,
+        },
+        replace
+      );
+    },
+    [selectedCategory, selectedSubfolder, activeCelebrityFilter, activeCelebrityTab, activeVideoId]
+  );
+
+  // Synchronize state when browser Back / Forward (popstate) is clicked
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = parseIdRoute();
+      setSelectedCategory(route.category);
+      setSelectedSubfolder(route.subfolder);
+      if (route.celebrityStar) {
+        setActiveCelebrityFilter(route.celebrityStar);
+      } else if (route.category === null) {
+        setActiveCelebrityFilter('ALL');
+      }
+      if (route.celebrityTab) {
+        setActiveCelebrityTab(route.celebrityTab);
+      } else if (route.category === null) {
+        setActiveCelebrityTab('PORTRAITS');
+      }
+      setActiveVideoId(route.videoId);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // When modals close, clear videoId/mediaId in URL and restore current page route
+  const prevModalOpen = useRef(isModalOpen);
+  useEffect(() => {
+    if (prevModalOpen.current && !isModalOpen) {
+      setActiveVideoId(null);
+      updateRoute({ videoId: null, mediaId: null }, true);
+    }
+    prevModalOpen.current = isModalOpen;
+  }, [isModalOpen, updateRoute]);
 
   // Concealed Option A Terminal Drawer State
   const [isVaultDrawerOpen, setVaultDrawerOpen] = useState(false);
@@ -167,12 +231,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     subtitle: isLatestDispatches ? 'Automated Official Releases' : 'Curated Official Music Videos',
   }), [isLatestDispatches, currentYouTubeList]);
 
-  const handlePlayYouTubeTrack = useCallback((index: number) => {
-    hapticMedium();
-    trackActivityEvent(1);
-    setYouTubeTheaterIndex(index);
-    setIsYouTubeTheaterOpen(true);
-  }, []);
+  const handlePlayYouTubeTrack = useCallback(
+    (index: number) => {
+      hapticMedium();
+      trackActivityEvent(1);
+      setYouTubeTheaterIndex(index);
+      setIsYouTubeTheaterOpen(true);
+      const track = currentYouTubeList[index];
+      if (track?.id) {
+        setActiveVideoId(track.id);
+        updateRoute({ videoId: track.id });
+      }
+    },
+    [currentYouTubeList, updateRoute]
+  );
 
   // Group media into hierarchical directory nodes
   const rootMap = useMemo(() => {
@@ -267,6 +339,46 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
   }, [initialAlbum, items.length, rootMap]);
 
+  // Direct ID URL auto-launch on initial mount
+  const hasAutoLaunchedRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoLaunchedRef.current) return;
+
+    if (initialRoute.videoId) {
+      const allTracks = [...favoriteClassicsItems, ...latestDispatchesItems];
+      const trackIdx = allTracks.findIndex((t) => t.id === initialRoute.videoId);
+      if (trackIdx !== -1) {
+        hasAutoLaunchedRef.current = true;
+        if (selectedCategory === 'YOUTUBE') {
+          const listIdx = currentYouTubeList.findIndex((t) => t.id === initialRoute.videoId);
+          if (listIdx !== -1) {
+            setYouTubeTheaterIndex(listIdx);
+            setIsYouTubeTheaterOpen(true);
+          }
+        }
+        return;
+      }
+    }
+
+    if (initialRoute.mediaId && items.length > 0) {
+      const matched = items.find(
+        (it) => it.id === initialRoute.mediaId || (it.url && it.url.includes(initialRoute.mediaId!))
+      );
+      if (matched) {
+        hasAutoLaunchedRef.current = true;
+        onOpenPhoto(matched, [matched], 0);
+      }
+    }
+  }, [
+    initialRoute,
+    items,
+    favoriteClassicsItems,
+    latestDispatchesItems,
+    selectedCategory,
+    currentYouTubeList,
+    onOpenPhoto,
+  ]);
+
   // Active Category Root Node
   const activeCategoryNode = useMemo(() => {
     if (!selectedCategory) return null;
@@ -338,6 +450,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
     } catch (e) {
       console.warn('Failed to update media views:', e);
+    }
+
+    if (item.id) {
+      updateRoute({ mediaId: item.id });
     }
 
     const isPhoto =
@@ -419,9 +535,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           setSelectedSubfolder(matchedName || subfolderId);
         }
       }
+      updateRoute({ category: targetKey as any, subfolder: subfolderId || null });
       setVaultDrawerOpen(false);
     },
-    [rootMap]
+    [rootMap, updateRoute]
   );
 
   const MAIN_TAB_ORDER = useMemo(() => ['ARCHIVE', 'YOUTUBE', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY', 'REALTUBE'], []);
@@ -436,8 +553,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setSlideDirection(newIdx >= oldIdx ? 'right' : 'left');
       setSelectedCategory(newCat);
       setSelectedSubfolder(null);
+      updateRoute({ category: (newCat as any) || null, subfolder: null, videoId: null });
     },
-    [selectedCategory, MAIN_TAB_ORDER]
+    [selectedCategory, MAIN_TAB_ORDER, updateRoute]
   );
 
   const navigateSubfolder = useCallback(
@@ -448,8 +566,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const newIdx = allSubs.indexOf(newSub || 'ALL');
       setSlideDirection(newIdx >= oldIdx ? 'right' : 'left');
       setSelectedSubfolder(newSub);
+      updateRoute({ subfolder: newSub });
     },
-    [selectedSubfolder, childSubfoldersList]
+    [selectedSubfolder, childSubfoldersList, updateRoute]
   );
 
   // Idle reset handler: returns to Public Bollywood Overview (Level 0)
@@ -653,7 +772,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           }`}
         >
           <div key="archive-overview" className={`w-full h-full ${slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
-            <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
+            <CelebrityShowcase
+              onOpenPhoto={onOpenPhoto}
+              initialTab={activeCelebrityTab}
+              initialFilter={activeCelebrityFilter}
+              initialVideoId={activeVideoId}
+              onTabChange={(tab) => {
+                setActiveCelebrityTab(tab);
+                updateRoute({ celebrityTab: tab });
+              }}
+              onFilterChange={(filter) => {
+                setActiveCelebrityFilter(filter);
+                updateRoute({ celebrityStar: filter });
+              }}
+              onVideoChange={(videoId) => {
+                setActiveVideoId(videoId);
+                updateRoute({ videoId });
+              }}
+            />
           </div>
         </main>
       ) : selectedCategory === 'YOUTUBE' ? (
@@ -686,6 +822,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   onClick={() => {
                     hapticMedium();
                     setSelectedSubfolder('FAVORITE CLASSICS');
+                    updateRoute({ subfolder: 'classics' });
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
                     !isLatestDispatches
@@ -700,6 +837,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   onClick={() => {
                     hapticMedium();
                     setSelectedSubfolder('LATEST DISPATCHES');
+                    updateRoute({ subfolder: 'dispatches' });
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
                     isLatestDispatches
@@ -1182,12 +1320,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* Native In-App YouTube Theater Modal Overlay */}
       <YouTubeTheaterModal
         isOpen={isYouTubeTheaterOpen}
-        onClose={() => setIsYouTubeTheaterOpen(false)}
+        onClose={() => {
+          setIsYouTubeTheaterOpen(false);
+          setActiveVideoId(null);
+          updateRoute({ videoId: null });
+        }}
         album={youTubeAlbumData}
         allAlbums={[youTubeAlbumData]}
         initialIndex={youTubeTheaterIndex}
         title={youTubeAlbumData?.items[youTubeTheaterIndex]?.title}
-        onIndexChange={(newIdx) => setYouTubeTheaterIndex(newIdx)}
+        onIndexChange={(newIdx) => {
+          setYouTubeTheaterIndex(newIdx);
+          const tr = youTubeAlbumData?.items[newIdx];
+          if (tr?.id) {
+            setActiveVideoId(tr.id);
+            updateRoute({ videoId: tr.id });
+          }
+        }}
       />
     </div>
   );
