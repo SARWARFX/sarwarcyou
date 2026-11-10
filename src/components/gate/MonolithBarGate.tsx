@@ -785,7 +785,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           }`}
         >
           {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-white/10 shrink-0">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <Music2 className="w-5 h-5 text-[#ccff00]" />
@@ -810,7 +810,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
 
           {/* Tier 1 Region Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar pb-3">
+          <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar py-1.5 mb-2 shrink-0 min-h-[44px]">
             {REEL_REGION_TABS.map((tab) => {
               const isActive = selectedReelRegion === tab.id;
               return (
@@ -829,7 +829,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       }
                     }
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
                     isActive
                       ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                       : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
@@ -849,7 +849,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
 
           {/* Tier 2 Actress Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar pb-5 mb-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar py-2 mb-6 border-b border-white/[0.08] shrink-0 min-h-[46px]">
             <button
               type="button"
               onClick={() => {

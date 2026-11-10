@@ -509,7 +509,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
         </div>
 
         {/* 2-Tier Navigation Engine: Tier 1 Region Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar pt-2 pb-1.5 border-t border-white/[0.06]">
+        <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar py-2 border-t border-white/[0.06] shrink-0 min-h-[44px]">
           {REGION_TABS.map((tab) => {
             const isRegActive = selectedRegion === tab.id;
             return (
@@ -517,7 +517,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => handleSelectRegion(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer shrink-0 border ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer shrink-0 border ${
                   isRegActive
                     ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/60 shadow-[0_0_10px_rgba(204,255,0,0.25)]'
                     : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
@@ -541,7 +541,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
               handleFilterScroll();
             }
           }}
-          className={`flex items-center gap-2.5 overflow-x-auto autohide-scrollbar py-2 ${
+          className={`flex items-center gap-2.5 overflow-x-auto autohide-scrollbar py-2.5 shrink-0 min-h-[46px] ${
             isFilterScrolling ? 'is-scrolling' : ''
           }`}
         >

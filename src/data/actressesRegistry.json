@@ -7,9 +7,12 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Dhallywood / Cinema & OTT",
-    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Porimoni_in_Dhaka_%287%29_%28cropped%29.jpg/1280px-Porimoni_in_Dhaka_%287%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": true,
-    "officialChannels": ["PorimoniOfficial", "JaazMultimedia"]
+    "officialChannels": [
+      "PorimoniOfficial",
+      "JaazMultimedia"
+    ]
   },
   {
     "id": "mim",
@@ -19,9 +22,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Dhallywood / OTT",
-    "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/4/46/Bidya_Sinha_Saha.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["BidyaSinhaMimOfficial"]
+    "officialChannels": [
+      "BidyaSinhaMimOfficial"
+    ]
   },
   {
     "id": "mehazabien",
@@ -31,9 +36,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Drama & Cinema / Chorki",
-    "avatar": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/e/e9/LCSS_2009_Mehazabien_Shows_Virtue_Sign.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["MehazabienChowdhuryOfficial"]
+    "officialChannels": [
+      "MehazabienChowdhuryOfficial"
+    ]
   },
   {
     "id": "tisha",
@@ -43,9 +50,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Drama / OTT",
-    "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Tanjin_Tisha.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["TanjinTishaOfficial"]
+    "officialChannels": [
+      "TanjinTishaOfficial"
+    ]
   },
   {
     "id": "faria",
@@ -55,9 +64,12 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Dhallywood / Tollywood Indo-Bangla",
-    "avatar": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/7/7c/Nusrat_Faria_Mazhar_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["NusraatFariaOfficial", "SVF"]
+    "officialChannels": [
+      "NusraatFariaOfficial",
+      "SVF"
+    ]
   },
   {
     "id": "farin",
@@ -67,9 +79,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Karagar / Chorki / Hoichoi",
-    "avatar": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Tasnia_Farin_2023.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["TasniaFarinOfficial"]
+    "officialChannels": [
+      "TasniaFarinOfficial"
+    ]
   },
   {
     "id": "jaya",
@@ -79,9 +93,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Art Cinema & Tollywood",
-    "avatar": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Joya_Ahsan_receives_Prime_Minister_Sheikh_Hasina_presents_National_Film_Awards_2022_at_Bangabandhu_International_Conference_Center_Dhaka_2023-11-14_%28PID-0012404%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["JayaAhsanOfficial"]
+    "officialChannels": [
+      "JayaAhsanOfficial"
+    ]
   },
   {
     "id": "sabila",
@@ -91,9 +107,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Drama / OTT",
-    "avatar": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Sabila_nur_2025_3_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["SabilaNurOfficial"]
+    "officialChannels": [
+      "SabilaNurOfficial"
+    ]
   },
   {
     "id": "puja",
@@ -103,9 +121,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Dhallywood Cinema",
-    "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Puja_Cherry_Roy_%2804%29.jpg/1280px-Puja_Cherry_Roy_%2804%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["PujaCherryOfficial"]
+    "officialChannels": [
+      "PujaCherryOfficial"
+    ]
   },
   {
     "id": "apubiswas",
@@ -115,9 +135,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Dhallywood Blockbusters",
-    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Apu_Bishwas_%284%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["ApuBiswasOfficial"]
+    "officialChannels": [
+      "ApuBiswasOfficial"
+    ]
   },
   {
     "id": "bubly",
@@ -127,9 +149,11 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Dhallywood Cinema",
-    "avatar": "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Bubly.jpg/1280px-Bubly.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["ShabnamBublyOfficial"]
+    "officialChannels": [
+      "ShabnamBublyOfficial"
+    ]
   },
   {
     "id": "keyapayel",
@@ -139,11 +163,12 @@
     "region": "BANGLADESH",
     "country": "BD",
     "industry": "Drama / Music Videos",
-    "avatar": "https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/%E0%A6%AC%E0%A6%BE%E0%A6%82%E0%A6%B2%E0%A6%BE%E0%A6%A6%E0%A7%87%E0%A6%B6_%E0%A6%97%E0%A7%87%E0%A6%9C%E0%A7%87%E0%A6%9F%2C_%E0%A6%85%E0%A6%A4%E0%A6%BF%E0%A6%B0%E0%A6%BF%E0%A6%95%E0%A7%8D%E0%A6%A4%2C_%E0%A7%A8%E0%A7%A6%E0%A7%A7%E0%A7%AB-%E0%A7%A7%E0%A7%A8-%E0%A7%A6%E0%A7%AE_-_%E0%A6%AC%E0%A6%BE%E0%A6%82%E0%A6%B2%E0%A6%BE%E0%A6%A6%E0%A7%87%E0%A6%B6_%E0%A6%B8%E0%A6%B0%E0%A6%95%E0%A6%BE%E0%A6%B0%E0%A6%BF_%E0%A6%95%E0%A6%B0%E0%A7%8D%E0%A6%AE_%E0%A6%95%E0%A6%AE%E0%A6%BF%E0%A6%B6%E0%A6%A8.pdf/page1-960px-thumbnail.pdf.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["KeyaPayelOfficial"]
+    "officialChannels": [
+      "KeyaPayelOfficial"
+    ]
   },
-
   {
     "id": "samantha",
     "slug": "samantha-ruth-prabhu",
@@ -152,9 +177,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Telugu & Tamil / Pan-India",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Samantha_at_Kushi_Musical_Concert.jpg",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Samantha_at_Kushi_Musical_concert_%282%29_%28cropped%29.jpg/1280px-Samantha_at_Kushi_Musical_concert_%282%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": true,
-    "officialChannels": ["SamanthaRuthPrabhuOfficial"]
+    "officialChannels": [
+      "SamanthaRuthPrabhuOfficial"
+    ]
   },
   {
     "id": "rashmika",
@@ -164,9 +191,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Telugu & Pan-India (Pushpa / Animal)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/7/70/Rashmika_Mandanna_promoting_Animal.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Rashmika-Mandanna_at_the_music_launch_of_Chhaava_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["RashmikaMandannaOfficial"]
+    "officialChannels": [
+      "RashmikaMandannaOfficial"
+    ]
   },
   {
     "id": "nayanthara",
@@ -176,9 +205,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Tamil & Telugu Lady Superstar",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/e/e3/Nayanthara_in_2023.jpg",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Nayantara-transperent-signature.svg/1280px-Nayantara-transperent-signature.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": true,
-    "officialChannels": ["RowdyPictures"]
+    "officialChannels": [
+      "RowdyPictures"
+    ]
   },
   {
     "id": "trisha",
@@ -188,9 +219,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Tamil & Telugu (Leo / Ponniyin Selvan)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Trisha_Krishnan_at_Leo_Success_Meet.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/d/d2/Trisha_Krishnan_at_the_screening_of_Khatta_Meeta.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["TrishaKrishnanOfficial"]
+    "officialChannels": [
+      "TrishaKrishnanOfficial"
+    ]
   },
   {
     "id": "saipallavi",
@@ -200,9 +233,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Telugu, Tamil & Malayalam",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Sai_Pallavi_at_Gargi_Press_Meet.jpg",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Sai_Pallavi_attending_the_world_premiere_of_Ramayana_Part_1_in_Los_Angeles.jpg/1280px-Sai_Pallavi_attending_the_world_premiere_of_Ramayana_Part_1_in_Los_Angeles.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": true,
-    "officialChannels": ["SaiPallaviOfficial"]
+    "officialChannels": [
+      "SaiPallaviOfficial"
+    ]
   },
   {
     "id": "tamannaah",
@@ -212,9 +247,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Telugu, Tamil & Bollywood (Jailer / Stree 2)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/8/87/Tamannaah_Bhatia_at_an_event_in_2023.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/6/60/Tamannaah_Bhatia_at_a_song_launch_from_the_film_Vedaa_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["TamannaahBhatiaOfficial"]
+    "officialChannels": [
+      "TamannaahBhatiaOfficial"
+    ]
   },
   {
     "id": "sreeleela",
@@ -224,9 +261,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Telugu Dance Blockbusters (Guntur Kaaram)",
-    "avatar": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/0/00/Sreeleela_in_2026.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["SreeleelaOfficial"]
+    "officialChannels": [
+      "SreeleelaOfficial"
+    ]
   },
   {
     "id": "poojahegde",
@@ -236,9 +275,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Telugu, Tamil & Bollywood",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Pooja_Hegde_promoting_Kisi_Ka_Bhai_Kisi_Ki_Jaan.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/2/25/Retro_audio_launch_-_Pooja_Hegde.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["PoojaHegdeOfficial"]
+    "officialChannels": [
+      "PoojaHegdeOfficial"
+    ]
   },
   {
     "id": "kajalaggarwal",
@@ -248,9 +289,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Telugu & Tamil Cinema (Indian 2)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/b/be/Kajal_Aggarwal_at_Indian_2_promotions.jpg",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Kajal_Aggarwal_at_Bhagavanth_Kesari_Trailer_Launch_%281%29.jpg/1280px-Kajal_Aggarwal_at_Bhagavanth_Kesari_Trailer_Launch_%281%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["KajalAggarwalOfficial"]
+    "officialChannels": [
+      "KajalAggarwalOfficial"
+    ]
   },
   {
     "id": "keerthysuresh",
@@ -260,9 +303,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "National Award Headliner (Mahanati / Baby John)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/2/23/Keerthy_Suresh_at_Siren_event.jpg",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/Keerthy_Suresh_at_Bhola_Shankar_pre_release_event_%282%29_%28cropped%29.jpg/1280px-Keerthy_Suresh_at_Bhola_Shankar_pre_release_event_%282%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["KeerthySureshOfficial"]
+    "officialChannels": [
+      "KeerthySureshOfficial"
+    ]
   },
   {
     "id": "anushkashetty",
@@ -272,9 +317,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Baahubali / Devasena (Telugu & Tamil)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Anushka_Shetty_at_Miss_Shetty_event.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Anushka_Shetty_first_look_Baahubali_2_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["AnushkaShettyOfficial"]
+    "officialChannels": [
+      "AnushkaShettyOfficial"
+    ]
   },
   {
     "id": "kalyani",
@@ -284,9 +331,11 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Malayalam, Tamil & Telugu (Hridayam / Varane Avashyamund)",
-    "avatar": "https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Kalyani_Priyadarshan_at_birthday_event_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["KalyaniPriyadarshanOfficial"]
+    "officialChannels": [
+      "KalyaniPriyadarshanOfficial"
+    ]
   },
   {
     "id": "hansika",
@@ -296,11 +345,12 @@
     "region": "SOUTH_INDIA",
     "country": "IN",
     "industry": "Tamil & Telugu Commercial Hits",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Hansika_Motwani_at_an_event_2023.jpg",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Hansika_Motwani_at_HELLO%21_Hall_of_Fame_Awards_2023_%281%29_%28cropped%29.jpg/1280px-Hansika_Motwani_at_HELLO%21_Hall_of_Fame_Awards_2023_%281%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["HansikaMotwaniOfficial"]
+    "officialChannels": [
+      "HansikaMotwaniOfficial"
+    ]
   },
-
   {
     "id": "deepika",
     "slug": "deepika-padukone",
@@ -309,9 +359,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema / Global Icon (Pathaan / Kalki 2898 AD)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Deepika_Padukone_Cannes_2018_%28cropped%29.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Deepika_Padukone_2025_%281%29.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["DeepikaPadukoneOfficial"]
+    "officialChannels": [
+      "DeepikaPadukoneOfficial"
+    ]
   },
   {
     "id": "alia",
@@ -321,9 +373,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema / National Award (Gangubai / Jigra)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/8/87/Alia_Bhatt_at_Gucci_Cruise_2025.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Alia_Bhatt_attends_at_the_2026_Cannes_Film_Festival_%28cropped%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["AliaBhattOfficial"]
+    "officialChannels": [
+      "AliaBhattOfficial"
+    ]
   },
   {
     "id": "katrina",
@@ -333,9 +387,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema (Tiger 3 / Merry Christmas)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Katrina_Kaif_promoting_Bharat_in_2019.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Katrina_Kaif_at_the_Bharat_audio_launch.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["KayBeautyByKatrina"]
+    "officialChannels": [
+      "KayBeautyByKatrina"
+    ]
   },
   {
     "id": "kiara",
@@ -345,9 +401,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema & Telugu (Game Changer / Satyaprem)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Kiara_Advani_at_Cannes_2024_%28cropped%29.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/7/73/Kiara_Advani_LFW-2017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["KiaraAdvaniOfficial"]
+    "officialChannels": [
+      "KiaraAdvaniOfficial"
+    ]
   },
   {
     "id": "shraddha",
@@ -357,9 +415,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema (Stree 2 / Tu Jhoothi Main Makkaar)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/d/da/Shraddha_Kapoor_promoting_Stree_2.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Shraddha_Kapoor_promoting_Street_Dancer_3D.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["ShraddhaKapoorOfficial"]
+    "officialChannels": [
+      "ShraddhaKapoorOfficial"
+    ]
   },
   {
     "id": "kriti",
@@ -369,9 +429,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema / National Award (Mimi / Crew / Do Patti)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/0/07/Kriti_Sanon_at_69th_National_Film_Awards.jpg",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Kriti_Sanon_at_Adipurush_pre_release_event_%282%29_%28cropped%29.jpg/1280px-Kriti_Sanon_at_Adipurush_pre_release_event_%282%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
     "featured": true,
-    "officialChannels": ["KritiSanonOfficial"]
+    "officialChannels": [
+      "KritiSanonOfficial"
+    ]
   },
   {
     "id": "kareena",
@@ -381,9 +443,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema (Crew / Buckingham Murders)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Kareena_Kapoor_promoting_Crew_%28cropped%29.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/2/29/Kareena_Kapoor_Khan_in_2023_%281%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["KareenaKapoorKhanOfficial"]
+    "officialChannels": [
+      "KareenaKapoorKhanOfficial"
+    ]
   },
   {
     "id": "aishwarya",
@@ -393,9 +457,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Global Icon (Ponniyin Selvan / Cannes)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/7/77/Aishwarya_Rai_11.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Aishwarya_Rai_Cannes_2017.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["AishwaryaRaiOfficial"]
+    "officialChannels": [
+      "AishwaryaRaiOfficial"
+    ]
   },
   {
     "id": "priyanka",
@@ -405,9 +471,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Bollywood & Hollywood (Citadel / Heads of State)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Priyanka_Chopra_at_the_2019_Met_Gala.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/4/45/Priyanka_Chopra_at_Bulgary_launch%2C_2024_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["PriyankaChopraOfficial"]
+    "officialChannels": [
+      "PriyankaChopraOfficial"
+    ]
   },
   {
     "id": "disha",
@@ -417,9 +485,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema (Kalki 2898 AD / Yodha)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Disha_Patani_promoting_Yodha.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/2/23/Disha_Patani_grace_the_premiere_of_Awarapan_2_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["DishaPataniOfficial"]
+    "officialChannels": [
+      "DishaPataniOfficial"
+    ]
   },
   {
     "id": "jacqueline",
@@ -429,9 +499,11 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema Dance Sensation",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/5/53/Jacqueline_Fernandez_attending_an_event_in_2022.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Jacqueline_FBA_2017.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["JacquelineFernandezOfficial"]
+    "officialChannels": [
+      "JacquelineFernandezOfficial"
+    ]
   },
   {
     "id": "anushka",
@@ -441,11 +513,12 @@
     "region": "BOLLYWOOD",
     "country": "IN",
     "industry": "Hindi Cinema (Chakda 'Xpress / PK / Sultan)",
-    "avatar": "https://upload.wikimedia.org/wikipedia/commons/5/52/Anushka_Sharma_at_Cannes_2023.jpg",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Anushka_Sharma_promoting_Zero.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["CleanSlateFilmz"]
+    "officialChannels": [
+      "CleanSlateFilmz"
+    ]
   },
-
   {
     "id": "akshara",
     "slug": "akshara-singh",
@@ -454,9 +527,11 @@
     "region": "BHOJPURI",
     "country": "IN",
     "industry": "Bhojpuri Film & Music Superstar",
-    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Bhojpuri_queen.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["AksharaSinghOfficial"]
+    "officialChannels": [
+      "AksharaSinghOfficial"
+    ]
   },
   {
     "id": "monalisa",
@@ -466,9 +541,11 @@
     "region": "BHOJPURI",
     "country": "IN",
     "industry": "Bhojpuri Blockbusters & National TV",
-    "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Monalisa_at_%27Dhappa%27_web_series_launch_%282%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["MonalisaOfficial"]
+    "officialChannels": [
+      "MonalisaOfficial"
+    ]
   },
   {
     "id": "amrapali",
@@ -478,9 +555,11 @@
     "region": "BHOJPURI",
     "country": "IN",
     "industry": "Modern Bhojpuri Blockbuster Queen",
-    "avatar": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Amrapali_Dubey_at_Press_Conference_of_Celebrity_Cricket_League_2016_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["AmrapaliDubeyOfficial"]
+    "officialChannels": [
+      "AmrapaliDubeyOfficial"
+    ]
   },
   {
     "id": "kajalraghwani",
@@ -490,11 +569,12 @@
     "region": "BHOJPURI",
     "country": "IN",
     "industry": "Bhojpuri Cinema & Music",
-    "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Monalisa_at_Leo_Music_Label_Unveiling01.jpg/800px-Monalisa_at_Leo_Music_Label_Unveiling01.jpg",
     "featured": false,
-    "officialChannels": ["KajalRaghwaniOfficial"]
+    "officialChannels": [
+      "KajalRaghwaniOfficial"
+    ]
   },
-
   {
     "id": "mahira",
     "slug": "mahira-khan",
@@ -503,9 +583,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Lollywood & TV Global (The Legend of Maula Jatt)",
-    "avatar": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/5/56/Mahira_Khan_2024_%281%29.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["MahiraKhanOfficial"]
+    "officialChannels": [
+      "MahiraKhanOfficial"
+    ]
   },
   {
     "id": "hania",
@@ -515,9 +597,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Global Drama Phenomenon (Kabhi Main Kabhi Tum / Mere Humsafar)",
-    "avatar": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Hania_Aamir.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["HaniaAamirOfficial"]
+    "officialChannels": [
+      "HaniaAamirOfficial"
+    ]
   },
   {
     "id": "yumna",
@@ -527,9 +611,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Tere Bin / Nayab / Lux Style Winner",
-    "avatar": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Yumna_Zaidi.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": true,
-    "officialChannels": ["YumnaZaidiOfficial"]
+    "officialChannels": [
+      "YumnaZaidiOfficial"
+    ]
   },
   {
     "id": "sajal",
@@ -539,9 +625,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "What's Love Got to Do with It? / Zard Patton Ka Bunn",
-    "avatar": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Les_plantes_utiles_des_colonies_franc%3Faises_-ouvrage_pub._sous_la_direction_de_J.%3FL._de_Lanessan._%28IA_mobot31753000753944%29.pdf/page1-1280px-Les_plantes_utiles_des_colonies_franc%3Faises_-ouvrage_pub._sous_la_direction_de_J.%3FL._de_Lanessan._%28IA_mobot31753000753944%29.pdf.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "featured": true,
-    "officialChannels": ["SajalAlyOfficial"]
+    "officialChannels": [
+      "SajalAlyOfficial"
+    ]
   },
   {
     "id": "ayeza",
@@ -551,9 +639,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Jaan-e-Jahan / Meray Paas Tum Ho",
-    "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/2/27/EC1835_C_cut.jpg",
     "featured": true,
-    "officialChannels": ["AyezaKhanOfficial"]
+    "officialChannels": [
+      "AyezaKhanOfficial"
+    ]
   },
   {
     "id": "mehwish",
@@ -563,9 +653,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Tamgha-e-Imtiaz / Ms. Marvel / London Nahi Jaunga",
-    "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Mehwish_Hayat.PNG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
     "featured": false,
-    "officialChannels": ["MehwishHayatOfficial"]
+    "officialChannels": [
+      "MehwishHayatOfficial"
+    ]
   },
   {
     "id": "iqra",
@@ -575,9 +667,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Suno Chanda / Khuda Aur Muhabbat",
-    "avatar": "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Gulshan_nadeem_Odia_Anchor_from_Odisha.jpg/1280px-Gulshan_nadeem_Odia_Anchor_from_Odisha.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["IqraAzizOfficial"]
+    "officialChannels": [
+      "IqraAzizOfficial"
+    ]
   },
   {
     "id": "kinza",
@@ -587,9 +681,11 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Dil Awaiz / Hook / Viral OSTs",
-    "avatar": "https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Hania_Aamir.png/800px-Hania_Aamir.png",
     "featured": false,
-    "officialChannels": ["KinzaHashmiOfficial"]
+    "officialChannels": [
+      "KinzaHashmiOfficial"
+    ]
   },
   {
     "id": "kubra",
@@ -599,8 +695,10 @@
     "region": "PAKISTAN",
     "country": "PK",
     "industry": "Sang-e-Mah / Hum Kahan Ke Sachay Thay",
-    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80",
+    "avatar": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Thaawar_Chand_Gehlot_presenting_a_cheque_to_Ms._Rabia_Khan%2C_National_Awardee_for_attending_International_Braille_Quran_Conference_at_Istanbul%2C_Turkey%2C_in_New_Delhi_on_August_10%2C_2015.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
     "featured": false,
-    "officialChannels": ["KubraKhanOfficial"]
+    "officialChannels": [
+      "KubraKhanOfficial"
+    ]
   }
 ]
