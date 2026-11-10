@@ -105,6 +105,28 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   const [isTheaterOpen, setIsTheaterOpen] = useState(false);
   const [theaterIndex, setTheaterIndex] = useState(0);
 
+  // Auto-hide horizontal filter scrollbar (visible only while scrolling)
+  const [isFilterScrolling, setIsFilterScrolling] = useState(false);
+  const filterScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleFilterScroll = useCallback(() => {
+    setIsFilterScrolling(true);
+    if (filterScrollTimerRef.current) {
+      clearTimeout(filterScrollTimerRef.current);
+    }
+    filterScrollTimerRef.current = setTimeout(() => {
+      setIsFilterScrolling(false);
+    }, 850);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (filterScrollTimerRef.current) {
+        clearTimeout(filterScrollTimerRef.current);
+      }
+    };
+  }, []);
+
   // Map latestMusicReleases to StageMediaItem[]
   const cinemaReelItems: StageMediaItem[] = useMemo(() => {
     return (latestMusicReleasesData as Array<{
@@ -346,8 +368,19 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
           </div>
         </div>
 
-        {/* Minimalist Flat Filter Bar with Generous Spacing & Subtle Underline */}
-        <div className="flex items-center gap-6 overflow-x-auto space-scrollbar pt-1.5 pb-0.5 border-t border-white/[0.06]">
+        {/* Minimalist Flat Filter Bar with Autohide Scrollbar (Visible Only During Active Scroll) */}
+        <div
+          onScroll={handleFilterScroll}
+          onWheel={(e) => {
+            if (e.deltaY !== 0) {
+              e.currentTarget.scrollLeft += e.deltaY;
+              handleFilterScroll();
+            }
+          }}
+          className={`flex items-center gap-6 overflow-x-auto autohide-scrollbar pt-1.5 pb-0.5 border-t border-white/[0.06] ${
+            isFilterScrolling ? 'is-scrolling' : ''
+          }`}
+        >
           {FILTER_CHIPS.map((chip) => {
             const isActive = activeFilter === chip.id;
             return (

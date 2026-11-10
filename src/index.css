@@ -240,6 +240,32 @@ html, body {
   scroll-behavior: smooth;
 }
 
+/* Autohide horizontal scrollbar: completely hidden until user is actively scrolling */
+.autohide-scrollbar::-webkit-scrollbar {
+  height: 3px;
+  width: 3px;
+}
+.autohide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.autohide-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.3s ease;
+}
+.autohide-scrollbar.is-scrolling::-webkit-scrollbar-thumb {
+  background: #ccff00;
+  box-shadow: 0 0 6px rgba(204, 255, 0, 0.6);
+}
+.autohide-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scroll-behavior: smooth;
+}
+.autohide-scrollbar.is-scrolling {
+  scrollbar-color: #ccff00 transparent;
+}
+
 /* Hide scrollbars for carousel tracks */
 .no-scrollbar::-webkit-scrollbar,
 .scrollbar-none::-webkit-scrollbar {
