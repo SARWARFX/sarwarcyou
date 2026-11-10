@@ -1,8 +1,6 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  ZoomIn,
-  ZoomOut,
   Play,
   Pause,
   Check,
@@ -22,6 +20,7 @@ import {
   ListVideo,
   Loader2,
   ChevronDown,
+  X,
 } from 'lucide-react';
 import { getDirectImageUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension, isHiddenOrSystemFolder, isExcludedAlbum, encodeStreamUrl } from '../utils/mediaTypeDetector';
@@ -1277,83 +1276,33 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-fade-in select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
-      <div className="viewer-top-bar player-header-bar w-full bg-black/80 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-none px-3 py-2">
-        {/* Left: Close / Return to Stage */}
-        <button
-          onClick={onClose}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
-          title="Close Theater"
-        >
-          <ChevronDown className="w-4 h-4" />
-          <span className="hidden sm:inline">CLOSE</span>
-        </button>
-
-        {/* Center: Frozen Rock-Solid Title (Decoupled from player async state) */}
-        <div className="flex-1 mx-3 min-w-0 text-left">
-          <h2 className="text-xs sm:text-sm font-medium text-white/90 truncate select-none">
-            {displayTitle}
-          </h2>
+      <div className="viewer-top-bar player-header-bar w-full bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-b border-white/[0.08] px-4 py-2.5">
+        {/* Left: Website Brand Logo */}
+        <div className="flex items-center gap-2 select-none shrink-0">
+          <span className="font-['Space_Grotesk',sans-serif] font-black tracking-[0.2em] sm:tracking-[0.24em] text-sm sm:text-base uppercase text-white flex items-center">
+            SARWAR<span className="text-[#ccff00]">.CYOU</span>
+          </span>
+          <span className="hidden md:inline-block text-[9px] font-mono text-[#ccff00] uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
+            THEATER
+          </span>
         </div>
 
-        {/* Right: Actions (Zoom, Download, Prominent View Full Screen) */}
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-20">
-          {!isVideo && (
-            <button
-              onClick={() => setIsZoomed(!isZoomed)}
-              className="p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 cursor-pointer"
-              title={isZoomed ? 'Zoom out (100%)' : 'Zoom in (160%)'}
-            >
-              {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
-            </button>
-          )}
+        {/* Right: Video Name + Close Button with Cross (X) */}
+        <div className="ml-auto flex items-center gap-3 sm:gap-4 min-w-0 max-w-[70vw] sm:max-w-[65vw] justify-end flex-shrink-0 z-20">
+          {/* Video Title */}
+          <h2 className="text-xs sm:text-sm font-medium text-white/90 truncate select-none text-right">
+            {displayTitle}
+          </h2>
 
-          {/* Direct 1-Click Download Button */}
+          {/* Close Button with Cross */}
           <button
-            onClick={() => handleDownload()}
-            disabled={isDownloading}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 cursor-pointer ${
-              downloadSuccess
-                ? 'bg-emerald-950/80 text-emerald-300'
-                : 'bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-200 hover:text-white'
-            } disabled:opacity-40`}
-            title="Direct Media Download"
+            onClick={onClose}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer shrink-0 group active:scale-95"
+            title="Close Theater"
+            aria-label="Close Theater"
           >
-            {downloadSuccess ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span className="hidden sm:inline">SAVED</span>
-              </>
-            ) : (
-              <>
-                {isDownloading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">
-                  {isDownloading ? 'DOWNLOADING...' : 'DOWNLOAD'}
-                </span>
-              </>
-            )}
-          </button>
-
-          {/* Prominent View Full Screen Button (Replaces Close Button) */}
-          <button
-            onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-200 hover:text-white text-xs sm:text-sm font-bold font-brand tracking-wider transition-all duration-200 cursor-pointer"
-            title={isFullscreen ? 'Exit Full Screen' : 'View Full Screen'}
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize className="w-4 h-4 text-white" />
-                <span className="hidden sm:inline">EXIT FULLSCREEN</span>
-              </>
-            ) : (
-              <>
-                <Maximize className="w-4 h-4 text-white" />
-                <span className="hidden sm:inline">VIEW FULL SCREEN</span>
-              </>
-            )}
+            <span className="hidden sm:inline text-xs font-mono tracking-wider">CLOSE</span>
+            <X className="w-4 h-4 text-zinc-400 group-hover:text-[#ccff00] transition-colors" />
           </button>
         </div>
       </div>
