@@ -9,10 +9,9 @@ export interface MajorFolderDef {
 }
 
 export const MAJOR_FOLDERS: MajorFolderDef[] = [
-  { key: 'CLIPS', rawName: 'Clips', label: 'CLIPS' },
-  { key: 'SHORTS', rawName: 'Shorts', label: 'SHORTS' },
-  { key: 'PHOTOGRAPHY', rawName: 'Images', label: 'PHOTOGRAPHY' },
-  { key: 'REALTUBE', rawName: 'REALTube', label: 'REALTUBE' },
+  { key: 'CLIPS', rawName: 'Clips', label: 'VIDEO CLIPS' },
+  { key: 'SHORTS', rawName: 'Shorts', label: 'REELS/SHORTS' },
+  { key: 'PHOTOGRAPHY', rawName: 'Images', label: 'PHOTOGRAPHS' },
 ];
 
 export interface SidebarAccordionNavProps {

@@ -48,6 +48,7 @@ export interface CelebrityShowcaseProps {
   initialTab?: 'PORTRAITS' | 'DISPATCHES' | 'REELS';
   initialFilter?: string;
   initialVideoId?: string | null;
+  hideViewTabs?: boolean;
   onTabChange?: (tab: 'PORTRAITS' | 'DISPATCHES' | 'REELS') => void;
   onFilterChange?: (filter: string) => void;
   onVideoChange?: (videoId: string | null) => void;
@@ -83,6 +84,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   initialTab,
   initialFilter,
   initialVideoId,
+  hideViewTabs = false,
   onTabChange,
   onFilterChange,
   onVideoChange,
@@ -446,148 +448,165 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                CELEBRITY ARCHIVE
+                {hideViewTabs
+                  ? activeTab === 'DISPATCHES'
+                    ? 'CELEBRITY PRESS INTELLIGENCE'
+                    : activeTab === 'PORTRAITS'
+                    ? 'CELEBRITY PORTRAITS'
+                    : 'OFFICIAL VIDEO RELEASES'
+                  : 'CELEBRITY ARCHIVE'}
               </h1>
               <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400 line-clamp-1 sm:line-clamp-none">
-                Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses
+                {hideViewTabs
+                  ? activeTab === 'DISPATCHES'
+                    ? 'Daily Verified Dispatches • South Asian Film & Entertainment Coverage'
+                    : activeTab === 'PORTRAITS'
+                    ? 'Curated High-Definition Editorial Portraits in True Master Color'
+                    : 'Official 16:9 4K Cinema Sequences, Teasers & Music Releases'
+                  : 'Curated High-Definition Portraits & Verified Intelligence on Leading Actresses'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* View Toggle Tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-lg bg-[#121215] border border-white/[0.08]">
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  switchShowcaseTab('PORTRAITS');
-                }}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-                  activeTab === 'PORTRAITS'
-                    ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>PHOTOGRAPHY</span>
-              </button>
+          {!hideViewTabs && (
+            <div className="flex items-center gap-2.5">
+              {/* View Toggle Tabs */}
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-[#121215] border border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    hapticMedium();
+                    switchShowcaseTab('PORTRAITS');
+                  }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
+                    activeTab === 'PORTRAITS'
+                      ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>PHOTOGRAPHY</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  switchShowcaseTab('DISPATCHES');
-                }}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-                  activeTab === 'DISPATCHES'
-                    ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                <Newspaper className="w-3.5 h-3.5" />
-                <span>NEWS</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    hapticMedium();
+                    switchShowcaseTab('DISPATCHES');
+                  }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
+                    activeTab === 'DISPATCHES'
+                      ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <Newspaper className="w-3.5 h-3.5" />
+                  <span>NEWS</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  switchShowcaseTab('REELS');
-                }}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-                  activeTab === 'REELS'
-                    ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                <Film className="w-3.5 h-3.5" />
-                <span>LATEST VIDEOS</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    hapticMedium();
+                    switchShowcaseTab('REELS');
+                  }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
+                    activeTab === 'REELS'
+                      ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>LATEST VIDEOS</span>
+                </button>
+              </div>
             </div>
+          )}
+        </div>
+
+        {/* 2-Tier Navigation Engine: Guaranteed Flex-Col Separation */}
+        <div className="w-full flex flex-col gap-2.5 pt-2 border-t border-white/[0.06] shrink-0">
+          {/* Tier 1 Region Filter Pills */}
+          <div className="w-full flex items-center gap-2 overflow-x-auto autohide-scrollbar py-1 shrink-0">
+            {REGION_TABS.map((tab) => {
+              const isRegActive = selectedRegion === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleSelectRegion(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer shrink-0 border ${
+                    isRegActive
+                      ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/60 shadow-[0_0_10px_rgba(204,255,0,0.25)]'
+                      : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${isRegActive ? 'bg-[#ccff00] text-black font-black' : 'bg-white/10 text-neutral-400'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        </div>
 
-        {/* 2-Tier Navigation Engine: Tier 1 Region Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar py-2 border-t border-white/[0.06] shrink-0 min-h-[44px]">
-          {REGION_TABS.map((tab) => {
-            const isRegActive = selectedRegion === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleSelectRegion(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer shrink-0 border ${
-                  isRegActive
-                    ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/60 shadow-[0_0_10px_rgba(204,255,0,0.25)]'
-                    : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${isRegActive ? 'bg-[#ccff00] text-black font-black' : 'bg-white/10 text-neutral-400'}`}>
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tier 2 Actress Filter Chips */}
-        <div
-          onScroll={handleFilterScroll}
-          onWheel={(e) => {
-            if (e.deltaY !== 0) {
-              e.currentTarget.scrollLeft += e.deltaY;
-              handleFilterScroll();
-            }
-          }}
-          className={`flex items-center gap-2.5 overflow-x-auto autohide-scrollbar py-2.5 shrink-0 min-h-[46px] ${
-            isFilterScrolling ? 'is-scrolling' : ''
-          }`}
-        >
-          {/* ALL CHIP */}
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              handleSelectFilter('ALL');
+          {/* Tier 2 Actress Filter Chips */}
+          <div
+            onScroll={handleFilterScroll}
+            onWheel={(e) => {
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+                handleFilterScroll();
+              }
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-              activeFilter === 'ALL'
-                ? 'bg-white text-black font-black border-white shadow-md'
-                : 'bg-white/[0.02] text-neutral-400 border-white/10 hover:text-white'
+            className={`w-full flex items-center gap-2.5 overflow-x-auto autohide-scrollbar py-1 shrink-0 ${
+              isFilterScrolling ? 'is-scrolling' : ''
             }`}
           >
-            <span>ALL {selectedRegion === 'ALL' ? '(50)' : `(${visibleActresses.length})`}</span>
-          </button>
+            {/* ALL CHIP */}
+            <button
+              type="button"
+              onClick={() => {
+                hapticMedium();
+                handleSelectFilter('ALL');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+                activeFilter === 'ALL'
+                  ? 'bg-white text-black font-black border-white shadow-md'
+                  : 'bg-white/[0.02] text-neutral-400 border-white/10 hover:text-white'
+              }`}
+            >
+              <span>ALL {selectedRegion === 'ALL' ? '(50)' : `(${visibleActresses.length})`}</span>
+            </button>
 
-          {/* DYNAMIC REGIONAL ACTRESSES */}
-          {visibleActresses.map((actress) => {
-            const isActive = activeFilter === actress.name;
-            return (
-              <button
-                key={actress.id}
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  handleSelectFilter(actress.name);
-                }}
-                className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-                  isActive
-                    ? 'bg-[#ccff00] text-black font-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                    : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:text-white'
-                }`}
-              >
-                <img
-                  src={actress.avatar}
-                  alt={actress.name}
-                  loading="lazy"
-                  className="w-4 h-4 rounded-full object-cover shrink-0"
-                />
-                <span>{actress.label}</span>
-              </button>
-            );
-          })}
+            {/* DYNAMIC REGIONAL ACTRESSES */}
+            {visibleActresses.map((actress) => {
+              const isActive = activeFilter === actress.name;
+              return (
+                <button
+                  key={actress.id}
+                  type="button"
+                  onClick={() => {
+                    hapticMedium();
+                    handleSelectFilter(actress.name);
+                  }}
+                  className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+                    isActive
+                      ? 'bg-[#ccff00] text-black font-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                      : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  <img
+                    src={actress.avatar}
+                    alt={actress.name}
+                    loading="lazy"
+                    className="w-4 h-4 rounded-full object-cover shrink-0"
+                  />
+                  <span>{actress.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </header>
 

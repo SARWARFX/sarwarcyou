@@ -52,12 +52,23 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
     root = 'Clips';
   } else if (/^(?:photographs|images|photography)$/i.test(root)) {
     root = 'Images';
-  } else if (/^shorts$/i.test(root)) {
+  } else if (/^(?:reels\/shorts|shorts|reels)$/i.test(root)) {
     root = 'Shorts';
   } else if (/^realtube$/i.test(root)) {
-    root = 'REALTube';
+    // REALTube distribution into independent categories
+    if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short')) {
+      root = 'Shorts';
+      sub = ['REALTube Shorts'];
+    } else if (item.type === 'image' || isPhotoExtension(item.url || item.name)) {
+      root = 'Images';
+      sub = ['REALTube Photos'];
+    } else {
+      root = 'Clips';
+      sub = ['REALTube Broadcasts'];
+    }
   } else if (/^youtube$/i.test(root)) {
-    root = 'YouTube';
+    root = 'Clips';
+    sub = ['Official Releases'];
   } else {
     if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short')) {
       root = 'Shorts';
@@ -73,7 +84,6 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
 
   if (sub.length === 0) {
     if (root === 'Shorts') sub = ['Shorts Classic'];
-    else if (root === 'REALTube') sub = ['REALTube Shorts'];
     else if (root === 'Images') sub = ['H2026'];
     else sub = ['H2027'];
   }
@@ -93,10 +103,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const initialRoute = useMemo(() => parseIdRoute(), []);
 
   // Navigation states:
-  // Level 0: selectedCategory === null && selectedSubfolder === null (Bollywood Overview)
-  // Level 1: selectedCategory !== null && selectedSubfolder === null (Child Subfolders Grid)
-  // Level 2: selectedCategory !== null && selectedSubfolder !== null (Direct Media Items)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialRoute.category);
+  // 4 Top Categories: 'NEWS' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
+    if (!initialRoute.category || initialRoute.category === 'ARCHIVE' || initialRoute.category === 'NEWS') return 'NEWS';
+    if (initialRoute.category === 'YOUTUBE') return 'SHORTS';
+    if (initialRoute.category === 'REALTUBE') return 'CLIPS';
+    return initialRoute.category;
+  });
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(initialRoute.subfolder);
   const [activeCelebrityFilter, setActiveCelebrityFilter] = useState<string>(initialRoute.celebrityStar || 'ALL');
   const [activeCelebrityTab, setActiveCelebrityTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>(
@@ -127,17 +140,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   useEffect(() => {
     const handlePopState = () => {
       const route = parseIdRoute();
-      setSelectedCategory(route.category);
+      const cat = (!route.category || route.category === 'ARCHIVE' || route.category === 'NEWS')
+        ? 'NEWS'
+        : route.category === 'YOUTUBE'
+        ? 'SHORTS'
+        : route.category === 'REALTUBE'
+        ? 'CLIPS'
+        : route.category;
+      setSelectedCategory(cat);
       setSelectedSubfolder(route.subfolder);
       if (route.celebrityStar) {
         setActiveCelebrityFilter(route.celebrityStar);
-      } else if (route.category === null) {
+      } else if (cat === 'NEWS') {
         setActiveCelebrityFilter('ALL');
       }
       if (route.celebrityTab) {
         setActiveCelebrityTab(route.celebrityTab);
-      } else if (route.category === null) {
-        setActiveCelebrityTab('PORTRAITS');
+      } else if (cat === 'NEWS') {
+        setActiveCelebrityTab('DISPATCHES');
       }
       setActiveVideoId(route.videoId);
     };
@@ -289,10 +309,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     };
 
-    ensureSubfolders('Clips', ['H2027', 'H2026', 'H2025', 'Favorite', 'Others']);
-    ensureSubfolders('Shorts', ['Shorts Classic', 'REALTube Shorts']);
-    ensureSubfolders('Images', ['H2026', 'H2025', 'Bandhobis', 'Works', 'Classic']);
-    ensureSubfolders('REALTube', ['REALTube Shorts', 'Archive Feeds']);
+    ensureSubfolders('Clips', ['Official Releases', 'H2027', 'H2026', 'H2025', 'Favorite', 'REALTube Broadcasts', 'Others']);
+    ensureSubfolders('Shorts', ['Celebrity Reels', 'Shorts Classic', 'REALTube Shorts']);
+    ensureSubfolders('Images', ['Celebrity Portraits', 'H2026', 'H2025', 'Bandhobis', 'Works', 'Classic', 'REALTube Photos']);
 
     // Sort files descending
     for (const rootNode of map.values()) {
@@ -521,19 +540,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [rootMap, updateRoute]
   );
 
-  const MAIN_TAB_ORDER = useMemo(() => ['ARCHIVE', 'YOUTUBE', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY', 'REALTUBE'], []);
+  const MAIN_TAB_ORDER = useMemo(() => ['NEWS', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY'], []);
 
   const navigateTab = useCallback(
     (newCat: string | null) => {
-      const currentKey = selectedCategory || 'ARCHIVE';
-      const targetKey = newCat || 'ARCHIVE';
+      const currentKey = selectedCategory || 'NEWS';
+      const targetKey = newCat || 'NEWS';
       if (currentKey === targetKey) return;
       const oldIdx = MAIN_TAB_ORDER.indexOf(currentKey);
       const newIdx = MAIN_TAB_ORDER.indexOf(targetKey);
       setSlideDirection(newIdx >= oldIdx ? 'right' : 'left');
-      setSelectedCategory(newCat);
+      setSelectedCategory(targetKey);
       setSelectedSubfolder(null);
-      updateRoute({ category: (newCat as any) || null, subfolder: null, videoId: null });
+      updateRoute({ category: targetKey as any, subfolder: null, videoId: null });
     },
     [selectedCategory, MAIN_TAB_ORDER, updateRoute]
   );
@@ -551,9 +570,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [selectedSubfolder, childSubfoldersList, updateRoute]
   );
 
-  // Idle reset handler: returns to Public Bollywood Overview (Level 0)
+  // Idle reset handler: returns to Public News Overview
   const handleExitToHome = useCallback(() => {
-    navigateTab(null);
+    navigateTab('NEWS');
   }, [navigateTab]);
 
   // Return to Category Subfolders handler (Level 2 -> Level 1)
@@ -584,8 +603,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return true;
       }
 
-      // 3. If at Level 1 (viewing category child collections), step back to Level 0
-      if (selectedCategory !== null) {
+      // 3. If in another category, return to NEWS
+      if (selectedCategory !== 'NEWS') {
         handleExitToHome();
         return true;
       }
@@ -593,6 +612,71 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       return false;
     }, [isReelPlayerOpen, isVaultDrawerOpen, selectedSubfolder, selectedCategory, handleReturnToCategory, handleExitToHome, updateRoute])
   );
+
+  const renderCategorySubfolderBar = (category: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY') => {
+    let subOptions: { name: string; count: number; isCelebrity?: boolean }[] = [];
+    if (category === 'SHORTS') {
+      subOptions = [
+        { name: 'Celebrity Reels', count: 250, isCelebrity: true },
+        { name: 'Shorts Classic', count: rootMap.get('Shorts')?.subfolders.get('Shorts Classic')?.files.length || 0 },
+        { name: 'REALTube Shorts', count: rootMap.get('Shorts')?.subfolders.get('REALTube Shorts')?.files.length || 0 },
+      ];
+    } else if (category === 'CLIPS') {
+      const clipsNode = rootMap.get('Clips');
+      const catalogSubs = clipsNode ? Array.from(clipsNode.subfolders.keys()).filter((s) => s !== 'Official Releases') : [];
+      subOptions = [
+        { name: 'Official Releases', count: 110, isCelebrity: true },
+        ...catalogSubs.map((s) => ({
+          name: s,
+          count: clipsNode?.subfolders.get(s)?.files.length || 0,
+        })),
+      ];
+    } else if (category === 'PHOTOGRAPHY') {
+      const imagesNode = rootMap.get('Images');
+      const catalogSubs = imagesNode ? Array.from(imagesNode.subfolders.keys()).filter((s) => s !== 'Celebrity Portraits') : [];
+      subOptions = [
+        { name: 'Celebrity Portraits', count: 358, isCelebrity: true },
+        ...catalogSubs.map((s) => ({
+          name: s,
+          count: imagesNode?.subfolders.get(s)?.files.length || 0,
+        })),
+      ];
+    }
+
+    const currentSub = selectedSubfolder || subOptions[0]?.name;
+
+    return (
+      <div className="w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-2 mb-4 shrink-0 min-h-[46px] border-b border-white/[0.08]">
+        {subOptions.map((sub) => {
+          const isActive = currentSub === sub.name;
+          return (
+            <button
+              key={sub.name}
+              type="button"
+              onClick={() => {
+                hapticMedium();
+                navigateSubfolder(sub.isCelebrity ? null : sub.name);
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+                isActive
+                  ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                  : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
+              }`}
+            >
+              <span>{sub.name}</span>
+              <span
+                className={`text-[9px] px-1.5 py-0.2 rounded-full ${
+                  isActive ? 'bg-black text-[#ccff00] font-black' : 'bg-white/10 text-neutral-400'
+                }`}
+              >
+                {sub.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -649,39 +733,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
           />
           <span className="hidden sm:inline-block text-[10px] font-mono text-[#ccff00] uppercase tracking-widest px-2 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
-            ARCHIVE
+            {selectedCategory === 'PHOTOGRAPHY' ? 'PHOTOGRAPHS' : selectedCategory === 'CLIPS' ? 'VIDEO CLIPS' : selectedCategory === 'SHORTS' ? 'REELS/SHORTS' : 'NEWS'}
           </span>
         </div>
 
-        {/* Avant-Garde Quick Select Keys */}
-        <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        {/* Avant-Garde Quick Select Keys: Exactly 4 Consolidated Tabs */}
+        <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
           <button
             type="button"
             onClick={() => {
               hapticMedium();
-              navigateTab(null);
+              navigateTab('NEWS');
             }}
-            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              selectedCategory === null
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+              selectedCategory === 'NEWS' || selectedCategory === null
                 ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            ARCHIVE
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              navigateTab('YOUTUBE');
-            }}
-            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              selectedCategory === 'YOUTUBE'
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            REELS
+            NEWS
           </button>
           <button
             type="button"
@@ -689,13 +759,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('SHORTS');
             }}
-            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              selectedCategory === 'SHORTS'
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+              selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE'
                 ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            SHORTS
+            REELS/SHORTS
           </button>
           <button
             type="button"
@@ -703,13 +773,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('CLIPS');
             }}
-            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              selectedCategory === 'CLIPS'
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+              selectedCategory === 'CLIPS' || selectedCategory === 'REALTUBE'
                 ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            CLIPS
+            VIDEO CLIPS
           </button>
           <button
             type="button"
@@ -717,46 +787,33 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('PHOTOGRAPHY');
             }}
-            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
               selectedCategory === 'PHOTOGRAPHY'
                 ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            PHOTO
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              navigateTab('REALTUBE');
-            }}
-            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              selectedCategory === 'REALTUBE'
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            REALTUBE
+            PHOTOGRAPHS
           </button>
         </div>
       </header>
 
-      {/* MAIN VIEWPORT STAGE */}
-      {selectedCategory === null ? (
+      {/* MAIN VIEWPORT STAGE: Exactly 4 Consolidated Sections */}
+      {selectedCategory === 'NEWS' || selectedCategory === null ? (
         /* ===================================================================== */
-        /* LEVEL 0: PUBLIC ENTERTAINMENT HUB & CHRONICLE NEWS                    */
+        /* TAB 1: NEWS // CELEBRITY PRESS INTELLIGENCE & VERIFIED DISPATCHES     */
         /* ===================================================================== */
         <main
-          aria-label="Bollywood Celebrity Archive Overview"
+          aria-label="Celebrity Press Intelligence & News Dispatches"
           className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >
-          <div key="archive-overview" className={`w-full h-full ${slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
+          <div key="news-feed" className={`w-full h-full ${slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
             <CelebrityShowcase
               onOpenPhoto={onOpenPhoto}
-              initialTab={activeCelebrityTab}
+              initialTab="DISPATCHES"
+              hideViewTabs={true}
               initialFilter={activeCelebrityFilter}
               initialVideoId={activeVideoId}
               onTabChange={(tab) => {
@@ -774,124 +831,131 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             />
           </div>
         </main>
-      ) : selectedCategory === 'YOUTUBE' ? (
+      ) : selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE' ? (
         /* ===================================================================== */
-        /* LEVEL 1: CELEBRITY REELS // 9:16 VERTICAL STREAM FEED                 */
+        /* TAB 2: REELS/SHORTS // 9:16 VERTICAL STREAM FEED                      */
         /* ===================================================================== */
         <main
-          aria-label="Celebrity Reels 9:16 Vertical Hub"
+          aria-label="Reels and Shorts Hub"
           className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar p-4 sm:p-7 lg:p-10 z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >
-          {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-white/10 shrink-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Music2 className="w-5 h-5 text-[#ccff00]" />
-                <span className="font-['Space_Grotesk'] font-black text-lg sm:text-xl tracking-wider uppercase text-white">
-                  CELEBRITY REELS
-                </span>
+          {renderCategorySubfolderBar('SHORTS')}
+
+          {selectedSubfolder === null || selectedSubfolder === 'Celebrity Reels' ? (
+            <>
+              {/* Header Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-white/10 shrink-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Music2 className="w-5 h-5 text-[#ccff00]" />
+                    <span className="font-['Space_Grotesk'] font-black text-lg sm:text-xl tracking-wider uppercase text-white">
+                      CELEBRITY REELS
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-[#ccff00]/15 border border-[#ccff00]/30 text-xs font-mono font-bold text-[#ccff00]">
+                    9:16 VERTICAL STREAM
+                  </span>
+                  <span className="text-xs font-mono text-neutral-400">
+                    ({filteredReels.length} verified reels)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse" />
+                  <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
+                    DAILY INGESTION • 365-DAY RETENTION
+                  </span>
+                </div>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-[#ccff00]/15 border border-[#ccff00]/30 text-xs font-mono font-bold text-[#ccff00]">
-                9:16 VERTICAL STREAM
-              </span>
-              <span className="text-xs font-mono text-neutral-400">
-                ({filteredReels.length} verified reels)
-              </span>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse" />
-              <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
-                DAILY INGESTION • 365-DAY RETENTION
-              </span>
-            </div>
-          </div>
+              {/* 2-Tier Navigation Engine: Guaranteed Flex-Col Separation */}
+              <div className="w-full flex flex-col gap-3 py-2 mb-6 border-b border-white/[0.08] shrink-0">
+                {/* Tier 1 Region Filter Pills */}
+                <div className="w-full flex items-center gap-2 overflow-x-auto autohide-scrollbar py-1 shrink-0">
+                  {REEL_REGION_TABS.map((tab) => {
+                    const isActive = selectedReelRegion === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          hapticMedium();
+                          setSelectedReelRegion(tab.id);
+                          if (selectedReelStar !== 'ALL') {
+                            const found = (actressesRegistryData as Array<{ id: string; region: string }>).find(
+                              (a) => a.id === selectedReelStar
+                            );
+                            if (tab.id !== 'ALL' && (!found || found.region !== tab.id)) {
+                              setSelectedReelStar('ALL');
+                            }
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+                          isActive
+                            ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                            : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
+                        }`}
+                      >
+                        <span>{tab.label}</span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                            isActive ? 'bg-black text-[#ccff00] font-black' : 'bg-white/10 text-neutral-400'
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-          {/* Tier 1 Region Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar py-1.5 mb-2 shrink-0 min-h-[44px]">
-            {REEL_REGION_TABS.map((tab) => {
-              const isActive = selectedReelRegion === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setSelectedReelRegion(tab.id);
-                    if (selectedReelStar !== 'ALL') {
-                      const found = (actressesRegistryData as Array<{ id: string; region: string }>).find(
-                        (a) => a.id === selectedReelStar
-                      );
-                      if (tab.id !== 'ALL' && (!found || found.region !== tab.id)) {
-                        setSelectedReelStar('ALL');
-                      }
-                    }
-                  }}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-                    isActive
-                      ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                      : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  <span
-                    className={`text-[9px] px-1.5 py-0.2 rounded-full ${
-                      isActive ? 'bg-black text-[#ccff00] font-black' : 'bg-white/10 text-neutral-400'
+                {/* Tier 2 Actress Filter Chips */}
+                <div className="w-full flex items-center gap-2 overflow-x-auto autohide-scrollbar py-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticMedium();
+                      setSelectedReelStar('ALL');
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+                      selectedReelStar === 'ALL'
+                        ? 'bg-white text-black font-black border-white shadow-md'
+                        : 'bg-white/[0.02] text-neutral-400 border-white/10 hover:text-white'
                     }`}
                   >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <span>ALL ACTRESSES ({visibleReelActresses.length})</span>
+                  </button>
 
-          {/* Tier 2 Actress Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar py-2 mb-6 border-b border-white/[0.08] shrink-0 min-h-[46px]">
-            <button
-              type="button"
-              onClick={() => {
-                hapticMedium();
-                setSelectedReelStar('ALL');
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-                selectedReelStar === 'ALL'
-                  ? 'bg-white text-black font-black border-white shadow-md'
-                  : 'bg-white/[0.02] text-neutral-400 border-white/10 hover:text-white'
-              }`}
-            >
-              <span>ALL ACTRESSES ({visibleReelActresses.length})</span>
-            </button>
-
-            {visibleReelActresses.map((actress) => {
-              const isActive = selectedReelStar === actress.id || selectedReelStar === actress.name;
-              return (
-                <button
-                  key={actress.id}
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setSelectedReelStar(actress.id);
-                  }}
-                  className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-                    isActive
-                      ? 'bg-[#ccff00] text-black font-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                      : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:text-white'
-                  }`}
-                >
-                  <img
-                    src={actress.avatar}
-                    alt={actress.name}
-                    loading="lazy"
-                    className="w-4 h-4 rounded-full object-cover shrink-0"
-                  />
-                  <span>{actress.label}</span>
-                </button>
-              );
-            })}
-          </div>
+                  {visibleReelActresses.map((actress) => {
+                    const isActive = selectedReelStar === actress.id || selectedReelStar === actress.name;
+                    return (
+                      <button
+                        key={actress.id}
+                        type="button"
+                        onClick={() => {
+                          hapticMedium();
+                          setSelectedReelStar(actress.id);
+                        }}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+                          isActive
+                            ? 'bg-[#ccff00] text-black font-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                            : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:text-white'
+                        }`}
+                      >
+                        <img
+                          src={actress.avatar}
+                          alt={actress.name}
+                          loading="lazy"
+                          className="w-4 h-4 rounded-full object-cover shrink-0"
+                        />
+                        <span>{actress.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
           {/* 9:16 Vertical Reels Grid Wall */}
           <div
@@ -968,153 +1032,75 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               );
             })}
           </div>
-        </main>
-      ) : (
-        /* ===================================================================== */
-        /* LEVEL 1: UNIFIED EDITORIAL EXPERIENCE (SHORTS / PHOTO / CLIPS / REALTUBE) */
-        /* ===================================================================== */
-        <main
-          aria-label={`${selectedCategory} Media Hub`}
-          className={`flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent min-h-0 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
-          }`}
-        >
-          {/* Section Hero Header */}
-          <div key={selectedCategory} className={`flex flex-col gap-2 pb-6 mb-6 border-b border-white/10 shrink-0 ${slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
-            <div className="flex items-center gap-2.5 font-mono text-[10px] sm:text-xs text-[#ccff00] uppercase tracking-widest">
-              <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.8)] animate-pulse" />
-              <span>
-                {selectedCategory === 'SHORTS' && '9:16 VERTICAL STREAM // ULTRA HIGH-DEF SHORT-FORM REELS'}
-                {selectedCategory === 'PHOTOGRAPHY' && 'CURATED EXHIBITION // STILL PHOTOGRAPHY & EDITORIAL PORTFOLIO'}
-                {selectedCategory === 'CLIPS' && 'CINEMATIC VAULT // 16:9 4K SCENE SELECTIONS & TEASERS'}
-                {selectedCategory === 'REALTUBE' && 'STREAMING CHANNEL HUB // EXCLUSIVE EXTENDED BROADCASTS'}
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-              <h1 className="font-['Space_Grotesk',sans-serif] font-black text-2xl sm:text-3xl lg:text-4xl tracking-wider uppercase text-white">
-                {selectedCategory === 'SHORTS' && 'EXCLUSIVE SHORTS'}
-                {selectedCategory === 'PHOTOGRAPHY' && 'STILL PHOTOGRAPHY'}
-                {selectedCategory === 'CLIPS' && 'CINEMA CLIPS'}
-                {selectedCategory === 'REALTUBE' && 'REALTUBE BROADCASTS'}
-              </h1>
-              <span className="text-xs font-mono text-neutral-400">
-                ({activeMediaList.length} {activeMediaList.length === 1 ? 'item' : 'items'} available)
-              </span>
-            </div>
-
-            <p className="text-xs sm:text-sm text-neutral-400 max-w-2xl leading-relaxed">
-              {selectedCategory === 'SHORTS' &&
-                'Bite-sized, high-energy vertical reels curated from viral moments, dance highlights, and backstage appearances.'}
-              {selectedCategory === 'PHOTOGRAPHY' &&
-                'High-definition editorial galleries, red carpet appearances, and studio portrait shoots rendered in true natural master color.'}
-              {selectedCategory === 'CLIPS' &&
-                'Iconic high-definition cinema sequences, song highlights, and official teaser trailers streamed in lossless 4K theater fidelity.'}
-              {selectedCategory === 'REALTUBE' &&
-                'Curated long-form feature releases, interview retrospectives, and studio programs.'}
-            </p>
-          </div>
-
-          {/* Interactive Collection Filter Pills */}
-          {childSubfoldersList.length > 0 && (
-            <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-2 mb-6 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  navigateSubfolder(null);
-                }}
-                className={`shrink-0 px-4 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap leading-none flex items-center justify-center ${
-                  selectedSubfolder === null
-                    ? 'bg-[#ccff00] text-black shadow-[0_0_14px_rgba(204,255,0,0.35)]'
-                    : 'text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10'
-                }`}
-              >
-                ALL {selectedCategory} ({allCategoryFiles.length})
-              </button>
-
-              {childSubfoldersList.map((sub) => (
-                <button
-                  key={sub.name}
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    navigateSubfolder(sub.name);
-                  }}
-                  className={`shrink-0 px-4 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap leading-none flex items-center justify-center ${
-                    selectedSubfolder === sub.name
-                      ? 'bg-[#ccff00] text-black shadow-[0_0_14px_rgba(204,255,0,0.35)]'
-                      : 'text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10'
-                  }`}
+            </>
+          ) : (
+            /* Subfolder Media Grid (Shorts Classic or REALTube Shorts) */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-20">
+              {activeMediaList.map((item, idx) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleOpenItem(item, idx)}
+                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {sub.name} ({sub.files.length})
-                </button>
+                  <img
+                    src={item.thumbnail || item.url}
+                    alt={item.title || item.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
+                      <Play className="w-5 h-5 fill-current ml-0.5" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 inset-x-0 p-3">
+                    <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
+                    <span className="text-[10px] font-mono text-[#ccff00]">{selectedSubfolder}</span>
+                  </div>
+                </div>
               ))}
             </div>
           )}
+        </main>
+      ) : selectedCategory === 'CLIPS' ? (
+        /* ===================================================================== */
+        /* TAB 3: VIDEO CLIPS // 16:9 WIDESCREEN CINEMA & MUSIC RELEASES         */
+        /* ===================================================================== */
+        <main
+          aria-label="Video Clips Hub"
+          className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
+          }`}
+        >
+          <div className="px-4 sm:px-8 pt-3 shrink-0">
+            {renderCategorySubfolderBar('CLIPS')}
+          </div>
 
-          {/* REALTUBE Spotlight Hero Banner (Featured Premiere) */}
-          {selectedCategory === 'REALTUBE' && activeMediaList.length > 0 && selectedSubfolder === null && (
-            <div className="relative rounded-2xl overflow-hidden mb-8 border border-white/10 bg-[#08080a] group aspect-[21/9] min-h-[260px] sm:min-h-[320px] flex flex-col justify-end p-6 sm:p-10 select-none shadow-2xl shrink-0">
-              {/* Background Thumbnail */}
-              {(() => {
-                const heroItem = activeMediaList[0];
-                const imageSrc =
-                  (heroItem as any).thumbnail ||
-                  (heroItem as any).src ||
-                  heroItem.url ||
-                  (heroItem as any).image ||
-                  heroItem.path ||
-                  '';
-                const heroThumb =
-                  getImageUrl(heroItem) ||
-                  getThumbnailUrl(heroItem) ||
-                  resolveStaticVideoThumbnail(heroItem) ||
-                  getMediaUrl(imageSrc) ||
-                  imageSrc;
-
-                return heroThumb ? (
-                  <img
-                    src={heroThumb}
-                    alt={heroItem.title || heroItem.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60"
-                  />
-                ) : null;
-              })()}
-
-              {/* Gradient Scrim */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/70 to-transparent pointer-events-none" />
-
-              {/* Hero Content */}
-              <div className="relative z-10 max-w-2xl flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse" />
-                  <span className="font-mono text-[10px] font-bold text-[#ccff00] uppercase tracking-widest">
-                    FEATURED PREMIERE // 2026
-                  </span>
-                </div>
-
-                <h2 className="font-['Space_Grotesk',sans-serif] font-black text-xl sm:text-2xl lg:text-3xl text-white uppercase tracking-wider line-clamp-2">
-                  {activeMediaList[0]?.title || (activeMediaList[0]?.name ? activeMediaList[0].name.replace(/\.[a-z0-9]+$/i, '') : 'PREMIERE')}
-                </h2>
-
-                <p className="text-xs sm:text-sm text-neutral-300 line-clamp-2">
-                  {activeMediaList[0]?.parentAlbum || 'Exclusive uncut broadcast stream presented in lossless master theater fidelity.'}
-                </p>
-
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenItem(activeMediaList[0], 0)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#ccff00] hover:bg-[#b8e600] text-black font-mono font-bold text-xs uppercase tracking-wider cursor-pointer shadow-[0_0_18px_rgba(204,255,0,0.4)] transition-all hover:scale-105 active:scale-95"
-                  >
-                    <Play className="w-4 h-4 fill-current ml-0.5" />
-                    <span>PLAY PREMIERE</span>
-                  </button>
-                </div>
-              </div>
+          {selectedSubfolder === null || selectedSubfolder === 'Official Releases' ? (
+            <div key="clips-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">
+              <CelebrityShowcase
+                onOpenPhoto={onOpenPhoto}
+                initialTab="REELS"
+                hideViewTabs={true}
+                initialFilter={activeCelebrityFilter}
+                initialVideoId={activeVideoId}
+                onTabChange={(tab) => {
+                  setActiveCelebrityTab(tab);
+                  updateRoute({ celebrityTab: tab });
+                }}
+                onFilterChange={(filter) => {
+                  setActiveCelebrityFilter(filter);
+                  updateRoute({ celebrityStar: filter });
+                }}
+                onVideoChange={(videoId) => {
+                  setActiveVideoId(videoId);
+                  updateRoute({ videoId });
+                }}
+              />
             </div>
-          )}
+          ) : (
+            <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
 
           {/* Media Items Presentation Grid */}
           {activeMediaList.length === 0 ? (
@@ -1131,15 +1117,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           ) : (
             <div
-              key={`${selectedCategory}-${selectedSubfolder || 'all'}`}
-              className={`w-full pb-20 ${
+              key={`clips-${selectedSubfolder || 'all'}`}
+              className={`w-full pb-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 ${
                 slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'
-              } ${
-                selectedCategory === 'SHORTS'
-                  ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4'
-                  : selectedCategory === 'PHOTOGRAPHY'
-                  ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4'
-                  : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5'
               }`}
             >
               {activeMediaList.map((item, idx) => {
@@ -1165,103 +1145,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 const displayName = item.title || (item.name ? item.name.replace(/\.[a-z0-9]+$/i, '') : 'Media');
 
                 /* ------------------------------------------------------------- */
-                /* 1. SHORTS: 9:16 Vertical Card with Soundwave & Play Bloom     */
-                /* ------------------------------------------------------------- */
-                if (selectedCategory === 'SHORTS') {
-                  return (
-                    <div
-                      key={item.id || item.url || idx}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenItem(item, idx);
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
-                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] aspect-[9/16] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade flex flex-col justify-end select-none"
-                    >
-                      <SmartThumbnail
-                        src={thumb}
-                        alt=""
-                        aspectClass="aspect-[9/16]"
-                        containerClassName="absolute inset-0 w-full h-full border-0"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-
-                      {/* Top Badges: Duration & Soundwave */}
-                      <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
-                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase text-white bg-black/70 backdrop-blur-md border border-white/10">
-                          REEL 4K
-                        </span>
-                        <div className="flex items-end gap-0.5 h-3 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md">
-                          <span className="w-0.5 h-1.5 bg-[#ccff00] rounded-full animate-pulse" />
-                          <span className="w-0.5 h-3 bg-[#ccff00] rounded-full animate-pulse [animation-delay:150ms]" />
-                          <span className="w-0.5 h-2 bg-[#ccff00] rounded-full animate-pulse [animation-delay:300ms]" />
-                        </div>
-                      </div>
-
-                      {/* Floating Play Icon on Hover */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-10">
-                        <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.7)] group-hover:scale-110 transition-transform">
-                          <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
-                        </div>
-                      </div>
-
-                      {/* Bottom Gradient Scrim & Title */}
-                      <div className="relative z-10 p-3 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none">
-                        <span className="text-[9px] font-mono font-bold text-[#ccff00] uppercase tracking-wider block truncate">
-                          {item.parentAlbum || 'SHORT'}
-                        </span>
-                        <h3 className="text-xs font-bold text-white leading-tight line-clamp-2 mt-0.5 group-hover:text-white transition-colors">
-                          {displayName}
-                        </h3>
-                      </div>
-                    </div>
-                  );
-                }
-
-                /* ------------------------------------------------------------- */
-                /* 2. PHOTOGRAPHY: Editorial Exhibition Portrait Card            */
-                /* ------------------------------------------------------------- */
-                if (selectedCategory === 'PHOTOGRAPHY') {
-                  return (
-                    <div
-                      key={item.id || item.url || idx}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenItem(item, idx);
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
-                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] aspect-[3/4] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade flex flex-col justify-end select-none"
-                    >
-                      <SmartThumbnail
-                        src={thumb}
-                        alt=""
-                        aspectClass="aspect-[3/4]"
-                        containerClassName="absolute inset-0 w-full h-full border-0"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-
-                      {/* Subtle Corner Reticle Ticks on Hover */}
-                      <div className="absolute inset-0 border border-transparent group-hover:border-[#ccff00]/30 transition-colors pointer-events-none z-10" />
-
-                      {/* Bottom Caption Overlay */}
-                      <div className="relative z-10 p-3 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[9px] font-mono text-[#ccff00] uppercase tracking-wider block truncate">
-                          STILL // {item.parentAlbum || 'EXHIBIT'}
-                        </span>
-                        <h3 className="text-xs font-medium text-white truncate mt-0.5">
-                          {displayName}
-                        </h3>
-                      </div>
-                    </div>
-                  );
-                }
-
-                /* ------------------------------------------------------------- */
-                /* 3. CLIPS & REALTUBE: 16:9 Widescreen Cinema Card             */
+                /* 16:9 Widescreen Cinema Card for Video Clips & Broadcasts      */
                 /* ------------------------------------------------------------- */
                 return (
                   <div
@@ -1315,6 +1199,71 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   </div>
                 );
               })}
+            </div>
+          )}
+            </div>
+          )}
+        </main>
+      ) : (
+        /* ===================================================================== */
+        /* TAB 4: PHOTOGRAPHS // HIGH-RESOLUTION EDITORIAL PORTRAITS             */
+        /* ===================================================================== */
+        <main
+          aria-label="Photographs Hub"
+          className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
+          }`}
+        >
+          <div className="px-4 sm:px-8 pt-3 shrink-0">
+            {renderCategorySubfolderBar('PHOTOGRAPHY')}
+          </div>
+
+          {selectedSubfolder === null || selectedSubfolder === 'Celebrity Portraits' ? (
+            <div key="photos-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">
+              <CelebrityShowcase
+                onOpenPhoto={onOpenPhoto}
+                initialTab="PORTRAITS"
+                hideViewTabs={true}
+                initialFilter={activeCelebrityFilter}
+                initialVideoId={activeVideoId}
+                onTabChange={(tab) => {
+                  setActiveCelebrityTab(tab);
+                  updateRoute({ celebrityTab: tab });
+                }}
+                onFilterChange={(filter) => {
+                  setActiveCelebrityFilter(filter);
+                  updateRoute({ celebrityStar: filter });
+                }}
+                onVideoChange={(videoId) => {
+                  setActiveVideoId(videoId);
+                  updateRoute({ videoId });
+                }}
+              />
+            </div>
+          ) : (
+            /* Subfolder Media Grid for Photographs (e.g. REALTube Photos, H2026) */
+            <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-20">
+                {activeMediaList.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleOpenItem(item, idx)}
+                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] cursor-pointer aspect-[3/4] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <img
+                      src={item.thumbnail || item.url}
+                      alt={item.title || item.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <div className="absolute bottom-0 inset-x-0 p-3">
+                      <p className="text-xs font-bold text-white line-clamp-1">{item.title || item.name}</p>
+                      <span className="text-[10px] font-mono text-neutral-400">{selectedSubfolder}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </main>

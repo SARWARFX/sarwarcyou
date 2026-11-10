@@ -995,7 +995,7 @@ export function getStarSlug(fullName: string): string {
 }
 
 export interface AppIdRoute {
-  category: 'ARCHIVE' | 'YOUTUBE' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'REALTUBE' | null;
+  category: 'NEWS' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'ARCHIVE' | 'YOUTUBE' | 'REALTUBE' | null;
   subfolder: string | null;
   celebrityStar: string | null;
   celebrityTab: 'PORTRAITS' | 'DISPATCHES' | 'REELS' | null;
@@ -1098,36 +1098,32 @@ export function parseIdRoute(): AppIdRoute {
 
   const cleanId = rawId.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-  if (['archive', 'home', 'main'].includes(cleanId)) {
-    category = null;
-  } else if (['reels', 'youtube', 'music'].includes(cleanId)) {
-    category = 'YOUTUBE';
-  } else if (['shorts', 'short'].includes(cleanId)) {
-    category = 'SHORTS';
-  } else if (['clips', 'clip', 'cinema'].includes(cleanId)) {
-    category = 'CLIPS';
-  } else if (['photo', 'photography', 'photos', 'images'].includes(cleanId)) {
-    category = 'PHOTOGRAPHY';
-  } else if (['realtube', 'channel'].includes(cleanId)) {
-    category = 'REALTUBE';
-  } else if (['news', 'dispatches'].includes(cleanId)) {
-    category = null;
+  if (['news', 'dispatches', 'feed', 'chronicle'].includes(cleanId)) {
+    category = 'NEWS';
     celebrityTab = 'DISPATCHES';
+  } else if (['archive', 'home', 'main'].includes(cleanId)) {
+    category = 'NEWS';
+  } else if (['reels', 'shorts', 'reelsshorts', 'short', 'reel', 'youtube', 'music'].includes(cleanId)) {
+    category = 'SHORTS';
+  } else if (['videoclips', 'clips', 'clip', 'video', 'videos', 'cinema', 'realtube', 'channel'].includes(cleanId)) {
+    category = 'CLIPS';
+  } else if (['photographs', 'photo', 'photography', 'photos', 'images'].includes(cleanId)) {
+    category = 'PHOTOGRAPHY';
   } else if (['videos', 'cinemareels'].includes(cleanId)) {
-    category = null;
+    category = 'CLIPS';
     celebrityTab = 'REELS';
   } else if (['portraits'].includes(cleanId)) {
-    category = null;
+    category = 'PHOTOGRAPHY';
     celebrityTab = 'PORTRAITS';
   } else if (CELEBRITY_SLUG_MAP[cleanId]) {
-    category = null;
+    category = 'NEWS';
     celebrityStar = CELEBRITY_SLUG_MAP[cleanId];
   } else if (cleanId && !videoId && !mediaId) {
     const matched = Object.keys(CELEBRITY_SLUG_MAP).find(
       (k) => cleanId.startsWith(k) || k.startsWith(cleanId)
     );
     if (matched) {
-      category = null;
+      category = 'NEWS';
       celebrityStar = CELEBRITY_SLUG_MAP[matched];
     } else if (rawId.length >= 6) {
       mediaId = rawId;
@@ -1175,20 +1171,17 @@ export function buildIdUrl(route: Partial<AppIdRoute>): string {
     return `/?id=${encodeURIComponent(route.mediaId)}`;
   }
 
-  if (route.category === 'YOUTUBE') {
-    return route.subfolder ? `/?id=reels&sub=${encodeURIComponent(route.subfolder)}` : '/?id=reels';
-  }
-  if (route.category === 'SHORTS') {
+  if (route.category === 'SHORTS' || route.category === 'YOUTUBE') {
     return route.subfolder ? `/?id=shorts&sub=${encodeURIComponent(route.subfolder)}` : '/?id=shorts';
   }
-  if (route.category === 'CLIPS') {
+  if (route.category === 'CLIPS' || route.category === 'REALTUBE') {
     return route.subfolder ? `/?id=clips&sub=${encodeURIComponent(route.subfolder)}` : '/?id=clips';
   }
   if (route.category === 'PHOTOGRAPHY') {
     return route.subfolder ? `/?id=photo&sub=${encodeURIComponent(route.subfolder)}` : '/?id=photo';
   }
-  if (route.category === 'REALTUBE') {
-    return route.subfolder ? `/?id=realtube&sub=${encodeURIComponent(route.subfolder)}` : '/?id=realtube';
+  if (route.category === 'NEWS') {
+    return route.subfolder ? `/?id=news&sub=${encodeURIComponent(route.subfolder)}` : '/?id=news';
   }
 
   const starSlug = route.celebrityStar ? getStarSlug(route.celebrityStar) : null;
