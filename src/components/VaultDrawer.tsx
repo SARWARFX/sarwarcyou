@@ -403,13 +403,13 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           <button
             type="button"
             onClick={navigateToHome}
-            className="w-full flex items-center justify-between py-3 px-4 text-left border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors cursor-pointer group"
+            className="w-full flex items-center justify-between py-3.5 px-4 text-left border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors cursor-pointer group"
           >
-            <span className="text-xs uppercase tracking-[0.2em] font-medium text-white/90 group-hover:text-[#38bdf8] transition-colors">
-              HOME
+            <span className="text-xs uppercase tracking-[0.2em] font-medium text-white/90 group-hover:text-white transition-colors">
+              CELEBRITY ARCHIVE
             </span>
-            <span className="text-[10px] text-white/30 uppercase tracking-widest group-hover:text-white/60 transition-colors">
-              PORTAL
+            <span className="text-[10px] text-white/30 uppercase tracking-widest font-mono">
+              MAIN PORTAL
             </span>
           </button>
 
