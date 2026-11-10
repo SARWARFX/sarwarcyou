@@ -795,10 +795,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         <main
           aria-label={`${selectedCategory} Media Hub`}
-          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent"
+          className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent min-h-0"
         >
           {/* Section Hero Header */}
-          <div className="flex flex-col gap-2 pb-6 mb-6 border-b border-white/10">
+          <div className="flex flex-col gap-2 pb-6 mb-6 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-2.5 font-mono text-[10px] sm:text-xs text-[#ccff00] uppercase tracking-widest">
               <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.8)] animate-pulse" />
               <span>
@@ -835,14 +835,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
           {/* Interactive Collection Filter Pills */}
           {childSubfoldersList.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-4 mb-6">
+            <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-2 mb-6 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   hapticMedium();
                   setSelectedSubfolder(null);
                 }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+                className={`shrink-0 px-4 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap leading-none flex items-center justify-center ${
                   selectedSubfolder === null
                     ? 'bg-[#ccff00] text-black shadow-[0_0_14px_rgba(204,255,0,0.35)]'
                     : 'text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10'
@@ -859,7 +859,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     hapticMedium();
                     setSelectedSubfolder(sub.name);
                   }}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+                  className={`shrink-0 px-4 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap leading-none flex items-center justify-center ${
                     selectedSubfolder === sub.name
                       ? 'bg-[#ccff00] text-black shadow-[0_0_14px_rgba(204,255,0,0.35)]'
                       : 'text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10'
@@ -873,7 +873,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
           {/* REALTUBE Spotlight Hero Banner (Featured Premiere) */}
           {selectedCategory === 'REALTUBE' && activeMediaList.length > 0 && selectedSubfolder === null && (
-            <div className="relative rounded-2xl overflow-hidden mb-8 border border-white/10 bg-[#08080a] group aspect-[21/9] min-h-[260px] sm:min-h-[320px] flex flex-col justify-end p-6 sm:p-10 select-none shadow-2xl">
+            <div className="relative rounded-2xl overflow-hidden mb-8 border border-white/10 bg-[#08080a] group aspect-[21/9] min-h-[260px] sm:min-h-[320px] flex flex-col justify-end p-6 sm:p-10 select-none shadow-2xl shrink-0">
               {/* Background Thumbnail */}
               {(() => {
                 const heroItem = activeMediaList[0];
