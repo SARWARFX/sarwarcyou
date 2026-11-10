@@ -3,44 +3,41 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Parser from 'rss-parser';
-import { syncWallpapers, CELEBRITIES } from './sync-celebrity-wallpapers.mjs';
+import { syncWallpapers } from './sync-celebrity-wallpapers.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
+const REGISTRY_FILE = path.join(ROOT_DIR, 'src', 'data', 'actressesRegistry.json');
 const NEWS_OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityNews.json');
 const GALLERY_OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityGallery.json');
+const REELS_OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityReels.json');
 
-export const TARGET_ACTRESSES = [
-  // Indian Cinema
-  'Deepika Padukone',
-  'Katrina Kaif',
-  'Alia Bhatt',
-  'Kiara Advani',
-  'Shraddha Kapoor',
-  'Kriti Sanon',
-  'Disha Patani',
-  'Kareena Kapoor',
-  'Jacqueline Fernandez',
-  'Anushka Sharma',
-  'Aishwarya Rai',
-  'Priyanka Chopra',
-  'Sunny Leone',
-  // International / Global Cinema
-  'Phoebe Tonkin',
-  'Michelle Rodriguez',
-  'Scarlett Johansson',
-  'Gal Gadot',
-  'Ana de Armas',
-  'Margot Robbie',
-  'Sydney Sweeney',
-  'Zendaya',
-];
+// 365-Day Rolling Retention Window
+export const RETENTION_DAYS = 365;
+export const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
+// Load canonical actresses from registry (50 South Asian stars)
+function loadTargetActresses() {
+  try {
+    if (fs.existsSync(REGISTRY_FILE)) {
+      const registry = JSON.parse(fs.readFileSync(REGISTRY_FILE, 'utf8'));
+      return registry.map((a) => a.name);
+    }
+  } catch (err) {
+    console.warn('[Sync] Could not read registry, using fallback list:', err.message);
+  }
+  return [
+    'Deepika Padukone', 'Alia Bhatt', 'Katrina Kaif', 'Samantha Ruth Prabhu', 'Rashmika Mandanna',
+    'Porimoni', 'Bidya Sinha Mim', 'Mahira Khan', 'Hania Aamir', 'Akshara Singh'
+  ];
+}
+
+export const TARGET_ACTRESSES = loadTargetActresses();
 export const TARGET_CELEBRITIES = TARGET_ACTRESSES;
 
 const RSS_FEEDS = [
-  // Indian / Regional Entertainment Feeds
+  // Bollywood & Pan-India
   {
     name: 'Times of India Entertainment',
     url: 'https://timesofindia.indiatimes.com/rssfeeds/1081479906.cms',
@@ -61,7 +58,24 @@ const RSS_FEEDS = [
     url: 'https://indianexpress.com/section/entertainment/bollywood/feed/',
     defaultCategory: 'Production',
   },
-  // International / Global Feeds (for Phoebe Tonkin & crossover cinema)
+  // South India
+  {
+    name: 'The Hindu Cinema Plus',
+    url: 'https://www.thehindu.com/entertainment/movies/feeder/default.rss',
+    defaultCategory: 'Production',
+  },
+  // Bangladesh
+  {
+    name: 'The Daily Star Showbiz',
+    url: 'https://www.thedailystar.net/entertainment/rss.xml',
+    defaultCategory: 'Production',
+  },
+  // Pakistan & Global
+  {
+    name: 'Dawn Images',
+    url: 'https://images.dawn.com/feed',
+    defaultCategory: 'Event',
+  },
   {
     name: 'Variety',
     url: 'https://variety.com/feed/',
@@ -71,16 +85,6 @@ const RSS_FEEDS = [
     name: 'Deadline Hollywood',
     url: 'https://deadline.com/feed/',
     defaultCategory: 'Production',
-  },
-  {
-    name: 'The Hollywood Reporter',
-    url: 'https://www.hollywoodreporter.com/feed/',
-    defaultCategory: 'Production',
-  },
-  {
-    name: 'People Entertainment',
-    url: 'https://people.com/tag/entertainment/feed/',
-    defaultCategory: 'Event',
   },
 ];
 
@@ -126,8 +130,7 @@ function extractImage(item) {
 
 const MALE_STAR_REGEX = /\b(virat kohli|virat|karan johar|shah rukh khan|srk|salman khan|aamir khan|ranbir kapoor|ranveer singh|kartik aaryan|akshay kumar|hrithik roshan|varun dhawan|sidharth malhotra|vicky kaushal|shahid kapoor|tiger shroff|saif ali khan|ajay devgn|john abraham|ayushmann khurrana|rajkummar rao|diljit dosanjh|prabhas|allu arjun|ram charan|yash|vijay devarakonda|jr ntr|chiranjeevi|nagarjuna|mahesh babu|abhishek bachchan|nick jonas|tom cruise|leonardo dicaprio|brad pitt|ryan reynolds|ryan gosling|robert downey|chris evans|chris hemsworth|timothee chalamet|cillian murphy|keanu reeves|channing tatum|tom holland)\b/i;
 
-function matchCelebrity(title, _description) {
-  // 1. Article headline must explicitly mention an approved actress from TARGET_ACTRESSES
+function matchCelebrity(title) {
   let matchedActress = null;
   let actressPos = -1;
 
@@ -143,12 +146,9 @@ function matchCelebrity(title, _description) {
     }
   }
 
-  if (!matchedActress) {
-    // Strictly require actress name in the headline
-    return null;
-  }
+  if (!matchedActress) return null;
 
-  // 2. Reject if a male actor is the primary headline subject before the actress
+  // Reject if a male actor is the primary headline subject before the actress
   const maleMatch = title.match(MALE_STAR_REGEX);
   if (maleMatch && maleMatch.index !== undefined && maleMatch.index < actressPos) {
     return null;
@@ -181,7 +181,6 @@ function detectCategory(headline, summary, sourceName) {
     combined.includes('wedding') ||
     combined.includes('fashion') ||
     combined.includes('award') ||
-    combined.includes('paleyfest') ||
     combined.includes('ramp')
   ) {
     return 'Event';
@@ -198,7 +197,7 @@ function slugify(text) {
 }
 
 export async function fetchDailyNews() {
-  console.log('--- STARTING CELEBRITY RSS NEWS SYNC ---');
+  console.log('--- STARTING CELEBRITY RSS NEWS SYNC (365-DAY RETENTION) ---');
   const parser = new Parser({
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -214,30 +213,45 @@ export async function fetchDailyNews() {
     timeout: 10000,
   });
 
-  const allArticles = [];
+  // Load existing news to preserve historical items
+  let existingNews = [];
+  try {
+    if (fs.existsSync(NEWS_OUTPUT_FILE)) {
+      existingNews = JSON.parse(fs.readFileSync(NEWS_OUTPUT_FILE, 'utf8'));
+    }
+  } catch (err) {
+    console.warn('[RSS] Could not read existing news:', err.message);
+  }
+
   const seenHeadlines = new Set();
   const seenUrls = new Set();
+  const allArticles = [...existingNews];
+
+  for (const item of existingNews) {
+    if (item.headline) {
+      seenHeadlines.add(item.headline.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    }
+    if (item.sourceUrl) {
+      seenUrls.add(item.sourceUrl);
+    }
+  }
 
   const now = Date.now();
-  const MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48 Hours
+  const MAX_SCRAPE_AGE_MS = 14 * 24 * 60 * 60 * 1000; // Look back up to 14 days in live feeds
 
   for (const feedConfig of RSS_FEEDS) {
     console.log(`[RSS] Fetching feed: ${feedConfig.name} (${feedConfig.url})`);
     try {
       const feed = await parser.parseURL(feedConfig.url);
-      console.log(`[RSS] Parsed ${feed.items?.length || 0} raw entries from ${feedConfig.name}`);
-
       for (const item of feed.items || []) {
         const title = sanitizeHtml(item.title);
         const description = sanitizeHtml(item.contentSnippet || item.description || item.content || '');
 
         if (!title) continue;
 
-        // Verify if celebrity is mentioned in headline or lead description
-        const matchedCeleb = matchCelebrity(title, description);
+        const matchedCeleb = matchCelebrity(title);
         if (!matchedCeleb) continue;
 
-        // Parse and check publication timestamp
         let pubTime = now;
         if (item.pubDate || item.isoDate) {
           const parsedDate = new Date(item.pubDate || item.isoDate);
@@ -246,11 +260,7 @@ export async function fetchDailyNews() {
           }
         }
 
-        // Check 48-hour freshness (with a 7-day extended fallback allowance if older)
-        const isFresh = now - pubTime <= MAX_AGE_MS;
-        const isWithinWeek = now - pubTime <= 7 * 24 * 60 * 60 * 1000;
-
-        if (!isWithinWeek) continue;
+        if (now - pubTime > MAX_SCRAPE_AGE_MS) continue;
 
         const link = item.link || item.guid || '';
         const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -265,7 +275,7 @@ export async function fetchDailyNews() {
         const category = detectCategory(title, description, feedConfig.name);
         const imageUrl = extractImage(item);
 
-        allArticles.push({
+        allArticles.unshift({
           id: `${slugify(matchedCeleb)}-${slugify(title)}`,
           celebrity: matchedCeleb,
           headline: title,
@@ -275,7 +285,7 @@ export async function fetchDailyNews() {
           imageUrl: imageUrl || undefined,
           publishedAt: new Date(pubTime).toISOString(),
           category,
-          isFresh48h: isFresh,
+          isFresh48h: now - pubTime <= 48 * 60 * 60 * 1000,
         });
       }
     } catch (err) {
@@ -283,25 +293,45 @@ export async function fetchDailyNews() {
     }
   }
 
-  console.log(`[RSS] Total verified celebrity articles scraped: ${allArticles.length}`);
+  // Enforce 365-Day Rolling Retention Window:
+  // Items older than 365 days are pruned as new items arrive.
+  const cutoffTime = now - RETENTION_MS;
+  const retainedNews = allArticles.filter((item) => {
+    const t = item.publishedAt ? new Date(item.publishedAt).getTime() : now;
+    return t >= cutoffTime;
+  });
 
   // Sort descending by publication date
-  allArticles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-
-  // Cap at 30 most recent articles
-  const finalNews = allArticles.slice(0, 30);
+  retainedNews.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   fs.mkdirSync(path.dirname(NEWS_OUTPUT_FILE), { recursive: true });
-  fs.writeFileSync(NEWS_OUTPUT_FILE, JSON.stringify(finalNews, null, 2), 'utf8');
+  fs.writeFileSync(NEWS_OUTPUT_FILE, JSON.stringify(retainedNews, null, 2), 'utf8');
 
-  console.log(`[RSS] Successfully wrote ${finalNews.length} verified news articles to ${NEWS_OUTPUT_FILE}`);
-  console.log('--- NEWS SYNC COMPLETE ---');
-  return finalNews;
+  console.log(`[RSS] Successfully retained ${retainedNews.length} verified news articles within 365-day retention window.`);
+  return retainedNews;
+}
+
+// 365-Day Retention Pruner for Celebrity Reels
+export function pruneReelsRetention() {
+  if (!fs.existsSync(REELS_OUTPUT_FILE)) return;
+  try {
+    const reels = JSON.parse(fs.readFileSync(REELS_OUTPUT_FILE, 'utf8'));
+    const now = Date.now();
+    const cutoff = now - RETENTION_MS;
+    const retained = reels.filter((r) => {
+      const t = r.timestamp || (r.publishedAt ? new Date(r.publishedAt).getTime() : now);
+      return t >= cutoff;
+    });
+    fs.writeFileSync(REELS_OUTPUT_FILE, JSON.stringify(retained, null, 2), 'utf8');
+    console.log(`[Reels] Retained ${retained.length} verified reels within 365-day retention window.`);
+  } catch (err) {
+    console.warn('[Reels] Pruning error:', err.message);
+  }
 }
 
 export async function main() {
   console.log('=====================================================');
-  console.log('  DAILY CELEBRITY INTEL SYNC (GALLERY & NEWS FEEDS)  ');
+  console.log(' DAILY CELEBRITY INTEL SYNC & 365-DAY RETENTION ENGINE ');
   console.log('=====================================================');
 
   // 1. Sync High-Resolution Wallpapers
@@ -311,21 +341,26 @@ export async function main() {
     console.error('[Pipeline] Error in Wallpaper Sync:', err.message);
   }
 
-  // 2. Sync Verified News Feeds
+  // 2. Sync Verified News Feeds with 365-Day Rolling Retention
   try {
     await fetchDailyNews();
   } catch (err) {
     console.error('[Pipeline] Error in News Sync:', err.message);
   }
 
-  console.log('=====================================================');
-  console.log('  PIPELINE EXECUTION FINISHED SUCCESSFULLY           ');
-  console.log('=====================================================');
+  // 3. Prune Reels Retention
+  try {
+    pruneReelsRetention();
+  } catch (err) {
+    console.error('[Pipeline] Error in Reels Retention:', err.message);
+  }
+
+  console.log('[Pipeline] All South Asian daily synchronizations completed successfully.');
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (process.argv[1] && process.argv[1].endsWith('sync-celebrity-daily.mjs')) {
   main().catch((err) => {
-    console.error('[Fatal Error in Daily Pipeline]:', err);
+    console.error('[Fatal]', err);
     process.exit(1);
   });
 }

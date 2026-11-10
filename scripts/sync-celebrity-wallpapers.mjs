@@ -844,6 +844,28 @@ export async function syncWallpapers(customOutputPath) {
     }
   }
 
+  // Preserve existing gallery entries within 365-day retention
+  try {
+    if (fs.existsSync(targetOutput)) {
+      const existing = JSON.parse(fs.readFileSync(targetOutput, 'utf8'));
+      const now = Date.now();
+      const cutoff = now - 365 * 24 * 60 * 60 * 1000;
+      for (const item of existing) {
+        const itemTime = item.timestamp || now;
+        if (itemTime >= cutoff) {
+          const titleKey = `${item.name}-${item.title}`.toLowerCase();
+          if (!seenUrls.has(item.src) && !seenTitles.has(titleKey)) {
+            seenUrls.add(item.src);
+            seenTitles.add(titleKey);
+            collected.push(item);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Sync] Could not merge existing gallery:', err.message);
+  }
+
   // Interleave and sort by celebrity for diverse showcase distribution
   const finalCatalog = collected.sort((a, b) => {
     if (a.name === b.name) return a.title.localeCompare(b.title);

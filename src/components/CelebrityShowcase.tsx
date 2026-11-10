@@ -10,6 +10,7 @@ import {
 import celebrityData from '../data/celebrityGallery.json';
 import celebrityNewsData from '../data/celebrityNews.json';
 import latestMusicReleasesData from '../data/latestMusicReleases.json';
+import actressesRegistryData from '../data/actressesRegistry.json';
 import type { StageMediaItem, AlbumData } from '../types';
 import { MediaModal } from './MediaModal';
 import { YouTubeTheaterModal } from './YouTubeTheaterModal';
@@ -52,29 +53,13 @@ export interface CelebrityShowcaseProps {
   onVideoChange?: (videoId: string | null) => void;
 }
 
-const FILTER_CHIPS = [
-  { id: 'ALL', label: 'ALL' },
-  { id: 'Deepika Padukone', label: 'DEEPIKA' },
-  { id: 'Katrina Kaif', label: 'KATRINA' },
-  { id: 'Alia Bhatt', label: 'ALIA' },
-  { id: 'Kiara Advani', label: 'KIARA' },
-  { id: 'Shraddha Kapoor', label: 'SHRADDHA' },
-  { id: 'Kriti Sanon', label: 'KRITI' },
-  { id: 'Disha Patani', label: 'DISHA' },
-  { id: 'Kareena Kapoor', label: 'KAREENA' },
-  { id: 'Jacqueline Fernandez', label: 'JACQUELINE' },
-  { id: 'Anushka Sharma', label: 'ANUSHKA' },
-  { id: 'Aishwarya Rai', label: 'AISHWARYA' },
-  { id: 'Priyanka Chopra', label: 'PRIYANKA' },
-  { id: 'Sunny Leone', label: 'SUNNY' },
-  { id: 'Phoebe Tonkin', label: 'PHOEBE' },
-  { id: 'Michelle Rodriguez', label: 'MICHELLE' },
-  { id: 'Scarlett Johansson', label: 'SCARLETT' },
-  { id: 'Gal Gadot', label: 'GAL' },
-  { id: 'Ana de Armas', label: 'ANA' },
-  { id: 'Margot Robbie', label: 'MARGOT' },
-  { id: 'Sydney Sweeney', label: 'SYDNEY' },
-  { id: 'Zendaya', label: 'ZENDAYA' },
+export const REGION_TABS = [
+  { id: 'ALL', label: 'ALL', count: 50 },
+  { id: 'BANGLADESH', label: 'BANGLADESH', count: 12 },
+  { id: 'BOLLYWOOD', label: 'BOLLYWOOD', count: 12 },
+  { id: 'SOUTH_INDIA', label: 'SOUTH INDIA', count: 13 },
+  { id: 'PAKISTAN', label: 'PAKISTAN', count: 9 },
+  { id: 'BHOJPURI', label: 'BHOJPURI', count: 4 },
 ];
 
 function toStageMediaItem(entry: CelebrityItem): StageMediaItem {
@@ -115,7 +100,58 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     onTabChange?.(newTab);
   }, [activeTab, SHOWCASE_TABS, onTabChange]);
 
+  const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
   const [activeFilter, setActiveFilter] = useState<string>(initialFilter || 'ALL');
+
+  // Auto-detect region when an actress is selected
+  useEffect(() => {
+    if (activeFilter && activeFilter !== 'ALL') {
+      const found = (actressesRegistryData as Array<{ name: string; region: string }>).find(
+        (a) => a.name.toLowerCase() === activeFilter.toLowerCase()
+      );
+      if (found && found.region) {
+        setSelectedRegion(found.region);
+      }
+    }
+  }, [activeFilter]);
+
+  const visibleActresses = useMemo(() => {
+    const list = actressesRegistryData as Array<{
+      id: string;
+      slug: string;
+      name: string;
+      label: string;
+      region: string;
+      avatar: string;
+      country: string;
+    }>;
+    if (selectedRegion === 'ALL') return list;
+    return list.filter((a) => a.region === selectedRegion);
+  }, [selectedRegion]);
+
+  const regionalActressNames = useMemo(() => {
+    if (selectedRegion === 'ALL') return null;
+    return new Set(
+      (actressesRegistryData as Array<{ name: string; region: string }>)
+        .filter((a) => a.region === selectedRegion)
+        .map((a) => a.name.toLowerCase())
+    );
+  }, [selectedRegion]);
+
+  const handleSelectRegion = useCallback((regionId: string) => {
+    hapticMedium();
+    setSelectedRegion(regionId);
+    // If current filtered actress is not in the newly selected region, reset filter to ALL
+    if (activeFilter !== 'ALL') {
+      const found = (actressesRegistryData as Array<{ name: string; region: string }>).find(
+        (a) => a.name.toLowerCase() === activeFilter.toLowerCase()
+      );
+      if (regionId !== 'ALL' && (!found || found.region !== regionId)) {
+        setActiveFilter('ALL');
+        onFilterChange?.('ALL');
+      }
+    }
+  }, [activeFilter, onFilterChange]);
 
   const handleSelectFilter = useCallback((filterId: string) => {
     setActiveFilter(filterId);
@@ -196,15 +232,23 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     } as StageMediaItem & { actress?: string; channel?: string; publishedAt?: string }));
   }, []);
 
-  // Filter cinema reels by activeFilter (actress or 'ALL')
+  // Filter cinema reels by activeFilter (actress or 'ALL') and selectedRegion
   const filteredCinemaReels = useMemo(() => {
-    if (activeFilter === 'ALL') return cinemaReelItems;
-    const filter = activeFilter.toLowerCase();
-    return cinemaReelItems.filter((item: any) => {
-      const act = (item.actress || '').toLowerCase();
-      return act.includes(filter) || filter.includes(act);
-    });
-  }, [cinemaReelItems, activeFilter]);
+    let list = cinemaReelItems;
+    if (activeFilter !== 'ALL') {
+      const filter = activeFilter.toLowerCase();
+      list = list.filter((item: any) => {
+        const act = (item.actress || '').toLowerCase();
+        return act.includes(filter) || filter.includes(act);
+      });
+    } else if (regionalActressNames) {
+      list = list.filter((item: any) => {
+        const act = (item.actress || '').toLowerCase();
+        return regionalActressNames.has(act);
+      });
+    }
+    return list;
+  }, [cinemaReelItems, activeFilter, regionalActressNames]);
 
   const cinemaReelsAlbum: AlbumData = useMemo(() => ({
     id: 'cinema-reels-archive',
@@ -344,22 +388,26 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   const rawNews = (celebrityNewsData as CelebrityNewsItem[]) || [];
 
   const filteredWallpapers = useMemo(() => {
-    if (activeFilter === 'ALL') {
-      return rawWallpapers;
+    let list = rawWallpapers;
+    if (activeFilter !== 'ALL') {
+      const lower = activeFilter.toLowerCase();
+      list = list.filter((item) => item.name.toLowerCase() === lower);
+    } else if (regionalActressNames) {
+      list = list.filter((item) => regionalActressNames.has(item.name.toLowerCase()));
     }
-    return rawWallpapers.filter(
-      (item) => item.name.toLowerCase() === activeFilter.toLowerCase()
-    );
-  }, [rawWallpapers, activeFilter]);
+    return list;
+  }, [rawWallpapers, activeFilter, regionalActressNames]);
 
   const filteredNews = useMemo(() => {
-    if (activeFilter === 'ALL') {
-      return rawNews;
+    let list = rawNews;
+    if (activeFilter !== 'ALL') {
+      const lower = activeFilter.toLowerCase();
+      list = list.filter((item) => item.celebrity.toLowerCase() === lower);
+    } else if (regionalActressNames) {
+      list = list.filter((item) => regionalActressNames.has(item.celebrity.toLowerCase()));
     }
-    return rawNews.filter(
-      (item) => item.celebrity.toLowerCase() === activeFilter.toLowerCase()
-    );
-  }, [rawNews, activeFilter]);
+    return list;
+  }, [rawNews, activeFilter, regionalActressNames]);
 
   const stagePlaylist = useMemo(() => {
     return filteredWallpapers.map(toStageMediaItem);
@@ -460,7 +508,31 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
           </div>
         </div>
 
-        {/* Minimalist Flat Filter Bar with Autohide Scrollbar (Visible Only During Active Scroll) */}
+        {/* 2-Tier Navigation Engine: Tier 1 Region Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto autohide-scrollbar pt-2 pb-1.5 border-t border-white/[0.06]">
+          {REGION_TABS.map((tab) => {
+            const isRegActive = selectedRegion === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleSelectRegion(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer shrink-0 border ${
+                  isRegActive
+                    ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/60 shadow-[0_0_10px_rgba(204,255,0,0.25)]'
+                    : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${isRegActive ? 'bg-[#ccff00] text-black font-black' : 'bg-white/10 text-neutral-400'}`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tier 2 Actress Filter Chips */}
         <div
           onScroll={handleFilterScroll}
           onWheel={(e) => {
@@ -469,27 +541,50 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
               handleFilterScroll();
             }
           }}
-          className={`flex items-center gap-6 overflow-x-auto autohide-scrollbar pt-1.5 pb-0.5 border-t border-white/[0.06] ${
+          className={`flex items-center gap-2.5 overflow-x-auto autohide-scrollbar py-2 ${
             isFilterScrolling ? 'is-scrolling' : ''
           }`}
         >
-          {FILTER_CHIPS.map((chip) => {
-            const isActive = activeFilter === chip.id;
+          {/* ALL CHIP */}
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              handleSelectFilter('ALL');
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+              activeFilter === 'ALL'
+                ? 'bg-white text-black font-black border-white shadow-md'
+                : 'bg-white/[0.02] text-neutral-400 border-white/10 hover:text-white'
+            }`}
+          >
+            <span>ALL {selectedRegion === 'ALL' ? '(50)' : `(${visibleActresses.length})`}</span>
+          </button>
+
+          {/* DYNAMIC REGIONAL ACTRESSES */}
+          {visibleActresses.map((actress) => {
+            const isActive = activeFilter === actress.name;
             return (
               <button
-                key={chip.id}
+                key={actress.id}
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  handleSelectFilter(chip.id);
+                  handleSelectFilter(actress.name);
                 }}
-                className={`text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer flex-shrink-0 pb-1.5 font-mono ${
+                className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
                   isActive
-                    ? 'text-[#ccff00] font-bold border-b-2 border-[#ccff00]'
-                    : 'text-neutral-400 hover:text-neutral-200 border-b-2 border-transparent'
+                    ? 'bg-[#ccff00] text-black font-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                    : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:text-white'
                 }`}
               >
-                {chip.label}
+                <img
+                  src={actress.avatar}
+                  alt={actress.name}
+                  loading="lazy"
+                  className="w-4 h-4 rounded-full object-cover shrink-0"
+                />
+                <span>{actress.label}</span>
               </button>
             );
           })}
