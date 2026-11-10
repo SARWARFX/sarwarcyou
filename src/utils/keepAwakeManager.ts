@@ -145,8 +145,14 @@ export function initKeepAwake(): void {
       isKeepAwakeEnabled = true;
       acquireLock().catch(() => {});
       notifyListeners();
+    } else {
+      isKeepAwakeEnabled = false;
+      releaseLock().catch(() => {});
+      notifyListeners();
     }
-  } catch {}
+  } catch {
+    releaseLock().catch(() => {});
+  }
 
   // Handle re-acquiring lock when app comes back to foreground
   if (typeof document !== 'undefined') {

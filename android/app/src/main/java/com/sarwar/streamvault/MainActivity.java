@@ -1,7 +1,6 @@
 package com.sarwar.streamvault;
 
 import android.os.Bundle;
-import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -12,8 +11,6 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(AppInstallerPlugin.class);
         super.onCreate(savedInstanceState);
-        // Prevent phone screen lock
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // Immersive full-screen view: hide status bar
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
