@@ -295,7 +295,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   );
 
   return (
-    <div className={`w-full h-full flex flex-col min-w-0 select-none relative overflow-hidden bg-[#09090b] ${className}`}>
+    <div className={`w-full h-full flex flex-col min-w-0 select-none relative overflow-hidden bg-transparent ${className}`}>
       {/* 1. Header Bar: Title, View Switcher & Minimalist Flat Filters (Decoupled from Document Flow) */}
       <header
         className={`celebrity-header-wrapper showcase-control-header ${

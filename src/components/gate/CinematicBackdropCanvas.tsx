@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { MIDNIGHT_OBSIDIAN_THEME, type CinematicTheme } from './themeManager';
+import { BIENNALE_AVANT_GARDE_THEME, type CinematicTheme } from './themeManager';
 
-interface Particle {
+interface DustMote {
   x: number;
   y: number;
   size: number;
@@ -10,10 +10,11 @@ interface Particle {
   opacity: number;
   wobbleSpeed: number;
   wobbleOffset: number;
+  isLime: boolean;
 }
 
 export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPaused?: boolean }> = ({
-  theme = MIDNIGHT_OBSIDIAN_THEME,
+  theme = BIENNALE_AVANT_GARDE_THEME,
   isPaused = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -36,107 +37,95 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
     };
     window.addEventListener('resize', handleResize);
 
-    // Cool cyan-white mist particles (rgba(186, 230, 253, alpha))
-    const particles: Particle[] = Array.from({ length: theme.particleCount || 52 }, () => ({
+    // Minimalist monochrome & acid lime gallery ambient dust motes (replaces old cyan space dust)
+    const dustMotes: DustMote[] = Array.from({ length: 35 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      size: Math.random() * 2 + 0.8,
-      speedY: Math.random() * 0.35 + 0.15,
-      speedX: (Math.random() - 0.5) * 0.22,
-      opacity: Math.random() * 0.45 + 0.2,
-      wobbleSpeed: Math.random() * 0.015 + 0.005,
+      size: Math.random() * 1.2 + 0.6,
+      speedY: -(Math.random() * 0.18 + 0.08),
+      speedX: (Math.random() - 0.5) * 0.12,
+      opacity: Math.random() * 0.25 + 0.1,
+      wobbleSpeed: Math.random() * 0.01 + 0.003,
       wobbleOffset: Math.random() * Math.PI * 2,
+      isLime: Math.random() > 0.65,
     }));
-
-    // Drifting volumetric fog cloud nodes
-    const fogLayers = [
-      { x: 0, speed: 0.1, scaleY: 0.7, opacity: 0.24 },
-      { x: 0, speed: -0.07, scaleY: 0.8, opacity: 0.16 },
-      { x: 0, speed: 0.15, scaleY: 0.6, opacity: 0.2 },
-    ];
 
     let time = 0;
 
     const render = () => {
-      time += 0.01;
+      time += 0.008;
 
-      // 1. Permanent Solid Midnight Abyss Base: #03060a
-      ctx.fillStyle = '#03060a';
+      // 1. Pure Obsidian Base: #050505
+      ctx.fillStyle = '#050505';
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Radial Glow Overlay: circle at 50% 40%, rgba(8, 20, 38, 0.65) 0%, #020408 80%
-      const cx = width * 0.5;
-      const cy = height * 0.4;
-      const radialGlow = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(width, height) * 0.68);
-      radialGlow.addColorStop(0, 'rgba(8, 20, 38, 0.65)');
-      radialGlow.addColorStop(0.5, 'rgba(5, 12, 24, 0.75)');
-      radialGlow.addColorStop(0.8, '#020408');
-      radialGlow.addColorStop(1, '#03060a');
-      ctx.fillStyle = radialGlow;
-      ctx.fillRect(0, 0, width, height);
+      // 2. Subtle Architectural Gallery Exhibition Grid (64px interval)
+      const gridSize = 64;
+      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.018)';
+      ctx.beginPath();
+      for (let x = 0; x < width; x += gridSize) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+      }
+      for (let y = 0; y < height; y += gridSize) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+      }
+      ctx.stroke();
 
-      // 3. Volumetric atmospheric midnight mist waves
-      for (let i = 0; i < fogLayers.length; i++) {
-        const layer = fogLayers[i];
-        layer.x = (layer.x + layer.speed) % (width * 1.5);
-
-        const fx = (layer.x + width * 0.5) % (width * 1.5) - width * 0.25;
-        const fy = height * (0.35 + i * 0.2) + Math.sin(time * 0.5 + i) * 22;
-
-        const fogGrad = ctx.createRadialGradient(fx, fy, width * 0.08, fx, fy, width * 0.75);
-        fogGrad.addColorStop(0, `rgba(12, 28, 54, ${layer.opacity})`);
-        fogGrad.addColorStop(0.5, `rgba(12, 28, 54, ${layer.opacity * 0.4})`);
-        fogGrad.addColorStop(1, 'rgba(0,0,0,0)');
-
-        ctx.fillStyle = fogGrad;
-        ctx.fillRect(0, 0, width, height);
+      // 3. Grid Crosshair Micro-Points at Intersections
+      ctx.fillStyle = 'rgba(204, 255, 0, 0.035)';
+      for (let x = 0; x < width; x += gridSize * 2) {
+        for (let y = 0; y < height; y += gridSize * 2) {
+          ctx.fillRect(x - 1, y - 1, 2, 2);
+        }
       }
 
-      // 4. Cool cyan halo accent
-      const haloGrad = ctx.createRadialGradient(
-        width * 0.5,
-        height * 0.45,
-        15,
-        width * 0.5,
-        height * 0.45,
-        width * 0.55
-      );
-      haloGrad.addColorStop(0, 'rgba(56, 189, 248, 0.12)');
-      haloGrad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = haloGrad;
+      // 4. Ambient Acid Lime Gallery Spotlight Aura (Upper-Center Subtle Radial Glow)
+      const cx = width * 0.5;
+      const cy = height * 0.28 + Math.sin(time * 0.4) * 15;
+      const spotGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(width, height) * 0.65);
+      spotGrad.addColorStop(0, 'rgba(204, 255, 0, 0.032)');
+      spotGrad.addColorStop(0.35, 'rgba(30, 36, 10, 0.02)');
+      spotGrad.addColorStop(0.75, 'rgba(8, 8, 8, 0.01)');
+      spotGrad.addColorStop(1, 'rgba(5, 5, 5, 0)');
+      ctx.fillStyle = spotGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // 5. Floating atmospheric particles: cool cyan-white shimmer (rgba(186, 230, 253, alpha))
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
+      // 5. Floating Gallery Spotlight Dust Motes (Warm White + Lime)
+      for (let i = 0; i < dustMotes.length; i++) {
+        const p = dustMotes[i];
         p.y += p.speedY;
-        p.x += Math.sin(time * p.wobbleSpeed * 60 + p.wobbleOffset) * 0.35 + p.speedX;
+        p.x += Math.sin(time * p.wobbleSpeed * 60 + p.wobbleOffset) * 0.25 + p.speedX;
 
-        if (p.y > height + 10) {
-          p.y = -10;
+        if (p.y < -10) {
+          p.y = height + 10;
           p.x = Math.random() * width;
         }
         if (p.x > width + 10) p.x = -10;
         if (p.x < -10) p.x = width + 10;
 
-        ctx.fillStyle = `rgba(186, 230, 253, ${p.opacity * 0.8})`;
+        ctx.fillStyle = p.isLime
+          ? `rgba(204, 255, 0, ${p.opacity * 0.9})`
+          : `rgba(240, 240, 245, ${p.opacity * 0.8})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // 6. Deep cinematic edge vignette
+      // 6. Seamless Perimeter Vignette (Blends into #050505)
       const vignette = ctx.createRadialGradient(
         width * 0.5,
         height * 0.5,
-        Math.min(width, height) * 0.35,
+        Math.min(width, height) * 0.38,
         width * 0.5,
         height * 0.5,
-        Math.max(width, height) * 0.78
+        Math.max(width, height) * 0.75
       );
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(0.65, 'rgba(0,0,0,0.35)');
-      vignette.addColorStop(1, 'rgba(2, 4, 8, 0.94)');
+      vignette.addColorStop(0.65, 'rgba(5, 5, 5, 0.45)');
+      vignette.addColorStop(1, '#050505');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, width, height);
 

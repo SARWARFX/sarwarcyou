@@ -1,11 +1,12 @@
 /**
- * Permanent Deep Midnight Obsidian Theme
+ * Acid Avant-Garde / High-Fashion Biennale Theme
  *
- * Locked Palette Specifications:
- * - Base solid color: #03060a (Deep midnight abyss).
- * - Radial glow overlay: radial-gradient(circle at 50% 40%, rgba(8, 20, 38, 0.6) 0%, #020408 80%).
- * - Dust/mist particles: rgba(186, 230, 253, alpha) (cool cyan-white shimmer).
- * - Core pillar glow & halo: pure white (#ffffff) with cool blue-white halo (rgba(56, 189, 248, 0.25)).
+ * Palette Specifications:
+ * - Base solid color: #050505 (Deep Obsidian Canvas).
+ * - Architectural grid & exhibition matrix.
+ * - Ambient spotlight: Subtle Electric Acid Lime volumetric glow (rgba(204, 255, 0, 0.032)).
+ * - Minimalist gallery dust motes: Warm white / lime shimmer (rgba(255, 255, 255, 0.25)).
+ * - Deep obsidian vignette edge falloff: #050505.
  */
 
 export interface CinematicTheme {
@@ -20,23 +21,26 @@ export interface CinematicTheme {
   vignetteColor: string;
 }
 
-export const MIDNIGHT_OBSIDIAN_THEME: CinematicTheme = {
-  id: 'midnight-obsidian',
-  name: 'Permanent Midnight Obsidian',
-  bgGradient: ['#03060a', '#060e1c', '#020408'],
-  fogColor: 'rgba(12, 28, 54, ',
-  particleColor: 'rgba(186, 230, 253, ',
-  particleSpeed: 0.32,
-  particleCount: 52,
-  glowAccent: 'rgba(56, 189, 248, 0.16)',
-  vignetteColor: 'rgba(2, 4, 8, 0.94)',
+export const BIENNALE_AVANT_GARDE_THEME: CinematicTheme = {
+  id: 'biennale-avant-garde',
+  name: 'Acid Avant-Garde Biennale',
+  bgGradient: ['#050505', '#080808', '#030303'],
+  fogColor: 'rgba(20, 24, 10, ',
+  particleColor: 'rgba(204, 255, 0, ',
+  particleSpeed: 0.18,
+  particleCount: 35,
+  glowAccent: 'rgba(204, 255, 0, 0.035)',
+  vignetteColor: '#050505',
 };
 
+// Aliased for backward compatibility across existing references
+export const MIDNIGHT_OBSIDIAN_THEME = BIENNALE_AVANT_GARDE_THEME;
+
 export function getMidnightObsidianTheme(): CinematicTheme {
-  return MIDNIGHT_OBSIDIAN_THEME;
+  return BIENNALE_AVANT_GARDE_THEME;
 }
 
 // Fallback alias for legacy theme callers
 export function getRandomCinematicTheme(): CinematicTheme {
-  return MIDNIGHT_OBSIDIAN_THEME;
+  return BIENNALE_AVANT_GARDE_THEME;
 }
