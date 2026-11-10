@@ -1620,47 +1620,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               {fitMode === 'cover' ? 'FILL' : 'FIT'}
             </button>
 
-            {/* 1-Click Download */}
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0 ${
-                downloadSuccess
-                  ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]'
-                  : 'text-slate-300 hover:text-white'
-              } disabled:opacity-40`}
-              title={downloadSuccess ? 'Video Clip Saved' : isDownloading ? 'Downloading Video...' : 'Download Video Clip'}
-              aria-label="Download Video"
-            >
-              {downloadSuccess ? (
-                <Check className="w-4 h-4 text-emerald-400" />
-              ) : isDownloading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-            </button>
-
-            {/* Share / Copy Direct Link */}
-            <button
-              type="button"
-              onClick={handleShareMedia}
-              className={`bg-transparent border-none outline-none transition-all duration-200 hover:scale-110 cursor-pointer p-1.5 flex items-center justify-center font-['Roboto_Condensed'] font-sans flex-shrink-0 ${
-                shareSuccess
-                  ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-              title={shareSuccess ? 'Link Copied to Clipboard!' : 'Share Video Link'}
-              aria-label="Share Video Link"
-            >
-              {shareSuccess ? (
-                <Check className="w-4 h-4 text-white" />
-              ) : (
-                <Share2 className="w-4 h-4" />
-              )}
-            </button>
-
             {/* Speed Selector Popover */}
             <div className="relative flex-shrink-0">
               <button
