@@ -90,6 +90,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Level 2: selectedCategory !== null && selectedSubfolder !== null (Direct Media Items)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
+  const [slideDirection, setSlideDirection] = useState<'right' | 'left'>('right');
 
   // Concealed Option A Terminal Drawer State
   const [isVaultDrawerOpen, setVaultDrawerOpen] = useState(false);
@@ -423,16 +424,43 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [rootMap]
   );
 
+  const MAIN_TAB_ORDER = useMemo(() => ['ARCHIVE', 'YOUTUBE', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY', 'REALTUBE'], []);
+
+  const navigateTab = useCallback(
+    (newCat: string | null) => {
+      const currentKey = selectedCategory || 'ARCHIVE';
+      const targetKey = newCat || 'ARCHIVE';
+      if (currentKey === targetKey) return;
+      const oldIdx = MAIN_TAB_ORDER.indexOf(currentKey);
+      const newIdx = MAIN_TAB_ORDER.indexOf(targetKey);
+      setSlideDirection(newIdx >= oldIdx ? 'right' : 'left');
+      setSelectedCategory(newCat);
+      setSelectedSubfolder(null);
+    },
+    [selectedCategory, MAIN_TAB_ORDER]
+  );
+
+  const navigateSubfolder = useCallback(
+    (newSub: string | null) => {
+      if (selectedSubfolder === newSub) return;
+      const allSubs = ['ALL', ...childSubfoldersList.map((s) => s.name)];
+      const oldIdx = allSubs.indexOf(selectedSubfolder || 'ALL');
+      const newIdx = allSubs.indexOf(newSub || 'ALL');
+      setSlideDirection(newIdx >= oldIdx ? 'right' : 'left');
+      setSelectedSubfolder(newSub);
+    },
+    [selectedSubfolder, childSubfoldersList]
+  );
+
   // Idle reset handler: returns to Public Bollywood Overview (Level 0)
   const handleExitToHome = useCallback(() => {
-    setSelectedCategory(null);
-    setSelectedSubfolder(null);
-  }, []);
+    navigateTab(null);
+  }, [navigateTab]);
 
   // Return to Category Subfolders handler (Level 2 -> Level 1)
   const handleReturnToCategory = useCallback(() => {
-    setSelectedSubfolder(null);
-  }, []);
+    navigateSubfolder(null);
+  }, [navigateSubfolder]);
 
   // Android Native Hardware Back Button handler (stepped 2-tier back navigation)
   useBackButton(
@@ -530,7 +558,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
-              handleExitToHome();
+              navigateTab(null);
             }}
             className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
               selectedCategory === null
@@ -544,8 +572,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
-              setSelectedCategory('YOUTUBE');
-              setSelectedSubfolder(null);
+              navigateTab('YOUTUBE');
             }}
             className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
               selectedCategory === 'YOUTUBE'
@@ -559,7 +586,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
-              handleSelectDrawerFolder('shorts');
+              navigateTab('SHORTS');
             }}
             className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
               selectedCategory === 'SHORTS'
@@ -573,7 +600,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
-              handleSelectDrawerFolder('clips');
+              navigateTab('CLIPS');
             }}
             className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
               selectedCategory === 'CLIPS'
@@ -587,7 +614,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
-              handleSelectDrawerFolder('photography');
+              navigateTab('PHOTOGRAPHY');
             }}
             className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
               selectedCategory === 'PHOTOGRAPHY'
@@ -601,7 +628,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
-              handleSelectDrawerFolder('realtube');
+              navigateTab('REALTUBE');
             }}
             className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
               selectedCategory === 'REALTUBE'
@@ -625,7 +652,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >
-          <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
+          <div key="archive-overview" className={`w-full h-full ${slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
+            <CelebrityShowcase onOpenPhoto={onOpenPhoto} />
+          </div>
         </main>
       ) : selectedCategory === 'YOUTUBE' ? (
         /* ===================================================================== */
@@ -685,7 +714,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
 
           {/* Editorial Masonry/Grid of Curated Tracks */}
-          <div key={selectedSubfolder || 'classics'} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 pb-24">
+          <div
+            key={selectedSubfolder || 'classics'}
+            className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 pb-24 ${
+              slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'
+            }`}
+          >
             {currentYouTubeList.map((track, idx) => {
               const trackAny = track as any;
               const formattedDate = trackAny.publishedAt
@@ -805,7 +839,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           }`}
         >
           {/* Section Hero Header */}
-          <div key={selectedCategory} className="flex flex-col gap-2 pb-6 mb-6 border-b border-white/10 shrink-0 animate-velvet-cascade">
+          <div key={selectedCategory} className={`flex flex-col gap-2 pb-6 mb-6 border-b border-white/10 shrink-0 ${slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
             <div className="flex items-center gap-2.5 font-mono text-[10px] sm:text-xs text-[#ccff00] uppercase tracking-widest">
               <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.8)] animate-pulse" />
               <span>
@@ -847,7 +881,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setSelectedSubfolder(null);
+                  navigateSubfolder(null);
                 }}
                 className={`shrink-0 px-4 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap leading-none flex items-center justify-center ${
                   selectedSubfolder === null
@@ -864,7 +898,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   type="button"
                   onClick={() => {
                     hapticMedium();
-                    setSelectedSubfolder(sub.name);
+                    navigateSubfolder(sub.name);
                   }}
                   className={`shrink-0 px-4 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap leading-none flex items-center justify-center ${
                     selectedSubfolder === sub.name
@@ -958,6 +992,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <div
               key={`${selectedCategory}-${selectedSubfolder || 'all'}`}
               className={`w-full pb-20 ${
+                slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'
+              } ${
                 selectedCategory === 'SHORTS'
                   ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4'
                   : selectedCategory === 'PHOTOGRAPHY'

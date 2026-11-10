@@ -359,22 +359,45 @@ html, body, #root {
    SARWAR.CYOU LUXURY AVANT-GARDE MOTION SYSTEM
    ========================================================================== */
 
-/* 1. Velvet Cascade & Stagger: Tabs, Folders & Media Grid */
-@keyframes velvetCascade {
+/* ==========================================================================
+   STYLE 3: FLUID PHYSICAL KINETIC MOMENTUM SLIDE
+   ========================================================================== */
+
+@keyframes kineticSlideRight {
   0% {
     opacity: 0;
-    transform: translateY(22px) scale(0.98);
-    filter: blur(5px);
+    transform: translateX(42px);
+    filter: blur(4px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateX(0);
     filter: blur(0px);
   }
 }
 
-.animate-velvet-cascade {
-  animation: velvetCascade 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+@keyframes kineticSlideLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-42px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0px);
+  }
+}
+
+.animate-kinetic-slide-right {
+  animation: kineticSlideRight 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.animate-kinetic-slide-left {
+  animation: kineticSlideLeft 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;

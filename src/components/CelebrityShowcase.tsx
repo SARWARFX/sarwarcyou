@@ -91,6 +91,17 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   className = '',
 }) => {
   const [activeTab, setActiveTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>('PORTRAITS');
+  const [showcaseDirection, setShowcaseDirection] = useState<'right' | 'left'>('right');
+  const SHOWCASE_TABS = useMemo(() => ['PORTRAITS', 'DISPATCHES', 'REELS'], []);
+
+  const switchShowcaseTab = useCallback((newTab: 'PORTRAITS' | 'DISPATCHES' | 'REELS') => {
+    if (activeTab === newTab) return;
+    const oldIdx = SHOWCASE_TABS.indexOf(activeTab);
+    const newIdx = SHOWCASE_TABS.indexOf(newTab);
+    setShowcaseDirection(newIdx >= oldIdx ? 'right' : 'left');
+    setActiveTab(newTab);
+  }, [activeTab, SHOWCASE_TABS]);
+
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [internalModalState, setInternalModalState] = useState<{
     isOpen: boolean;
@@ -321,7 +332,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setActiveTab('PORTRAITS');
+                  switchShowcaseTab('PORTRAITS');
                 }}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
                   activeTab === 'PORTRAITS'
@@ -337,7 +348,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setActiveTab('DISPATCHES');
+                  switchShowcaseTab('DISPATCHES');
                 }}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
                   activeTab === 'DISPATCHES'
@@ -353,7 +364,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setActiveTab('REELS');
+                  switchShowcaseTab('REELS');
                 }}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
                   activeTab === 'REELS'
@@ -415,7 +426,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
         {/* 2. Main Body Content: Portraits vs News Feed vs Cinema Reels */}
         <main className="p-4 sm:p-6 lg:p-8 pb-20">
           {activeTab === 'PORTRAITS' ? (
-            <div key={`portraits-${activeFilter}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
+            <div key={`portraits-${activeFilter}`} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch ${showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
               {filteredWallpapers.map((item, idx) => {
                 return (
                   <div
@@ -482,11 +493,13 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
             </div>
           ) : activeTab === 'DISPATCHES' ? (
             /* BROADSHEET NEWSPAPER EDITORIAL SECTION */
-            <CelebrityNewsPaper
-              articles={filteredNews}
-              onResetFilter={() => setActiveFilter('ALL')}
-              activeFilter={activeFilter}
-            />
+            <div key="dispatches-section" className={showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}>
+              <CelebrityNewsPaper
+                articles={filteredNews}
+                onResetFilter={() => setActiveFilter('ALL')}
+                activeFilter={activeFilter}
+              />
+            </div>
           ) : (
             /* CINEMA REELS VIEW */
             filteredCinemaReels.length === 0 ? (
@@ -504,7 +517,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 </button>
               </div>
             ) : (
-              <div key={`reels-${activeFilter}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
+              <div key={`reels-${activeFilter}`} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch ${showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
                 {filteredCinemaReels.map((item, idx) => {
                   const itemAny = item as any;
                   const formattedDate = itemAny.publishedAt
