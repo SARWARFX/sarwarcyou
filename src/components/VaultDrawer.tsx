@@ -188,9 +188,9 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
         {/* Masthead */}
         <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
           <div className="flex flex-col">
-            <span className="text-base font-semibold tracking-wider text-white">SARWARCYOU</span>
-            <span className="text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
-              VAULT DIRECTORY
+            <span className="text-base font-black tracking-wider text-white">SARWAR<span className="text-[#ccff00]">.CYOU</span></span>
+            <span className="text-[10px] text-[#ccff00]/80 uppercase tracking-widest font-mono">
+              BIENNALE ARCHIVE // 2026
             </span>
           </div>
           <button
@@ -324,7 +324,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
               aria-checked={keepScreenOn}
               onClick={handleToggleKeepScreenOn}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full p-0.5 border border-white/10 transition-colors duration-200 ease-in-out focus:outline-none ${
-                keepScreenOn ? 'bg-white' : 'bg-neutral-800/90'
+                keepScreenOn ? 'bg-[#ccff00] shadow-[0_0_10px_rgba(204,255,0,0.4)]' : 'bg-neutral-800/90'
               }`}
               title={keepScreenOn ? 'Keep screen on: Enabled' : 'Keep screen on: Disabled'}
             >
@@ -332,7 +332,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                 aria-hidden="true"
                 className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full shadow-md transition duration-200 ease-in-out ${
                   keepScreenOn
-                    ? 'translate-x-4 bg-neutral-950'
+                    ? 'translate-x-4 bg-black'
                     : 'translate-x-0 bg-neutral-400'
                 }`}
               />

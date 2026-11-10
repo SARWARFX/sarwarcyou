@@ -1896,7 +1896,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                           )}
                           {/* Active Played Progress */}
                           <div
-                            className="h-full bg-white group-hover/seekbar:bg-white transition-all duration-75 relative pointer-events-none"
+                            className="h-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.6)] group-hover/seekbar:bg-[#ccff00] transition-all duration-75 relative pointer-events-none"
                             style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                           />
                           {/* A-B Loop Visualizer on seekbar */}
@@ -2030,7 +2030,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60'
                 }`}
               >
-                <ListVideo className="w-3.5 h-3.5 text-emerald-400" />
+                <ListVideo className="w-3.5 h-3.5 text-[#ccff00]" />
                 <span>Queue</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 text-zinc-400 font-mono">
                   {items.length}

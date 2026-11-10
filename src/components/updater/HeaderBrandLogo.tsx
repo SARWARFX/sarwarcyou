@@ -11,14 +11,12 @@ export interface HeaderBrandLogoProps {
 export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
   className = '',
   trackingClass = 'tracking-[0.25em]',
-  variant = 'monolith',
   onTrigger,
 }) => {
   const handleLogoClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     hapticMedium();
 
-    // Toggle Concealed Terminal Drawer (which automatically checks for updates and displays notification)
     if (onTrigger) {
       onTrigger();
     }
@@ -35,13 +33,13 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
           handleLogoClick(e as any);
         }
       }}
-      aria-label="SARWARCYOU"
-      className={`inline-flex items-center select-none bg-transparent border-0 p-0 cursor-pointer focus:outline-none ${className}`}
+      aria-label="SARWAR.CYOU Vault Trigger"
+      className={`inline-flex items-center select-none bg-transparent border-0 p-0 cursor-pointer focus:outline-none group ${className}`}
     >
       <span
-        className={`font-['Roboto_Condensed'] font-black ${trackingClass} text-sm uppercase text-white flex items-center`}
+        className={`font-['Space_Grotesk',sans-serif] font-black ${trackingClass} text-sm sm:text-base uppercase text-white flex items-center group-hover:opacity-90 transition-opacity`}
       >
-        SARWAR<span className="text-white/60">{variant === 'cspr' ? '.CYOU' : 'CYOU'}</span>
+        SARWAR<span className="text-[#ccff00]">.CYOU</span>
       </span>
     </div>
   );

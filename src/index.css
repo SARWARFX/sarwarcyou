@@ -89,6 +89,17 @@ button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
   box-shadow: none !important;
 }
 
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: 200%;
+  animation: marqueeScroll 20s linear infinite;
+}
+
 html, body {
   margin: 0;
   padding: 0;

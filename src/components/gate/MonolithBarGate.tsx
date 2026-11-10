@@ -436,11 +436,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   return (
     <div
-      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-[#020408] relative select-none font-['Roboto_Condensed'] font-sans text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-[#050505] relative select-none font-['Roboto_Condensed'] font-sans text-white"
       style={{
         isolation: 'isolate',
-        background: 'radial-gradient(circle at 50% 35%, rgba(8, 20, 38, 0.6) 0%, #020408 85%)',
-        backgroundColor: '#020408',
+        backgroundColor: '#050505',
       }}
     >
       {/* Permanent Midnight Obsidian Backdrop Canvas */}
@@ -457,12 +456,131 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         onOpenVideo={(item) => onOpenVideo(item, [item])}
       />
 
+      {/* Top Acid Lime Kinetic Marquee Ticker */}
+      <div className="w-full overflow-hidden py-1 sm:py-1.5 bg-[#ccff00] text-black font-mono font-black text-[11px] sm:text-xs uppercase tracking-widest select-none shrink-0 z-40 shadow-md">
+        <div className="animate-marquee whitespace-nowrap flex gap-8 items-center">
+          <span>SARWARCYOU ARCHIVE 2026</span>
+          <span>•</span>
+          <span>CELEBRITY PORTRAITS</span>
+          <span>•</span>
+          <span>CINEMA REELS 4K</span>
+          <span>•</span>
+          <span>ZERO MOCKUP • STRICT VERIFIED FEED</span>
+          <span>•</span>
+          <span>BIENNALE EDITION // VOL. 2026</span>
+          <span>•</span>
+          <span>SARWARCYOU ARCHIVE 2026</span>
+          <span>•</span>
+          <span>CELEBRITY PORTRAITS</span>
+          <span>•</span>
+          <span>CINEMA REELS 4K</span>
+          <span>•</span>
+          <span>ZERO MOCKUP • STRICT VERIFIED FEED</span>
+          <span>•</span>
+          <span>BIENNALE EDITION // VOL. 2026</span>
+        </div>
+      </div>
+
       {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Minimalist Status */}
-      <header className="w-full px-5 sm:px-8 py-3.5 flex items-center justify-between border-b border-white/[0.06] bg-[#020408]/80 backdrop-blur-md z-30 shrink-0">
-        <HeaderBrandLogo
-          trackingClass="tracking-[0.22em] sm:tracking-[0.25em]"
-          onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
-        />
+      <header className="w-full px-4 sm:px-8 py-3 flex items-center justify-between border-b border-white/[0.08] bg-[#050505]/95 backdrop-blur-md z-30 shrink-0">
+        <div className="flex items-center gap-3">
+          <HeaderBrandLogo
+            trackingClass="tracking-[0.2em] sm:tracking-[0.24em]"
+            onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
+          />
+          <span className="hidden xl:inline-block text-[10px] font-mono text-[#ccff00] uppercase tracking-widest px-2 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
+            BIENNALE 2026
+          </span>
+        </div>
+
+        {/* Avant-Garde Quick Select Keys */}
+        <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              handleExitToHome();
+            }}
+            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+              selectedCategory === null
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            01. ARCHIVE
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              setSelectedCategory('YOUTUBE');
+              setSelectedSubfolder(null);
+            }}
+            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+              selectedCategory === 'YOUTUBE'
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            02. REELS
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              handleSelectDrawerFolder('shorts');
+            }}
+            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+              selectedCategory === 'SHORTS'
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            03. SHORTS
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              handleSelectDrawerFolder('clips');
+            }}
+            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+              selectedCategory === 'CLIPS'
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            04. CLIPS
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              handleSelectDrawerFolder('photography');
+            }}
+            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+              selectedCategory === 'PHOTOGRAPHY'
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            05. PHOTO
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              handleSelectDrawerFolder('realtube');
+            }}
+            className={`px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+              selectedCategory === 'REALTUBE'
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            06. REALTUBE
+          </button>
+        </div>
       </header>
 
       {/* MAIN VIEWPORT STAGE */}

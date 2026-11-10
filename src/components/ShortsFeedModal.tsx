@@ -410,7 +410,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         <span
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="text-xs font-serif font-normal px-3 py-1 rounded-full bg-neutral-900/80 text-neutral-200 border border-neutral-700/80 backdrop-blur-md"
+          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-full bg-black/80 text-[#ccff00] border border-[#ccff00]/30 backdrop-blur-md shadow-[0_0_10px_rgba(204,255,0,0.15)]"
         >
           {activeIndex + 1} / {shorts.length}
         </span>
@@ -557,7 +557,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       >
                         <div className="w-full h-1 group-hover:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-150 relative">
                           <div
-                            className="h-full bg-white rounded-full transition-[width] duration-75"
+                            className="h-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.6)] rounded-full transition-[width] duration-75"
                             style={{ width: `${Math.min(100, Math.max(0, (currentTime / (duration || 1)) * 100))}%` }}
                           />
                         </div>

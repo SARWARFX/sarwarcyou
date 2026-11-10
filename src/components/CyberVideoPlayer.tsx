@@ -1209,7 +1209,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {duration > 0 && (
               <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-white shadow-sm transition-all duration-75"
+                  className="h-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.6)] transition-all duration-75"
                   style={{ width: `${Math.max(0, Math.min(100, (gestureSeek.targetTime / duration) * 100))}%` }}
                 />
               </div>
@@ -1452,22 +1452,22 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               />
             )}
 
-            {/* Active Progress: Pure Monochrome Apple Style */}
+            {/* Active Progress: Acid Avant-Garde Style */}
             <div
               className="absolute left-0 top-0 bottom-0 rounded-full transition-all"
               style={{
                 width: `${progressPct}%`,
-                background: '#ffffff',
-                boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)',
+                background: '#ccff00',
+                boxShadow: '0 0 10px rgba(204, 255, 0, 0.6)',
               }}
             />
 
             {/* Distinct Scrubber Dot */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border border-black/30 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-[#ccff00] border border-black/40 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
               style={{
                 left: `${progressPct}%`,
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.6)',
+                boxShadow: '0 0 8px rgba(204, 255, 0, 0.8)',
               }}
             />
 
@@ -1797,7 +1797,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 resetHudTimer();
               }}
               className={`p-1 rounded-md text-[10px] font-mono cursor-pointer flex-shrink-0 ${
-                repeatMode !== 'off' ? 'text-cyan-400 bg-cyan-500/20' : 'text-slate-400 hover:text-white'
+                repeatMode !== 'off' ? 'text-[#ccff00] bg-[#ccff00]/20' : 'text-slate-400 hover:text-white'
               }`}
               title={`Loop: ${repeatMode.toUpperCase()}`}
             >
@@ -1813,7 +1813,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 resetHudTimer();
               }}
               className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold cursor-pointer flex-shrink-0 ${
-                loopA !== null ? 'text-cyan-400 bg-cyan-500/20' : 'text-slate-400 hover:text-white'
+                loopA !== null ? 'text-[#ccff00] bg-[#ccff00]/20' : 'text-slate-400 hover:text-white'
               }`}
               title="A-B Loop"
             >

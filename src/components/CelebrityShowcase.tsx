@@ -301,9 +301,9 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                   hapticMedium();
                   setActiveTab('PORTRAITS');
                 }}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
                   activeTab === 'PORTRAITS'
-                    ? 'bg-white text-neutral-950 font-semibold shadow-sm'
+                    ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
@@ -317,9 +317,9 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                   hapticMedium();
                   setActiveTab('DISPATCHES');
                 }}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
                   activeTab === 'DISPATCHES'
-                    ? 'bg-white text-neutral-950 font-semibold shadow-sm'
+                    ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
@@ -333,9 +333,9 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                   hapticMedium();
                   setActiveTab('REELS');
                 }}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
                   activeTab === 'REELS'
-                    ? 'bg-white text-neutral-950 font-semibold shadow-sm'
+                    ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
@@ -358,9 +358,9 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                   hapticMedium();
                   setActiveFilter(chip.id);
                 }}
-                className={`text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer flex-shrink-0 pb-1.5 ${
+                className={`text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer flex-shrink-0 pb-1.5 font-mono ${
                   isActive
-                    ? 'text-white font-bold border-b-2 border-white'
+                    ? 'text-[#ccff00] font-bold border-b-2 border-[#ccff00]'
                     : 'text-neutral-400 hover:text-neutral-200 border-b-2 border-transparent'
                 }`}
               >
@@ -396,37 +396,44 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                         handleCardClick(idx);
                       }
                     }}
-                    className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-white/30 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.01] cursor-pointer flex flex-col justify-end aspect-[3/4]"
+                    className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-end aspect-[3/4]"
                   >
                     {/* Background Image */}
                     <img
                       src={item.thumb || item.src}
                       alt={item.title}
                       loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="absolute inset-0 w-full h-full object-cover grayscale contrast-115 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
                     />
 
                     {/* Ambient Top Vignette */}
-                    <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
+                    <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+
+                    {/* Top Fig Label */}
+                    <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                      <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-white/80 group-hover:text-[#ccff00] transition-colors drop-shadow-md">
+                        FIG. {String(idx + 1).padStart(3, '0')} // {item.name.toUpperCase()}
+                      </span>
+                    </div>
 
                     {/* Top Category Badge */}
                     <div className="absolute top-3 right-3 z-10">
-                      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] tracking-wider uppercase text-neutral-300 bg-[#09090b]/80 backdrop-blur-md border border-white/[0.08]">
-                        <Tag className="w-2.5 h-2.5 text-neutral-400" />
+                      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] tracking-wider uppercase text-neutral-300 bg-[#09090b]/80 backdrop-blur-md border border-white/[0.08] group-hover:border-[#ccff00]/40 transition-colors">
+                        <Tag className="w-2.5 h-2.5 text-[#ccff00]" />
                         <span>{item.category}</span>
                       </span>
                     </div>
 
                     {/* Hover Maximize Pip */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
-                      <div className="w-11 h-11 rounded-full bg-white text-neutral-950 flex items-center justify-center shadow-lg backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-                        <Maximize2 className="w-4 h-4 text-neutral-950" />
+                      <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.6)] group-hover:scale-110 transition-transform duration-300">
+                        <Maximize2 className="w-5 h-5 text-black stroke-[2.5]" />
                       </div>
                     </div>
 
                     {/* Bottom Dark Gradient Caption Overlay */}
                     <div className="relative z-10 p-4 bg-gradient-to-t from-[#09090b]/95 via-[#09090b]/60 to-transparent flex flex-col gap-1 pointer-events-none">
-                      <span className="font-serif font-bold tracking-wide text-sm text-[#f4f4f5]">
+                      <span className="font-serif font-bold tracking-wide text-sm text-[#f4f4f5] group-hover:text-[#ccff00] transition-colors">
                         {item.name}
                       </span>
                       <span className="font-sans text-xs text-neutral-400 line-clamp-1 leading-snug">
@@ -495,14 +502,14 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                           handleOpenCinemaReel(idx);
                         }
                       }}
-                      className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-white/30 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.01] cursor-pointer flex flex-col justify-between aspect-video select-none"
+                      className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-between aspect-video select-none"
                     >
                       {/* 16:9 Thumbnail Cover */}
                       <img
                         src={item.thumbnail}
                         alt={item.title}
                         loading="lazy"
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="absolute inset-0 w-full h-full object-cover grayscale contrast-115 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
                       />
 
                       {/* Ambient Obsidian Gradient Overlay */}
@@ -517,18 +524,18 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
 
                       {/* Center Hover Play Icon */}
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                        <div className="w-11 h-11 rounded-full bg-white text-neutral-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                        <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.6)] group-hover:scale-110 transition-transform">
+                          <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
                         </div>
                       </div>
 
                       {/* Bottom Metadata Bar */}
                       <div className="relative z-10 p-3.5 mt-auto flex flex-col gap-1 pointer-events-none">
-                        <h3 className="font-['Roboto_Condensed'] font-bold text-sm sm:text-base text-white group-hover:text-white transition-colors line-clamp-1">
+                        <h3 className="font-['Roboto_Condensed'] font-bold text-sm sm:text-base text-white group-hover:text-[#ccff00] transition-colors line-clamp-1">
                           {item.title}
                         </h3>
                         <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
-                          <span className="text-zinc-300 font-medium">
+                          <span className="text-zinc-300 font-medium group-hover:text-white transition-colors">
                             {itemAny.actress}
                           </span>
                           <span>{formattedDate}</span>
