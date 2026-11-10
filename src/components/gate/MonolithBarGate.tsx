@@ -703,23 +703,29 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* Top Acid Lime Kinetic Marquee Ticker */}
       <div className="w-full overflow-hidden py-1 sm:py-1.5 bg-[#ccff00] text-black font-mono font-black text-[11px] sm:text-xs uppercase tracking-widest select-none shrink-0 z-40 shadow-md">
         <div className="animate-marquee whitespace-nowrap flex gap-8 items-center">
+          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">INDEX NOTICE</span>
+          <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
+          <span>•</span>
           <span>SARWARCYOU ARCHIVE 2026</span>
           <span>•</span>
           <span>CELEBRITY PORTRAITS</span>
           <span>•</span>
           <span>CINEMA REELS 4K</span>
           <span>•</span>
-          <span>ZERO MOCKUP • STRICT VERIFIED FEED</span>
+          <span>STRICT VERIFIED FEED</span>
           <span>•</span>
           <span>BIENNALE EDITION // VOL. 2026</span>
           <span>•</span>
+          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">INDEX NOTICE</span>
+          <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
+          <span>•</span>
           <span>SARWARCYOU ARCHIVE 2026</span>
           <span>•</span>
           <span>CELEBRITY PORTRAITS</span>
           <span>•</span>
           <span>CINEMA REELS 4K</span>
           <span>•</span>
-          <span>ZERO MOCKUP • STRICT VERIFIED FEED</span>
+          <span>STRICT VERIFIED FEED</span>
           <span>•</span>
           <span>BIENNALE EDITION // VOL. 2026</span>
         </div>

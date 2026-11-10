@@ -96,8 +96,12 @@ button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
 
 .animate-marquee {
   display: flex;
-  width: 200%;
-  animation: marqueeScroll 20s linear infinite;
+  width: max-content;
+  animation: marqueeScroll 40s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
 }
 
 html, body {
