@@ -262,6 +262,15 @@ function extractFrameFromVideo(cleanUrl: string, isShort: boolean): Promise<stri
     };
 
     try {
+      if (
+        cleanUrl.includes('youtube.com') ||
+        cleanUrl.includes('youtu.be') ||
+        cleanUrl.includes('youtube-nocookie.com')
+      ) {
+        done(null);
+        return;
+      }
+
       const mediaUrl = getMediaUrl(cleanUrl);
       if (!mediaUrl) {
         done(null);

@@ -1,5 +1,6 @@
 /* oxlint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Play,
   Pause,
@@ -295,7 +296,7 @@ const QueueCardItem: React.FC<QueueCardItemProps> = ({
             style={{ contentVisibility: 'auto' }}
             className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
           />
-        ) : isVideo && getMediaUrl(item.url) ? (
+        ) : isVideo && !item.url?.includes('youtube') && !item.url?.includes('youtu.be') && isVideoExtension(item.url) && getMediaUrl(item.url) ? (
           <div className="relative w-full h-full bg-zinc-950 flex items-center justify-center overflow-hidden">
             <video
               src={`${getMediaUrl(item.url)}#t=1.0`}
@@ -1248,7 +1249,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     };
   }, [currentIndex, isOpen, cleanStreamUrl, isVideo]);
 
-  if (!isOpen || !currentItem) return null;
+  if (!isOpen || !currentItem || typeof document === 'undefined') return null;
 
   const directImgUrl = getDirectImageUrl(currentItem, currentIndex);
   const rawTitle = currentItem.title || '';
@@ -1263,7 +1264,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   const loopStartPct = duration > 0 && loopStart !== null ? Math.max(0, Math.min(100, (loopStart / duration) * 100)) : 0;
   const loopEndPct = duration > 0 && loopEnd !== null ? Math.max(0, Math.min(100, (loopEnd / duration) * 100)) : 100;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -1273,17 +1274,25 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         transform: dismissOffsetY > 0 ? `translate3d(0, ${dismissOffsetY}px, 0) scale(${Math.max(0.85, 1 - dismissOffsetY / 1200)})` : 'none',
         transition: dismissOffsetY === 0 ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
       }}
-      className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl animate-keynote-modal select-none overflow-hidden"
+      className="fixed inset-0 z-[99999] flex flex-col bg-black/95 backdrop-blur-2xl animate-keynote-modal select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
       <div className="viewer-top-bar player-header-bar w-full bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-b border-white/[0.08] px-4 py-2.5">
-        {/* Left: Website Brand Logo */}
-        <div className="flex items-center gap-2 select-none shrink-0">
-          <span className="font-['Space_Grotesk',sans-serif] font-black tracking-[0.2em] sm:tracking-[0.24em] text-sm sm:text-base uppercase text-white flex items-center">
-            SARWAR<span className="text-[#ccff00]">.CYOU</span>
-          </span>
-          <span className="hidden md:inline-block text-[9px] font-mono text-[#ccff00] uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
-            THEATER
+        {/* Left: Dedicated Theater HUD Status (Never Duplicate Website Logo) */}
+        <div className="flex items-center gap-2.5 select-none shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/90 hover:text-white border border-white/10 transition-all cursor-pointer group active:scale-95"
+            title="Return to Archive"
+          >
+            <div className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_8px_#ccff00] animate-pulse" />
+            <span className="font-mono text-xs font-bold tracking-wider uppercase text-[#ccff00]">
+              THEATER MODE
+            </span>
+          </button>
+          <span className="hidden md:inline-block text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
+            // 4K VERIFIED STREAM
           </span>
         </div>
 
@@ -2177,6 +2186,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
           </button>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
