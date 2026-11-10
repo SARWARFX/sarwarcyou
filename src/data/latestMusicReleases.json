@@ -48,11 +48,19 @@
     "thumbnail": "https://img.youtube.com/vi/QPSAjqjylTc/maxresdefault.jpg"
   },
   {
-    "id": "YxWlaYCA8MU",
+    "id": "huxhqphtDrM",
     "title": "Besharam Rang | Pathaan",
     "actress": "Deepika Padukone",
     "channel": "YRF",
     "publishedAt": "2022-12-12T05:30:00.000Z",
+    "thumbnail": "https://img.youtube.com/vi/huxhqphtDrM/maxresdefault.jpg"
+  },
+  {
+    "id": "YxWlaYCA8MU",
+    "title": "Jhoome Jo Pathaan | Pathaan",
+    "actress": "Deepika Padukone",
+    "channel": "YRF",
+    "publishedAt": "2022-12-22T05:30:00.000Z",
     "thumbnail": "https://img.youtube.com/vi/YxWlaYCA8MU/maxresdefault.jpg"
   },
   {
@@ -137,11 +145,19 @@
   },
   {
     "id": "87JIOAX3njM",
+    "title": "What Jhumka? | Rocky Aur Rani Kii Prem Kahaani",
+    "actress": "Alia Bhatt",
+    "channel": "Saregama Music",
+    "publishedAt": "2023-07-12T06:30:00.000Z",
+    "thumbnail": "https://img.youtube.com/vi/87JIOAX3njM/maxresdefault.jpg"
+  },
+  {
+    "id": "II2EO3Nw4m0",
     "title": "Badtameez Dil | Yeh Jawaani Hai Deewani",
     "actress": "Deepika Padukone",
     "channel": "T-Series",
     "publishedAt": "2013-04-05T07:00:00.000Z",
-    "thumbnail": "https://img.youtube.com/vi/87JIOAX3njM/maxresdefault.jpg"
+    "thumbnail": "https://img.youtube.com/vi/II2EO3Nw4m0/maxresdefault.jpg"
   },
   {
     "id": "zE7Pwgl6sLA",
