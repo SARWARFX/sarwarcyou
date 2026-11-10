@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Play, ArrowLeft, Folder, ChevronRight, Music2 } from 'lucide-react';
+import { Play, Folder, ChevronRight, Music2 } from 'lucide-react';
 import type { StageMediaItem, AlbumData } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -535,14 +535,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 </button>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={handleExitToHome}
-              className="self-start sm:self-auto font-mono text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              ← EXIT TO CELEBRITY HUB
-            </button>
           </div>
 
           {/* Editorial Masonry/Grid of Curated Tracks */}
@@ -672,14 +664,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 ({childSubfoldersList.length} collections)
               </span>
             </div>
-
-            <button
-              type="button"
-              onClick={handleExitToHome}
-              className="font-mono text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              ← EXIT TO CELEBRITY HUB
-            </button>
           </div>
 
           {/* Subfolders / Child Collections Grid */}
@@ -782,13 +766,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           {/* Breadcrumb Header Rail */}
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleReturnToCategory}
-                className="font-mono text-xs uppercase tracking-wider text-slate-400 hover:text-white cursor-pointer"
-              >
+              <span className="font-mono text-xs uppercase tracking-wider text-slate-400">
                 {selectedCategory}
-              </button>
+              </span>
               <span className="text-slate-500">/</span>
               <span className="font-['Roboto_Condensed'] font-black text-base sm:text-lg tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
                 {selectedSubfolder}
@@ -796,24 +776,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <span className="text-xs font-mono text-neutral-400">
                 ({activeMediaList.length} files)
               </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleReturnToCategory}
-                className="font-mono text-xs tracking-wider uppercase text-neutral-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 text-[#38bdf8]" />
-                <span>← BACK TO {selectedCategory}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleExitToHome}
-                className="font-mono text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-white/[0.04]"
-              >
-                PORTAL HOME
-              </button>
             </div>
           </div>
 
@@ -823,13 +785,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <p className="text-white/80 text-sm font-semibold tracking-wider uppercase mb-1">
                 No Media Items in this Collection
               </p>
-              <button
-                type="button"
-                onClick={handleReturnToCategory}
-                className="mt-4 px-4 py-2 rounded-lg bg-[#38bdf8]/15 hover:bg-[#38bdf8]/25 text-[#38bdf8] border border-[#38bdf8]/30 font-mono text-xs uppercase tracking-wider transition-all"
-              >
-                Return to {selectedCategory} Directories
-              </button>
             </div>
           ) : (
             <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20">

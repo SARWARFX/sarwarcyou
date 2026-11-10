@@ -55,34 +55,16 @@ export const CsprShowcaseShell: React.FC<CsprShowcaseShellProps> = ({
 
       {/* 2. Top Header Bar */}
       <header className="fixed top-0 left-0 right-0 z-30 h-14 md:h-16 bg-black/60 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 sm:px-6 md:px-10 shadow-lg">
-        {/* Left: SARWAR.CYOU Signature Logo (Click checks for updates, subtitle returns to Home) */}
+        {/* Left: SARWAR.CYOU Signature Logo */}
         <div className="flex items-center gap-3 select-none">
           <HeaderBrandLogo variant="cspr" trackingClass="tracking-[0.22em]" />
-          <button
-            type="button"
-            onClick={() => setActiveTab('HOME')}
-            className="text-[10px] sm:text-xs font-mono tracking-widest text-neutral-400 uppercase hidden sm:inline hover:text-neutral-200 transition-colors cursor-pointer bg-transparent border-0 p-0"
-          >
-            {activeTab === 'HOME' ? '// CURATED SHOWCASE' : `// ARCHIVE: ${activeTab}`}
-          </button>
         </div>
 
-        {/* Right: Quick Home Return or Status Stamp */}
+        {/* Right: Clean Ambient Status Stamp */}
         <div className="flex items-center gap-3">
-          {activeTab !== 'HOME' ? (
-            <button
-              type="button"
-              onClick={() => setActiveTab('HOME')}
-              className="text-xs font-['Roboto',sans-serif] tracking-wider uppercase px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95 flex items-center gap-1.5 border border-white/10 cursor-pointer"
-            >
-              <span>←</span>
-              <span>HOME SHOWCASE</span>
-            </button>
-          ) : (
-            <span className="text-[11px] font-mono tracking-wider text-neutral-500 uppercase hidden md:inline">
-              ONLINE // DIRECT SHOWCASE
-            </span>
-          )}
+          <span className="text-[11px] font-mono tracking-wider text-neutral-500 uppercase hidden md:inline">
+            ONLINE // DIRECT SHOWCASE
+          </span>
         </div>
       </header>
 
