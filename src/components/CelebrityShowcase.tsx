@@ -409,13 +409,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                     {/* Ambient Top Vignette */}
                     <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
 
-                    {/* Top Fig Label */}
-                    <div className="absolute top-3 left-3 z-10 pointer-events-none">
-                      <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-white/90 group-hover:text-[#ccff00] transition-colors drop-shadow-md px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm border border-white/10">
-                        FIG. {String(idx + 1).padStart(3, '0')}
-                      </span>
-                    </div>
-
                     {/* Top Category Badge */}
                     <div className="absolute top-3 right-3 z-10">
                       <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] tracking-wider uppercase text-neutral-300 bg-[#09090b]/80 backdrop-blur-md border border-white/[0.08] group-hover:border-[#ccff00]/40 transition-colors">

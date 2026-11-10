@@ -507,7 +507,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            01. ARCHIVE
+            ARCHIVE
           </button>
           <button
             type="button"
@@ -522,7 +522,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            02. REELS
+            REELS
           </button>
           <button
             type="button"
@@ -536,7 +536,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            03. SHORTS
+            SHORTS
           </button>
           <button
             type="button"
@@ -550,7 +550,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            04. CLIPS
+            CLIPS
           </button>
           <button
             type="button"
@@ -564,7 +564,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            05. PHOTO
+            PHOTO
           </button>
           <button
             type="button"
@@ -578,7 +578,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            06. REALTUBE
+            REALTUBE
           </button>
         </div>
       </header>
