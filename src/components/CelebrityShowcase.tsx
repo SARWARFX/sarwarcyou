@@ -575,6 +575,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
         album={cinemaReelsAlbum}
         allAlbums={[cinemaReelsAlbum]}
         initialIndex={theaterIndex}
+        title={filteredCinemaReels[theaterIndex]?.title}
         onIndexChange={setTheaterIndex}
       />
     </div>

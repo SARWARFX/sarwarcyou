@@ -850,6 +850,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         album={youTubeAlbumData}
         allAlbums={[youTubeAlbumData]}
         initialIndex={youTubeTheaterIndex}
+        title={youTubeAlbumData?.items[youTubeTheaterIndex]?.title}
         onIndexChange={(newIdx) => setYouTubeTheaterIndex(newIdx)}
       />
     </div>

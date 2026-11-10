@@ -46,6 +46,7 @@ interface YouTubeTheaterModalProps {
   allAlbums?: AlbumData[];
   initialIndex: number;
   posterUrl?: string;
+  title?: string;
   onSwitchAlbum?: (album: AlbumData, initialIndex?: number) => void;
   onNextAlbum?: () => void;
   onPrevAlbum?: () => void;
@@ -476,12 +477,24 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
   allAlbums = [],
   initialIndex,
   posterUrl,
+  title: propsTitle,
   onSwitchAlbum,
   onNextAlbum: _onNextAlbum,
   onPrevAlbum: _onPrevAlbum,
   onIndexChange,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [prevInitialIndex, setPrevInitialIndex] = useState(initialIndex);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  // Synchronous state alignment during render: prevents any 1-frame index mismatch/title flash
+  if (isOpen && (!prevIsOpen || initialIndex !== prevInitialIndex)) {
+    setPrevIsOpen(isOpen);
+    setPrevInitialIndex(initialIndex);
+    setCurrentIndex(initialIndex);
+  } else if (!isOpen && prevIsOpen) {
+    setPrevIsOpen(false);
+  }
   const [isZoomed, setIsZoomed] = useState(false);
   const [isCrossfading, setIsCrossfading] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -1244,6 +1257,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
     rawTitle.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim() ||
     (isVideo ? 'Cinema Stream' : 'Photograph');
 
+  // Freeze title rendering to immutable props to eliminate any async flash/blink
+  const displayTitle = propsTitle || currentItem.title || currentItem.name || cleanTitle || '';
+
   // Compute A-B loop percentage offsets for timeline
   const loopStartPct = duration > 0 && loopStart !== null ? Math.max(0, Math.min(100, (loopStart / duration) * 100)) : 0;
   const loopEndPct = duration > 0 && loopEnd !== null ? Math.max(0, Math.min(100, (loopEnd / duration) * 100)) : 100;
@@ -1265,12 +1281,19 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
         {/* Left: Close / Return to Stage */}
         <button
           onClick={onClose}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
           title="Close Theater"
         >
           <ChevronDown className="w-4 h-4" />
           <span className="hidden sm:inline">CLOSE</span>
         </button>
+
+        {/* Center: Frozen Rock-Solid Title (Decoupled from player async state) */}
+        <div className="flex-1 mx-3 min-w-0 text-left">
+          <h2 className="text-xs sm:text-sm font-medium text-white/90 truncate select-none">
+            {displayTitle}
+          </h2>
+        </div>
 
         {/* Right: Actions (Zoom, Download, Prominent View Full Screen) */}
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-20">
@@ -1924,7 +1947,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
                     className="w-full h-full border-0 relative z-10"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                     allowFullScreen
-                    title={cleanTitle}
+                    title={displayTitle}
                   />
                 )
               ) : (
@@ -1974,9 +1997,9 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
             <div className="px-4 py-3 bg-[#09090b] flex items-center justify-between text-xs font-mono flex-shrink-0">
               {/* Bottom-left: Active media's file name ONLY (plain text, no tags or extra labels) */}
               <div className="truncate max-w-full text-left">
-                <span className="font-semibold text-white text-sm sm:text-base tracking-wide block truncate">
-                  {currentItem.name || currentItem.title || cleanTitle}
-                </span>
+                <h2 className="text-sm md:text-base font-medium text-white truncate select-none">
+                  {displayTitle}
+                </h2>
               </div>
             </div>
             {/* Mobile Segmented Tab Switcher (Suggested vs Queue) */}
