@@ -155,29 +155,29 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
 
             return (
               <div key={day.dateKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1 group">
-                {/* Time readout on top: Today's readout is cyan font-bold, others slate */}
+                {/* Time readout on top: Today's readout is pure white font-bold, others zinc */}
                 <span
                   className={`font-mono text-[10px] sm:text-[11px] transition-colors leading-none ${
                     day.isToday
-                      ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]'
-                      : 'text-[#475569] group-hover:text-slate-300'
+                      ? 'text-white font-bold'
+                      : 'text-zinc-500 group-hover:text-zinc-300'
                   }`}
                 >
                   {day.hoursFormatted}
                 </span>
 
                 {/* Slot container */}
-                <div className="h-[46px] w-full max-w-[32px] sm:max-w-[36px] bg-white/[0.03] rounded flex items-end overflow-hidden my-0.5">
-                  {/* Bar: Today is cyan glow gradient, others clean silver/slate gradient */}
+                <div className="h-[46px] w-full max-w-[32px] sm:max-w-[36px] bg-white/[0.04] rounded flex items-end overflow-hidden my-0.5">
+                  {/* Bar: Today is pure white, others subtle silver/zinc */}
                   <div
                     style={{
                       height: `${heightPct}%`,
                       background: day.isToday
-                        ? 'linear-gradient(to top, #0284c7, #38bdf8)'
-                        : 'linear-gradient(to top, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.45))',
+                        ? 'linear-gradient(to top, rgba(255, 255, 255, 0.75), #ffffff)'
+                        : 'linear-gradient(to top, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.35))',
                     }}
                     className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
-                      day.isToday ? 'shadow-[0_0_12px_rgba(56,189,248,0.5)]' : ''
+                      day.isToday ? 'shadow-sm' : ''
                     }`}
                   />
                 </div>
@@ -186,8 +186,8 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                 <span
                   className={`font-mono text-[8px] sm:text-[9px] uppercase tracking-wider text-center truncate w-full leading-none mt-0.5 ${
                     day.isToday
-                      ? 'text-[#38bdf8] font-semibold'
-                      : 'text-[#475569] group-hover:text-slate-400'
+                      ? 'text-white font-semibold'
+                      : 'text-zinc-500 group-hover:text-zinc-400'
                   }`}
                 >
                   {day.label}
@@ -215,24 +215,24 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
               <span
                 className={`font-mono text-[10px] transition-colors ${
                   day.isToday
-                    ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]'
-                    : 'text-slate-400 group-hover:text-white'
+                    ? 'text-white font-bold'
+                    : 'text-zinc-500 group-hover:text-white'
                 }`}
               >
                 {day.hoursFormatted}
               </span>
 
               {/* Middle: Slot & Bar -> height ~42px, w-full rounded */}
-              <div className="h-[42px] w-full max-w-[36px] bg-white/[0.03] rounded flex items-end overflow-hidden my-0.5">
+              <div className="h-[42px] w-full max-w-[36px] bg-white/[0.04] rounded flex items-end overflow-hidden my-0.5">
                 <div
                   style={{
                     height: `${heightPct}%`,
                     background: day.isToday
-                      ? 'linear-gradient(to top, #0284c7, #38bdf8)'
-                      : 'linear-gradient(to top, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.45))',
+                      ? 'linear-gradient(to top, rgba(255, 255, 255, 0.75), #ffffff)'
+                      : 'linear-gradient(to top, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.35))',
                   }}
                   className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
-                    day.isToday ? 'shadow-[0_0_12px_rgba(56,189,248,0.5)]' : ''
+                    day.isToday ? 'shadow-sm' : ''
                   }`}
                 />
               </div>
@@ -241,8 +241,8 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
               <span
                 className={`font-mono text-[9px] tracking-wider uppercase mt-1.5 block whitespace-nowrap text-center ${
                   day.isToday
-                    ? 'text-[#38bdf8] font-bold'
-                    : 'text-slate-400 group-hover:text-slate-200'
+                    ? 'text-white font-semibold'
+                    : 'text-zinc-500 group-hover:text-zinc-300'
                 }`}
               >
                 {day.label}
@@ -269,8 +269,8 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
               <span
                 className={`font-mono text-[7px] xs:text-[8px] sm:text-[10px] mb-0.5 sm:mb-1 transition-all ${
                   day.isToday
-                    ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.7)] scale-105'
-                    : 'text-slate-400 group-hover:text-white'
+                    ? 'text-white font-bold scale-105'
+                    : 'text-zinc-500 group-hover:text-white'
                 }`}
               >
                 {day.hoursFormatted}
@@ -282,8 +282,8 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
                   style={{ height: `${heightPct}%` }}
                   className={`w-full rounded-t-sm transition-all duration-500 ease-out ${
                     day.isToday
-                      ? 'bg-gradient-to-t from-[#0284c7] to-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.4)]'
-                      : 'bg-white/15 group-hover:bg-white/30 group-hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]'
+                      ? 'bg-white shadow-sm'
+                      : 'bg-white/15 group-hover:bg-white/30'
                   }`}
                 />
               </div>
@@ -292,8 +292,8 @@ export const SessionTelemetryGraph: React.FC<SessionTelemetryGraphProps> = ({
               <span
                 className={`mt-0.5 sm:mt-1 font-['Roboto_Condensed'] font-sans text-[6px] xs:text-[7px] sm:text-[8px] md:text-[9px] tracking-wider uppercase text-center truncate w-full ${
                   day.isToday
-                    ? 'text-[#38bdf8] font-bold drop-shadow-[0_0_6px_rgba(56,189,248,0.4)]'
-                    : 'text-slate-500 group-hover:text-slate-300'
+                    ? 'text-white font-semibold'
+                    : 'text-zinc-500 group-hover:text-zinc-300'
                 }`}
               >
                 {day.label}

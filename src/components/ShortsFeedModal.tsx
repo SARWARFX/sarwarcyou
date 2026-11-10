@@ -567,7 +567,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       >
                         <div className="w-full h-1 group-hover:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-150 relative">
                           <div
-                            className="h-full bg-[var(--accent-color,#38bdf8)] shadow-[0_0_10px_var(--accent-glow,rgba(56,189,248,0.8))] rounded-full transition-[width] duration-75"
+                            className="h-full bg-white rounded-full transition-[width] duration-75"
                             style={{ width: `${Math.min(100, Math.max(0, (currentTime / (duration || 1)) * 100))}%` }}
                           />
                         </div>

@@ -494,8 +494,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-white/10">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
-                <Music2 className="w-5 h-5 text-[#38bdf8]" />
-                <span className="font-['Roboto_Condensed'] font-black text-lg sm:text-xl tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+                <Music2 className="w-5 h-5 text-white/80" />
+                <span className="font-['Roboto_Condensed'] font-black text-lg sm:text-xl tracking-[0.2em] uppercase text-white">
                   YOUTUBE MUSIC THEATER
                 </span>
               </div>
@@ -513,7 +513,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
                     !isLatestDispatches
-                      ? 'bg-[#38bdf8] text-neutral-950 font-bold shadow-md'
+                      ? 'bg-white text-neutral-950 font-semibold shadow-sm'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
@@ -527,7 +527,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
                     isLatestDispatches
-                      ? 'bg-[#38bdf8] text-neutral-950 font-bold shadow-md'
+                      ? 'bg-white text-neutral-950 font-semibold shadow-sm'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
@@ -558,7 +558,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
                   : trackAny.channel === 'YRF'
                   ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                  : 'bg-[#38bdf8]/20 text-[#38bdf8] border-[#38bdf8]/40';
+                  : 'bg-white/10 text-white/90 border-white/20';
 
               return (
                 <div
@@ -572,7 +572,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       handlePlayYouTubeTrack(idx);
                     }
                   }}
-                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#38bdf8]/60 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(56,189,248,0.25)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col select-none"
+                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-white/30 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(255,255,255,0.06)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col select-none"
                 >
                   {/* 16:9 Thumbnail Stage */}
                   <div className="relative aspect-video w-full overflow-hidden bg-black/60">
@@ -595,7 +595,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                           {trackAny.channel || 'OFFICIAL'}
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-black/80 backdrop-blur-md border border-[#38bdf8]/30 shadow-md">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase text-white/80 bg-black/80 backdrop-blur-md border border-white/15 shadow-md">
                           4K UHD
                         </span>
                       )}
@@ -603,7 +603,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
                     {/* Discreet Play Badge Overlay on Hover */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                      <div className="w-12 h-12 rounded-full bg-[#38bdf8] text-neutral-950 flex items-center justify-center shadow-[0_0_24px_rgba(56,189,248,0.7)] transform group-hover:scale-110 transition-transform">
+                      <div className="w-12 h-12 rounded-full bg-white text-neutral-950 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
                         <Play className="w-5 h-5 fill-current ml-0.5" />
                       </div>
                     </div>
@@ -612,7 +612,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   {/* Editorial Typography & Metadata */}
                   <div className="p-4 flex flex-col gap-2 flex-1 justify-between bg-gradient-to-b from-transparent to-[#05080e]">
                     <div className="flex flex-col gap-1">
-                      <h3 className="font-['Roboto_Condensed'] font-bold text-base sm:text-lg text-white group-hover:text-[#38bdf8] transition-colors line-clamp-1">
+                      <h3 className="font-['Roboto_Condensed'] font-bold text-base sm:text-lg text-white group-hover:text-white transition-colors line-clamp-1">
                         {track.title}
                       </h3>
                       {isLatestDispatches ? (
@@ -620,7 +620,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                           <span className="text-neutral-500 text-[11px] font-mono uppercase tracking-wider">
                             LEAD:
                           </span>
-                          <span className="text-[#38bdf8] font-semibold">
+                          <span className="text-zinc-300 font-semibold">
                             {trackAny.actress}
                           </span>
                         </div>
@@ -635,7 +635,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       <span className="truncate max-w-[140px] px-2 py-0.5 rounded bg-white/[0.04] border border-white/5 text-[10px]">
                         {isLatestDispatches ? formattedDate : trackAny.album}
                       </span>
-                      <span className="text-[#38bdf8] text-[10px] uppercase font-bold tracking-wider flex items-center gap-1">
+                      <span className="text-zinc-400 text-[10px] uppercase font-bold tracking-wider flex items-center gap-1">
                         <Play className="w-2.5 h-2.5 fill-current" />
                         IN-APP THEATER
                       </span>
@@ -657,7 +657,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           {/* Section Breadcrumb Bar */}
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <span className="font-['Roboto_Condensed'] font-black text-lg sm:text-xl tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+              <span className="font-['Roboto_Condensed'] font-black text-lg sm:text-xl tracking-[0.2em] uppercase text-white">
                 {selectedCategory} DIRECTORIES
               </span>
               <span className="text-xs font-mono text-neutral-400">
@@ -709,7 +709,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       setSelectedSubfolder(sub.name);
                     }
                   }}
-                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-[#38bdf8]/20 hover:border-[#38bdf8]/60 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(56,189,248,0.25)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col justify-end aspect-[16/10] sm:aspect-[4/3] select-none"
+                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-white/30 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(255,255,255,0.06)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col justify-end aspect-[16/10] sm:aspect-[4/3] select-none"
                 >
                   {/* Thumbnail Preview */}
                   {thumb ? (
@@ -721,7 +721,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-tr from-[#020408] to-[#0c1e38] flex items-center justify-center">
-                      <Folder className="w-12 h-12 text-[#38bdf8]/40" />
+                      <Folder className="w-12 h-12 text-white/30" />
                     </div>
                   )}
 
@@ -730,8 +730,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
                   {/* Top Badge: Item Count */}
                   <div className="absolute top-3 right-3 z-10">
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-black/75 backdrop-blur-md border border-[#38bdf8]/30 shadow-md">
-                      <Folder className="w-3 h-3 text-[#38bdf8]" />
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-white/80 bg-black/75 backdrop-blur-md border border-white/15 shadow-md">
+                      <Folder className="w-3 h-3 text-white/70" />
                       <span>{sub.files.length} ITEMS</span>
                     </span>
                   </div>
@@ -739,14 +739,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   {/* Bottom Info: Subfolder Name & Arrow Prompt */}
                   <div className="relative z-10 p-5 flex items-center justify-between pointer-events-none">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-mono tracking-widest text-[#38bdf8] uppercase">
+                      <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
                         {selectedCategory} // SUBFOLDER
                       </span>
-                      <h3 className="font-['Roboto_Condensed'] font-black tracking-wider text-lg sm:text-xl text-white uppercase group-hover:text-[#38bdf8] transition-colors line-clamp-1">
+                      <h3 className="font-['Roboto_Condensed'] font-black tracking-wider text-lg sm:text-xl text-white uppercase group-hover:text-white transition-colors line-clamp-1">
                         {sub.name}
                       </h3>
                     </div>
-                    <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-[#38bdf8] text-white group-hover:text-black flex items-center justify-center transition-all duration-300 shadow-md shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-white text-white group-hover:text-black flex items-center justify-center transition-all duration-300 shadow-md shrink-0">
                       <ChevronRight className="w-5 h-5 ml-0.5" />
                     </div>
                   </div>
@@ -770,7 +770,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 {selectedCategory}
               </span>
               <span className="text-slate-500">/</span>
-              <span className="font-['Roboto_Condensed'] font-black text-base sm:text-lg tracking-[0.2em] uppercase text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+              <span className="font-['Roboto_Condensed'] font-black text-base sm:text-lg tracking-[0.2em] uppercase text-white">
                 {selectedSubfolder}
               </span>
               <span className="text-xs font-mono text-neutral-400">
@@ -817,7 +817,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       handleOpenItem(item, idx);
                     }}
                     style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 hover:border-[#38bdf8]/40 relative shadow-lg group cursor-pointer transition-all duration-300 hover:scale-[1.02] select-none"
+                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 hover:border-white/30 relative shadow-lg group cursor-pointer transition-all duration-300 hover:scale-[1.02] select-none"
                   >
                     <SmartThumbnail
                       src={thumb}

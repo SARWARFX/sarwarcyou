@@ -61,15 +61,15 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
 
           {/* Center Telemetry */}
           <div className="relative z-10 flex flex-col items-center justify-center p-2 text-center">
-            {/* Pulsing cyan dot inside expanding radar ring */}
+            {/* Pulsing subtle dot inside expanding ring */}
             <div className="relative flex items-center justify-center w-6 h-6">
-              <span className="absolute w-4 h-4 rounded-full bg-[#38bdf8]/40 animate-ping" />
-              <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8]" />
+              <span className="absolute w-4 h-4 rounded-full bg-white/20 animate-ping" />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
             </div>
 
-            {/* Telemetry Text */}
-            <span className="font-['Google Sans'] font-medium text-[10px] tracking-[0.24em] text-slate-400 uppercase mt-2 truncate max-w-full px-2">
-              LOADING THUMBNAIL...
+            {/* Loading Text */}
+            <span className="font-['Google Sans'] font-medium text-[10px] tracking-[0.24em] text-zinc-500 uppercase mt-2 truncate max-w-full px-2">
+              LOADING...
             </span>
           </div>
         </div>

@@ -481,7 +481,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                       ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
                       : itemAny.channel === 'YRF'
                       ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                      : 'bg-[#38bdf8]/20 text-[#38bdf8] border-[#38bdf8]/40';
+                      : 'bg-white/10 text-white/90 border-white/20';
 
                   return (
                     <div
@@ -495,7 +495,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                           handleOpenCinemaReel(idx);
                         }
                       }}
-                      className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-[#38bdf8]/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.01] cursor-pointer flex flex-col justify-between aspect-video select-none"
+                      className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-white/30 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.01] cursor-pointer flex flex-col justify-between aspect-video select-none"
                     >
                       {/* 16:9 Thumbnail Cover */}
                       <img
@@ -517,18 +517,18 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
 
                       {/* Center Hover Play Icon */}
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                        <div className="w-11 h-11 rounded-full bg-[#38bdf8] text-neutral-950 flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.7)] group-hover:scale-110 transition-transform">
+                        <div className="w-11 h-11 rounded-full bg-white text-neutral-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                           <Play className="w-4 h-4 fill-current ml-0.5" />
                         </div>
                       </div>
 
                       {/* Bottom Metadata Bar */}
                       <div className="relative z-10 p-3.5 mt-auto flex flex-col gap-1 pointer-events-none">
-                        <h3 className="font-['Roboto_Condensed'] font-bold text-sm sm:text-base text-white group-hover:text-[#38bdf8] transition-colors line-clamp-1">
+                        <h3 className="font-['Roboto_Condensed'] font-bold text-sm sm:text-base text-white group-hover:text-white transition-colors line-clamp-1">
                           {item.title}
                         </h3>
                         <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
-                          <span className="text-[#38bdf8] font-medium">
+                          <span className="text-zinc-300 font-medium">
                             {itemAny.actress}
                           </span>
                           <span>{formattedDate}</span>

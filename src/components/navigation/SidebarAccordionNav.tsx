@@ -112,7 +112,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
               }`}
             >
               {isFolderActive && (
-                <span className="w-2 h-2 rounded-full bg-[var(--accent-color,#38bdf8)] shadow-[0_0_12px_var(--accent-glow,rgba(56,189,248,0.6))] flex-shrink-0 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />
               )}
               <span className="truncate">{folder.label}</span>
             </button>
@@ -157,8 +157,8 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                                   : '-translate-x-2.5 opacity-0 pointer-events-none'
                               } ${
                                 isSubSelected
-                                  ? 'text-[var(--accent-color,#38bdf8)] font-bold drop-shadow-[0_0_8px_var(--accent-glow,rgba(56,189,248,0.6))] translate-x-1.5'
-                                  : 'text-slate-400 hover:text-white hover:translate-x-1'
+                                  ? 'text-white font-bold translate-x-1'
+                                  : 'text-zinc-400 hover:text-white hover:translate-x-1'
                               }`
                             : `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-sm font-semibold tracking-[0.16em] uppercase py-1 pl-4 text-left transition-colors cursor-pointer outline-none bg-transparent border-0 truncate ${
                                 isAccordionOpen
@@ -166,8 +166,8 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                                   : 'opacity-0 pointer-events-none'
                               } ${
                                 isSubSelected
-                                  ? 'text-[var(--accent-color,#38bdf8)] font-bold'
-                                  : 'text-slate-400 hover:text-white'
+                                  ? 'text-white font-bold'
+                                  : 'text-zinc-400 hover:text-white'
                               }`
                         }
                       >

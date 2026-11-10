@@ -39,17 +39,9 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
       className={`inline-flex items-center select-none bg-transparent border-0 p-0 cursor-pointer focus:outline-none ${className}`}
     >
       <span
-        className={`font-['Roboto_Condensed'] font-black ${trackingClass} text-sm uppercase text-white/95 flex items-center`}
+        className={`font-['Roboto_Condensed'] font-black ${trackingClass} text-sm uppercase text-white flex items-center`}
       >
-        {variant === 'cspr' ? (
-          <>
-            SARWAR<span className="text-[#38bdf8]">.CYOU</span>
-          </>
-        ) : (
-          <>
-            SARWAR<span className="text-[#00f0ff]">CYOU</span>
-          </>
-        )}
+        SARWAR<span className="text-white/60">{variant === 'cspr' ? '.CYOU' : 'CYOU'}</span>
       </span>
     </div>
   );

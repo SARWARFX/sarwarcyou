@@ -1464,29 +1464,29 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               />
             )}
 
-            {/* Active Progress: Gradient progress fill linear-gradient(90deg, #38bdf8 0%, #ffffff 100%) */}
+            {/* Active Progress: Pure Monochrome Apple Style */}
             <div
               className="absolute left-0 top-0 bottom-0 rounded-full transition-all"
               style={{
                 width: `${progressPct}%`,
-                background: 'linear-gradient(90deg, #38bdf8 0%, #ffffff 100%)',
-                boxShadow: '0 0 10px rgba(56, 189, 248, 0.65)',
+                background: '#ffffff',
+                boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)',
               }}
             />
 
-            {/* Distinct Scrubber Dot with Ambient White/Cyan Glow */}
+            {/* Distinct Scrubber Dot */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border border-[#38bdf8] transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border border-black/30 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
               style={{
                 left: `${progressPct}%`,
-                boxShadow: '0 0 10px rgba(56, 189, 248, 0.9), 0 0 18px rgba(255, 255, 255, 0.75)',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.6)',
               }}
             />
 
             {/* Ghost Scrub Line Marker */}
             {seekHover.isHovering && (
               <div
-                className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-30"
+                className="absolute top-0 bottom-0 w-0.5 bg-white/80 pointer-events-none z-30"
                 style={{ left: `${seekHover.hoverPct}%` }}
               />
             )}
@@ -1494,7 +1494,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* A-B Loop Locked Interval Shading */}
             {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
               <div
-                className="absolute top-0 bottom-0 bg-[#38bdf8]/25 border-x-2 border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.4)] z-10 pointer-events-none"
+                className="absolute top-0 bottom-0 bg-white/20 border-x border-white/40 z-10 pointer-events-none"
                 style={{
                   left: `${(loopA / duration) * 100}%`,
                   width: `${((loopB - loopA) / duration) * 100}%`,
@@ -1513,7 +1513,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {/* Marker B */}
             {duration > 0 && loopB !== null && (
               <div
-                className="absolute top-0 bottom-0 w-1 bg-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.9)] z-20 pointer-events-none"
+                className="absolute top-0 bottom-0 w-1 bg-white shadow-sm z-20 pointer-events-none"
                 style={{ left: `${(loopB / duration) * 100}%` }}
               />
             )}
@@ -1667,7 +1667,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               aria-label="Share Video Link"
             >
               {shareSuccess ? (
-                <Check className="w-4 h-4 text-[#38bdf8]" />
+                <Check className="w-4 h-4 text-white" />
               ) : (
                 <Share2 className="w-4 h-4" />
               )}
@@ -1698,11 +1698,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   style={{
                     bottom: speedMenuPos ? `${speedMenuPos.bottom}px` : '4.5rem',
                     right: speedMenuPos ? `${speedMenuPos.right}px` : '1rem',
-                    background: 'rgba(4, 7, 12, 0.92)',
+                    background: 'rgba(10, 10, 12, 0.95)',
                     backdropFilter: 'blur(16px)',
                     border: '1px solid rgba(255, 255, 255, 0.12)',
                   }}
-                  className="fixed py-1.5 px-1 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_20px_rgba(56,189,248,0.25)] flex flex-col gap-0.5 z-[10000] min-w-[110px] max-h-[50vh] overflow-y-auto pointer-events-auto animate-fade-in"
+                  className="fixed py-1.5 px-1 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-0.5 z-[10000] min-w-[110px] max-h-[50vh] overflow-y-auto pointer-events-auto animate-fade-in"
                   onClick={(e) => e.stopPropagation()}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
@@ -1722,12 +1722,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                         }}
                         className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
                           isSelected
-                            ? 'bg-[#38bdf8]/20 text-[#38bdf8] font-semibold shadow-sm border border-[#38bdf8]/30'
+                            ? 'bg-white text-black font-semibold shadow-sm'
                             : 'text-zinc-400 hover:text-white hover:bg-white/10 active:bg-white/15'
                         }`}
                       >
                         <span>{label}</span>
-                        {isSelected && <Check className="w-3 h-3 text-[#38bdf8]" />}
+                        {isSelected && <Check className="w-3 h-3 text-black" />}
                       </button>
                     );
                   })}
@@ -1854,7 +1854,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               type="button"
               onClick={toggleSpeedMenu}
               className={`bg-transparent border-none outline-none p-1 text-[10px] font-mono font-medium cursor-pointer flex-shrink-0 ${
-                playbackSpeed !== 1 ? 'text-[#38bdf8] font-bold' : 'text-slate-400 hover:text-white'
+                playbackSpeed !== 1 ? 'text-white font-bold' : 'text-zinc-400 hover:text-white'
               }`}
               title="Speed"
             >
