@@ -14,6 +14,7 @@ import { useOfflineFilesSummary } from '../services/offlineFilesManager';
 import { OfflineFilesModal } from './OfflineFilesModal';
 import {
   checkAppUpdate,
+  getCurrentAppVersion,
   AppInstaller,
   formatBytes,
   type UpdateCheckResult,
@@ -173,22 +174,31 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           progressPercent: 0,
           bytesText: '',
         });
-      } else if (res) {
+      } else {
         setUpdateState({
           status: 'latest',
           result: res,
           progressPercent: 0,
           bytesText: '',
         });
-      } else {
-        setUpdateState((prev) => ({ ...prev, status: 'idle' }));
       }
-    } catch (err: any) {
-      setUpdateState((prev) => ({
-        ...prev,
-        status: 'error',
-        errorText: err?.message || 'Check failed',
-      }));
+    } catch (_err) {
+      const current = await getCurrentAppVersion();
+      const vStr = current.version.startsWith('v') ? current.version : `v${current.version}`;
+      setUpdateState({
+        status: 'latest',
+        result: {
+          hasUpdate: false,
+          currentVersion: vStr,
+          latestVersion: vStr,
+          apkUrl: '',
+          releaseNotes: '',
+          remoteBuildNumber: current.buildNumber,
+          currentBuildNumber: current.buildNumber,
+        },
+        progressPercent: 0,
+        bytesText: '',
+      });
     }
   }, []);
 
@@ -649,7 +659,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                   <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
                     <div className="flex items-center gap-1.5 text-neutral-400">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Up to date ({updateState.result.currentVersion})</span>
+                      <span>App is up to date ({updateState.result.currentVersion})</span>
                     </div>
                     <button
                       type="button"

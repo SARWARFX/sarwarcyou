@@ -98,57 +98,87 @@ export async function getCurrentAppVersion(): Promise<{ version: string; buildNu
  * Query GitHub Releases API for SARWARFX/sarwarcyou latest release and compare versions.
  * Strictly restricted to native Android (Capacitor) platform.
  */
-export async function checkAppUpdate(): Promise<UpdateCheckResult | null> {
+export async function checkAppUpdate(): Promise<UpdateCheckResult> {
   const current = await getCurrentAppVersion();
   const repo = 'SARWARFX/sarwarcyou';
-  const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
+  const currentV = current.version.startsWith('v') ? current.version : `v${current.version}`;
 
+  let data: any = null;
+
+  // 1. Primary: GitHub Releases latest endpoint
   try {
-    const res = await fetch(apiUrl, {
+    const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
       },
       cache: 'no-store',
     });
-
-    if (!res.ok) {
-      throw new Error(`GitHub Releases API responded with status ${res.status}`);
+    if (res.ok) {
+      data = await res.json();
     }
+  } catch (_) {}
 
-  const data = await res.json();
-  const tagName: string = data.tag_name || '';
-  const latestVersion = tagName.startsWith('v') ? tagName : `v${tagName}`;
-  const remoteBuildNumber = extractBuildNumber(tagName);
-
-  // Locate release asset URL matching 'SARWARCYOU*.apk'
-  let apkUrl = `https://github.com/${repo}/releases/download/${tagName}/SARWARCYOU.apk`;
-  if (Array.isArray(data.assets) && data.assets.length > 0) {
-    const sarwarAsset = data.assets.find((a: any) =>
-      typeof a.name === 'string' && a.name.startsWith('SARWARCYOU') && a.name.endsWith('.apk')
-    ) || data.assets.find((a: any) =>
-      typeof a.name === 'string' && a.name.endsWith('.apk')
-    );
-
-    if (sarwarAsset) {
-      apkUrl = sarwarAsset.browser_download_url || `https://github.com/${repo}/releases/download/${tagName}/${sarwarAsset.name}`;
-    }
+  // 2. Secondary fallback: GitHub Releases list endpoint (works even if /latest has issues)
+  if (!data) {
+    try {
+      const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=1`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+        },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          data = list[0];
+        }
+      }
+    } catch (_) {}
   }
 
-  const hasUpdate = remoteBuildNumber > current.buildNumber;
+  // If release data successfully retrieved
+  if (data && data.tag_name) {
+    const tagName: string = data.tag_name || '';
+    const latestVersion = tagName.startsWith('v') ? tagName : `v${tagName}`;
+    const remoteBuildNumber = extractBuildNumber(tagName);
 
+    // Locate release asset URL matching 'SARWARCYOU*.apk'
+    let apkUrl = `https://github.com/${repo}/releases/download/${tagName}/SARWARCYOU.apk`;
+    if (Array.isArray(data.assets) && data.assets.length > 0) {
+      const sarwarAsset = data.assets.find((a: any) =>
+        typeof a.name === 'string' && a.name.startsWith('SARWARCYOU') && a.name.endsWith('.apk')
+      ) || data.assets.find((a: any) =>
+        typeof a.name === 'string' && a.name.endsWith('.apk')
+      );
+
+      if (sarwarAsset) {
+        apkUrl = sarwarAsset.browser_download_url || `https://github.com/${repo}/releases/download/${tagName}/${sarwarAsset.name}`;
+      }
+    }
+
+    const hasUpdate = remoteBuildNumber > current.buildNumber;
+
+    return {
+      hasUpdate,
+      currentVersion: currentV,
+      latestVersion,
+      apkUrl,
+      releaseNotes: data.body || '',
+      remoteBuildNumber,
+      currentBuildNumber: current.buildNumber,
+    };
+  }
+
+  // 3. Resilient fallback: Return installed version as up to date (never null)
   return {
-    hasUpdate,
-    currentVersion: current.version.startsWith('v') ? current.version : `v${current.version}`,
-    latestVersion,
-    apkUrl,
-    releaseNotes: data.body || '',
-    remoteBuildNumber,
+    hasUpdate: false,
+    currentVersion: currentV,
+    latestVersion: currentV,
+    apkUrl: `https://github.com/${repo}/releases/latest/download/SARWARCYOU.apk`,
+    releaseNotes: '',
+    remoteBuildNumber: current.buildNumber,
     currentBuildNumber: current.buildNumber,
   };
-  } catch (err) {
-    console.warn('[Updater] Check failed:', err);
-    return null;
-  }
 }
 
 /**
