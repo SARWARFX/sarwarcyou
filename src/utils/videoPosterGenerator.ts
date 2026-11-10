@@ -24,6 +24,13 @@ export function getCachedVideoPoster(videoUrl: string): string | null {
  */
 export function formatVideoPosterUrl(url: string, timeSec = 1.0): string {
   if (!url) return '';
+  if (
+    url.includes('youtube.com') ||
+    url.includes('youtu.be') ||
+    url.includes('youtube-nocookie.com')
+  ) {
+    return url;
+  }
   const cleanUrl = getMediaUrl(url).split('#')[0];
   if (!cleanUrl) return '';
   return `${cleanUrl}#t=${timeSec}`;
@@ -37,8 +44,23 @@ export async function extractVideoThumbnail(
   videoUrl: string,
   seekTime = 1.0
 ): Promise<string | null> {
-  if (!videoUrl || typeof document === 'undefined') return null;
+  if (
+    !videoUrl ||
+    typeof document === 'undefined' ||
+    videoUrl.includes('youtube.com') ||
+    videoUrl.includes('youtu.be') ||
+    videoUrl.includes('youtube-nocookie.com')
+  ) {
+    return null;
+  }
   const proxyUrl = getMediaUrl(videoUrl);
+  if (
+    proxyUrl.includes('youtube.com') ||
+    proxyUrl.includes('youtu.be') ||
+    proxyUrl.includes('youtube-nocookie.com')
+  ) {
+    return null;
+  }
 
   const cached = posterCache.get(proxyUrl) || posterCache.get(videoUrl);
   if (cached) return cached;
@@ -133,6 +155,13 @@ const prewarmedMediaElements = new Map<string, HTMLVideoElement>();
  */
 export function prewarmVideoStream(videoUrl: string): void {
   if (!videoUrl || typeof document === 'undefined') return;
+  if (
+    videoUrl.includes('youtube.com') ||
+    videoUrl.includes('youtu.be') ||
+    videoUrl.includes('youtube-nocookie.com')
+  ) {
+    return;
+  }
   const proxyUrl = getMediaUrl(videoUrl);
   const safeUrl = proxyUrl.replace(/^http:\/\//i, 'https://').split('#')[0];
   if (prewarmedUrls.has(safeUrl)) return;

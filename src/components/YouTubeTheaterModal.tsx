@@ -1277,7 +1277,7 @@ export const YouTubeTheaterModal: React.FC<YouTubeTheaterModalProps> = ({
       className="fixed inset-0 z-[99999] flex flex-col bg-black/95 backdrop-blur-2xl animate-keynote-modal select-none overflow-hidden"
     >
       {/* ===== TOP STATUS / ACTION BAR ===== */}
-      <div className="viewer-top-bar player-header-bar w-full bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-b border-white/[0.08] px-4 py-2.5">
+      <div className="viewer-top-bar player-header-bar w-full bg-black/85 backdrop-blur-xl flex items-center justify-between text-xs font-mono z-30 flex-shrink-0 relative border-b border-white/[0.08] px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))]">
         {/* Left: Dedicated Theater HUD Status (Never Duplicate Website Logo) */}
         <div className="flex items-center gap-2.5 select-none shrink-0">
           <button

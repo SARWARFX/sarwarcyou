@@ -648,7 +648,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         <main
           aria-label="Bollywood Celebrity Archive Overview"
-          className={`flex-1 w-full h-[calc(100dvh-60px)] overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >
@@ -662,7 +662,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         <main
           aria-label="YouTube Music Vault Archive"
-          className={`flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >

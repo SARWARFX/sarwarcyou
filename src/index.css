@@ -879,6 +879,13 @@ html, body, #root {
   will-change: transform;
 }
 
+@media (max-width: 640px) {
+  .celebrity-header-wrapper,
+  .showcase-control-header {
+    padding: 10px 14px 6px 14px;
+  }
+}
+
 .celebrity-header-wrapper.hidden,
 .showcase-control-header.hidden {
   transform: translate3d(0, -115%, 0);
@@ -891,15 +898,15 @@ html, body, #root {
   pointer-events: all;
 }
 
-/* Static spacer ensures document layout height remains constant whether header is visible or hidden */
+/* Static spacer fallback ensures document layout height remains constant whether header is visible or hidden */
 .celebrity-header-spacer {
-  height: 120px;
+  height: 130px;
   width: 100%;
 }
 
 @media (max-width: 640px) {
   .celebrity-header-spacer {
-    height: 140px;
+    height: 195px;
   }
 }
 

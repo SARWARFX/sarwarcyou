@@ -204,19 +204,51 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     }, [isTheaterOpen])
   );
 
-  // 1. Scroll Controller with Top Guard & Direction Hysteresis
+  // 1. Scroll Controller with Dynamic Height Measurement & Direction Hysteresis
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [headerHeight, setHeaderHeight] = useState(185);
+  const headerRef = useRef<HTMLElement>(null);
   const lastScrollY = useRef(0);
   const accumulatedDelta = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Measure actual rendered header height dynamically (handles mobile wrapping, font sizing, orientations)
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+
+    const updateHeight = () => {
+      if (el) {
+        const height = el.offsetHeight;
+        if (height > 0) {
+          setHeaderHeight(height);
+        }
+      }
+    };
+
+    updateHeight();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(updateHeight);
+      resizeObserver.observe(el);
+    }
+
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      if (resizeObserver) resizeObserver.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     const handleScroll = (currentScrollY: number) => {
       const scrollPos = Math.max(0, currentScrollY);
       const delta = scrollPos - lastScrollY.current;
 
-      // Guard: Always show and never oscillate when within 140px from the top
-      if (scrollPos <= 140) {
+      // Guard: Always show and never oscillate when within headerHeight from the top
+      if (scrollPos <= headerHeight) {
         setHeaderVisible(true);
         accumulatedDelta.current = 0;
         lastScrollY.current = scrollPos;
@@ -258,7 +290,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
       }
       window.removeEventListener('scroll', onWindowScroll);
     };
-  }, []);
+  }, [headerHeight]);
 
   const rawWallpapers = (celebrityData as CelebrityItem[]) || [];
   const rawNews = (celebrityNewsData as CelebrityNewsItem[]) || [];
@@ -309,6 +341,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     <div className={`w-full h-full flex flex-col min-w-0 select-none relative overflow-hidden bg-transparent ${className}`}>
       {/* 1. Header Bar: Title, View Switcher & Minimalist Flat Filters (Decoupled from Document Flow) */}
       <header
+        ref={headerRef}
         className={`celebrity-header-wrapper showcase-control-header ${
           headerVisible ? 'visible' : 'hidden'
         } flex flex-col gap-3.5`}
@@ -319,7 +352,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
               <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
                 CELEBRITY ARCHIVE
               </h1>
-              <p className="text-[11px] tracking-wide text-neutral-400">
+              <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400 line-clamp-1 sm:line-clamp-none">
                 Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses
               </p>
             </div>
@@ -420,11 +453,15 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
         ref={scrollContainerRef}
         className="w-full h-full overflow-y-auto space-scrollbar relative"
       >
-        {/* Static persistent spacer ensures document layout height never changes */}
-        <div className="celebrity-header-spacer shrink-0" aria-hidden="true" />
+        {/* Dynamic persistent spacer measured from header ensures document layout height never jumps */}
+        <div
+          className="celebrity-header-spacer shrink-0"
+          style={{ height: `${headerHeight}px` }}
+          aria-hidden="true"
+        />
 
         {/* 2. Main Body Content: Portraits vs News Feed vs Cinema Reels */}
-        <main className="p-4 sm:p-6 lg:p-8 pb-20">
+        <main className="p-4 sm:p-6 lg:p-8 pt-3 sm:pt-5 pb-20">
           {activeTab === 'PORTRAITS' ? (
             <div key={`portraits-${activeFilter}`} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch ${showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
               {filteredWallpapers.map((item, idx) => {

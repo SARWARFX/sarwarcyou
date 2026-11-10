@@ -159,7 +159,15 @@ function processQueue() {
  * Performs actual off-screen video decoding and canvas capture.
  */
 function extractFrameFromVideo(cleanUrl: string, isShort: boolean): Promise<string | null> {
-  if (typeof document === 'undefined') return Promise.resolve(null);
+  if (
+    typeof document === 'undefined' ||
+    !cleanUrl ||
+    cleanUrl.includes('youtube.com') ||
+    cleanUrl.includes('youtu.be') ||
+    cleanUrl.includes('youtube-nocookie.com')
+  ) {
+    return Promise.resolve(null);
+  }
 
   return new Promise((resolve) => {
     let resolved = false;
@@ -295,8 +303,23 @@ export async function requestVideoThumbnail(
   isShort = false,
   highPriority = false
 ): Promise<string | null> {
+  if (
+    !rawUrl ||
+    rawUrl.includes('youtube.com') ||
+    rawUrl.includes('youtu.be') ||
+    rawUrl.includes('youtube-nocookie.com')
+  ) {
+    return null;
+  }
   const cleanUrl = normalizeVideoUrl(rawUrl);
-  if (!cleanUrl) return null;
+  if (
+    !cleanUrl ||
+    cleanUrl.includes('youtube.com') ||
+    cleanUrl.includes('youtu.be') ||
+    cleanUrl.includes('youtube-nocookie.com')
+  ) {
+    return null;
+  }
 
   // 1. Check L1 memory
   const mem = memoryCache.get(cleanUrl);
@@ -344,7 +367,12 @@ export function useVideoThumbnail(
   videoUrl: string | undefined,
   isShort = false
 ): { thumbnail: string | null; isLoading: boolean } {
-  const cleanUrl = videoUrl ? normalizeVideoUrl(videoUrl) : '';
+  const isYouTube =
+    !videoUrl ||
+    videoUrl.includes('youtube.com') ||
+    videoUrl.includes('youtu.be') ||
+    videoUrl.includes('youtube-nocookie.com');
+  const cleanUrl = isYouTube ? '' : (videoUrl ? normalizeVideoUrl(videoUrl) : '');
   const [prevUrl, setPrevUrl] = useState(cleanUrl);
   const [thumbnail, setThumbnail] = useState<string | null>(() => {
     return cleanUrl ? getCachedThumbnailSync(cleanUrl) : null;

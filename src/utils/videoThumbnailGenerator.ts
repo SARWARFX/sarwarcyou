@@ -44,6 +44,13 @@ export function generateVideoThumbnail(
   if (!videoUrl || typeof window === 'undefined' || !videoUrl.startsWith('http')) {
     return Promise.resolve(null);
   }
+  if (
+    videoUrl.includes('youtube.com') ||
+    videoUrl.includes('youtu.be') ||
+    videoUrl.includes('youtube-nocookie.com')
+  ) {
+    return Promise.resolve(null);
+  }
 
   // Return existing cache immediately
   if (thumbnailCache.has(videoUrl)) {
