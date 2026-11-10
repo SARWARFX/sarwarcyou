@@ -488,8 +488,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             trackingClass="tracking-[0.2em] sm:tracking-[0.24em]"
             onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
           />
-          <span className="hidden xl:inline-block text-[10px] font-mono text-[#ccff00] uppercase tracking-widest px-2 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
-            BIENNALE 2026
+          <span className="hidden sm:inline-block text-[10px] font-mono text-[#ccff00] uppercase tracking-widest px-2 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
+            ARCHIVE
           </span>
         </div>
 
