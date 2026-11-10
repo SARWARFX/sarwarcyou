@@ -398,12 +398,12 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                     }}
                     className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-end aspect-[3/4]"
                   >
-                    {/* Background Image */}
+                    {/* Background Image - Full Natural Color */}
                     <img
                       src={item.thumb || item.src}
                       alt={item.title}
                       loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover grayscale contrast-115 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
 
                     {/* Ambient Top Vignette */}
@@ -411,8 +411,8 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
 
                     {/* Top Fig Label */}
                     <div className="absolute top-3 left-3 z-10 pointer-events-none">
-                      <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-white/80 group-hover:text-[#ccff00] transition-colors drop-shadow-md">
-                        FIG. {String(idx + 1).padStart(3, '0')} // {item.name.toUpperCase()}
+                      <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-white/90 group-hover:text-[#ccff00] transition-colors drop-shadow-md px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm border border-white/10">
+                        FIG. {String(idx + 1).padStart(3, '0')}
                       </span>
                     </div>
 
@@ -509,7 +509,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                         src={item.thumbnail}
                         alt={item.title}
                         loading="lazy"
-                        className="absolute inset-0 w-full h-full object-cover grayscale contrast-115 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
 
                       {/* Ambient Obsidian Gradient Overlay */}
