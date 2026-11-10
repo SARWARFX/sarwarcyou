@@ -4,14 +4,19 @@ import {
   Tag,
   Image as ImageIcon,
   Newspaper,
+  Film,
+  Play,
 } from 'lucide-react';
 import celebrityData from '../data/celebrityGallery.json';
 import celebrityNewsData from '../data/celebrityNews.json';
-import type { StageMediaItem } from '../types';
+import latestMusicReleasesData from '../data/latestMusicReleases.json';
+import type { StageMediaItem, AlbumData } from '../types';
 import { MediaModal } from './MediaModal';
+import { YouTubeTheaterModal } from './YouTubeTheaterModal';
 import { hapticMedium } from '../utils/hapticsManager';
 import { CelebrityNewsPaper } from './CelebrityNewsPaper';
 import { trackActivityEvent } from '../utils/usageTelemetry';
+import { useBackButton } from '../utils/backButtonManager';
 
 export interface CelebrityItem {
   id: string;
@@ -85,7 +90,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   onOpenPhoto,
   className = '',
 }) => {
-  const [activeTab, setActiveTab] = useState<'WALLPAPERS' | 'NEWS'>('WALLPAPERS');
+  const [activeTab, setActiveTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>('PORTRAITS');
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [internalModalState, setInternalModalState] = useState<{
     isOpen: boolean;
@@ -96,6 +101,75 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     currentIndex: 0,
     activeItem: null,
   });
+
+  const [isTheaterOpen, setIsTheaterOpen] = useState(false);
+  const [theaterIndex, setTheaterIndex] = useState(0);
+
+  // Map latestMusicReleases to StageMediaItem[]
+  const cinemaReelItems: StageMediaItem[] = useMemo(() => {
+    return (latestMusicReleasesData as Array<{
+      id: string;
+      title: string;
+      actress: string;
+      channel: string;
+      publishedAt: string;
+      thumbnail: string;
+    }>).map((rel) => ({
+      id: rel.id,
+      title: rel.title,
+      name: `${rel.title} - ${rel.actress}`,
+      url: `https://www.youtube-nocookie.com/embed/${rel.id}`,
+      thumbnail: rel.thumbnail,
+      category: 'CINEMA REELS',
+      type: 'video' as const,
+      mediaType: 'clip' as const,
+      parentAlbum: 'CINEMA REELS',
+      poster: rel.thumbnail,
+      posterUrl: rel.thumbnail,
+      date: new Date(rel.publishedAt).getTime(),
+      actress: rel.actress,
+      channel: rel.channel,
+      publishedAt: rel.publishedAt,
+    } as StageMediaItem & { actress?: string; channel?: string; publishedAt?: string }));
+  }, []);
+
+  // Filter cinema reels by activeFilter (actress or 'ALL')
+  const filteredCinemaReels = useMemo(() => {
+    if (activeFilter === 'ALL') return cinemaReelItems;
+    const filter = activeFilter.toLowerCase();
+    return cinemaReelItems.filter((item: any) => {
+      const act = (item.actress || '').toLowerCase();
+      return act.includes(filter) || filter.includes(act);
+    });
+  }, [cinemaReelItems, activeFilter]);
+
+  const cinemaReelsAlbum: AlbumData = useMemo(() => ({
+    id: 'cinema-reels-archive',
+    index: 0,
+    name: 'CINEMA REELS',
+    type: 'video' as const,
+    itemCount: filteredCinemaReels.length,
+    items: filteredCinemaReels,
+    layoutType: 'grid-wall' as const,
+    subtitle: 'Verified Actress Music Releases',
+  }), [filteredCinemaReels]);
+
+  const handleOpenCinemaReel = useCallback((index: number) => {
+    hapticMedium();
+    trackActivityEvent(1);
+    setTheaterIndex(index);
+    setIsTheaterOpen(true);
+  }, []);
+
+  useBackButton(
+    useCallback(() => {
+      if (isTheaterOpen) {
+        setIsTheaterOpen(false);
+        return true;
+      }
+      return false;
+    }, [isTheaterOpen])
+  );
 
   // 1. Scroll Controller with Top Guard & Direction Hysteresis
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -225,32 +299,48 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setActiveTab('WALLPAPERS');
+                  setActiveTab('PORTRAITS');
                 }}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
-                  activeTab === 'WALLPAPERS'
+                  activeTab === 'PORTRAITS'
                     ? 'bg-white text-neutral-950 font-semibold shadow-sm'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 <ImageIcon className="w-3.5 h-3.5" />
-                <span>GALLERY</span>
+                <span>PORTRAITS</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setActiveTab('NEWS');
+                  setActiveTab('DISPATCHES');
                 }}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
-                  activeTab === 'NEWS'
+                  activeTab === 'DISPATCHES'
                     ? 'bg-white text-neutral-950 font-semibold shadow-sm'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 <Newspaper className="w-3.5 h-3.5" />
-                <span>CHRONICLE</span>
+                <span>DISPATCHES</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  hapticMedium();
+                  setActiveTab('REELS');
+                }}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-sans tracking-wide transition-all duration-200 cursor-pointer ${
+                  activeTab === 'REELS'
+                    ? 'bg-white text-neutral-950 font-semibold shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Film className="w-3.5 h-3.5" />
+                <span>CINEMA REELS</span>
               </button>
             </div>
           </div>
@@ -289,9 +379,9 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
         {/* Static persistent spacer ensures document layout height never changes */}
         <div className="celebrity-header-spacer shrink-0" aria-hidden="true" />
 
-        {/* 2. Main Body Content: Wallpapers vs News Feed */}
+        {/* 2. Main Body Content: Portraits vs News Feed vs Cinema Reels */}
         <main className="p-4 sm:p-6 lg:p-8 pb-20">
-          {activeTab === 'WALLPAPERS' ? (
+          {activeTab === 'PORTRAITS' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
               {filteredWallpapers.map((item, idx) => {
                 return (
@@ -347,13 +437,108 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 );
               })}
             </div>
-          ) : (
+          ) : activeTab === 'DISPATCHES' ? (
             /* BROADSHEET NEWSPAPER EDITORIAL SECTION */
             <CelebrityNewsPaper
               articles={filteredNews}
               onResetFilter={() => setActiveFilter('ALL')}
               activeFilter={activeFilter}
             />
+          ) : (
+            /* CINEMA REELS VIEW */
+            filteredCinemaReels.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[35vh] text-white/60">
+                <Film className="w-10 h-10 text-white/30 mb-3" />
+                <p className="text-white/80 text-sm font-semibold tracking-wider uppercase mb-1">
+                  No Cinema Reels Found for {activeFilter}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter('ALL')}
+                  className="mt-3 px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-mono tracking-wider uppercase transition-all cursor-pointer"
+                >
+                  Show All Releases
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
+                {filteredCinemaReels.map((item, idx) => {
+                  const itemAny = item as any;
+                  const formattedDate = itemAny.publishedAt
+                    ? new Date(itemAny.publishedAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    : '';
+
+                  const channelBadgeClass =
+                    itemAny.channel === 'T-Series'
+                      ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                      : itemAny.channel === 'Zee Music Company'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : itemAny.channel === 'Sony Music India'
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                      : itemAny.channel === 'YRF'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                      : 'bg-[#38bdf8]/20 text-[#38bdf8] border-[#38bdf8]/40';
+
+                  return (
+                    <div
+                      key={item.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleOpenCinemaReel(idx)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleOpenCinemaReel(idx);
+                        }
+                      }}
+                      className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-[#38bdf8]/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.01] cursor-pointer flex flex-col justify-between aspect-video select-none"
+                    >
+                      {/* 16:9 Thumbnail Cover */}
+                      <img
+                        src={item.thumbnail}
+                        alt={item.title}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+
+                      {/* Ambient Obsidian Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#09090b]/95 via-[#09090b]/30 to-transparent pointer-events-none" />
+
+                      {/* Top Right Record Label Badge */}
+                      <div className="absolute top-2.5 right-2.5 z-10">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase backdrop-blur-md border shadow-md ${channelBadgeClass}`}>
+                          {itemAny.channel || 'OFFICIAL'}
+                        </span>
+                      </div>
+
+                      {/* Center Hover Play Icon */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                        <div className="w-11 h-11 rounded-full bg-[#38bdf8] text-neutral-950 flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.7)] group-hover:scale-110 transition-transform">
+                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                        </div>
+                      </div>
+
+                      {/* Bottom Metadata Bar */}
+                      <div className="relative z-10 p-3.5 mt-auto flex flex-col gap-1 pointer-events-none">
+                        <h3 className="font-['Roboto_Condensed'] font-bold text-sm sm:text-base text-white group-hover:text-[#38bdf8] transition-colors line-clamp-1">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                          <span className="text-[#38bdf8] font-medium">
+                            {itemAny.actress}
+                          </span>
+                          <span>{formattedDate}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
           )}
         </main>
       </div>
@@ -382,6 +567,16 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
           }}
         />
       )}
+
+      {/* In-App Native YouTube Theater Modal for Cinema Reels */}
+      <YouTubeTheaterModal
+        isOpen={isTheaterOpen}
+        onClose={() => setIsTheaterOpen(false)}
+        album={cinemaReelsAlbum}
+        allAlbums={[cinemaReelsAlbum]}
+        initialIndex={theaterIndex}
+        onIndexChange={setTheaterIndex}
+      />
     </div>
   );
 };

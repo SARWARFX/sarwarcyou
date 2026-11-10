@@ -27,6 +27,7 @@ export interface VaultDrawerProps {
     folderId: 'clips' | 'shorts' | 'photography' | 'realtube' | 'youtube',
     subfolderName?: string
   ) => void;
+  onSelectHome?: () => void;
   rootMap?: Map<string, DirectoryNode>;
   onOpenPhoto?: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
   onOpenVideo?: (item: StageMediaItem) => void;
@@ -40,7 +41,7 @@ interface DrawerSubfolder {
 }
 
 interface CategoryConfig {
-  id: 'clips' | 'shorts' | 'photography' | 'realtube' | 'youtube';
+  id: 'clips' | 'shorts' | 'photography' | 'realtube';
   name: string;
   rawName: string;
   tag?: string;
@@ -51,7 +52,6 @@ const CATEGORIES: CategoryConfig[] = [
   { id: 'shorts', name: 'SHORTS', rawName: 'Shorts' },
   { id: 'photography', name: 'PHOTOGRAPHY', rawName: 'Images' },
   { id: 'realtube', name: 'REALTUBE', rawName: 'REALTube' },
-  { id: 'youtube', name: 'YOUTUBE', rawName: 'YouTube', tag: '14 TRACKS' },
 ];
 
 function extractFallbackSubfolders(rawName: string): DrawerSubfolder[] {
@@ -113,13 +113,6 @@ function extractFallbackSubfolders(rawName: string): DrawerSubfolder[] {
     ];
   }
 
-  if (rawName === 'YouTube') {
-    return [
-      { id: 'FAVORITE CLASSICS', name: 'FAVORITE CLASSICS', itemCount: 14, tag: '14' },
-      { id: 'LATEST DISPATCHES', name: 'LATEST DISPATCHES', itemCount: 20, tag: 'NEW' },
-    ];
-  }
-
   return [];
 }
 
@@ -127,6 +120,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
   isOpen,
   onClose,
   onSelectFolder,
+  onSelectHome,
   rootMap,
   onOpenPhoto,
   onOpenVideo,
@@ -363,6 +357,15 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
     });
   }, [rootMap]);
 
+  const navigateToHome = () => {
+    hapticMedium();
+    trackActivityEvent(1);
+    onClose();
+    if (onSelectHome) {
+      onSelectHome();
+    }
+  };
+
   const navigateToSubfolder = (
     folderId: 'clips' | 'shorts' | 'photography' | 'realtube' | 'youtube',
     subfolderName: string
@@ -396,6 +399,20 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
 
         {/* Dynamic Accordion Directory Tree */}
         <div className="folder-accordion-menu space-scrollbar">
+          {/* Top-Level Portal Home Item */}
+          <button
+            type="button"
+            onClick={navigateToHome}
+            className="w-full flex items-center justify-between py-3 px-4 text-left border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors cursor-pointer group"
+          >
+            <span className="text-xs uppercase tracking-[0.2em] font-medium text-white/90 group-hover:text-[#38bdf8] transition-colors">
+              HOME
+            </span>
+            <span className="text-[10px] text-white/30 uppercase tracking-widest group-hover:text-white/60 transition-colors">
+              PORTAL
+            </span>
+          </button>
+
           {categoriesWithSubfolders.map((folder) => {
             const isExpanded = expandedFolder === folder.id;
             return (
@@ -408,11 +425,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                   className={`folder-btn ${isExpanded ? 'expanded' : ''}`}
                   onClick={() => {
                     hapticMedium();
-                    if (folder.id === 'youtube') {
-                      navigateToSubfolder('youtube', 'FAVORITE CLASSICS');
-                    } else {
-                      setExpandedFolder(isExpanded ? null : folder.id);
-                    }
+                    setExpandedFolder(isExpanded ? null : folder.id);
                   }}
                 >
                   <span className="folder-label">

@@ -453,68 +453,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         isOpen={isVaultDrawerOpen}
         onClose={() => setVaultDrawerOpen(false)}
         onSelectFolder={handleSelectDrawerFolder}
+        onSelectHome={handleExitToHome}
         rootMap={rootMap}
         onOpenPhoto={onOpenPhoto}
         onOpenVideo={(item) => onOpenVideo(item, [item])}
       />
 
-      {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Stepped Breadcrumbs */}
+      {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Minimalist Status */}
       <header className="w-full px-5 sm:px-8 py-3.5 flex items-center justify-between border-b border-white/[0.06] bg-[#020408]/80 backdrop-blur-md z-30 shrink-0">
-        <div className="flex items-center gap-3">
-          <HeaderBrandLogo
-            trackingClass="tracking-[0.22em] sm:tracking-[0.25em]"
-            onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
-          />
+        <HeaderBrandLogo
+          trackingClass="tracking-[0.22em] sm:tracking-[0.25em]"
+          onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
+        />
 
-          {/* Breadcrumb Indicators */}
-          {selectedCategory && !selectedSubfolder && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-[#38bdf8]/10 border border-[#38bdf8]/30">
-              <span>CORE</span>
-              <span>//</span>
-              <span>{selectedCategory}</span>
-            </span>
-          )}
-
-          {selectedCategory && selectedSubfolder && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-[#38bdf8] bg-[#38bdf8]/10 border border-[#38bdf8]/30">
-              <span>CORE</span>
-              <span>//</span>
-              <button
-                type="button"
-                onClick={handleReturnToCategory}
-                className="hover:underline cursor-pointer"
-              >
-                {selectedCategory}
-              </button>
-              <span>/</span>
-              <span className="text-white">{selectedSubfolder}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Header Right Action: Level-Specific Return Buttons & Sync Status */}
         <div className="flex items-center gap-2.5">
-          {selectedSubfolder && (
-            <button
-              type="button"
-              onClick={handleReturnToCategory}
-              className="text-xs font-mono tracking-wider uppercase text-neutral-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1 px-3 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 text-[#38bdf8]" />
-              <span>RETURN TO {selectedCategory}</span>
-            </button>
-          )}
-
-          {selectedCategory && (
-            <button
-              type="button"
-              onClick={handleExitToHome}
-              className="text-xs font-mono tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1 px-3 py-1 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-white/5"
-            >
-              <span>EXIT TO HOME</span>
-            </button>
-          )}
-
           <SyncStatusIndicator />
         </div>
       </header>
@@ -850,18 +802,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <button
                 type="button"
                 onClick={handleReturnToCategory}
-                className="font-mono text-xs tracking-wider uppercase text-neutral-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+                className="font-mono text-xs tracking-wider uppercase text-neutral-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10"
               >
                 <ArrowLeft className="w-3.5 h-3.5 text-[#38bdf8]" />
-                <span>RETURN TO {selectedCategory}</span>
+                <span>← BACK TO {selectedCategory}</span>
               </button>
-              <span className="text-slate-600 hidden sm:inline">•</span>
               <button
                 type="button"
                 onClick={handleExitToHome}
-                className="font-mono text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer hidden sm:inline"
+                className="font-mono text-xs tracking-wider uppercase text-neutral-400 hover:text-white transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-white/[0.04]"
               >
-                EXIT TO CELEBRITY HUB
+                PORTAL HOME
               </button>
             </div>
           </div>

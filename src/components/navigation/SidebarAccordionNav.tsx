@@ -13,7 +13,6 @@ export const MAJOR_FOLDERS: MajorFolderDef[] = [
   { key: 'SHORTS', rawName: 'Shorts', label: 'SHORTS' },
   { key: 'PHOTOGRAPHY', rawName: 'Images', label: 'PHOTOGRAPHY' },
   { key: 'REALTUBE', rawName: 'REALTube', label: 'REALTUBE' },
-  { key: 'YOUTUBE', rawName: 'YouTube', label: 'YOUTUBE' },
 ];
 
 export interface SidebarAccordionNavProps {
