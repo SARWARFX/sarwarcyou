@@ -821,7 +821,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       setSelectedSubfolder(sub.name);
                     }
                   }}
-                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-white/30 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(255,255,255,0.06)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col justify-end aspect-[16/10] sm:aspect-[4/3] select-none"
+                  className="group relative rounded-2xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00]/60 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_0_25px_rgba(204,255,0,0.2)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col justify-end aspect-[16/10] sm:aspect-[4/3] select-none"
                 >
                   {/* Thumbnail Preview */}
                   {thumb ? (
@@ -832,8 +832,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-gradient-to-tr from-[#020408] to-[#0c1e38] flex items-center justify-center">
-                      <Folder className="w-12 h-12 text-white/30" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-[#050505] to-[#121214] flex items-center justify-center">
+                      <Folder className="w-12 h-12 text-[#ccff00]/40" />
                     </div>
                   )}
 
@@ -929,7 +929,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       handleOpenItem(item, idx);
                     }}
                     style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 hover:border-white/30 relative shadow-lg group cursor-pointer transition-all duration-300 hover:scale-[1.02] select-none"
+                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] relative shadow-lg group cursor-pointer transition-all duration-300 hover:scale-[1.02] select-none"
                   >
                     <SmartThumbnail
                       src={thumb}
@@ -940,8 +940,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     >
                       {!isPhoto && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                          <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
-                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          <div className="w-10 h-10 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.6)]">
+                            <Play className="w-4 h-4 fill-current ml-0.5 text-black" />
                           </div>
                         </div>
                       )}

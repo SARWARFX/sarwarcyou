@@ -429,8 +429,17 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                         handleCardClick(idx);
                       }
                     }}
-                    className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-end aspect-[3/4]"
+                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-end aspect-[3/4]"
                   >
+                    {/* Background Image Loading Shimmer Layer */}
+                    <div
+                      className="absolute inset-0 w-full h-full animate-laser-shimmer pointer-events-none opacity-35 z-0"
+                      style={{
+                        background:
+                          'linear-gradient(90deg, transparent 0%, rgba(204,255,0,0.02) 25%, rgba(204,255,0,0.14) 50%, rgba(255,255,255,0.08) 53%, rgba(204,255,0,0.02) 75%, transparent 100%)',
+                      }}
+                    />
+
                     {/* Background Image - Full Natural Color */}
                     <img
                       src={item.thumb || item.src}
@@ -528,8 +537,17 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                           handleOpenCinemaReel(idx);
                         }
                       }}
-                      className="group relative rounded-xl overflow-hidden bg-[#121215] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-between aspect-video select-none"
+                      className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-500 cursor-pointer flex flex-col justify-between aspect-video select-none"
                     >
+                      {/* Background Image Loading Shimmer Layer */}
+                      <div
+                        className="absolute inset-0 w-full h-full animate-laser-shimmer pointer-events-none opacity-35 z-0"
+                        style={{
+                          background:
+                            'linear-gradient(90deg, transparent 0%, rgba(204,255,0,0.02) 25%, rgba(204,255,0,0.14) 50%, rgba(255,255,255,0.08) 53%, rgba(204,255,0,0.02) 75%, transparent 100%)',
+                        }}
+                      />
+
                       {/* 16:9 Thumbnail Cover */}
                       <img
                         src={item.thumbnail}

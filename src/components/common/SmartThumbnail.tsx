@@ -43,31 +43,37 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden bg-[#05080e] border border-white/10 rounded-sm select-none ${aspectClass} ${containerClassName}`}
+      className={`relative overflow-hidden bg-[#08080a] border border-white/10 rounded-sm select-none ${aspectClass} ${containerClassName}`}
     >
-      {/* 1. LOADING SKELETON LAYER (Mounted while cleanSrc exists and !isLoaded && !hasError) */}
+      {/* 1. ACID AVANT-GARDE LOADING SKELETON LAYER */}
       {cleanSrc && !isLoaded && !hasError && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none bg-[#05080e]">
-          {/* Sweeping Laser Shimmer */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none bg-[#08080a]">
+          {/* Sweeping Acid Lime Anamorphic Scanline */}
           <div
             className="absolute inset-0 w-full h-full animate-laser-shimmer pointer-events-none"
             style={{
               background:
-                'linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.04) 35%, rgba(255,255,255,0.12) 50%, rgba(56,189,248,0.04) 65%, transparent 100%)',
+                'linear-gradient(90deg, transparent 0%, rgba(204,255,0,0.03) 25%, rgba(204,255,0,0.18) 50%, rgba(255,255,255,0.12) 53%, rgba(204,255,0,0.03) 75%, transparent 100%)',
             }}
           />
 
+          {/* Avant-Garde Framing Corner Reticle Ticks */}
+          <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#ccff00]/40" />
+          <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#ccff00]/40" />
+          <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-[#ccff00]/40" />
+          <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-[#ccff00]/40" />
+
           {/* Center Telemetry */}
           <div className="relative z-10 flex flex-col items-center justify-center p-2 text-center">
-            {/* Pulsing subtle dot inside expanding ring */}
-            <div className="relative flex items-center justify-center w-6 h-6">
-              <span className="absolute w-4 h-4 rounded-full bg-white/20 animate-ping" />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+            {/* Pulsing Acid Lime Glyph with Neon Bloom */}
+            <div className="relative flex items-center justify-center w-7 h-7">
+              <span className="absolute w-5 h-5 rounded-full border border-[#ccff00]/50 animate-ping opacity-60" />
+              <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_10px_#ccff00]" />
             </div>
 
-            {/* Loading Text */}
-            <span className="font-['Google Sans'] font-medium text-[10px] tracking-[0.24em] text-zinc-500 uppercase mt-2 truncate max-w-full px-2">
-              LOADING...
+            {/* Loading Telemetry Label */}
+            <span className="font-mono font-bold text-[9px] tracking-[0.26em] text-[#ccff00] uppercase mt-2.5 truncate max-w-full px-2 flex items-center gap-1.5 drop-shadow-[0_0_6px_rgba(204,255,0,0.4)]">
+              LOADING
             </span>
           </div>
         </div>
@@ -75,13 +81,13 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
 
       {/* 2. ERROR / ARCHIVE FALLBACK */}
       {hasError || !cleanSrc ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-[#05080e] via-[#090e17] to-[#020408] p-3 text-center">
-          <div className="w-2 h-2 rounded-full bg-slate-600/50 mb-2" />
-          <span className="font-['Google Sans'] font-medium text-[10px] tracking-widest text-slate-400 uppercase drop-shadow">
-            MEDIA ARCHIVE // READY
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#08080a] p-3 text-center border border-white/5">
+          <div className="w-2 h-2 rounded-full bg-[#ccff00]/40 mb-2 shadow-[0_0_6px_rgba(204,255,0,0.3)]" />
+          <span className="font-mono font-bold text-[9px] tracking-widest text-neutral-400 uppercase">
+            ARCHIVE // READY
           </span>
           {fallbackTitle && (
-            <span className="text-[9px] font-mono tracking-wider text-slate-500 uppercase mt-1 truncate max-w-[85%]">
+            <span className="text-[9px] font-mono tracking-wider text-neutral-500 uppercase mt-1 truncate max-w-[85%]">
               {fallbackTitle}
             </span>
           )}
