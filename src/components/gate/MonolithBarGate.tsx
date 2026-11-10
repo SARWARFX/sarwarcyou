@@ -570,10 +570,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [selectedSubfolder, childSubfoldersList, updateRoute]
   );
 
-  // Idle reset handler: returns to Public News Overview
+  // Home navigation handler: returns to Public News Overview & resets all state
   const handleExitToHome = useCallback(() => {
-    navigateTab('NEWS');
-  }, [navigateTab]);
+    setSelectedCategory('NEWS');
+    setSelectedSubfolder(null);
+    setActiveCelebrityFilter('ALL');
+    setActiveCelebrityTab('DISPATCHES');
+    setActiveVideoId(null);
+    setIsReelPlayerOpen(false);
+    setSlideDirection('left');
+    updateRoute({ category: 'NEWS', subfolder: null, videoId: null, mediaId: null, celebrityStar: null });
+    setVaultDrawerOpen(false);
+  }, [updateRoute]);
 
   // Return to Category Subfolders handler (Level 2 -> Level 1)
   const handleReturnToCategory = useCallback(() => {

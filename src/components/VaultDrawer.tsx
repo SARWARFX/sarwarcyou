@@ -26,6 +26,7 @@ export interface VaultDrawerProps {
 export const VaultDrawer: React.FC<VaultDrawerProps> = ({
   isOpen,
   onClose,
+  onSelectHome,
 }) => {
   const [telemetry, setTelemetry] = useState(() => getRolling7DayUsage());
   const [keepScreenOn, setKeepScreenOn] = useState<boolean>(() => getKeepScreenOnState());
@@ -105,15 +106,33 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
       >
         {/* Masthead */}
         <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] shrink-0">
-          <div className="flex flex-col gap-0.5">
-            <span className="font-['Space_Grotesk',sans-serif] text-base font-black tracking-wider uppercase text-white">
-              SARWAR<span className="text-[#ccff00]">.CYOU</span>
-            </span>
+          {/* Top-Left Site Logo (Website Home Button) */}
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              if (onSelectHome) {
+                onSelectHome();
+              }
+              onClose();
+            }}
+            aria-label="SARWAR.CYOU Home Button"
+            title="Return to Website Home"
+            className="flex flex-col items-start gap-0.5 text-left bg-transparent border-0 p-0 cursor-pointer group focus:outline-none transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-['Space_Grotesk',sans-serif] text-base font-black tracking-wider uppercase text-white group-hover:text-white transition-colors">
+                SARWAR<span className="text-[#ccff00]">.CYOU</span>
+              </span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 group-hover:bg-[#ccff00] group-hover:text-black font-bold uppercase transition-all tracking-wider shadow-sm">
+                HOME
+              </span>
+            </div>
             <div className="flex items-center gap-1.5 font-mono text-[9px] text-[#ccff00] uppercase tracking-widest">
               <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] shadow-[0_0_6px_rgba(204,255,0,0.8)] animate-pulse" />
               <span>TIME &amp; SESSION METRICS</span>
             </div>
-          </div>
+          </button>
 
           <button
             type="button"
