@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Play, Folder, ChevronRight, Music2 } from 'lucide-react';
+import { Play, Folder, Music2, Film } from 'lucide-react';
 import type { StageMediaItem, AlbumData } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -274,21 +274,52 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return rootMap.get(activeAlbumConfig.rawName) || null;
   }, [selectedCategory, rootMap]);
 
-  // Active Category Child Subfolders (for Level 1 Grid)
+  // Active Category Child Subfolders (for Filter Pills)
   const childSubfoldersList = useMemo(() => {
     if (!activeCategoryNode) return [];
     return Array.from(activeCategoryNode.subfolders.values());
   }, [activeCategoryNode]);
 
-  // Active Media Items List (for Level 2 Grid)
-  const activeMediaList = useMemo(() => {
-    if (!activeCategoryNode || !selectedSubfolder) return [];
-    const subNode = activeCategoryNode.subfolders.get(selectedSubfolder);
-    if (subNode) {
-      return subNode.files;
+  // All files under this category (across all subfolders)
+  const allCategoryFiles = useMemo(() => {
+    if (!activeCategoryNode) return [];
+    const set = new Set<string>();
+    const list: StageMediaItem[] = [];
+
+    // 1. Files on root node
+    for (const f of activeCategoryNode.files) {
+      const key = f.id || f.url || f.path || f.name;
+      if (key && !set.has(key)) {
+        set.add(key);
+        list.push(f);
+      }
     }
-    return activeCategoryNode.files;
-  }, [activeCategoryNode, selectedSubfolder]);
+
+    // 2. Files in all subfolders
+    for (const sub of activeCategoryNode.subfolders.values()) {
+      for (const f of sub.files) {
+        const key = f.id || f.url || f.path || f.name;
+        if (key && !set.has(key)) {
+          set.add(key);
+          list.push(f);
+        }
+      }
+    }
+
+    return sortMediaItemsDescending(list);
+  }, [activeCategoryNode]);
+
+  // Active Media Items List: If a subfolder pill is selected, show that subfolder; otherwise show allCategoryFiles!
+  const activeMediaList = useMemo(() => {
+    if (!activeCategoryNode) return [];
+    if (selectedSubfolder) {
+      const subNode = activeCategoryNode.subfolders.get(selectedSubfolder);
+      if (subNode && subNode.files.length > 0) {
+        return subNode.files;
+      }
+    }
+    return allCategoryFiles;
+  }, [activeCategoryNode, selectedSubfolder, allCategoryFiles]);
 
   // Handler to open item from media grid
   const handleOpenItem = (item: StageMediaItem, _idx: number) => {
@@ -758,148 +789,174 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             })}
           </div>
         </main>
-      ) : selectedSubfolder === null ? (
+      ) : (
         /* ===================================================================== */
-        /* LEVEL 1: STRUCTURED CHILD COLLECTIONS / ALBUMS GRID                   */
+        /* LEVEL 1: UNIFIED EDITORIAL EXPERIENCE (SHORTS / PHOTO / CLIPS / REALTUBE) */
         /* ===================================================================== */
         <main
-          aria-label="Category Child Collections"
+          aria-label={`${selectedCategory} Media Hub`}
           className="flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent"
         >
-          {/* Section Breadcrumb Bar */}
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <span className="font-['Roboto_Condensed'] font-black text-lg sm:text-xl tracking-[0.2em] uppercase text-white">
-                {selectedCategory} DIRECTORIES
-              </span>
-              <span className="text-xs font-mono text-neutral-400">
-                ({childSubfoldersList.length} collections)
+          {/* Section Hero Header */}
+          <div className="flex flex-col gap-2 pb-6 mb-6 border-b border-white/10">
+            <div className="flex items-center gap-2.5 font-mono text-[10px] sm:text-xs text-[#ccff00] uppercase tracking-widest">
+              <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.8)] animate-pulse" />
+              <span>
+                {selectedCategory === 'SHORTS' && '9:16 VERTICAL STREAM // ULTRA HIGH-DEF SHORT-FORM REELS'}
+                {selectedCategory === 'PHOTOGRAPHY' && 'CURATED EXHIBITION // STILL PHOTOGRAPHY & EDITORIAL PORTFOLIO'}
+                {selectedCategory === 'CLIPS' && 'CINEMATIC VAULT // 16:9 4K SCENE SELECTIONS & TEASERS'}
+                {selectedCategory === 'REALTUBE' && 'STREAMING CHANNEL HUB // EXCLUSIVE EXTENDED BROADCASTS'}
               </span>
             </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+              <h1 className="font-['Space_Grotesk',sans-serif] font-black text-2xl sm:text-3xl lg:text-4xl tracking-wider uppercase text-white">
+                {selectedCategory === 'SHORTS' && 'EXCLUSIVE SHORTS'}
+                {selectedCategory === 'PHOTOGRAPHY' && 'STILL PHOTOGRAPHY'}
+                {selectedCategory === 'CLIPS' && 'CINEMA CLIPS'}
+                {selectedCategory === 'REALTUBE' && 'REALTUBE BROADCASTS'}
+              </h1>
+              <span className="text-xs font-mono text-neutral-400">
+                ({activeMediaList.length} {activeMediaList.length === 1 ? 'item' : 'items'} available)
+              </span>
+            </div>
+
+            <p className="text-xs sm:text-sm text-neutral-400 max-w-2xl leading-relaxed">
+              {selectedCategory === 'SHORTS' &&
+                'Bite-sized, high-energy vertical reels curated from viral moments, dance highlights, and backstage appearances.'}
+              {selectedCategory === 'PHOTOGRAPHY' &&
+                'High-definition editorial galleries, red carpet appearances, and studio portrait shoots rendered in true natural master color.'}
+              {selectedCategory === 'CLIPS' &&
+                'Iconic high-definition cinema sequences, song highlights, and official teaser trailers streamed in lossless 4K theater fidelity.'}
+              {selectedCategory === 'REALTUBE' &&
+                'Curated long-form feature releases, interview retrospectives, and studio programs.'}
+            </p>
           </div>
 
-          {/* Subfolders / Child Collections Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
-            {childSubfoldersList.map((sub) => {
-              const firstItem = sub.files[0];
-              const isPhoto = firstItem
-                ? firstItem.type === 'image' || isPhotoExtension(firstItem.path || firstItem.url || firstItem.name || '')
-                : false;
+          {/* Interactive Collection Filter Pills */}
+          {childSubfoldersList.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-4 mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  hapticMedium();
+                  setSelectedSubfolder(null);
+                }}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+                  selectedSubfolder === null
+                    ? 'bg-[#ccff00] text-black shadow-[0_0_14px_rgba(204,255,0,0.35)]'
+                    : 'text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10'
+                }`}
+              >
+                ALL {selectedCategory} ({allCategoryFiles.length})
+              </button>
 
-              const imageSrc = firstItem
-                ? (firstItem as any).thumbnail ||
-                  (firstItem as any).src ||
-                  firstItem.url ||
-                  (firstItem as any).image ||
-                  firstItem.path ||
-                  ''
-                : '';
-
-              const thumb = firstItem
-                ? isPhoto
-                  ? getMediaUrl(imageSrc) || imageSrc
-                  : getImageUrl(firstItem) ||
-                    getThumbnailUrl(firstItem) ||
-                    resolveStaticVideoThumbnail(firstItem) ||
-                    getMediaUrl(imageSrc) ||
-                    imageSrc
-                : '';
-
-              return (
-                <div
+              {childSubfoldersList.map((sub) => (
+                <button
                   key={sub.name}
-                  role="button"
-                  tabIndex={0}
+                  type="button"
                   onClick={() => {
                     hapticMedium();
                     setSelectedSubfolder(sub.name);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      hapticMedium();
-                      setSelectedSubfolder(sub.name);
-                    }
-                  }}
-                  className="group relative rounded-2xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00]/60 shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_0_25px_rgba(204,255,0,0.2)] transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col justify-end aspect-[16/10] sm:aspect-[4/3] select-none"
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+                    selectedSubfolder === sub.name
+                      ? 'bg-[#ccff00] text-black shadow-[0_0_14px_rgba(204,255,0,0.35)]'
+                      : 'text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10'
+                  }`}
                 >
-                  {/* Thumbnail Preview */}
-                  {thumb ? (
-                    <img
-                      src={thumb}
-                      alt={sub.name}
-                      loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-tr from-[#050505] to-[#121214] flex items-center justify-center">
-                      <Folder className="w-12 h-12 text-[#ccff00]/40" />
-                    </div>
-                  )}
-
-                  {/* Ambient Dark Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#020408]/95 via-[#020408]/50 to-transparent pointer-events-none" />
-
-                  {/* Top Badge: Item Count */}
-                  <div className="absolute top-3 right-3 z-10">
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase text-white/80 bg-black/75 backdrop-blur-md border border-white/15 shadow-md">
-                      <Folder className="w-3 h-3 text-white/70" />
-                      <span>{sub.files.length} ITEMS</span>
-                    </span>
-                  </div>
-
-                  {/* Bottom Info: Subfolder Name & Arrow Prompt */}
-                  <div className="relative z-10 p-5 flex items-center justify-between pointer-events-none">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
-                        {selectedCategory} // SUBFOLDER
-                      </span>
-                      <h3 className="font-['Roboto_Condensed'] font-black tracking-wider text-lg sm:text-xl text-white uppercase group-hover:text-white transition-colors line-clamp-1">
-                        {sub.name}
-                      </h3>
-                    </div>
-                    <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-white text-white group-hover:text-black flex items-center justify-center transition-all duration-300 shadow-md shrink-0">
-                      <ChevronRight className="w-5 h-5 ml-0.5" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </main>
-      ) : (
-        /* ===================================================================== */
-        /* LEVEL 2: SPECIFIC SUBFOLDER MEDIA ASSETS GALLERY                      */
-        /* ===================================================================== */
-        <main
-          aria-label="Subfolder Media Assets"
-          className="flex-1 w-full h-[calc(100dvh-60px)] overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col bg-transparent"
-        >
-          {/* Breadcrumb Header Rail */}
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs uppercase tracking-wider text-slate-400">
-                {selectedCategory}
-              </span>
-              <span className="text-slate-500">/</span>
-              <span className="font-['Roboto_Condensed'] font-black text-base sm:text-lg tracking-[0.2em] uppercase text-white">
-                {selectedSubfolder}
-              </span>
-              <span className="text-xs font-mono text-neutral-400">
-                ({activeMediaList.length} files)
-              </span>
+                  {sub.name} ({sub.files.length})
+                </button>
+              ))}
             </div>
-          </div>
+          )}
 
-          {/* Media Items Grid */}
+          {/* REALTUBE Spotlight Hero Banner (Featured Premiere) */}
+          {selectedCategory === 'REALTUBE' && activeMediaList.length > 0 && selectedSubfolder === null && (
+            <div className="relative rounded-2xl overflow-hidden mb-8 border border-white/10 bg-[#08080a] group aspect-[21/9] min-h-[260px] sm:min-h-[320px] flex flex-col justify-end p-6 sm:p-10 select-none shadow-2xl">
+              {/* Background Thumbnail */}
+              {(() => {
+                const heroItem = activeMediaList[0];
+                const imageSrc =
+                  (heroItem as any).thumbnail ||
+                  (heroItem as any).src ||
+                  heroItem.url ||
+                  (heroItem as any).image ||
+                  heroItem.path ||
+                  '';
+                const heroThumb =
+                  getImageUrl(heroItem) ||
+                  getThumbnailUrl(heroItem) ||
+                  resolveStaticVideoThumbnail(heroItem) ||
+                  getMediaUrl(imageSrc) ||
+                  imageSrc;
+
+                return heroThumb ? (
+                  <img
+                    src={heroThumb}
+                    alt={heroItem.title || heroItem.name}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60"
+                  />
+                ) : null;
+              })()}
+
+              {/* Gradient Scrim */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/70 to-transparent pointer-events-none" />
+
+              {/* Hero Content */}
+              <div className="relative z-10 max-w-2xl flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse" />
+                  <span className="font-mono text-[10px] font-bold text-[#ccff00] uppercase tracking-widest">
+                    FEATURED PREMIERE // 2026
+                  </span>
+                </div>
+
+                <h2 className="font-['Space_Grotesk',sans-serif] font-black text-xl sm:text-2xl lg:text-3xl text-white uppercase tracking-wider line-clamp-2">
+                  {activeMediaList[0]?.title || (activeMediaList[0]?.name ? activeMediaList[0].name.replace(/\.[a-z0-9]+$/i, '') : 'PREMIERE')}
+                </h2>
+
+                <p className="text-xs sm:text-sm text-neutral-300 line-clamp-2">
+                  {activeMediaList[0]?.parentAlbum || 'Exclusive uncut broadcast stream presented in lossless master theater fidelity.'}
+                </p>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenItem(activeMediaList[0], 0)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#ccff00] hover:bg-[#b8e600] text-black font-mono font-bold text-xs uppercase tracking-wider cursor-pointer shadow-[0_0_18px_rgba(204,255,0,0.4)] transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                    <span>PLAY PREMIERE</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Media Items Presentation Grid */}
           {activeMediaList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[40vh] text-white/60">
-              <p className="text-white/80 text-sm font-semibold tracking-wider uppercase mb-1">
+            <div className="flex flex-col items-center justify-center p-16 text-center my-auto min-h-[40vh] border border-white/5 rounded-2xl bg-[#08080a]">
+              <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mb-3">
+                <Folder className="w-6 h-6" />
+              </div>
+              <p className="font-['Space_Grotesk',sans-serif] text-white text-base font-bold uppercase tracking-wider mb-1">
                 No Media Items in this Collection
               </p>
+              <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
+                INDEX READY // SCAN COMPLETE
+              </span>
             </div>
           ) : (
-            <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20">
+            <div
+              className={`w-full pb-20 ${
+                selectedCategory === 'SHORTS'
+                  ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4'
+                  : selectedCategory === 'PHOTOGRAPHY'
+                  ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4'
+                  : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5'
+              }`}
+            >
               {activeMediaList.map((item, idx) => {
                 const isPhoto =
                   item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
@@ -911,6 +968,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   (item as any).image ||
                   item.path ||
                   '';
+
                 const thumb = isPhoto
                   ? getMediaUrl(imageSrc) || imageSrc
                   : getImageUrl(item) ||
@@ -919,6 +977,107 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     getMediaUrl(imageSrc) ||
                     imageSrc;
 
+                const displayName = item.title || (item.name ? item.name.replace(/\.[a-z0-9]+$/i, '') : 'Media');
+
+                /* ------------------------------------------------------------- */
+                /* 1. SHORTS: 9:16 Vertical Card with Soundwave & Play Bloom     */
+                /* ------------------------------------------------------------- */
+                if (selectedCategory === 'SHORTS') {
+                  return (
+                    <div
+                      key={item.id || item.url || idx}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenItem(item, idx);
+                      }}
+                      style={{ animationDelay: `${Math.min(idx * 25, 200)}ms` }}
+                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] aspect-[9/16] cursor-pointer transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end select-none"
+                    >
+                      <SmartThumbnail
+                        src={thumb}
+                        alt=""
+                        aspectClass="aspect-[9/16]"
+                        containerClassName="absolute inset-0 w-full h-full border-0"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+
+                      {/* Top Badges: Duration & Soundwave */}
+                      <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase text-white bg-black/70 backdrop-blur-md border border-white/10">
+                          REEL 4K
+                        </span>
+                        <div className="flex items-end gap-0.5 h-3 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md">
+                          <span className="w-0.5 h-1.5 bg-[#ccff00] rounded-full animate-pulse" />
+                          <span className="w-0.5 h-3 bg-[#ccff00] rounded-full animate-pulse [animation-delay:150ms]" />
+                          <span className="w-0.5 h-2 bg-[#ccff00] rounded-full animate-pulse [animation-delay:300ms]" />
+                        </div>
+                      </div>
+
+                      {/* Floating Play Icon on Hover */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-10">
+                        <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.7)] group-hover:scale-110 transition-transform">
+                          <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
+                        </div>
+                      </div>
+
+                      {/* Bottom Gradient Scrim & Title */}
+                      <div className="relative z-10 p-3 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none">
+                        <span className="text-[9px] font-mono font-bold text-[#ccff00] uppercase tracking-wider block truncate">
+                          {item.parentAlbum || 'SHORT'}
+                        </span>
+                        <h3 className="text-xs font-bold text-white leading-tight line-clamp-2 mt-0.5 group-hover:text-white transition-colors">
+                          {displayName}
+                        </h3>
+                      </div>
+                    </div>
+                  );
+                }
+
+                /* ------------------------------------------------------------- */
+                /* 2. PHOTOGRAPHY: Editorial Exhibition Portrait Card            */
+                /* ------------------------------------------------------------- */
+                if (selectedCategory === 'PHOTOGRAPHY') {
+                  return (
+                    <div
+                      key={item.id || item.url || idx}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenItem(item, idx);
+                      }}
+                      style={{ animationDelay: `${Math.min(idx * 25, 200)}ms` }}
+                      className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] aspect-[3/4] cursor-pointer transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end select-none"
+                    >
+                      <SmartThumbnail
+                        src={thumb}
+                        alt=""
+                        aspectClass="aspect-[3/4]"
+                        containerClassName="absolute inset-0 w-full h-full border-0"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+
+                      {/* Subtle Corner Reticle Ticks on Hover */}
+                      <div className="absolute inset-0 border border-transparent group-hover:border-[#ccff00]/30 transition-colors pointer-events-none z-10" />
+
+                      {/* Bottom Caption Overlay */}
+                      <div className="relative z-10 p-3 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[9px] font-mono text-[#ccff00] uppercase tracking-wider block truncate">
+                          STILL // {item.parentAlbum || 'EXHIBIT'}
+                        </span>
+                        <h3 className="text-xs font-medium text-white truncate mt-0.5">
+                          {displayName}
+                        </h3>
+                      </div>
+                    </div>
+                  );
+                }
+
+                /* ------------------------------------------------------------- */
+                /* 3. CLIPS & REALTUBE: 16:9 Widescreen Cinema Card             */
+                /* ------------------------------------------------------------- */
                 return (
                   <div
                     key={item.id || item.url || idx}
@@ -928,24 +1087,46 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       e.stopPropagation();
                       handleOpenItem(item, idx);
                     }}
-                    style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-                    className="aspect-[4/5] rounded-xl overflow-hidden bg-white/[0.02] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] relative shadow-lg group cursor-pointer transition-all duration-300 hover:scale-[1.02] select-none"
+                    style={{ animationDelay: `${Math.min(idx * 25, 200)}ms` }}
+                    className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] cursor-pointer transition-all duration-300 hover:scale-[1.02] flex flex-col select-none"
                   >
-                    <SmartThumbnail
-                      src={thumb}
-                      alt=""
-                      aspectClass="aspect-[4/5]"
-                      containerClassName="w-full h-full rounded-xl border-0 overflow-hidden"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    >
-                      {!isPhoto && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                          <div className="w-10 h-10 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.6)]">
-                            <Play className="w-4 h-4 fill-current ml-0.5 text-black" />
-                          </div>
+                    <div className="relative aspect-video w-full overflow-hidden bg-[#050505]">
+                      <SmartThumbnail
+                        src={thumb}
+                        alt=""
+                        aspectClass="aspect-video"
+                        containerClassName="w-full h-full border-0"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+
+                      {/* 4K UHD Badge */}
+                      <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase text-black bg-[#ccff00] shadow-sm">
+                          4K UHD
+                        </span>
+                      </div>
+
+                      {/* Hover Center Play Button */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                        <div className="w-11 h-11 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.7)] group-hover:scale-110 transition-transform">
+                          <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
                         </div>
-                      )}
-                    </SmartThumbnail>
+                      </div>
+                    </div>
+
+                    {/* Card Info Details */}
+                    <div className="p-3 sm:p-3.5 flex flex-col gap-1 bg-[#0a0a0d]">
+                      <span className="text-[9px] font-mono font-bold text-[#ccff00] uppercase tracking-wider block truncate">
+                        {item.parentAlbum || selectedCategory}
+                      </span>
+                      <h3 className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-white transition-colors">
+                        {displayName}
+                      </h3>
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 mt-0.5">
+                        <Film className="w-3 h-3 text-[#ccff00]" />
+                        <span>STREAM READY</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
