@@ -330,7 +330,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 }`}
               >
                 <ImageIcon className="w-3.5 h-3.5" />
-                <span>PORTRAITS</span>
+                <span>PHOTOGRAPHY</span>
               </button>
 
               <button
@@ -346,7 +346,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 }`}
               >
                 <Newspaper className="w-3.5 h-3.5" />
-                <span>DISPATCHES</span>
+                <span>NEWS</span>
               </button>
 
               <button
@@ -362,7 +362,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 }`}
               >
                 <Film className="w-3.5 h-3.5" />
-                <span>CINEMA REELS</span>
+                <span>LATEST VIDEOS</span>
               </button>
             </div>
           </div>
