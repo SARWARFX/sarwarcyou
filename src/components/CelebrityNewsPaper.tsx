@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Newspaper as NewspaperIcon, ArrowUpRight } from 'lucide-react';
 import type { CelebrityNewsItem } from './CelebrityShowcase';
 
@@ -6,15 +6,6 @@ export interface CelebrityNewsPaperProps {
   articles: CelebrityNewsItem[];
   onResetFilter?: () => void;
   activeFilter?: string;
-}
-
-function formatDate(date: Date = new Date()): string {
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 }
 
 function formatTimeAgo(isoString: string): string {
@@ -47,8 +38,6 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
   onResetFilter,
   activeFilter = 'ALL',
 }) => {
-  const currentDateFormatted = useMemo(() => formatDate(), []);
-
   // Partition articles into Lead Story, Secondary Column Stories, and Right Wire Dispatches
   const leadArticle = articles.length > 0 ? articles[0] : null;
   const secondaryArticles = articles.slice(1, 9);
@@ -79,26 +68,7 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
 
   return (
     <div className="newspaper-container rounded-2xl my-2">
-      {/* 1. BROADSHEET MASTHEAD */}
-      <header className="newspaper-masthead">
-        {/* Top Dateline */}
-        <div className="masthead-top-bar justify-center py-1">
-          <span className="font-serif italic text-xs text-neutral-400">{currentDateFormatted}</span>
-        </div>
-
-        {/* Elegant Broadsheet Masthead Title */}
-        <h1 className="masthead-title">THE CELEBRITY CHRONICLE</h1>
-
-        {/* Sub-Motto Rule */}
-        <p className="masthead-motto">
-          Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses
-        </p>
-
-        {/* Subtle Double Hairline Rule */}
-        <div className="newspaper-double-rule" />
-      </header>
-
-      {/* 2. BROADSHEET EDITORIAL GRID */}
+      {/* BROADSHEET EDITORIAL GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
         {/* LEFT / CENTER SPREAD: LEAD FEATURE & COLUMNAR STORIES (8 Cols) */}
         <div className="lg:col-span-8 flex flex-col gap-10">
