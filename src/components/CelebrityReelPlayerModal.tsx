@@ -428,11 +428,12 @@ export const CelebrityReelPlayerModal: React.FC<CelebrityReelPlayerModalProps> =
                   src={reel.videoUrl}
                   poster={reel.thumbnail}
                   loop
+                  autoPlay
                   playsInline
                   muted={isMuted}
                   preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
                   onTimeUpdate={isCurrent ? handleTimeUpdate : undefined}
-                  className="w-full h-full object-cover cursor-pointer"
+                  className="w-full h-full object-cover object-[center_top] cursor-pointer"
                 />
 
                 {/* Subtle Obsidian Dark Gradient Overlay for Readability */}

@@ -187,12 +187,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const REEL_REGION_TABS = useMemo(
     () => [
-      { id: 'ALL', label: 'ALL', count: 250 },
-      { id: 'BANGLADESH', label: 'BANGLADESH', count: 60 },
-      { id: 'BOLLYWOOD', label: 'BOLLYWOOD', count: 60 },
-      { id: 'SOUTH_INDIA', label: 'SOUTH INDIA', count: 65 },
-      { id: 'PAKISTAN', label: 'PAKISTAN', count: 45 },
-      { id: 'BHOJPURI', label: 'BHOJPURI', count: 20 },
+      { id: 'ALL', label: 'ALL', count: 50 },
+      { id: 'BANGLADESH', label: 'BANGLADESH', count: 12 },
+      { id: 'BOLLYWOOD', label: 'BOLLYWOOD', count: 12 },
+      { id: 'SOUTH_INDIA', label: 'SOUTH INDIA', count: 13 },
+      { id: 'PAKISTAN', label: 'PAKISTAN', count: 9 },
+      { id: 'BHOJPURI', label: 'BHOJPURI', count: 4 },
     ],
     []
   );
@@ -625,7 +625,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     let subOptions: { name: string; count: number; isCelebrity?: boolean }[] = [];
     if (category === 'SHORTS') {
       subOptions = [
-        { name: 'Celebrity Reels', count: 250, isCelebrity: true },
+        { name: 'Celebrity Reels', count: 50, isCelebrity: true },
         { name: 'Shorts Classic', count: rootMap.get('Shorts')?.subfolders.get('Shorts Classic')?.files.length || 0 },
         { name: 'REALTube Shorts', count: rootMap.get('Shorts')?.subfolders.get('REALTube Shorts')?.files.length || 0 },
       ];
@@ -997,7 +997,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     src={reel.thumbnail}
                     alt={reel.title}
                     loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-cover object-[center_top] transition-transform duration-500 group-hover:scale-105"
                   />
 
                   {/* Gradient Scrim */}
