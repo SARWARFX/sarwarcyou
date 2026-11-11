@@ -626,10 +626,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const renderCategorySubfolderBar = (category: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY', compact = false) => {
     let subOptions: { name: string; count: number; isCelebrity?: boolean }[] = [];
     if (category === 'SHORTS') {
+      const shortsNode = rootMap.get('Shorts');
+      const catalogSubs = shortsNode ? Array.from(shortsNode.subfolders.keys()).filter((s) => s !== 'Celebrity Reels') : [];
+      const knownShorts = ['Shorts 2027', 'Shorts Classic', 'REALTube Shorts'];
+      const allSubs = Array.from(new Set([...knownShorts, ...catalogSubs]));
+
       subOptions = [
         { name: 'Celebrity Reels', count: 50, isCelebrity: true },
-        { name: 'Shorts Classic', count: rootMap.get('Shorts')?.subfolders.get('Shorts Classic')?.files.length || 0 },
-        { name: 'REALTube Shorts', count: rootMap.get('Shorts')?.subfolders.get('REALTube Shorts')?.files.length || 0 },
+        ...allSubs.map((s) => ({
+          name: s,
+          count: shortsNode?.subfolders.get(s)?.files.length || 0,
+        })),
       ];
     } else if (category === 'CLIPS') {
       const clipsNode = rootMap.get('Clips');

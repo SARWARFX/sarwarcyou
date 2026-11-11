@@ -38,10 +38,10 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
   onResetFilter,
   activeFilter = 'ALL',
 }) => {
-  // Partition articles into Lead Story, Secondary Column Stories, and Right Wire Dispatches
+  // Partition articles into Lead Story, Secondary Column Stories, and Right Wire Dispatches with balanced distribution
   const leadArticle = articles.length > 0 ? articles[0] : null;
-  const secondaryArticles = articles.slice(1, 9);
-  const wireTelegrams = articles.slice(9, 22);
+  const secondaryArticles = articles.length > 12 ? articles.slice(1, 9) : articles.slice(1, Math.ceil(articles.length / 2));
+  const wireTelegrams = articles.length > 12 ? articles.slice(9, 25) : articles.slice(Math.ceil(articles.length / 2));
 
   if (articles.length === 0) {
     return (
@@ -61,6 +61,123 @@ export const CelebrityNewsPaper: React.FC<CelebrityNewsPaperProps> = ({
           >
             Return to General Front Page
           </button>
+        )}
+      </div>
+    );
+  }
+
+  const isIndividualCelebrity = activeFilter !== 'ALL';
+
+  if (isIndividualCelebrity) {
+    return (
+      <div className="newspaper-container rounded-2xl my-2 flex flex-col gap-6">
+        {/* Celebrity Dossier Banner */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/[0.08]">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#ccff00]" />
+            <span className="font-mono text-xs font-bold tracking-wider text-neutral-200 uppercase">
+              VERIFIED EDITORIAL DOSSIER • {activeFilter}
+            </span>
+          </div>
+          <span className="text-[11px] font-mono text-neutral-400">
+            {articles.length} Recognized Dispatches Indexed
+          </span>
+        </div>
+
+        {/* Lead Headline Story */}
+        {leadArticle && (
+          <article className="rounded-2xl bg-[#0c0d12] border border-white/10 p-5 sm:p-7 flex flex-col lg:flex-row gap-6 items-start shadow-xl">
+            {leadArticle.imageUrl && (
+              <div className="w-full lg:w-[45%] aspect-[16/10] rounded-xl overflow-hidden bg-neutral-900 border border-white/10 shrink-0">
+                <img
+                  src={leadArticle.imageUrl}
+                  alt={leadArticle.headline}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            <div className="flex-1 flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-xs font-mono text-neutral-400">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#ccff00]/15 text-[#ccff00] font-bold border border-[#ccff00]/30 uppercase text-[10px]">
+                  {leadArticle.source}
+                </span>
+                <span>•</span>
+                <span>{formatTimeAgo(leadArticle.publishedAt)}</span>
+              </div>
+
+              <h2 className="font-['Playfair_Display'] text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight">
+                {leadArticle.headline}
+              </h2>
+
+              <p className="text-sm text-neutral-300 leading-relaxed font-sans">
+                {leadArticle.summary}
+              </p>
+
+              <div className="pt-2">
+                <a
+                  href={leadArticle.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-mono text-[#ccff00] hover:border-[#ccff00] transition-all"
+                >
+                  <span>Read Original Coverage on {leadArticle.source}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </article>
+        )}
+
+        {/* Additional Dispatches Grid */}
+        {secondaryArticles.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {secondaryArticles.map((article) => (
+              <article
+                key={article.id}
+                className="rounded-xl bg-[#0a0c10] border border-white/[0.08] p-4 sm:p-5 flex flex-col justify-between gap-3 hover:border-white/20 transition-all"
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                    <span className="text-[#ccff00] font-bold uppercase">{article.source}</span>
+                    <span>{formatTimeAgo(article.publishedAt)}</span>
+                  </div>
+                  <h3 className="font-['Playfair_Display'] text-base sm:text-lg font-bold text-white leading-snug">
+                    {article.headline}
+                  </h3>
+                  {article.imageUrl && (
+                    <div className="w-full aspect-[16/9] rounded-lg overflow-hidden bg-neutral-900 border border-white/5 my-1">
+                      <img
+                        src={article.imageUrl}
+                        alt={article.headline}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    {article.summary}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-white/[0.06]">
+                  <a
+                    href={article.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-mono text-neutral-300 hover:text-white"
+                  >
+                    <span className="underline underline-offset-4 decoration-neutral-700">Source Report on {article.source}</span>
+                    <ArrowUpRight className="w-3 h-3 text-neutral-500" />
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
         )}
       </div>
     );
