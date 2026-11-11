@@ -130,7 +130,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const [activeTransitionClass, setActiveTransitionClass] = useState<string>('animate-kinetic-slide-right');
   const [idleTourProgress, setIdleTourProgress] = useState<number>(0);
-  const [isAutoTourPaused, setIsAutoTourPaused] = useState<boolean>(false);
+  const [isAutoTourPaused, setIsAutoTourPaused] = useState<boolean>(true);
   const lastUserActivityRef = useRef<number>(Date.now());
 
   // Synchronize route state with browser address bar
@@ -799,22 +799,34 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
         {/* Avant-Garde Quick Select Keys: Consolidated Tabs */}
         <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
-          {/* Subtle Auto Tour Pill with Pause/Resume */}
+          {/* Autonomous Rolling Tour Toggle Pill (Paused by default until visitor starts it) */}
           <button
             type="button"
             onClick={() => {
               hapticMedium();
-              setIsAutoTourPaused((p) => !p);
+              setIsAutoTourPaused((p) => {
+                const nextState = !p;
+                if (!nextState) {
+                  // Starting tour: reset activity timer and progress
+                  lastUserActivityRef.current = Date.now();
+                  setIdleTourProgress(0);
+                }
+                return nextState;
+              });
             }}
-            title={isAutoTourPaused ? 'Click to resume 10s auto-tour' : 'Click to pause 10s auto-tour'}
-            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-mono tracking-wider uppercase border border-white/[0.08] hover:border-[#ccff00]/40 transition-colors text-neutral-400 hover:text-white bg-white/[0.02] cursor-pointer mr-1"
+            title={isAutoTourPaused ? 'Click to start 10s autonomous tour across feeds' : 'Click to pause autonomous tour'}
+            className={`flex items-center gap-1.5 px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] font-mono tracking-wider uppercase border transition-all cursor-pointer mr-1 ${
+              isAutoTourPaused
+                ? 'bg-white/[0.03] border-white/10 hover:border-[#ccff00]/50 text-neutral-400 hover:text-white'
+                : 'bg-[#ccff00]/10 border-[#ccff00]/40 text-[#ccff00] shadow-[0_0_10px_rgba(204,255,0,0.2)]'
+            }`}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
                 isAutoTourPaused ? 'bg-neutral-500' : 'bg-[#ccff00] animate-pulse shadow-[0_0_6px_#ccff00]'
               }`}
             />
-            <span>{isAutoTourPaused ? 'PAUSED' : 'AUTO TOUR'}</span>
+            <span>{isAutoTourPaused ? 'START TOUR' : 'AUTO TOUR'}</span>
           </button>
 
           <button
