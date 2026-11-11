@@ -49,37 +49,33 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   } else if (/^(?:reels\/shorts|shorts|reels)$/i.test(root)) {
     root = 'Shorts';
   } else if (/^realtube$/i.test(root)) {
-    // REALTube distribution into independent categories
-    if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short')) {
+    if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short') || clean.toLowerCase().includes('short')) {
       root = 'Shorts';
-      sub = ['REALTube Shorts'];
+      sub = dirParts.length > 1 ? [dirParts[1]] : ['REALTube Shorts'];
     } else if (item.type === 'image' || isPhotoExtension(item.url || item.name)) {
       root = 'Images';
-      sub = ['REALTube Photos'];
+      sub = dirParts.length > 1 ? [dirParts[1]] : ['REALTube Images'];
     } else {
       root = 'Clips';
-      sub = ['REALTube Broadcasts'];
+      sub = dirParts.length > 1 ? [dirParts[1]] : ['REALTube Video Clips'];
     }
-  } else if (/^youtube$/i.test(root)) {
-    root = 'Clips';
-    sub = ['Official Releases'];
   } else {
     if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short')) {
       root = 'Shorts';
-      sub = dirParts.length > 0 ? dirParts : ['Shorts Classic'];
+      sub = dirParts.length > 0 ? dirParts : ['Shorts 2027'];
     } else if (item.type === 'image' || isPhotoExtension(item.url || item.name)) {
       root = 'Images';
-      sub = dirParts.length > 0 ? dirParts : ['H2026'];
+      sub = dirParts.length > 0 ? dirParts : ['Images 2027'];
     } else {
       root = 'Clips';
-      sub = dirParts.length > 0 ? dirParts : ['H2027'];
+      sub = dirParts.length > 0 ? dirParts : ['Clips 2027'];
     }
   }
 
   if (sub.length === 0) {
-    if (root === 'Shorts') sub = ['Shorts Classic'];
-    else if (root === 'Images') sub = ['H2026'];
-    else sub = ['H2027'];
+    if (root === 'Shorts') sub = ['Shorts 2027'];
+    else if (root === 'Images') sub = ['Images 2027'];
+    else sub = ['Clips 2027'];
   }
 
   return { root, subfolders: sub };
@@ -224,9 +220,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     };
 
-    ensureSubfolders('Clips', ['H2027', 'H2026', 'H2025', 'Favorite', 'REALTube Broadcasts', 'Others']);
+    ensureSubfolders('Clips', ['Clips 2027', 'Clips 2026', 'Clips 2025', 'Favorite Video Clips', 'Classic Video Clips', 'REALTube Video Clips']);
     ensureSubfolders('Shorts', ['Shorts 2027', 'Shorts Classic', 'REALTube Shorts']);
-    ensureSubfolders('Images', ['H2026', 'H2025', 'Bandhobis', 'works', 'Classic', 'REALTube Photos']);
+    ensureSubfolders('Images', ['Images 2027', 'Images 2026', 'Images 2025', 'Favourite Images', 'Classic Images', 'REALTube Images']);
 
     // Sort files descending
     for (const rootNode of map.values()) {
@@ -624,8 +620,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }));
     } else if (category === 'CLIPS') {
       const clipsNode = rootMap.get('Clips');
-      const catalogSubs = clipsNode ? Array.from(clipsNode.subfolders.keys()).filter((s) => s !== 'Official Releases') : [];
-      const knownClips = ['H2027', 'H2026', 'H2025', 'Favorite', 'REALTube Broadcasts', 'Others'];
+      const catalogSubs = clipsNode ? Array.from(clipsNode.subfolders.keys()) : [];
+      const knownClips = ['Clips 2027', 'Clips 2026', 'Clips 2025', 'Favorite Video Clips', 'Classic Video Clips', 'REALTube Video Clips'];
       const allSubs = Array.from(new Set([...knownClips, ...catalogSubs]));
 
       subOptions = allSubs.map((s) => ({
@@ -634,14 +630,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }));
     } else if (category === 'PHOTOGRAPHY') {
       const imagesNode = rootMap.get('Images');
-      const catalogSubs = imagesNode ? Array.from(imagesNode.subfolders.keys()).filter((s) => s !== 'Celebrity Portraits') : [];
-      subOptions = [
-        { name: 'Celebrity Portraits', count: 1500, isCelebrity: true },
-        ...catalogSubs.map((s) => ({
-          name: s,
-          count: imagesNode?.subfolders.get(s)?.files.length || 0,
-        })),
-      ];
+      const catalogSubs = imagesNode ? Array.from(imagesNode.subfolders.keys()) : [];
+      const knownImages = ['Images 2027', 'Images 2026', 'Images 2025', 'Favourite Images', 'Classic Images', 'REALTube Images'];
+      const allSubs = Array.from(new Set([...knownImages, ...catalogSubs]));
+      subOptions = allSubs.map((s) => ({
+        name: s,
+        count: imagesNode?.subfolders.get(s)?.files.length || 0,
+      }));
     }
 
     const currentSub = selectedSubfolder || subOptions[0]?.name;
@@ -660,7 +655,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               type="button"
               onClick={() => {
                 hapticMedium();
-                navigateSubfolder(sub.isCelebrity ? null : sub.name);
+                navigateSubfolder(sub.name);
               }}
               className={`flex items-center gap-1.5 ${
                 compact ? 'px-3 py-1 text-[11px]' : 'px-3.5 py-1.5 text-xs'
@@ -932,7 +927,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 <Film className="w-5 h-5 text-[#ccff00]" />
                 <div>
                   <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                    {selectedSubfolder || 'H2027'}
+                    {selectedSubfolder || 'Clips 2027'}
                   </h1>
                   <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
                     Archived Video Clips & Broadcasts • {activeMediaList.length} Items Indexed
@@ -993,7 +988,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                         </p>
                         <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 mt-0.5">
                           <Film className="w-3 h-3 text-[#ccff00]" />
-                          <span>{selectedSubfolder || 'H2027'}</span>
+                          <span>{selectedSubfolder || 'Clips 2027'}</span>
                         </div>
                       </div>
                     </div>
@@ -1020,7 +1015,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <Folder className="w-5 h-5 text-[#ccff00]" />
               <div>
                 <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  {selectedSubfolder || 'H2026'}
+                  {selectedSubfolder || 'Images 2027'}
                 </h1>
                 <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
                   Archived Photo Collection • {activeMediaList.length} Items Indexed

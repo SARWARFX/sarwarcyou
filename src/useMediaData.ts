@@ -27,7 +27,7 @@ export const HF_REALTUBE_TREE_API_URL =
 // Backwards-compatibility alias
 export const HUGGINGFACE_CATALOG_URL = HF_RAW_MEDIA_JSON_URL;
 
-export const CACHE_STORAGE_KEY = 'sarwarcyou_hf_catalog_cache_v3';
+export const CACHE_STORAGE_KEY = 'sarwarcyou_hf_catalog_cache_v4';
 export const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
 
 export interface HfTreeItem {
