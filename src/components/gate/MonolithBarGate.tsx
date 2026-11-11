@@ -761,7 +761,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               ? 'PHOTOGRAPHS'
               : selectedCategory === 'CLIPS'
               ? 'VIDEO CLIPS'
-              : 'REELS/SHORTS'}
+              : 'SHORTS'}
           </span>
         </div>
 
@@ -809,7 +809,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            REELS/SHORTS
+            SHORTS
           </button>
           <button
             type="button"
@@ -845,11 +845,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* MAIN VIEWPORT STAGE: 3 Hugging Face Directory Sections */}
       {selectedCategory === 'SHORTS' || selectedCategory === null || selectedCategory === 'YOUTUBE' ? (
         /* ===================================================================== */
-        /* TAB 1: REELS / SHORTS // 9:16 VERTICAL STREAM FEED                    */
+        /* TAB 1: SHORTS // 9:16 VERTICAL STREAM FEED                            */
         /* ===================================================================== */
         <main
           key="shorts-hub"
-          aria-label="Reels and Shorts Hub"
+          aria-label="Shorts Hub"
           className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar p-4 sm:p-7 lg:p-10 z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           } ${activeTransitionClass}`}

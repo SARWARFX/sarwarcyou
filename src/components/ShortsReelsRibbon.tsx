@@ -133,7 +133,7 @@ export const ShortsReelsRibbon: React.FC<ShortsReelsRibbonProps> = ({
           </div>
           <div>
             <h2 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <span>Shorts & Reels</span>
+              <span>Shorts</span>
               <span className="text-xs font-mono text-zinc-500 font-normal">({shorts.length})</span>
             </h2>
           </div>
