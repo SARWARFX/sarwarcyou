@@ -9,9 +9,9 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const REGISTRY_FILE = path.join(ROOT_DIR, 'src', 'data', 'actressesRegistry.json');
 const GALLERY_OUTPUT_FILE = path.join(ROOT_DIR, 'src', 'data', 'celebrityGallery.json');
 
-// Configuration
-const TARGET_PHOTOS_PER_ACTRESS = 8;
-const TIMEOUT_MS = 3500;
+// Target 30 photos per actress (1,500 verified HD photos across 50 actresses)
+const TARGET_PHOTOS_PER_ACTRESS = 30;
+const TIMEOUT_MS = 2800;
 
 function slugify(text) {
   return text
@@ -26,7 +26,6 @@ function slugify(text) {
 function cleanTitle(rawTitle, actressName) {
   if (!rawTitle) return `${actressName} Editorial Portrait`;
   let title = rawTitle.replace(/|/g, '').trim();
-  // Strip common noisy suffixes
   title = title.replace(/\s*[-–|].*$/g, '').trim();
   if (title.length < 5 || title.toLowerCase() === actressName.toLowerCase()) {
     return `${actressName} Haute Couture Photoshoot`;
@@ -38,15 +37,14 @@ function categorizeTitle(title) {
   const lower = title.toLowerCase();
   if (lower.match(/cannes|gala|red carpet|award|premiere|filmfare|oscar|iifa/i)) return 'Red Carpet';
   if (lower.match(/vogue|elle|gq|bazaar|femina|cosmopolitan|grazi|cover|magazine/i)) return 'Editorial';
-  if (lower.match(/traditional|saree|lehenga|eid|diwali|festive|wedding/i)) return 'Traditional';
+  if (lower.match(/traditional|saree|lehenga|eid|diwali|festive|wedding|desi/i)) return 'Traditional';
   if (lower.match(/casual|airport|spotted|street|vacation|travel/i)) return 'Street Style';
   return 'Photoshoot';
 }
 
-async function searchBingTallPhotos(actressName) {
+async function fetchCandidatesForQuery(query, first = 1) {
   try {
-    const query = `${actressName} photoshoot portrait`;
-    const url = `https://www.bing.com/images/search?q=${encodeURIComponent(query)}&qft=+filterui:aspect-tall&form=HDRSC2&first=1`;
+    const url = `https://www.bing.com/images/search?q=${encodeURIComponent(query)}&qft=+filterui:aspect-tall&form=HDRSC2&first=${first}`;
     const res = await fetch(url, {
       headers: {
         'User-Agent':
@@ -54,7 +52,7 @@ async function searchBingTallPhotos(actressName) {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) return [];
@@ -69,7 +67,6 @@ async function searchBingTallPhotos(actressName) {
         const parsed = JSON.parse(rawJson);
         if (parsed.murl && parsed.turl) {
           items.push({
-            name: actressName,
             rawTitle: parsed.t || '',
             src: parsed.murl,
             thumb: parsed.turl,
@@ -80,7 +77,6 @@ async function searchBingTallPhotos(actressName) {
     }
     return items;
   } catch (err) {
-    console.warn(`[Search Warning] Error querying Bing for ${actressName}:`, err.message);
     return [];
   }
 }
@@ -110,9 +106,9 @@ async function validateImageUrl(url) {
 }
 
 export async function indexAllCelebrityPhotos() {
-  console.log('===========================================================');
-  console.log(' CELEBRITY PHOTOGRAPH INDEXER (GOOGLE / BING SEARCH STYLE) ');
-  console.log('===========================================================');
+  console.log('================================================================');
+  console.log(' EXPANDED CELEBRITY PORTRAIT INDEXER (TARGET: 25-30 PHOTOS/CELEB) ');
+  console.log('================================================================');
 
   if (!fs.existsSync(REGISTRY_FILE)) {
     console.error('Actresses registry file not found:', REGISTRY_FILE);
@@ -122,7 +118,7 @@ export async function indexAllCelebrityPhotos() {
   const registry = JSON.parse(fs.readFileSync(REGISTRY_FILE, 'utf8'));
   console.log(`Loaded ${registry.length} registered South Asian actresses.`);
 
-  // Load existing gallery to preserve verified photos
+  // Load existing gallery to preserve existing verified items
   let existingGallery = [];
   if (fs.existsSync(GALLERY_OUTPUT_FILE)) {
     try {
@@ -138,76 +134,98 @@ export async function indexAllCelebrityPhotos() {
   }
 
   const finalGallery = [];
-  const seenUrls = new Set();
+  const globalSeenUrls = new Set();
   let totalIndexed = 0;
 
   for (let idx = 0; idx < registry.length; idx++) {
     const actress = registry[idx];
     const name = actress.name;
     const actressKey = name.toLowerCase();
-    console.log(`\n[${idx + 1}/${registry.length}] Indexing HD Portraits: ${name} (${actress.region})...`);
+    console.log(`\n[${idx + 1}/${registry.length}] Indexing up to 30 Portraits: ${name} (${actress.region})...`);
 
     const actressPhotos = [];
-    const existing = existingMap.get(actressKey) || [];
+    const localSeenUrls = new Set();
 
-    // Keep up to 3 existing verified photos if they exist
+    // 1. Retain existing verified photos
+    const existing = existingMap.get(actressKey) || [];
     for (const ex of existing) {
-      if (actressPhotos.length >= 3) break;
-      if (!seenUrls.has(ex.src)) {
-        seenUrls.add(ex.src);
+      if (actressPhotos.length >= TARGET_PHOTOS_PER_ACTRESS) break;
+      if (!localSeenUrls.has(ex.src) && !globalSeenUrls.has(ex.src)) {
+        localSeenUrls.add(ex.src);
+        globalSeenUrls.add(ex.src);
         actressPhotos.push(ex);
       }
     }
 
-    // Now grab fresh tall editorial photoshoot portraits from web search
-    const candidates = await searchBingTallPhotos(name);
-    console.log(`  Found ${candidates.length} search candidates for ${name}`);
+    console.log(`  Initial verified photos retained: ${actressPhotos.length}`);
 
-    for (const cand of candidates) {
+    // 2. Multi-angle queries to find diverse high-fashion & editorial portraits
+    const searchQueries = [
+      `${name} photoshoot portrait`,
+      `${name} magazine photoshoot editorial`,
+      `${name} saree traditional photoshoot`,
+      `${name} red carpet gala gown portrait`,
+      `${name} high resolution photoshoot`,
+    ];
+
+    const rawCandidates = [];
+    for (const query of searchQueries) {
       if (actressPhotos.length >= TARGET_PHOTOS_PER_ACTRESS) break;
-      if (seenUrls.has(cand.src)) continue;
-
-      const isValid = await validateImageUrl(cand.src);
-      if (isValid) {
-        seenUrls.add(cand.src);
-        const title = cleanTitle(cand.rawTitle, name);
-        const category = categorizeTitle(title);
-        const photoId = `${slugify(name)}-${slugify(title).slice(0, 30)}-${Math.floor(Math.random() * 10000)}`;
-
-        actressPhotos.push({
-          id: photoId,
-          name: name,
-          title: title,
-          category: category,
-          src: cand.src,
-          thumb: cand.thumb,
-          aspect: 'portrait',
-          timestamp: Date.now(),
-        });
-        console.log(`    [VALID] "${title}" (${cand.src.slice(0, 50)}...)`);
+      for (const pageFirst of [1, 36]) {
+        if (actressPhotos.length >= TARGET_PHOTOS_PER_ACTRESS) break;
+        const pageItems = await fetchCandidatesForQuery(query, pageFirst);
+        for (const item of pageItems) {
+          if (!localSeenUrls.has(item.src) && !globalSeenUrls.has(item.src)) {
+            rawCandidates.push(item);
+          }
+        }
+        await new Promise((r) => setTimeout(r, 200));
       }
     }
 
-    // If still need fallback and actress has avatar, include avatar
-    if (actressPhotos.length === 0 && actress.avatar) {
-      actressPhotos.push({
-        id: `${slugify(name)}-official-portrait`,
-        name: name,
-        title: `${name} Official Portrait`,
-        category: 'Photoshoot',
-        src: actress.avatar,
-        thumb: actress.avatar,
-        aspect: 'portrait',
-        timestamp: Date.now(),
-      });
+    console.log(`  Gathered ${rawCandidates.length} candidate URLs. Validating in fast batches...`);
+
+    // 3. Batch validation in chunks of 6 concurrent requests
+    const BATCH_SIZE = 6;
+    for (let c = 0; c < rawCandidates.length && actressPhotos.length < TARGET_PHOTOS_PER_ACTRESS; c += BATCH_SIZE) {
+      const batch = rawCandidates.slice(c, c + BATCH_SIZE);
+      const checkResults = await Promise.all(
+        batch.map(async (cand) => {
+          const ok = await validateImageUrl(cand.src);
+          return { cand, ok };
+        })
+      );
+
+      for (const { cand, ok } of checkResults) {
+        if (actressPhotos.length >= TARGET_PHOTOS_PER_ACTRESS) break;
+        if (ok && !localSeenUrls.has(cand.src) && !globalSeenUrls.has(cand.src)) {
+          localSeenUrls.add(cand.src);
+          globalSeenUrls.add(cand.src);
+
+          const title = cleanTitle(cand.rawTitle, name);
+          const category = categorizeTitle(title);
+          const photoId = `${slugify(name)}-${slugify(title).slice(0, 30)}-${Math.floor(Math.random() * 100000)}`;
+
+          actressPhotos.push({
+            id: photoId,
+            name: name,
+            title: title,
+            category: category,
+            src: cand.src,
+            thumb: cand.thumb,
+            aspect: 'portrait',
+            timestamp: Date.now(),
+          });
+        }
+      }
     }
 
-    console.log(`  => Total indexed for ${name}: ${actressPhotos.length} photos`);
+    console.log(`  => Successfully indexed ${actressPhotos.length} high-res portraits for ${name}`);
     finalGallery.push(...actressPhotos);
     totalIndexed += actressPhotos.length;
 
-    // Small courteous pause between queries
-    await new Promise((r) => setTimeout(r, 400));
+    // Small polite pause between actresses
+    await new Promise((r) => setTimeout(r, 300));
   }
 
   // Shuffle / interleave across actresses for vibrant front-page showcase
@@ -218,10 +236,11 @@ export async function indexAllCelebrityPhotos() {
 
   fs.writeFileSync(GALLERY_OUTPUT_FILE, JSON.stringify(shuffledCatalog, null, 2), 'utf8');
 
-  console.log('\n===========================================================');
+  console.log('\n================================================================');
   console.log(`[SUCCESS] Indexed ${totalIndexed} high-resolution photos across ${registry.length} actresses!`);
+  console.log(`Average: ${(totalIndexed / registry.length).toFixed(1)} photos per actress.`);
   console.log(`Updated: ${GALLERY_OUTPUT_FILE}`);
-  console.log('===========================================================');
+  console.log('================================================================');
   return shuffledCatalog;
 }
 
