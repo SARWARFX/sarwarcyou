@@ -659,6 +659,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           ref={imgRef}
           src={getMediaUrl(secureUrl)}
           alt={cleanTitle}
+          onError={(e) => {
+            // Hotlink / 403 protection: fall back to high-reliability thumbnail or unproxied source
+            if (currentItem?.thumbnail && e.currentTarget.src !== currentItem.thumbnail) {
+              e.currentTarget.src = currentItem.thumbnail;
+            }
+          }}
           onLoad={(e) => {
             setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
             if (e.currentTarget.offsetWidth > 0) {

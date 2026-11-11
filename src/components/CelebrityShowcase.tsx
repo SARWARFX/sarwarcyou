@@ -663,6 +663,14 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                       alt={item.title}
                       loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        // Resilient CDN fallback: if thumb or src fails, try the alternative URL
+                        if (item.src && e.currentTarget.src !== item.src) {
+                          e.currentTarget.src = item.src;
+                        } else if (item.thumb && e.currentTarget.src !== item.thumb) {
+                          e.currentTarget.src = item.thumb;
+                        }
+                      }}
                     />
 
                     {/* Ambient Top Vignette */}
