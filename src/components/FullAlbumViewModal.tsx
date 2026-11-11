@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ArrowLeft, Play, Image as ImageIcon, Film, Smartphone, Sparkles, Share2, Check, ArrowUpDown } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ArrowLeft, Play, Image as ImageIcon, Film, Smartphone, Sparkles, ArrowUpDown } from 'lucide-react';
 import type { StageMediaItem, SortOrder } from '../types';
 import { CyberCard } from './CyberCard';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -7,7 +7,7 @@ import { getMediaUrl } from '../utils/imageUrlResolver';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { sortMediaItems } from '../utils/albumExtractor';
-import { createShareableAlbumUrl, copyToClipboard } from '../utils/urlRouter';
+
 
 export type FullAlbumSubFilter = 'all' | 'photos' | 'clips' | 'shorts';
 
@@ -135,27 +135,13 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
   useLockBodyScroll(isOpen);
   const [subFilter, setSubFilter] = useState<FullAlbumSubFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
-  const [copied, setCopied] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const handleShareAlbum = useCallback(async () => {
-    const url = createShareableAlbumUrl(title);
-    const success = await copyToClipboard(url);
-    if (success) {
-      setCopied(true);
-      setToastMessage('Album link copied to clipboard!');
-      setTimeout(() => setCopied(false), 2200);
-      setTimeout(() => setToastMessage(null), 2500);
-    }
-  }, [title]);
 
   // Reset subfilter & sort when opening a new album
   useEffect(() => {
     if (isOpen) {
       setSubFilter('all');
       setSortOrder('newest');
-      setCopied(false);
-      setToastMessage(null);
     }
   }, [isOpen, title]);
 
@@ -264,7 +250,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
           </div>
         </div>
 
-        {/* Right: Sub-filter tabs & Subtle Share button (No redundant X close button) */}
+        {/* Right: Sub-filter tabs */}
         <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0 font-serif">
           {showFilters && (
             <div className="hidden sm:flex items-center gap-1 bg-white/[0.05] p-1 rounded-full border border-white/10 font-serif">
@@ -339,30 +325,6 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             </select>
           </div>
 
-          {/* Subtle Share / Copy Link Button */}
-          <button
-            type="button"
-            onClick={handleShareAlbum}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer text-xs font-serif font-normal hover:scale-105 active:scale-95 ${
-              copied
-                ? 'bg-neutral-800 text-white border-neutral-600'
-                : 'bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white border-white/15'
-            }`}
-            title="Share / Copy Link to this Album"
-            aria-label="Share album direct link"
-          >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-neutral-200" />
-                <span>COPIED</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5 text-neutral-200" />
-                <span className="hidden xs:inline">SHARE</span>
-              </>
-            )}
-          </button>
         </div>
       </header>
 
@@ -467,13 +429,6 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
         )}
       </main>
 
-      {/* Floating Success Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-5 py-2.5 rounded-full bg-black/90 backdrop-blur-2xl border border-white/20 text-white text-xs font-mono shadow-[0_12px_40px_rgba(0,0,0,0.85),0_0_20px_rgba(0,229,255,0.2)] animate-fade-in pointer-events-none">
-          <Check className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
     </div>
   );
 };

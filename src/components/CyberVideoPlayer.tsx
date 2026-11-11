@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Play,
   Pause,
@@ -14,7 +14,6 @@ import {
   Loader2,
   ChevronsLeft,
   ChevronsRight,
-  Share2,
   X,
   AlertTriangle,
   PictureInPicture2,
@@ -23,7 +22,6 @@ import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl, getDirectHfVideoUrl } from '../utils/imageUrlResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
@@ -80,7 +78,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
 
@@ -927,18 +924,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   };
 
-  // Handle Share / Copy Direct Link
-  const handleShareMedia = async () => {
-    if (!item) return;
-    const albumName = item.category || item.parentAlbum || '';
-    const shareUrl = createShareableMediaUrl(item, albumName);
-    const success = await copyToClipboard(shareUrl);
-    if (success) {
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 2200);
-    }
-  };
-
   // Handle A-B Loop Toggle (1st tap: Point A, 2nd tap: Point B & loop, 3rd tap: Clear)
   const handleToggleLoop = () => {
     const now = videoRef.current ? videoRef.current.currentTime : currentTime;
@@ -1056,32 +1041,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         )}
       </button>
 
-      {/* Top-Right Corner: Share Button & Web Close Action */}
+      {/* Top-Right Corner: Close Action */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         className={`pointer-events-auto fixed top-4 right-4 sm:top-6 sm:right-6 z-40 flex items-center gap-2 transition-all duration-300 ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        {/* Share Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleShareMedia();
-            resetHudTimer();
-          }}
-          className="p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all cursor-pointer"
-          title={shareSuccess ? 'Link Copied!' : 'Share Video'}
-          aria-label="Share Video"
-        >
-          {shareSuccess ? (
-            <Check className="w-5 h-5 text-emerald-400" />
-          ) : (
-            <Share2 className="w-5 h-5" />
-          )}
-        </button>
-
         {/* Close (✕) Action */}
         <button
           type="button"
@@ -1876,3 +1842,4 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 };
 
 export default CyberVideoPlayer;
+

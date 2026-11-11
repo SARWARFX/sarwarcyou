@@ -4,7 +4,6 @@ import {
   Download,
   Loader2,
   Check,
-  Share2,
   X,
   ChevronLeft,
   ChevronRight,
@@ -14,7 +13,7 @@ import { getMediaUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
-import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
+
 import { unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticMedium } from '../utils/hapticsManager';
@@ -55,7 +54,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
+
   const [showControls, setShowControls] = useState<boolean>(true);
   const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -625,16 +624,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     }
   }, [activeUrl, activeTitle, type, isDownloading]);
 
-  const handleSharePhoto = useCallback(async () => {
-    if (!currentItem) return;
-    const albumName = currentItem.category || currentItem.parentAlbum || '';
-    const shareUrl = createShareableMediaUrl(currentItem, albumName);
-    const success = await copyToClipboard(shareUrl);
-    if (success) {
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 2200);
-    }
-  }, [currentItem]);
 
   if (!isOpen || !activeUrl || typeof document === 'undefined') return null;
 
@@ -698,24 +687,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             goToPrev();
           }}
-          className={`hidden lg:flex fixed left-6 xl:left-12 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 group cursor-pointer transition-all duration-300 ${
-            showControls ? 'opacity-70 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
-          }`}
+          className="hidden lg:flex fixed left-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer"
+          style={{ width: 'calc((100vw - min(80vh * (4/3), 80vw)) / 2 - 8px)' }}
           title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
         >
-          <div className="relative w-28 xl:w-36 aspect-[3/4] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.35)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+          <div className="relative w-full h-[85vh] max-h-[85vh] mx-3 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
             <img
               src={prevPhotoItem.thumbnail || getMediaUrl(prevPhotoItem.url || prevPhotoItem.path || prevPhotoItem.id)}
               alt={prevPhotoItem.title || 'Previous photo'}
-              className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 transition-all duration-300"
+              className="w-full h-full object-cover brightness-50 group-hover:brightness-75 transition-all duration-300"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200 shadow-lg">
-                <ChevronLeft className="w-5 h-5 -ml-0.5" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronLeft className="w-7 h-7" />
               </div>
             </div>
-            <div className="absolute bottom-2 inset-x-2 text-center pointer-events-none">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1">
+            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
+              <span className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">
                 PREV
               </span>
             </div>
@@ -730,24 +718,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             goToNext();
           }}
-          className={`hidden lg:flex fixed right-6 xl:right-12 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 group cursor-pointer transition-all duration-300 ${
-            showControls ? 'opacity-70 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
-          }`}
+          className="hidden lg:flex fixed right-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer"
+          style={{ width: 'calc((100vw - min(80vh * (4/3), 80vw)) / 2 - 8px)' }}
           title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
         >
-          <div className="relative w-28 xl:w-36 aspect-[3/4] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.35)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+          <div className="relative w-full h-[85vh] max-h-[85vh] mx-3 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
             <img
               src={nextPhotoItem.thumbnail || getMediaUrl(nextPhotoItem.url || nextPhotoItem.path || nextPhotoItem.id)}
               alt={nextPhotoItem.title || 'Next photo'}
-              className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 transition-all duration-300"
+              className="w-full h-full object-cover brightness-50 group-hover:brightness-75 transition-all duration-300"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200 shadow-lg">
-                <ChevronRight className="w-5 h-5 -mr-0.5" />
+            <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronRight className="w-7 h-7" />
               </div>
             </div>
-            <div className="absolute bottom-2 inset-x-2 text-center pointer-events-none">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1">
+            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
+              <span className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">
                 NEXT
               </span>
             </div>
@@ -836,25 +823,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         )}
       </button>
 
-      {/* Floating Share Button at Bottom Right */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleSharePhoto();
-        }}
-        className={`pointer-events-auto fixed bottom-6 right-6 z-50 p-3.5 rounded-full bg-black/60 hover:bg-neutral-800 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all duration-300 cursor-pointer ${
-          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
-        }`}
-        title={shareSuccess ? 'Link Copied!' : 'Share Photo'}
-        aria-label="Share photo"
-      >
-        {shareSuccess ? (
-          <Check className="w-5 h-5 text-emerald-400" />
-        ) : (
-          <Share2 className="w-5 h-5" />
-        )}
-      </button>
     </div>,
     document.body
   );

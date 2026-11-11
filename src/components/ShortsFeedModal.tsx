@@ -1,10 +1,10 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Volume2, VolumeX, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronUp, ChevronDown } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { createShareableMediaUrl, copyToClipboard } from '../utils/urlRouter';
+
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight, hapticMedium } from '../utils/hapticsManager';
 
@@ -21,7 +21,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [overrides, setOverrides] = useState<Record<number, string>>({});
   const [failedPermanently, setFailedPermanently] = useState<Record<number, boolean>>({});
   const [landscapeMap, setLandscapeMap] = useState<Record<number, boolean>>({});
-  const [copiedLink, setCopiedLink] = useState(false);
+
   const [centerIcon, setCenterIcon] = useState<{ idx: number; type: 'play' | 'pause'; id: number } | null>(null);
   const [showControls, setShowControls] = useState(true);
 
@@ -41,6 +41,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const lastTouchTimeRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
+
+  // Desktop vs Mobile layout detection (lg: = 1024px)
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   // Gesture Engine Refs
   const isScrubbingRef = useRef(false);
@@ -277,13 +286,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
         if (e.cancelable) e.preventDefault();
-        slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
       }
-      if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft') {
         if (e.cancelable) e.preventDefault();
-        slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
       }
       if (e.key === 'm' || e.key === 'M') setIsMuted((prev) => !prev);
       if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
@@ -319,7 +328,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       containerRef.current.querySelector<HTMLElement>(`[data-index="${targetIdx}"]`) ||
       slideRefs.current[targetIdx];
     if (targetElement) {
-      targetElement.scrollIntoView({ behavior: 'instant', block: 'center' });
+      targetElement.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
     }
 
     videoRefs.current.forEach((v, i) => {
@@ -372,12 +381,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     return () => observer.disconnect();
   }, [isOpen, shorts.length, onIndexChange, isMuted]);
 
-  const handleShare = async () => {
-    const currentItem = shorts[activeIndex];
-    if (!currentItem) return;
-    const shareUrl = createShareableMediaUrl(currentItem, currentItem.category || 'shorts');
-    if (await copyToClipboard(shareUrl)) { setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); }
-  };
 
   if (!isOpen) return null;
   if (!shorts || shorts.length === 0) {
@@ -433,19 +436,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handleShare();
-            }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            className="w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700/80 flex items-center justify-center transition-all cursor-pointer active:scale-95"
-            title="Share Short"
-          >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
               onClose();
             }}
             onTouchStart={(e) => e.stopPropagation()}
@@ -465,32 +455,26 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             hapticLight();
             const prevIdx = activeIndex - 1;
-            slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed left-6 xl:left-10 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-1.5 group cursor-pointer transition-all duration-300 pointer-events-auto ${
-            showControls ? 'opacity-80 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
-          }`}
+          className="hidden lg:flex fixed left-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
+          style={{ width: 'calc((100vw - min(56vh * (9/16), 480px)) / 2 - 8px)' }}
           title={shorts[activeIndex - 1]?.title || 'Previous Short'}
         >
-          {/* Up chevron pill */}
-          <div className="w-8 h-8 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/70 transition-all duration-200 shadow-lg">
-            <ChevronUp className="w-4 h-4" />
-          </div>
-          {/* 9:16 thumbnail card */}
-          <div className="relative w-24 xl:w-28 aspect-[9/16] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.4)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+          <div className="relative w-full h-[88vh] max-h-[88vh] mx-2 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
             <img
               src={getThumbnailUrl(shorts[activeIndex - 1]) || (shorts[activeIndex - 1]?.thumbnail ? getMediaUrl(shorts[activeIndex - 1].thumbnail!) : '')}
               alt={shorts[activeIndex - 1]?.title || 'Previous short'}
-              className="w-full h-full object-cover brightness-75 group-hover:brightness-100 transition-all duration-300"
+              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.6] transition-all duration-300"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-center">
-              <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200">
-                <Play className="w-4 h-4 fill-current ml-0.5" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-transparent flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronUp className="w-7 h-7" />
               </div>
             </div>
-            <div className="absolute bottom-0 inset-x-0 p-2 pointer-events-none">
-              <p className="text-[9px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1 text-center">PREV</p>
-              <p className="text-[8px] text-neutral-400 line-clamp-1 text-center mt-0.5">{shorts[activeIndex - 1]?.title || ''}</p>
+            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
+              <p className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">PREV</p>
+              <p className="text-[10px] text-neutral-500 line-clamp-1 mt-0.5 px-3">{shorts[activeIndex - 1]?.title || ''}</p>
             </div>
           </div>
         </div>
@@ -503,40 +487,37 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             hapticLight();
             const nextIdx = activeIndex + 1;
-            slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed right-6 xl:right-10 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-1.5 group cursor-pointer transition-all duration-300 pointer-events-auto ${
-            showControls ? 'opacity-80 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
-          }`}
+          className="hidden lg:flex fixed right-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
+          style={{ width: 'calc((100vw - min(56vh * (9/16), 480px)) / 2 - 8px)' }}
           title={shorts[activeIndex + 1]?.title || 'Next Short'}
         >
-          {/* 9:16 thumbnail card */}
-          <div className="relative w-24 xl:w-28 aspect-[9/16] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.4)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+          <div className="relative w-full h-[88vh] max-h-[88vh] mx-2 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
             <img
               src={getThumbnailUrl(shorts[activeIndex + 1]) || (shorts[activeIndex + 1]?.thumbnail ? getMediaUrl(shorts[activeIndex + 1].thumbnail!) : '')}
               alt={shorts[activeIndex + 1]?.title || 'Next short'}
-              className="w-full h-full object-cover brightness-75 group-hover:brightness-100 transition-all duration-300"
+              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.6] transition-all duration-300"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-center">
-              <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200">
-                <Play className="w-4 h-4 fill-current ml-0.5" />
+            <div className="absolute inset-0 bg-gradient-to-l from-black/50 via-transparent to-transparent flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronDown className="w-7 h-7" />
               </div>
             </div>
-            <div className="absolute bottom-0 inset-x-0 p-2 pointer-events-none">
-              <p className="text-[9px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1 text-center">NEXT</p>
-              <p className="text-[8px] text-neutral-400 line-clamp-1 text-center mt-0.5">{shorts[activeIndex + 1]?.title || ''}</p>
+            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
+              <p className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">NEXT</p>
+              <p className="text-[10px] text-neutral-500 line-clamp-1 mt-0.5 px-3">{shorts[activeIndex + 1]?.title || ''}</p>
             </div>
-          </div>
-          {/* Down chevron pill */}
-          <div className="w-8 h-8 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/70 transition-all duration-200 shadow-lg">
-            <ChevronDown className="w-4 h-4" />
           </div>
         </div>
       )}
-      {/* Pure Native CSS Scroll-Snap Feed Container */}
+      {/* Scroll-Snap Feed Container: Vertical on mobile, Horizontal on desktop */}
       <div
         ref={containerRef}
-        className="w-full h-full overflow-y-scroll snap-y snap-mandatory scroll-smooth overscroll-y-contain flex flex-col items-center no-scrollbar"
+        className={isDesktop
+          ? "w-full h-full overflow-x-scroll overflow-y-hidden snap-x snap-mandatory scroll-smooth overscroll-x-contain flex flex-row items-center no-scrollbar"
+          : "w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth overscroll-y-contain flex flex-col items-center no-scrollbar"
+        }
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {shorts.map((item, idx) => {
@@ -551,7 +532,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               ref={(el) => { slideRefs.current[idx] = el; }}
               data-index={idx}
               data-reel-index={idx}
-              className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent"
+              className={isDesktop
+                ? "w-screen h-full shrink-0 snap-start snap-always relative flex items-center justify-center p-4 bg-transparent"
+                : "w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent"
+              }
             >
               <div
                 onPointerDown={(e) => handleVideoPointerDown(e, idx)}
