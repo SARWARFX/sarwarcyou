@@ -4,21 +4,16 @@ import {
   Tag,
   Image as ImageIcon,
   Newspaper,
-  Film,
-  Play,
   Loader2,
 } from 'lucide-react';
 import celebrityData from '../data/celebrityGallery.json';
 import celebrityNewsData from '../data/celebrityNews.json';
-import latestMusicReleasesData from '../data/latestMusicReleases.json';
 import actressesRegistryData from '../data/actressesRegistry.json';
-import type { StageMediaItem, AlbumData } from '../types';
+import type { StageMediaItem } from '../types';
 import { MediaModal } from './MediaModal';
-import { YouTubeTheaterModal } from './YouTubeTheaterModal';
 import { hapticMedium } from '../utils/hapticsManager';
 import { CelebrityNewsPaper } from './CelebrityNewsPaper';
 import { trackActivityEvent } from '../utils/usageTelemetry';
-import { useBackButton } from '../utils/backButtonManager';
 
 export interface CelebrityItem {
   id: string;
@@ -46,14 +41,12 @@ export interface CelebrityNewsItem {
 export interface CelebrityShowcaseProps {
   onOpenPhoto?: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
   className?: string;
-  initialTab?: 'PORTRAITS' | 'DISPATCHES' | 'REELS';
+  initialTab?: 'PORTRAITS' | 'DISPATCHES';
   initialFilter?: string;
-  initialVideoId?: string | null;
   hideViewTabs?: boolean;
   subfolderBar?: React.ReactNode;
-  onTabChange?: (tab: 'PORTRAITS' | 'DISPATCHES' | 'REELS') => void;
+  onTabChange?: (tab: 'PORTRAITS' | 'DISPATCHES') => void;
   onFilterChange?: (filter: string) => void;
-  onVideoChange?: (videoId: string | null) => void;
 }
 
 export const REGION_TABS = [
@@ -85,18 +78,16 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   className = '',
   initialTab,
   initialFilter,
-  initialVideoId,
   hideViewTabs = false,
   subfolderBar,
   onTabChange,
   onFilterChange,
-  onVideoChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>(initialTab || 'PORTRAITS');
+  const [activeTab, setActiveTab] = useState<'PORTRAITS' | 'DISPATCHES'>(initialTab || 'PORTRAITS');
   const [showcaseDirection, setShowcaseDirection] = useState<'right' | 'left'>('right');
-  const SHOWCASE_TABS = useMemo(() => ['PORTRAITS', 'DISPATCHES', 'REELS'], []);
+  const SHOWCASE_TABS = useMemo(() => ['PORTRAITS', 'DISPATCHES'], []);
 
-  const switchShowcaseTab = useCallback((newTab: 'PORTRAITS' | 'DISPATCHES' | 'REELS') => {
+  const switchShowcaseTab = useCallback((newTab: 'PORTRAITS' | 'DISPATCHES') => {
     if (activeTab === newTab) return;
     const oldIdx = SHOWCASE_TABS.indexOf(activeTab);
     const newIdx = SHOWCASE_TABS.indexOf(newTab);
@@ -184,9 +175,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     activeItem: null,
   });
 
-  const [isTheaterOpen, setIsTheaterOpen] = useState(false);
-  const [theaterIndex, setTheaterIndex] = useState(0);
-
   // Auto-hide horizontal filter scrollbar (visible only while scrolling)
   const [isFilterScrolling, setIsFilterScrolling] = useState(false);
   const filterScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -208,98 +196,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
       }
     };
   }, []);
-
-  // Map latestMusicReleases to StageMediaItem[]
-  const cinemaReelItems: StageMediaItem[] = useMemo(() => {
-    return (latestMusicReleasesData as Array<{
-      id: string;
-      title: string;
-      actress: string;
-      channel: string;
-      publishedAt: string;
-      thumbnail: string;
-    }>).map((rel) => ({
-      id: rel.id,
-      title: rel.title,
-      name: `${rel.title} - ${rel.actress}`,
-      url: `https://www.youtube-nocookie.com/embed/${rel.id}`,
-      thumbnail: rel.thumbnail,
-      category: 'CINEMA REELS',
-      type: 'video' as const,
-      mediaType: 'clip' as const,
-      parentAlbum: 'CINEMA REELS',
-      poster: rel.thumbnail,
-      posterUrl: rel.thumbnail,
-      date: new Date(rel.publishedAt).getTime(),
-      actress: rel.actress,
-      channel: rel.channel,
-      publishedAt: rel.publishedAt,
-    } as StageMediaItem & { actress?: string; channel?: string; publishedAt?: string }));
-  }, []);
-
-  // Filter cinema reels by activeFilter (actress or 'ALL') and selectedRegion
-  const filteredCinemaReels = useMemo(() => {
-    let list = cinemaReelItems;
-    if (activeFilter !== 'ALL') {
-      const filter = activeFilter.toLowerCase();
-      list = list.filter((item: any) => {
-        const act = (item.actress || '').toLowerCase();
-        return act.includes(filter) || filter.includes(act);
-      });
-    } else if (regionalActressNames) {
-      list = list.filter((item: any) => {
-        const act = (item.actress || '').toLowerCase();
-        return regionalActressNames.has(act);
-      });
-    }
-    return list;
-  }, [cinemaReelItems, activeFilter, regionalActressNames]);
-
-  const cinemaReelsAlbum: AlbumData = useMemo(() => ({
-    id: 'cinema-reels-archive',
-    index: 0,
-    name: 'CINEMA REELS',
-    type: 'video' as const,
-    itemCount: filteredCinemaReels.length,
-    items: filteredCinemaReels,
-    layoutType: 'grid-wall' as const,
-    subtitle: 'Verified Actress Music Releases',
-  }), [filteredCinemaReels]);
-
-  const handleOpenCinemaReel = useCallback((index: number) => {
-    hapticMedium();
-    trackActivityEvent(1);
-    setTheaterIndex(index);
-    setIsTheaterOpen(true);
-    const videoItem = filteredCinemaReels[index];
-    if (videoItem) {
-      onVideoChange?.(videoItem.id);
-    }
-  }, [filteredCinemaReels, onVideoChange]);
-
-  const handleCloseTheater = useCallback(() => {
-    setIsTheaterOpen(false);
-    onVideoChange?.(null);
-  }, [onVideoChange]);
-
-  useEffect(() => {
-    if (!initialVideoId) return;
-    const idx = cinemaReelItems.findIndex((it) => it.id === initialVideoId);
-    if (idx !== -1) {
-      setTheaterIndex(idx);
-      setIsTheaterOpen(true);
-    }
-  }, [initialVideoId, cinemaReelItems]);
-
-  useBackButton(
-    useCallback(() => {
-      if (isTheaterOpen) {
-        handleCloseTheater();
-        return true;
-      }
-      return false;
-    }, [isTheaterOpen, handleCloseTheater])
-  );
 
   // 1. Scroll Controller with Dynamic Height Measurement & Direction Hysteresis
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -569,22 +465,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                   <Newspaper className="w-3.5 h-3.5" />
                   <span>NEWS</span>
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    switchShowcaseTab('REELS');
-                  }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-mono font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-                    activeTab === 'REELS'
-                      ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  <Film className="w-3.5 h-3.5" />
-                  <span>LATEST VIDEOS</span>
-                </button>
               </div>
             </div>
           ) : null}
@@ -799,7 +679,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 </div>
               ) : null}
             </div>
-          ) : activeTab === 'DISPATCHES' ? (
+          ) : (
             /* BROADSHEET NEWSPAPER EDITORIAL SECTION */
             <div key="dispatches-section" className={showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}>
               <CelebrityNewsPaper
@@ -808,122 +688,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 activeFilter={activeFilter}
               />
             </div>
-          ) : (
-            /* CINEMA REELS VIEW */
-            filteredCinemaReels.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[35vh] text-white/60">
-                <Film className="w-10 h-10 text-white/30 mb-3" />
-                <p className="text-white/80 text-sm font-semibold tracking-wider uppercase mb-1">
-                  No Cinema Reels Found for {activeFilter}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleSelectFilter('ALL')}
-                  className="mt-3 px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-mono tracking-wider uppercase transition-all cursor-pointer"
-                >
-                  Show All Releases
-                </button>
-              </div>
-            ) : (
-              <div key={`reels-${activeFilter}`} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch ${showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
-                {filteredCinemaReels.map((item, idx) => {
-                  const itemAny = item as any;
-                  const formattedDate = itemAny.publishedAt
-                    ? new Date(itemAny.publishedAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : '';
-
-                  const channelBadgeClass =
-                    itemAny.channel === 'T-Series'
-                      ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                      : itemAny.channel === 'Zee Music Company'
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                      : itemAny.channel === 'Sony Music India'
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                      : itemAny.channel === 'YRF'
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                      : 'bg-white/10 text-white/90 border-white/20';
-
-                  return (
-                    <div
-                      key={item.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleOpenCinemaReel(idx)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleOpenCinemaReel(idx);
-                        }
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
-                      className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade cursor-pointer flex flex-col justify-between aspect-video select-none"
-                    >
-                      {/* Background Image Loading Shimmer Layer */}
-                      <div
-                        className="absolute inset-0 w-full h-full animate-laser-shimmer pointer-events-none opacity-35 z-0"
-                        style={{
-                          background:
-                            'linear-gradient(90deg, transparent 0%, rgba(204,255,0,0.02) 25%, rgba(204,255,0,0.14) 50%, rgba(255,255,255,0.08) 53%, rgba(204,255,0,0.02) 75%, transparent 100%)',
-                        }}
-                      />
-
-                      {/* 16:9 Thumbnail Cover with Auto Fallback */}
-                      <img
-                        src={item.thumbnail}
-                        alt={item.title}
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          if (target.src.includes('maxresdefault.jpg')) {
-                            target.src = target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
-                          } else {
-                            const found = (actressesRegistryData as any[]).find((a) => a.name === itemAny.actress);
-                            if (found?.avatar) {
-                              target.src = found.avatar;
-                            }
-                          }
-                        }}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-
-                      {/* Ambient Obsidian Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#09090b]/95 via-[#09090b]/30 to-transparent pointer-events-none" />
-
-                      {/* Top Right Record Label Badge */}
-                      <div className="absolute top-2.5 right-2.5 z-10">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase backdrop-blur-md border shadow-md ${channelBadgeClass}`}>
-                          {itemAny.channel || 'OFFICIAL'}
-                        </span>
-                      </div>
-
-                      {/* Center Hover Play Icon */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                        <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.6)] group-hover:scale-110 transition-transform">
-                          <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
-                        </div>
-                      </div>
-
-                      {/* Bottom Metadata Bar */}
-                      <div className="relative z-10 p-3.5 mt-auto flex flex-col gap-1 pointer-events-none">
-                        <h3 className="font-['Roboto_Condensed'] font-bold text-sm sm:text-base text-white group-hover:text-[#ccff00] transition-colors line-clamp-1">
-                          {item.title}
-                        </h3>
-                        <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
-                          <span className="text-zinc-300 font-medium group-hover:text-white transition-colors">
-                            {itemAny.actress}
-                          </span>
-                          <span>{formattedDate}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
           )}
         </main>
       </div>
@@ -952,20 +716,6 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
           }}
         />
       )}
-
-      {/* In-App Native YouTube Theater Modal for Cinema Reels */}
-      <YouTubeTheaterModal
-        isOpen={isTheaterOpen}
-        onClose={handleCloseTheater}
-        album={cinemaReelsAlbum}
-        allAlbums={[cinemaReelsAlbum]}
-        initialIndex={theaterIndex}
-        title={filteredCinemaReels[theaterIndex]?.title}
-        onIndexChange={(newIdx) => {
-          setTheaterIndex(newIdx);
-          onVideoChange?.(filteredCinemaReels[newIdx]?.id || null);
-        }}
-      />
     </div>
   );
 };

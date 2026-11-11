@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Play, Folder, Music2, Film, CheckCircle2 } from 'lucide-react';
+import { Play, Folder, Film } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -16,9 +16,6 @@ import { CelebrityShowcase } from '../CelebrityShowcase';
 import { ClassicShowcase } from '../ClassicShowcase';
 import { MusicShowcase } from '../MusicShowcase';
 import { VaultDrawer } from '../VaultDrawer';
-import { CelebrityReelPlayerModal, type CelebrityReelItem } from '../CelebrityReelPlayerModal';
-import celebrityReelsData from '../../data/celebrityReels.json';
-import actressesRegistryData from '../../data/actressesRegistry.json';
 import { hapticMedium } from '../../utils/hapticsManager';
 import { trackActivityEvent } from '../../utils/usageTelemetry';
 import {
@@ -114,8 +111,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   });
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(initialRoute.subfolder);
   const [activeCelebrityFilter, setActiveCelebrityFilter] = useState<string>(initialRoute.celebrityStar || 'ALL');
-  const [activeCelebrityTab, setActiveCelebrityTab] = useState<'PORTRAITS' | 'DISPATCHES' | 'REELS'>(
-    initialRoute.celebrityTab || 'PORTRAITS'
+  const [activeCelebrityTab, setActiveCelebrityTab] = useState<'PORTRAITS' | 'DISPATCHES'>(
+    (initialRoute.celebrityTab as any) === 'DISPATCHES' ? 'DISPATCHES' : 'PORTRAITS'
   );
   const [activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
 
@@ -173,7 +170,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setActiveCelebrityFilter('ALL');
       }
       if (route.celebrityTab) {
-        setActiveCelebrityTab(route.celebrityTab);
+        setActiveCelebrityTab((route.celebrityTab as any) === 'DISPATCHES' ? 'DISPATCHES' : 'PORTRAITS');
       } else if (cat === 'NEWS') {
         setActiveCelebrityTab('DISPATCHES');
       }
@@ -196,82 +193,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   // Concealed Option A Terminal Drawer State
   const [isVaultDrawerOpen, setVaultDrawerOpen] = useState(false);
-
-  // Celebrity Reels Engine (250 Verified 9:16 Vertical Video Reels across 50 Actresses)
-  const [selectedReelRegion, setSelectedReelRegion] = useState<string>('ALL');
-  const [selectedReelStar, setSelectedReelStar] = useState<string>('ALL');
-  const [isReelPlayerOpen, setIsReelPlayerOpen] = useState(false);
-  const [activeReelIndex, setActiveReelIndex] = useState(0);
-
-  const REEL_REGION_TABS = useMemo(
-    () => [
-      { id: 'ALL', label: 'ALL', count: 50 },
-      { id: 'BANGLADESH', label: 'BANGLADESH', count: 12 },
-      { id: 'BOLLYWOOD', label: 'BOLLYWOOD', count: 12 },
-      { id: 'SOUTH_INDIA', label: 'SOUTH INDIA', count: 13 },
-      { id: 'PAKISTAN', label: 'PAKISTAN', count: 9 },
-      { id: 'BHOJPURI', label: 'BHOJPURI', count: 4 },
-    ],
-    []
-  );
-
-  const visibleReelActresses = useMemo(() => {
-    const list = actressesRegistryData as Array<{
-      id: string;
-      slug: string;
-      name: string;
-      label: string;
-      region: string;
-      avatar: string;
-      country: string;
-    }>;
-    if (selectedReelRegion === 'ALL') return list;
-    return list.filter((a) => a.region === selectedReelRegion);
-  }, [selectedReelRegion]);
-
-  const filteredReels = useMemo(() => {
-    let list = celebrityReelsData as CelebrityReelItem[];
-    if (selectedReelRegion !== 'ALL') {
-      list = list.filter((r) => r.region === selectedReelRegion);
-    }
-    if (selectedReelStar !== 'ALL') {
-      const starLower = selectedReelStar.toLowerCase();
-      list = list.filter(
-        (r) =>
-          r.actressName.toLowerCase() === starLower ||
-          r.actressId === starLower ||
-          r.actressSlug === starLower
-      );
-    }
-    return list;
-  }, [selectedReelRegion, selectedReelStar]);
-
-  const handleOpenCelebrityReel = useCallback(
-    (index: number) => {
-      hapticMedium();
-      trackActivityEvent(1);
-      setActiveReelIndex(index);
-      setIsReelPlayerOpen(true);
-      const reel = filteredReels[index];
-      if (reel) {
-        setActiveVideoId(reel.id);
-        updateRoute({ videoId: reel.id });
-      }
-    },
-    [filteredReels, updateRoute]
-  );
-
-  // Auto-open reel from deep link (?id=reels&v=reel-...)
-  useEffect(() => {
-    if (initialRoute.category === 'YOUTUBE' && initialRoute.videoId) {
-      const allReels = celebrityReelsData as CelebrityReelItem[];
-      const rIdx = allReels.findIndex((r) => r.id === initialRoute.videoId);
-      if (rIdx !== -1) {
-        setActiveReelIndex(rIdx);
-        setIsReelPlayerOpen(true);
-      }
-    }
-  }, [initialRoute]);
 
   // Group media into hierarchical directory nodes
   const rootMap = useMemo(() => {
@@ -327,8 +248,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     };
 
-    ensureSubfolders('Clips', ['Official Releases', 'H2027', 'H2026', 'H2025', 'Favorite', 'REALTube Broadcasts', 'Others']);
-    ensureSubfolders('Shorts', ['Celebrity Reels', 'Shorts Classic', 'REALTube Shorts']);
+    ensureSubfolders('Clips', ['H2027', 'H2026', 'H2025', 'Favorite', 'REALTube Broadcasts', 'Others']);
+    ensureSubfolders('Shorts', ['Shorts 2027', 'Shorts Classic', 'REALTube Shorts']);
     ensureSubfolders('Images', ['Celebrity Portraits', 'H2026', 'H2025', 'Bandhobis', 'Works', 'Classic', 'REALTube Photos']);
 
     // Sort files descending
@@ -369,17 +290,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const hasAutoLaunchedRef = useRef(false);
   useEffect(() => {
     if (hasAutoLaunchedRef.current) return;
-
-    if (initialRoute.videoId) {
-      const allReels = celebrityReelsData as CelebrityReelItem[];
-      const reelIdx = allReels.findIndex((r) => r.id === initialRoute.videoId);
-      if (reelIdx !== -1) {
-        hasAutoLaunchedRef.current = true;
-        setActiveReelIndex(reelIdx);
-        setIsReelPlayerOpen(true);
-        return;
-      }
-    }
 
     if (initialRoute.mediaId && items.length > 0) {
       const matched = items.find(
@@ -633,7 +543,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     setActiveCelebrityFilter('ALL');
     setActiveCelebrityTab('DISPATCHES');
     setActiveVideoId(null);
-    setIsReelPlayerOpen(false);
     setActiveTransitionClass('animate-kinetic-slide-left');
     updateRoute({ category: 'NEWS', subfolder: null, videoId: null, mediaId: null, celebrityStar: null });
     setVaultDrawerOpen(false);
@@ -649,13 +558,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   useEffect(() => {
     // If any modal, player, or drawer is active, pause rolling
-    if (isModalOpen || isReelPlayerOpen || isVaultDrawerOpen || isAutoTourPaused) {
+    if (isModalOpen || isVaultDrawerOpen || isAutoTourPaused) {
       setIdleTourProgress(0);
       return;
     }
 
     const interval = setInterval(() => {
-      if (isModalOpen || isReelPlayerOpen || isVaultDrawerOpen || isAutoTourPaused) {
+      if (isModalOpen || isVaultDrawerOpen || isAutoTourPaused) {
         setIdleTourProgress(0);
         return;
       }
@@ -690,7 +599,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return () => clearInterval(interval);
   }, [
     isModalOpen,
-    isReelPlayerOpen,
     isVaultDrawerOpen,
     isAutoTourPaused,
     MAIN_TAB_ORDER,
@@ -706,14 +614,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Android Native Hardware Back Button handler (stepped 2-tier back navigation)
   useBackButton(
     useCallback(() => {
-      // 0. If Celebrity Reel Player modal is open, close it
-      if (isReelPlayerOpen) {
-        setIsReelPlayerOpen(false);
-        setActiveVideoId(null);
-        updateRoute({ videoId: null });
-        return true;
-      }
-
       // 1. If concealed terminal drawer is open, close it
       if (isVaultDrawerOpen) {
         setVaultDrawerOpen(false);
@@ -733,7 +633,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
 
       return false;
-    }, [isReelPlayerOpen, isVaultDrawerOpen, selectedSubfolder, selectedCategory, handleReturnToCategory, handleExitToHome, updateRoute])
+    }, [isVaultDrawerOpen, selectedSubfolder, selectedCategory, handleReturnToCategory, handleExitToHome, updateRoute])
   );
 
   const renderCategorySubfolderBar = (category: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY', compact = false) => {
@@ -744,28 +644,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const knownShorts = ['Shorts 2027', 'Shorts Classic', 'REALTube Shorts'];
       const allSubs = Array.from(new Set([...knownShorts, ...catalogSubs]));
 
-      subOptions = [
-        { name: 'Celebrity Reels', count: 50, isCelebrity: true },
-        ...allSubs.map((s) => ({
-          name: s,
-          count: shortsNode?.subfolders.get(s)?.files.length || 0,
-        })),
-      ];
+      subOptions = allSubs.map((s) => ({
+        name: s,
+        count: shortsNode?.subfolders.get(s)?.files.length || 0,
+      }));
     } else if (category === 'CLIPS') {
       const clipsNode = rootMap.get('Clips');
       const catalogSubs = clipsNode ? Array.from(clipsNode.subfolders.keys()).filter((s) => s !== 'Official Releases') : [];
-      subOptions = [
-        { name: 'Official Releases', count: 20, isCelebrity: true },
-        ...catalogSubs.map((s) => ({
-          name: s,
-          count: clipsNode?.subfolders.get(s)?.files.length || 0,
-        })),
-      ];
+      const knownClips = ['H2027', 'H2026', 'H2025', 'Favorite', 'REALTube Broadcasts', 'Others'];
+      const allSubs = Array.from(new Set([...knownClips, ...catalogSubs]));
+
+      subOptions = allSubs.map((s) => ({
+        name: s,
+        count: clipsNode?.subfolders.get(s)?.files.length || 0,
+      }));
     } else if (category === 'PHOTOGRAPHY') {
       const imagesNode = rootMap.get('Images');
       const catalogSubs = imagesNode ? Array.from(imagesNode.subfolders.keys()).filter((s) => s !== 'Celebrity Portraits') : [];
       subOptions = [
-        { name: 'Celebrity Portraits', count: 255, isCelebrity: true },
+        { name: 'Celebrity Portraits', count: 1500, isCelebrity: true },
         ...catalogSubs.map((s) => ({
           name: s,
           count: imagesNode?.subfolders.get(s)?.files.length || 0,
@@ -1025,7 +922,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               initialTab="DISPATCHES"
               hideViewTabs={true}
               initialFilter={activeCelebrityFilter}
-              initialVideoId={activeVideoId}
               onTabChange={(tab) => {
                 setActiveCelebrityTab(tab);
                 updateRoute({ celebrityTab: tab });
@@ -1033,10 +929,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               onFilterChange={(filter) => {
                 setActiveCelebrityFilter(filter);
                 updateRoute({ celebrityStar: filter });
-              }}
-              onVideoChange={(videoId) => {
-                setActiveVideoId(videoId);
-                updateRoute({ videoId });
               }}
             />
           </div>
@@ -1052,241 +944,64 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           } ${activeTransitionClass}`}
         >
-          {selectedSubfolder === null || selectedSubfolder === 'Celebrity Reels' ? (
-            <>
-              {/* Header Bar */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10 shrink-0">
-                <div className="flex flex-wrap items-center gap-3 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Music2 className="w-5 h-5 text-[#ccff00]" />
-                    <span className="font-['Space_Grotesk'] font-black text-lg sm:text-xl tracking-wider uppercase text-white">
-                      CELEBRITY REELS
-                    </span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-[#ccff00]/15 border border-[#ccff00]/30 text-xs font-mono font-bold text-[#ccff00]">
-                    9:16 VERTICAL STREAM
-                  </span>
-                  <span className="text-xs font-mono text-neutral-400">
-                    ({filteredReels.length} verified reels)
-                  </span>
-                </div>
-
-                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
-                  {renderCategorySubfolderBar('SHORTS', true)}
-                </div>
+          {/* Header Bar for Catalog Subfolder */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
+              <Film className="w-5 h-5 text-[#ccff00]" />
+              <div>
+                <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
+                  {selectedSubfolder || 'Shorts 2027'}
+                </h1>
+                <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
+                  Archived Shorts Stream • {activeMediaList.length} Items Indexed
+                </p>
               </div>
+            </div>
+            <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+              {renderCategorySubfolderBar('SHORTS', true)}
+            </div>
+          </div>
 
-              {/* 2-Tier Navigation Engine: Guaranteed Flex-Col Separation */}
-              <div className="w-full flex flex-col gap-3 py-2 mb-6 border-b border-white/[0.08] shrink-0">
-                {/* Tier 1 Region Filter Pills */}
-                <div className="w-full flex items-center gap-2 overflow-x-auto autohide-scrollbar py-1 shrink-0">
-                  {REEL_REGION_TABS.map((tab) => {
-                    const isActive = selectedReelRegion === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => {
-                          hapticMedium();
-                          setSelectedReelRegion(tab.id);
-                          if (selectedReelStar !== 'ALL') {
-                            const found = (actressesRegistryData as Array<{ id: string; region: string }>).find(
-                              (a) => a.id === selectedReelStar
-                            );
-                            if (tab.id !== 'ALL' && (!found || found.region !== tab.id)) {
-                              setSelectedReelStar('ALL');
-                            }
-                          }
-                        }}
-                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-                          isActive
-                            ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                            : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
-                        }`}
-                      >
-                        <span>{tab.label}</span>
-                        <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                            isActive ? 'bg-black text-[#ccff00] font-black' : 'bg-white/10 text-neutral-400'
-                          }`}
-                        >
-                          {tab.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Tier 2 Actress Filter Chips */}
-                <div className="w-full flex items-center gap-2 overflow-x-auto autohide-scrollbar py-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      hapticMedium();
-                      setSelectedReelStar('ALL');
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-                      selectedReelStar === 'ALL'
-                        ? 'bg-white text-black font-black border-white shadow-md'
-                        : 'bg-white/[0.02] text-neutral-400 border-white/10 hover:text-white'
-                    }`}
-                  >
-                    <span>ALL ACTRESSES ({visibleReelActresses.length})</span>
-                  </button>
-
-                  {visibleReelActresses.map((actress) => {
-                    const isActive = selectedReelStar === actress.id || selectedReelStar === actress.name;
-                    return (
-                      <button
-                        key={actress.id}
-                        type="button"
-                        onClick={() => {
-                          hapticMedium();
-                          setSelectedReelStar(actress.id);
-                        }}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-mono tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
-                          isActive
-                            ? 'bg-[#ccff00] text-black font-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                            : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:text-white'
-                        }`}
-                      >
-                        <img
-                          src={actress.avatar}
-                          alt={actress.name}
-                          loading="lazy"
-                          className="w-4 h-4 rounded-full object-cover shrink-0"
-                        />
-                        <span>{actress.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* Subfolder Media Grid (Shorts 2027, Shorts Classic, REALTube Shorts) */}
+          {activeMediaList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-16 text-center my-auto min-h-[40vh] border border-white/5 rounded-2xl bg-[#08080a]">
+              <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mb-3">
+                <Folder className="w-6 h-6" />
               </div>
-
-          {/* 9:16 Vertical Reels Grid Wall */}
-          <div
-            key={`${selectedReelRegion}-${selectedReelStar}`}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-5 pb-24 animate-fade-in"
-          >
-            {filteredReels.map((reel, idx) => {
-              return (
+              <p className="font-['Space_Grotesk',sans-serif] text-white text-base font-bold uppercase tracking-wider mb-1">
+                No Shorts in this Collection
+              </p>
+              <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
+                INDEX READY // SCAN COMPLETE
+              </span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-20">
+              {activeMediaList.map((item, idx) => (
                 <div
-                  key={reel.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleOpenCelebrityReel(idx)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleOpenCelebrityReel(idx);
-                    }
-                  }}
-                  style={{ animationDelay: `${Math.min(idx * 20, 240)}ms` }}
-                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] shadow-[0_12px_35px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_45px_rgba(204,255,0,0.18)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] cursor-pointer flex flex-col select-none aspect-[9/16]"
+                  key={item.id}
+                  onClick={() => handleOpenItem(item, idx)}
+                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {/* Poster Image */}
                   <img
-                    src={reel.thumbnail}
-                    alt={reel.title}
+                    src={item.thumbnail || item.url}
+                    alt={item.title || item.name}
                     loading="lazy"
-                    className="w-full h-full object-cover object-[center_top] transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   />
-
-                  {/* Gradient Scrim */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent pointer-events-none" />
-
-                  {/* Top Floating Tags */}
-                  <div className="absolute top-2.5 inset-x-2.5 z-10 flex items-center justify-between pointer-events-none">
-                    {/* Sound Equalizer Bars */}
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md border border-white/15">
-                      <span className="w-0.5 h-2.5 bg-[#ccff00] rounded animate-pulse" />
-                      <span className="w-0.5 h-3 bg-[#ccff00] rounded animate-pulse delay-75" />
-                      <span className="w-0.5 h-2 bg-[#ccff00] rounded animate-pulse delay-150" />
-                    </div>
-
-                    <span className="px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[9px] font-mono font-bold text-neutral-200 uppercase tracking-wider">
-                      {reel.views}
-                    </span>
-                  </div>
-
-                  {/* Hover Center Play Button */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                    <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
                       <Play className="w-5 h-5 fill-current ml-0.5" />
                     </div>
                   </div>
-
-                  {/* Bottom Caption & Actress Info */}
-                  <div className="absolute bottom-0 inset-x-0 p-3 z-10 flex flex-col gap-1.5 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-['Space_Grotesk'] font-bold text-xs text-white truncate">
-                        {reel.actressName}
-                      </span>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#ccff00] shrink-0 fill-[#ccff00]/20" />
-                    </div>
-
-                    <h3 className="font-sans text-[11px] font-normal text-neutral-200 line-clamp-2 leading-tight group-hover:text-white transition-colors">
-                      {reel.title}
-                    </h3>
-
-                    <div className="flex items-center gap-1 text-[10px] font-mono text-neutral-400 truncate pt-1 border-t border-white/10">
-                      <Music2 className="w-3 h-3 text-[#ccff00] shrink-0" />
-                      <span className="truncate">{reel.sound}</span>
-                    </div>
+                  <div className="absolute bottom-0 inset-x-0 p-3">
+                    <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
+                    <span className="text-[10px] font-mono text-[#ccff00]">{selectedSubfolder || 'Shorts 2027'}</span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-            </>
-          ) : (
-            <>
-              {/* Header Bar for Catalog Subfolder */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-3 shrink-0">
-                  <Film className="w-5 h-5 text-[#ccff00]" />
-                  <div>
-                    <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                      {selectedSubfolder}
-                    </h1>
-                    <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
-                      Archived Shorts Stream • {activeMediaList.length} Items Indexed
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
-                  {renderCategorySubfolderBar('SHORTS', true)}
-                </div>
-              </div>
-
-              {/* Subfolder Media Grid (Shorts Classic or REALTube Shorts) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-20">
-                {activeMediaList.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleOpenItem(item, idx)}
-                    className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <img
-                      src={item.thumbnail || item.url}
-                      alt={item.title || item.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
-                        <Play className="w-5 h-5 fill-current ml-0.5" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-0 inset-x-0 p-3">
-                      <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
-                      <span className="text-[10px] font-mono text-[#ccff00]">{selectedSubfolder}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+              ))}
+            </div>
           )}
         </main>
       ) : selectedCategory === 'CLIPS' ? (
@@ -1300,30 +1015,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           } ${activeTransitionClass}`}
         >
-          {selectedSubfolder === null || selectedSubfolder === 'Official Releases' ? (
-            <div key="clips-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">
-              <CelebrityShowcase
-                onOpenPhoto={onOpenPhoto}
-                initialTab="REELS"
-                hideViewTabs={true}
-                subfolderBar={renderCategorySubfolderBar('CLIPS', true)}
-                initialFilter={activeCelebrityFilter}
-                initialVideoId={activeVideoId}
-                onTabChange={(tab) => {
-                  setActiveCelebrityTab(tab);
-                  updateRoute({ celebrityTab: tab });
-                }}
-                onFilterChange={(filter) => {
-                  setActiveCelebrityFilter(filter);
-                  updateRoute({ celebrityStar: filter });
-                }}
-                onVideoChange={(videoId) => {
-                  setActiveVideoId(videoId);
-                  updateRoute({ videoId });
-                }}
-              />
-            </div>
-          ) : (
             <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
               {/* Header Bar for Catalog Subfolder */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
@@ -1441,7 +1132,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           )}
             </div>
-          )}
         </main>
       ) : selectedCategory === 'CLASSIC' ? (
         /* ===================================================================== */
@@ -1476,7 +1166,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 hideViewTabs={true}
                 subfolderBar={renderCategorySubfolderBar('PHOTOGRAPHY', true)}
                 initialFilter={activeCelebrityFilter}
-                initialVideoId={activeVideoId}
                 onTabChange={(tab) => {
                   setActiveCelebrityTab(tab);
                   updateRoute({ celebrityTab: tab });
@@ -1484,10 +1173,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 onFilterChange={(filter) => {
                   setActiveCelebrityFilter(filter);
                   updateRoute({ celebrityStar: filter });
-                }}
-                onVideoChange={(videoId) => {
-                  setActiveVideoId(videoId);
-                  updateRoute({ videoId });
                 }}
               />
             </div>
@@ -1537,25 +1222,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </main>
       )}
 
-      {/* 9:16 Fullscreen Vertical Celebrity Reel Player Modal */}
-      <CelebrityReelPlayerModal
-        isOpen={isReelPlayerOpen}
-        onClose={() => {
-          setIsReelPlayerOpen(false);
-          setActiveVideoId(null);
-          updateRoute({ videoId: null });
-        }}
-        reels={filteredReels}
-        initialIndex={activeReelIndex}
-        onIndexChange={(newIdx) => {
-          setActiveReelIndex(newIdx);
-          const r = filteredReels[newIdx];
-          if (r?.id) {
-            setActiveVideoId(r.id);
-            updateRoute({ videoId: r.id });
-          }
-        }}
-      />
     </div>
   );
 };
