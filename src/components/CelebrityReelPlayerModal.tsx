@@ -41,7 +41,23 @@ export interface CelebrityReelItem {
   publishedAt: string;
   timestamp: number;
   channel: string;
+  youtubeId?: string;
   tags?: string[];
+}
+
+export function getYouTubeId(urlOrId?: string): string | null {
+  if (!urlOrId) return null;
+  const trimmed = urlOrId.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  const shortsMatch = trimmed.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+  const watchMatch = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+  const shareMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shareMatch) return shareMatch[1];
+  const embedMatch = trimmed.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+  return null;
 }
 
 export interface CelebrityReelPlayerModalProps {
@@ -408,6 +424,7 @@ export const CelebrityReelPlayerModal: React.FC<CelebrityReelPlayerModalProps> =
         >
           {reels.map((reel, idx) => {
             const isCurrent = idx === activeIndex;
+            const ytId = reel.youtubeId || getYouTubeId(reel.videoUrl);
             const isLiked = !!likedMap[reel.id];
             const likeDisplay = likeCountOverrides[reel.id] !== undefined
               ? (likeCountOverrides[reel.id] >= 1000000 ? `${(likeCountOverrides[reel.id] / 1000000).toFixed(1)}M` : `${Math.round(likeCountOverrides[reel.id] / 1000)}K`)
@@ -418,29 +435,51 @@ export const CelebrityReelPlayerModal: React.FC<CelebrityReelPlayerModalProps> =
                 key={reel.id}
                 className="relative w-full h-full snap-start snap-always shrink-0 flex items-center justify-center bg-black overflow-hidden"
                 style={{ height: '100%' }}
-                onClick={togglePlayPause}
+                onClick={ytId ? undefined : togglePlayPause}
               >
-                {/* 9:16 Video Stage */}
-                <video
-                  ref={(el) => {
-                    videoRefs.current[idx] = el;
-                  }}
-                  src={reel.videoUrl}
-                  poster={reel.thumbnail}
-                  loop
-                  autoPlay
-                  playsInline
-                  muted={isMuted}
-                  preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-                  onTimeUpdate={isCurrent ? handleTimeUpdate : undefined}
-                  className="w-full h-full object-cover object-[center_top] cursor-pointer"
-                />
+                {/* 9:16 Video Stage: YouTube Native Player or Self-Hosted Video Element */}
+                {ytId ? (
+                  <div className="w-full h-full relative z-10 flex items-center justify-center bg-black">
+                    {isCurrent ? (
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&controls=1&loop=1&playlist=${ytId}&playsinline=1&modestbranding=1&rel=0`}
+                        className="w-full h-full border-0 relative z-10"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                        allowFullScreen
+                        title={reel.title}
+                      />
+                    ) : (
+                      <img
+                        src={reel.thumbnail}
+                        alt={reel.title}
+                        className="w-full h-full object-cover object-[center_top]"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <video
+                    ref={(el) => {
+                      videoRefs.current[idx] = el;
+                    }}
+                    src={reel.videoUrl}
+                    poster={reel.thumbnail}
+                    loop
+                    autoPlay
+                    playsInline
+                    muted={isMuted}
+                    preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
+                    onTimeUpdate={isCurrent ? handleTimeUpdate : undefined}
+                    className="w-full h-full object-cover object-[center_top] cursor-pointer"
+                  />
+                )}
 
-                {/* Subtle Obsidian Dark Gradient Overlay for Readability */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/85 pointer-events-none" />
+                {/* Subtle Obsidian Dark Gradient Overlay for Readability (only on custom video) */}
+                {!ytId && (
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/85 pointer-events-none" />
+                )}
 
-                {/* Center Play/Pause Kinetic Feedback Icon */}
-                {isCurrent && (showCenterIcon || !isPlaying) && (
+                {/* Center Play/Pause Kinetic Feedback Icon (only for custom video) */}
+                {!ytId && isCurrent && (showCenterIcon || !isPlaying) && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                     <div className="w-16 h-16 rounded-full bg-black/70 backdrop-blur-md border border-[#ccff00]/60 flex items-center justify-center text-[#ccff00] transition-transform shadow-lg">
                       {(!isPlaying || showCenterIcon === 'pause') ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
@@ -557,8 +596,8 @@ export const CelebrityReelPlayerModal: React.FC<CelebrityReelPlayerModalProps> =
                   </div>
                 </div>
 
-                {/* Bottom Scrubbing Progress Bar */}
-                {isCurrent && (
+                {/* Bottom Scrubbing Progress Bar (only for custom video player) */}
+                {!ytId && isCurrent && (
                   <div className="absolute bottom-0 inset-x-0 h-1 bg-white/20 z-30">
                     <div
                       className="h-full bg-[#ccff00] transition-all duration-150"

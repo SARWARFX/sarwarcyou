@@ -13,6 +13,8 @@ import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
 import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 import { CelebrityShowcase } from '../CelebrityShowcase';
+import { ClassicShowcase } from '../ClassicShowcase';
+import { MusicShowcase } from '../MusicShowcase';
 import { VaultDrawer } from '../VaultDrawer';
 import { CelebrityReelPlayerModal, type CelebrityReelItem } from '../CelebrityReelPlayerModal';
 import celebrityReelsData from '../../data/celebrityReels.json';
@@ -540,7 +542,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [rootMap, updateRoute]
   );
 
-  const MAIN_TAB_ORDER = useMemo(() => ['NEWS', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY'], []);
+  const MAIN_TAB_ORDER = useMemo(() => ['NEWS', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY', 'CLASSIC', 'MUSIC'], []);
 
   const navigateTab = useCallback(
     (newCat: string | null) => {
@@ -753,11 +755,21 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
           />
           <span className="hidden sm:inline-block text-[10px] font-mono text-[#ccff00] uppercase tracking-widest px-2 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
-            {selectedCategory === 'PHOTOGRAPHY' ? 'PHOTOGRAPHS' : selectedCategory === 'CLIPS' ? 'VIDEO CLIPS' : selectedCategory === 'SHORTS' ? 'REELS/SHORTS' : 'NEWS'}
+            {selectedCategory === 'PHOTOGRAPHY'
+              ? 'PHOTOGRAPHS'
+              : selectedCategory === 'CLIPS'
+              ? 'VIDEO CLIPS'
+              : selectedCategory === 'SHORTS'
+              ? 'REELS/SHORTS'
+              : selectedCategory === 'CLASSIC'
+              ? 'CLASSIC CINEMA'
+              : selectedCategory === 'MUSIC'
+              ? 'MUSIC LOUNGE'
+              : 'NEWS'}
           </span>
         </div>
 
-        {/* Avant-Garde Quick Select Keys: Exactly 4 Consolidated Tabs */}
+        {/* Avant-Garde Quick Select Keys: Consolidated Tabs */}
         <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
           <button
             type="button"
@@ -814,6 +826,34 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             }`}
           >
             PHOTOGRAPHS
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              navigateTab('CLASSIC');
+            }}
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+              selectedCategory === 'CLASSIC'
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            CLASSIC
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              navigateTab('MUSIC');
+            }}
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+              selectedCategory === 'MUSIC'
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            MUSIC
           </button>
         </div>
       </header>
@@ -1253,6 +1293,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           )}
         </main>
+      ) : selectedCategory === 'CLASSIC' ? (
+        /* ===================================================================== */
+        /* TAB 5: CLASSIC // RETRO & GOLDEN ERA CINEMA (THE INTERNET ARCHIVE)    */
+        /* ===================================================================== */
+        <ClassicShowcase />
+      ) : selectedCategory === 'MUSIC' ? (
+        /* ===================================================================== */
+        /* TAB 6: MUSIC // AUDIOVISUAL FILM SOUNDTRACK LOUNGE                    */
+        /* ===================================================================== */
+        <MusicShowcase />
       ) : (
         /* ===================================================================== */
         /* TAB 4: PHOTOGRAPHS // HIGH-RESOLUTION EDITORIAL PORTRAITS             */

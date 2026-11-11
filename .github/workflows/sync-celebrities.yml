@@ -20,7 +20,9 @@ jobs:
       - name: Install Feed Parsers
         run: npm install rss-parser
       - name: Run Daily Sync Script
-        run: node scripts/sync-celebrity-daily.mjs
+        run: |
+          node scripts/sync-celebrity-daily.mjs
+          node scripts/sync-shorts-daily.mjs
       - name: Commit & Push Daily Intel
         run: |
           git config --global user.name "github-actions[bot]"

@@ -995,7 +995,7 @@ export function getStarSlug(fullName: string): string {
 }
 
 export interface AppIdRoute {
-  category: 'NEWS' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'ARCHIVE' | 'YOUTUBE' | 'REALTUBE' | null;
+  category: 'NEWS' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'CLASSIC' | 'MUSIC' | 'ARCHIVE' | 'YOUTUBE' | 'REALTUBE' | null;
   subfolder: string | null;
   celebrityStar: string | null;
   celebrityTab: 'PORTRAITS' | 'DISPATCHES' | 'REELS' | null;
@@ -1103,7 +1103,11 @@ export function parseIdRoute(): AppIdRoute {
     celebrityTab = 'DISPATCHES';
   } else if (['archive', 'home', 'main'].includes(cleanId)) {
     category = 'NEWS';
-  } else if (['reels', 'shorts', 'reelsshorts', 'short', 'reel', 'youtube', 'music'].includes(cleanId)) {
+  } else if (['classic', 'classics', 'retro', 'vintage'].includes(cleanId)) {
+    category = 'CLASSIC';
+  } else if (['music', 'soundtrack', 'soundtracks', 'songs', 'lounge'].includes(cleanId)) {
+    category = 'MUSIC';
+  } else if (['reels', 'shorts', 'reelsshorts', 'short', 'reel', 'youtube'].includes(cleanId)) {
     category = 'SHORTS';
   } else if (['videoclips', 'clips', 'clip', 'video', 'videos', 'cinema', 'realtube', 'channel'].includes(cleanId)) {
     category = 'CLIPS';
@@ -1171,6 +1175,12 @@ export function buildIdUrl(route: Partial<AppIdRoute>): string {
     return `/?id=${encodeURIComponent(route.mediaId)}`;
   }
 
+  if (route.category === 'CLASSIC') {
+    return '/?id=classic';
+  }
+  if (route.category === 'MUSIC') {
+    return '/?id=music';
+  }
   if (route.category === 'SHORTS' || route.category === 'YOUTUBE') {
     return route.subfolder ? `/?id=shorts&sub=${encodeURIComponent(route.subfolder)}` : '/?id=shorts';
   }
