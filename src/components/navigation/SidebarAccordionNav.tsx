@@ -132,6 +132,39 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                       : 'flex flex-col space-y-1.5 border-l border-white/10 ml-1 pl-2 pt-1 pb-1'
                   }
                 >
+                  {/* ALL Subfolder Option */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      hapticSelection();
+                      onSelectSubfolder(folder.key, 'ALL');
+                    }}
+                    className={
+                      isDesktop
+                        ? `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-xs tracking-wider uppercase transform transition-all duration-200 ease-out py-1 text-left w-full cursor-pointer outline-none bg-transparent border-0 truncate ${
+                            isAccordionOpen
+                              ? 'translate-x-0 opacity-100'
+                              : '-translate-x-2.5 opacity-0 pointer-events-none'
+                          } ${
+                            selectedAlbum === folder.key && (!selectedSubfolder || selectedSubfolder === 'ALL')
+                              ? 'text-[#ccff00] font-black translate-x-1'
+                              : 'text-zinc-400 hover:text-white hover:translate-x-1'
+                          }`
+                        : `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-sm font-semibold tracking-[0.16em] uppercase py-1 pl-4 text-left transition-colors cursor-pointer outline-none bg-transparent border-0 truncate ${
+                            isAccordionOpen
+                              ? 'opacity-100'
+                              : 'opacity-0 pointer-events-none'
+                          } ${
+                            selectedAlbum === folder.key && (!selectedSubfolder || selectedSubfolder === 'ALL')
+                              ? 'text-[#ccff00] font-black'
+                              : 'text-zinc-400 hover:text-white'
+                          }`
+                    }
+                  >
+                    ALL
+                  </button>
+
                   {subfolderNodes.map((subNode, idx) => {
                     const isSubSelected =
                       selectedAlbum === folder.key && selectedSubfolder === subNode.name;

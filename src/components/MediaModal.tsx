@@ -5,6 +5,9 @@ import {
   Loader2,
   Check,
   Share2,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -53,6 +56,30 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [showControls, setShowControls] = useState<boolean>(true);
+  const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleAutoHide = useCallback(() => {
+    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    hideControlsTimerRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  }, []);
+
+  const handleUserActivity = useCallback(() => {
+    setShowControls(true);
+    scheduleAutoHide();
+  }, [scheduleAutoHide]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShowControls(true);
+      scheduleAutoHide();
+    }
+    return () => {
+      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    };
+  }, [isOpen, activeIdx, scheduleAutoHide]);
 
   const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
 
@@ -614,11 +641,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const secureUrl = activeUrl.replace(/^http:\/\//i, 'https://');
   const cleanTitle = sanitizeMediaTitle(activeTitle, type === 'video' ? 'Video' : 'Photograph');
 
+  const prevPhotoItem = hasItemList && activeIdx > 0 ? items[activeIdx - 1] : null;
+  const nextPhotoItem = hasItemList && activeIdx < items.length - 1 ? items[activeIdx + 1] : null;
+
   return createPortal(
     <div
       ref={mediaBoxRef}
       role="dialog"
       aria-modal="true"
+      onMouseMove={handleUserActivity}
+      onTouchStart={handleUserActivity}
       className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-keynote-modal"
       style={{
         touchAction: 'none',
@@ -643,6 +675,86 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         }
       }}
     >
+      {/* Floating Close Button at Top Right */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className={`pointer-events-auto fixed top-6 right-6 z-50 p-3.5 rounded-full bg-black/60 hover:bg-neutral-800 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-[#ccff00] shadow-2xl transition-all duration-300 cursor-pointer ${
+          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+        }`}
+        title="Close (Esc)"
+        aria-label="Close image viewer"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* Desktop Previous Media Flanking Preview Card */}
+      {prevPhotoItem && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            goToPrev();
+          }}
+          className={`hidden lg:flex fixed left-6 xl:left-12 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 group cursor-pointer transition-all duration-300 ${
+            showControls ? 'opacity-70 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
+          }`}
+          title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
+        >
+          <div className="relative w-28 xl:w-36 aspect-[3/4] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.35)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+            <img
+              src={prevPhotoItem.thumbnail || getMediaUrl(prevPhotoItem.url || prevPhotoItem.path || prevPhotoItem.id)}
+              alt={prevPhotoItem.title || 'Previous photo'}
+              className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 transition-all duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200 shadow-lg">
+                <ChevronLeft className="w-5 h-5 -ml-0.5" />
+              </div>
+            </div>
+            <div className="absolute bottom-2 inset-x-2 text-center pointer-events-none">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1">
+                PREV
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Next Media Flanking Preview Card */}
+      {nextPhotoItem && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            goToNext();
+          }}
+          className={`hidden lg:flex fixed right-6 xl:right-12 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 group cursor-pointer transition-all duration-300 ${
+            showControls ? 'opacity-70 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
+          }`}
+          title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
+        >
+          <div className="relative w-28 xl:w-36 aspect-[3/4] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.35)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+            <img
+              src={nextPhotoItem.thumbnail || getMediaUrl(nextPhotoItem.url || nextPhotoItem.path || nextPhotoItem.id)}
+              alt={nextPhotoItem.title || 'Next photo'}
+              className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 transition-all duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200 shadow-lg">
+                <ChevronRight className="w-5 h-5 -mr-0.5" />
+              </div>
+            </div>
+            <div className="absolute bottom-2 inset-x-2 text-center pointer-events-none">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1">
+                NEXT
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pure Image Stage */}
       <div
         ref={imageContainerRef}
@@ -659,6 +771,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           ref={imgRef}
           src={getMediaUrl(secureUrl)}
           alt={cleanTitle}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (Date.now() - lastGestureTimeRef.current < 350) return;
+            if (scaleRef.current > 1.05) return;
+            setShowControls((prev) => !prev);
+            if (!showControls) {
+              scheduleAutoHide();
+            } else if (hideControlsTimerRef.current) {
+              clearTimeout(hideControlsTimerRef.current);
+            }
+          }}
           onError={(e) => {
             // Hotlink / 403 protection: fall back to high-reliability thumbnail or unproxied source
             if (currentItem?.thumbnail && e.currentTarget.src !== currentItem.thumbnail) {
@@ -685,7 +808,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             WebkitTouchCallout: 'none',
             overscrollBehavior: 'none',
           }}
-          className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)]"
+          className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-pointer"
           draggable={false}
         />
       </div>
@@ -698,7 +821,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           handleDownload();
         }}
         disabled={isDownloading}
-        className="pointer-events-auto fixed bottom-6 left-6 z-50 p-3.5 rounded-full bg-white/[0.08] hover:bg-white/20 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all cursor-pointer disabled:opacity-40"
+        className={`pointer-events-auto fixed bottom-6 left-6 z-50 p-3.5 rounded-full bg-black/60 hover:bg-neutral-800 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all duration-300 cursor-pointer disabled:opacity-40 ${
+          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+        }`}
         title="Download Original Photo"
         aria-label="Download photo"
       >
@@ -718,7 +843,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           e.stopPropagation();
           handleSharePhoto();
         }}
-        className="pointer-events-auto fixed bottom-6 right-6 z-50 p-3.5 rounded-full bg-white/[0.08] hover:bg-white/20 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all cursor-pointer"
+        className={`pointer-events-auto fixed bottom-6 right-6 z-50 p-3.5 rounded-full bg-black/60 hover:bg-neutral-800 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all duration-300 cursor-pointer ${
+          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+        }`}
         title={shareSuccess ? 'Link Copied!' : 'Share Photo'}
         aria-label="Share photo"
       >

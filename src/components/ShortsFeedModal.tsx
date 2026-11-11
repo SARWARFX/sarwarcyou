@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause, Heart, FastForward } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Volume2, VolumeX, Share2, Check, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronUp, ChevronDown } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
@@ -458,6 +458,81 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       </header>
 
+      {/* ===== DESKTOP LEFT FLANKING PREVIEW (Previous Short) ===== */}
+      {activeIndex > 0 && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            hapticLight();
+            const prevIdx = activeIndex - 1;
+            slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          className={`hidden lg:flex fixed left-6 xl:left-10 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-1.5 group cursor-pointer transition-all duration-300 pointer-events-auto ${
+            showControls ? 'opacity-80 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
+          }`}
+          title={shorts[activeIndex - 1]?.title || 'Previous Short'}
+        >
+          {/* Up chevron pill */}
+          <div className="w-8 h-8 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/70 transition-all duration-200 shadow-lg">
+            <ChevronUp className="w-4 h-4" />
+          </div>
+          {/* 9:16 thumbnail card */}
+          <div className="relative w-24 xl:w-28 aspect-[9/16] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.4)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+            <img
+              src={getThumbnailUrl(shorts[activeIndex - 1]) || (shorts[activeIndex - 1]?.thumbnail ? getMediaUrl(shorts[activeIndex - 1].thumbnail!) : '')}
+              alt={shorts[activeIndex - 1]?.title || 'Previous short'}
+              className="w-full h-full object-cover brightness-75 group-hover:brightness-100 transition-all duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200">
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              </div>
+            </div>
+            <div className="absolute bottom-0 inset-x-0 p-2 pointer-events-none">
+              <p className="text-[9px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1 text-center">PREV</p>
+              <p className="text-[8px] text-neutral-400 line-clamp-1 text-center mt-0.5">{shorts[activeIndex - 1]?.title || ''}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== DESKTOP RIGHT FLANKING PREVIEW (Next Short) ===== */}
+      {activeIndex < shorts.length - 1 && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            hapticLight();
+            const nextIdx = activeIndex + 1;
+            slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          className={`hidden lg:flex fixed right-6 xl:right-10 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-1.5 group cursor-pointer transition-all duration-300 pointer-events-auto ${
+            showControls ? 'opacity-80 hover:opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
+          }`}
+          title={shorts[activeIndex + 1]?.title || 'Next Short'}
+        >
+          {/* 9:16 thumbnail card */}
+          <div className="relative w-24 xl:w-28 aspect-[9/16] rounded-2xl overflow-hidden bg-black/60 border border-white/15 group-hover:border-[#ccff00] group-hover:shadow-[0_0_25px_rgba(204,255,0,0.4)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105">
+            <img
+              src={getThumbnailUrl(shorts[activeIndex + 1]) || (shorts[activeIndex + 1]?.thumbnail ? getMediaUrl(shorts[activeIndex + 1].thumbnail!) : '')}
+              alt={shorts[activeIndex + 1]?.title || 'Next short'}
+              className="w-full h-full object-cover brightness-75 group-hover:brightness-100 transition-all duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white transition-all duration-200">
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              </div>
+            </div>
+            <div className="absolute bottom-0 inset-x-0 p-2 pointer-events-none">
+              <p className="text-[9px] font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold line-clamp-1 text-center">NEXT</p>
+              <p className="text-[8px] text-neutral-400 line-clamp-1 text-center mt-0.5">{shorts[activeIndex + 1]?.title || ''}</p>
+            </div>
+          </div>
+          {/* Down chevron pill */}
+          <div className="w-8 h-8 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/70 transition-all duration-200 shadow-lg">
+            <ChevronDown className="w-4 h-4" />
+          </div>
+        </div>
+      )}
       {/* Pure Native CSS Scroll-Snap Feed Container */}
       <div
         ref={containerRef}

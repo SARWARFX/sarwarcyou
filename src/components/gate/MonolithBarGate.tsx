@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Play, Folder, Film } from 'lucide-react';
+import { Play, Folder, Film, Loader2 } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -321,10 +321,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return sortMediaItemsDescending(list);
   }, [activeCategoryNode]);
 
-  // Active Media Items List: If a subfolder pill is selected, show that subfolder; otherwise show allCategoryFiles!
+  // Active Media Items List: If a specific subfolder is selected, show only that subfolder; otherwise show allCategoryFiles!
   const activeMediaList = useMemo(() => {
     if (!activeCategoryNode) return [];
-    if (selectedSubfolder) {
+    if (selectedSubfolder && selectedSubfolder !== 'ALL') {
       const subNode = activeCategoryNode.subfolders.get(selectedSubfolder);
       if (subNode && subNode.files.length > 0) {
         return subNode.files;
@@ -332,6 +332,70 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
     return allCategoryFiles;
   }, [activeCategoryNode, selectedSubfolder, allCategoryFiles]);
+
+  // Progressive scroll-batching: do not draw all media into DOM at once; wait until visitor scrolls
+  const BATCH_SIZE = 24;
+  const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Reset visible count when switching category or subfolder
+  useEffect(() => {
+    setVisibleCount(BATCH_SIZE);
+    setIsLoadingMore(false);
+  }, [selectedCategory, selectedSubfolder]);
+
+  // Handle scroll to bottom of the active viewport
+  const handleViewportScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.currentTarget;
+      const scrollBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+      if (scrollBottom < 450 && visibleCount < activeMediaList.length && !isLoadingMore) {
+        setIsLoadingMore(true);
+        setTimeout(() => {
+          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, activeMediaList.length));
+          setIsLoadingMore(false);
+        }, 180);
+      }
+    },
+    [visibleCount, activeMediaList.length, isLoadingMore]
+  );
+
+  // IntersectionObserver for bottom sentinel element
+  useEffect(() => {
+    const el = loadMoreSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && visibleCount < activeMediaList.length && !isLoadingMore) {
+          setIsLoadingMore(true);
+          setTimeout(() => {
+            setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, activeMediaList.length));
+            setIsLoadingMore(false);
+          }, 180);
+        }
+      },
+      { rootMargin: '350px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visibleCount, activeMediaList.length, isLoadingMore]);
+
+  const displayedMediaList = useMemo(() => {
+    return activeMediaList.slice(0, visibleCount);
+  }, [activeMediaList, visibleCount]);
+
+  // Helper to extract clean subfolder badge for each card
+  const getItemSubfolderLabel = useCallback(
+    (item: StageMediaItem): string => {
+      if (selectedSubfolder && selectedSubfolder !== 'ALL') {
+        return selectedSubfolder;
+      }
+      const { subfolders } = getFolderSegments(item);
+      return subfolders[0] || (selectedCategory === 'PHOTOGRAPHY' ? 'Images' : selectedCategory === 'CLIPS' ? 'Clips' : 'Shorts');
+    },
+    [selectedSubfolder, selectedCategory]
+  );
 
   // Handler to open item from media grid
   const handleOpenItem = (item: StageMediaItem, _idx: number) => {
@@ -496,13 +560,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const navigateSubfolder = useCallback(
     (newSub: string | null) => {
       recordUserActivity();
-      if (selectedSubfolder === newSub) return;
+      const targetSub = (!newSub || newSub === 'ALL') ? 'ALL' : newSub;
+      if (selectedSubfolder === targetSub) return;
       const allSubs = ['ALL', ...childSubfoldersList.map((s) => s.name)];
       const oldIdx = allSubs.indexOf(selectedSubfolder || 'ALL');
-      const newIdx = allSubs.indexOf(newSub || 'ALL');
+      const newIdx = allSubs.indexOf(targetSub);
       setActiveTransitionClass(newIdx >= oldIdx ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left');
-      setSelectedSubfolder(newSub);
-      updateRoute({ subfolder: newSub });
+      setSelectedSubfolder(targetSub);
+      updateRoute({ subfolder: targetSub === 'ALL' ? null : targetSub });
     },
     [selectedSubfolder, childSubfoldersList, updateRoute, recordUserActivity]
   );
@@ -608,6 +673,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const renderCategorySubfolderBar = (category: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY', compact = false) => {
     let subOptions: { name: string; count: number; isCelebrity?: boolean }[] = [];
+    let totalCategoryCount = 0;
+
     if (category === 'SHORTS') {
       const shortsNode = rootMap.get('Shorts');
       const catalogSubs = shortsNode ? Array.from(shortsNode.subfolders.keys()).filter((s) => s !== 'Celebrity Reels') : [];
@@ -618,6 +685,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         name: s,
         count: shortsNode?.subfolders.get(s)?.files.length || 0,
       }));
+
+      if (shortsNode) {
+        const seen = new Set<string>();
+        for (const f of shortsNode.files) {
+          const k = f.id || f.url || f.path || f.name;
+          if (k && !seen.has(k)) { seen.add(k); totalCategoryCount++; }
+        }
+        for (const sub of shortsNode.subfolders.values()) {
+          for (const f of sub.files) {
+            const k = f.id || f.url || f.path || f.name;
+            if (k && !seen.has(k)) { seen.add(k); totalCategoryCount++; }
+          }
+        }
+      }
     } else if (category === 'CLIPS') {
       const clipsNode = rootMap.get('Clips');
       const catalogSubs = clipsNode ? Array.from(clipsNode.subfolders.keys()) : [];
@@ -628,6 +709,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         name: s,
         count: clipsNode?.subfolders.get(s)?.files.length || 0,
       }));
+
+      if (clipsNode) {
+        const seen = new Set<string>();
+        for (const f of clipsNode.files) {
+          const k = f.id || f.url || f.path || f.name;
+          if (k && !seen.has(k)) { seen.add(k); totalCategoryCount++; }
+        }
+        for (const sub of clipsNode.subfolders.values()) {
+          for (const f of sub.files) {
+            const k = f.id || f.url || f.path || f.name;
+            if (k && !seen.has(k)) { seen.add(k); totalCategoryCount++; }
+          }
+        }
+      }
     } else if (category === 'PHOTOGRAPHY') {
       const imagesNode = rootMap.get('Images');
       const catalogSubs = imagesNode ? Array.from(imagesNode.subfolders.keys()) : [];
@@ -637,9 +732,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         name: s,
         count: imagesNode?.subfolders.get(s)?.files.length || 0,
       }));
+
+      if (imagesNode) {
+        const seen = new Set<string>();
+        for (const f of imagesNode.files) {
+          const k = f.id || f.url || f.path || f.name;
+          if (k && !seen.has(k)) { seen.add(k); totalCategoryCount++; }
+        }
+        for (const sub of imagesNode.subfolders.values()) {
+          for (const f of sub.files) {
+            const k = f.id || f.url || f.path || f.name;
+            if (k && !seen.has(k)) { seen.add(k); totalCategoryCount++; }
+          }
+        }
+      }
     }
 
-    const currentSub = selectedSubfolder || subOptions[0]?.name;
+    const fullOptions = [{ name: 'ALL', count: totalCategoryCount }, ...subOptions];
+    const currentSub = (!selectedSubfolder || selectedSubfolder === 'ALL') ? 'ALL' : selectedSubfolder;
 
     return (
       <div
@@ -647,7 +757,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           compact ? 'py-0.5' : 'w-full py-2 mb-4 min-h-[46px] border-b border-white/[0.08]'
         }`}
       >
-        {subOptions.map((sub) => {
+        {fullOptions.map((sub) => {
           const isActive = currentSub === sub.name;
           return (
             <button
@@ -661,7 +771,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 compact ? 'px-3 py-1 text-[11px]' : 'px-3.5 py-1.5 text-xs'
               } rounded-full font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
                 isActive
-                  ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                  ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)] font-black'
                   : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
               }`}
             >
@@ -845,6 +955,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         <main
           key="shorts-hub"
           aria-label="Shorts Hub"
+          onScroll={handleViewportScroll}
           className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar p-4 sm:p-7 lg:p-10 z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           } ${activeTransitionClass}`}
@@ -855,7 +966,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <Film className="w-5 h-5 text-[#ccff00]" />
               <div>
                 <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  {selectedSubfolder || 'Shorts 2027'}
+                  {selectedSubfolder && selectedSubfolder !== 'ALL' ? selectedSubfolder : 'ALL SHORTS'}
                 </h1>
                 <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
                   Archived Shorts Stream • {activeMediaList.length} Items Indexed
@@ -881,32 +992,49 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               </span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-20">
-              {activeMediaList.map((item, idx) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleOpenItem(item, idx)}
-                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <img
-                    src={item.thumbnail || item.url}
-                    alt={item.title || item.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
-                      <Play className="w-5 h-5 fill-current ml-0.5" />
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-6">
+                {displayedMediaList.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleOpenItem(item, idx)}
+                    className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <img
+                      src={item.thumbnail || item.url}
+                      alt={item.title || item.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-0 inset-x-0 p-3">
+                      <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
+                      <span className="text-[10px] font-mono text-[#ccff00]">{getItemSubfolderLabel(item)}</span>
                     </div>
                   </div>
-                  <div className="absolute bottom-0 inset-x-0 p-3">
-                    <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
-                    <span className="text-[10px] font-mono text-[#ccff00]">{selectedSubfolder || 'Shorts 2027'}</span>
+                ))}
+              </div>
+
+              {/* Dynamic Infinite Scroll Sentinel & Loading Indicator */}
+              <div ref={loadMoreSentinelRef} className="w-full py-8 flex flex-col items-center justify-center">
+                {visibleCount < activeMediaList.length ? (
+                  <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-md text-xs font-mono text-neutral-300 shadow-xl animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#ccff00]" />
+                    <span>SCROLL DOWN FOR MORE SHORTS ({displayedMediaList.length} / {activeMediaList.length})</span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ) : activeMediaList.length > BATCH_SIZE ? (
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5 text-[11px] font-mono text-neutral-500 uppercase tracking-widest">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                    <span>ALL {activeMediaList.length} SHORTS LOADED</span>
+                  </div>
+                ) : null}
+              </div>
+            </>
           )}
         </main>
       ) : selectedCategory === 'CLIPS' || selectedCategory === 'REALTUBE' ? (
@@ -920,14 +1048,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           } ${activeTransitionClass}`}
         >
-          <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
+          <div onScroll={handleViewportScroll} className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
             {/* Header Bar for Catalog Subfolder */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
               <div className="flex items-center gap-3 shrink-0">
                 <Film className="w-5 h-5 text-[#ccff00]" />
                 <div>
                   <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                    {selectedSubfolder || 'Clips 2027'}
+                    {selectedSubfolder && selectedSubfolder !== 'ALL' ? selectedSubfolder : 'ALL VIDEO CLIPS'}
                   </h1>
                   <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
                     Archived Video Clips & Broadcasts • {activeMediaList.length} Items Indexed
@@ -953,48 +1081,65 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 </span>
               </div>
             ) : (
-              <div
-                key={`clips-${selectedSubfolder || 'all'}`}
-                className={`w-full pb-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 ${activeTransitionClass}`}
-              >
-                {activeMediaList.map((item, idx) => {
-                  const imageSrc =
-                    (item as any).thumbnail ||
-                    resolveStaticVideoThumbnail(item) ||
-                    item.poster ||
-                    item.url;
+              <>
+                <div
+                  key={`clips-${selectedSubfolder || 'all'}`}
+                  className={`w-full pb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 ${activeTransitionClass}`}
+                >
+                  {displayedMediaList.map((item, idx) => {
+                    const imageSrc =
+                      (item as any).thumbnail ||
+                      resolveStaticVideoThumbnail(item) ||
+                      item.poster ||
+                      item.url;
 
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleOpenItem(item, idx)}
-                      className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex flex-col justify-between aspect-video select-none"
-                    >
-                      <img
-                        src={imageSrc}
-                        alt={item.title || item.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                        <div className="w-11 h-11 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleOpenItem(item, idx)}
+                        className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex flex-col justify-between aspect-video select-none"
+                      >
+                        <img
+                          src={imageSrc}
+                          alt={item.title || item.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                          <div className="w-11 h-11 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                          </div>
+                        </div>
+                        <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none">
+                          <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#ccff00] transition-colors">
+                            {item.title || item.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 mt-0.5">
+                            <Film className="w-3 h-3 text-[#ccff00]" />
+                            <span>{getItemSubfolderLabel(item)}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none">
-                        <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#ccff00] transition-colors">
-                          {item.title || item.name}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 mt-0.5">
-                          <Film className="w-3 h-3 text-[#ccff00]" />
-                          <span>{selectedSubfolder || 'Clips 2027'}</span>
-                        </div>
-                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Dynamic Infinite Scroll Sentinel & Loading Indicator */}
+                <div ref={loadMoreSentinelRef} className="w-full py-8 flex flex-col items-center justify-center">
+                  {visibleCount < activeMediaList.length ? (
+                    <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-md text-xs font-mono text-neutral-300 shadow-xl animate-pulse">
+                      <Loader2 className="w-4 h-4 animate-spin text-[#ccff00]" />
+                      <span>SCROLL DOWN FOR MORE CLIPS ({displayedMediaList.length} / {activeMediaList.length})</span>
                     </div>
-                  );
-                })}
-              </div>
+                  ) : activeMediaList.length > BATCH_SIZE ? (
+                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5 text-[11px] font-mono text-neutral-500 uppercase tracking-widest">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                      <span>ALL {activeMediaList.length} CLIPS LOADED</span>
+                    </div>
+                  ) : null}
+                </div>
+              </>
             )}
           </div>
         </main>
@@ -1005,6 +1150,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         <main
           key="photos-hub"
           aria-label="Photographs Hub"
+          onScroll={handleViewportScroll}
           className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           } ${activeTransitionClass}`}
@@ -1015,7 +1161,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <Folder className="w-5 h-5 text-[#ccff00]" />
               <div>
                 <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  {selectedSubfolder || 'Images 2027'}
+                  {selectedSubfolder && selectedSubfolder !== 'ALL' ? selectedSubfolder : 'ALL PHOTOGRAPHS'}
                 </h1>
                 <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
                   Archived Photo Collection • {activeMediaList.length} Items Indexed
@@ -1040,27 +1186,44 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               </span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-20">
-              {activeMediaList.map((item, idx) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleOpenItem(item, idx)}
-                  className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] cursor-pointer aspect-[3/4] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <img
-                    src={item.thumbnail || item.url}
-                    alt={item.title || item.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-0 inset-x-0 p-3">
-                    <p className="text-xs font-bold text-white line-clamp-1">{item.title || item.name}</p>
-                    <span className="text-[10px] font-mono text-neutral-400">{selectedSubfolder || 'Photographs'}</span>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-6">
+                {displayedMediaList.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleOpenItem(item, idx)}
+                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] cursor-pointer aspect-[3/4] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <img
+                      src={item.thumbnail || item.url}
+                      alt={item.title || item.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <div className="absolute bottom-0 inset-x-0 p-3">
+                      <p className="text-xs font-bold text-white line-clamp-1">{item.title || item.name}</p>
+                      <span className="text-[10px] font-mono text-neutral-400">{getItemSubfolderLabel(item)}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+
+              {/* Dynamic Infinite Scroll Sentinel & Loading Indicator */}
+              <div ref={loadMoreSentinelRef} className="w-full py-8 flex flex-col items-center justify-center">
+                {visibleCount < activeMediaList.length ? (
+                  <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-md text-xs font-mono text-neutral-300 shadow-xl animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#ccff00]" />
+                    <span>SCROLL DOWN FOR MORE PHOTOS ({displayedMediaList.length} / {activeMediaList.length})</span>
+                  </div>
+                ) : activeMediaList.length > BATCH_SIZE ? (
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5 text-[11px] font-mono text-neutral-500 uppercase tracking-widest">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                    <span>ALL {activeMediaList.length} PHOTOS LOADED</span>
+                  </div>
+                ) : null}
+              </div>
+            </>
           )}
         </main>
       )}
