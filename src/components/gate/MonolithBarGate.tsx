@@ -118,7 +118,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     initialRoute.celebrityTab || 'PORTRAITS'
   );
   const [activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
-  const [slideDirection, setSlideDirection] = useState<'right' | 'left'>('right');
+
+  // Dynamic Animated Transition Pool for Fluid Channel Surfing & Shift Animations
+  const TRANSITION_ANIMATIONS = useMemo(
+    () => [
+      'animate-kinetic-slide-right',
+      'animate-kinetic-slide-left',
+      'animate-kinetic-zoom-dissolve',
+      'animate-cyber-shimmer-fade',
+      'animate-kinetic-slide-up',
+    ],
+    []
+  );
+
+  const [activeTransitionClass, setActiveTransitionClass] = useState<string>('animate-kinetic-slide-right');
+  const [idleTourProgress, setIdleTourProgress] = useState<number>(0);
+  const [isAutoTourPaused, setIsAutoTourPaused] = useState<boolean>(false);
+  const lastUserActivityRef = useRef<number>(Date.now());
 
   // Synchronize route state with browser address bar
   const updateRoute = useCallback(
@@ -544,46 +560,143 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const MAIN_TAB_ORDER = useMemo(() => ['NEWS', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY', 'CLASSIC', 'MUSIC'], []);
 
+  // User activity tracker: any touch, keypress, click, or scroll resets the 10-second idle timer
+  const recordUserActivity = useCallback(() => {
+    lastUserActivityRef.current = Date.now();
+    setIdleTourProgress(0);
+  }, []);
+
+  // Listen to all user activity events across window & document
+  useEffect(() => {
+    const activityEvents = [
+      'mousemove',
+      'mousedown',
+      'pointerdown',
+      'keydown',
+      'touchstart',
+      'touchmove',
+      'wheel',
+      'scroll',
+    ];
+
+    const resetIdleTimer = () => {
+      lastUserActivityRef.current = Date.now();
+      setIdleTourProgress(0);
+    };
+
+    activityEvents.forEach((evt) => {
+      window.addEventListener(evt, resetIdleTimer, { passive: true, capture: true });
+    });
+
+    return () => {
+      activityEvents.forEach((evt) => {
+        window.removeEventListener(evt, resetIdleTimer, { capture: true });
+      });
+    };
+  }, []);
+
   const navigateTab = useCallback(
     (newCat: string | null) => {
+      recordUserActivity();
       const currentKey = selectedCategory || 'NEWS';
       const targetKey = newCat || 'NEWS';
       if (currentKey === targetKey) return;
       const oldIdx = MAIN_TAB_ORDER.indexOf(currentKey);
       const newIdx = MAIN_TAB_ORDER.indexOf(targetKey);
-      setSlideDirection(newIdx >= oldIdx ? 'right' : 'left');
+      setActiveTransitionClass(newIdx >= oldIdx ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left');
       setSelectedCategory(targetKey);
       setSelectedSubfolder(null);
       updateRoute({ category: targetKey as any, subfolder: null, videoId: null });
     },
-    [selectedCategory, MAIN_TAB_ORDER, updateRoute]
+    [selectedCategory, MAIN_TAB_ORDER, updateRoute, recordUserActivity]
   );
 
   const navigateSubfolder = useCallback(
     (newSub: string | null) => {
+      recordUserActivity();
       if (selectedSubfolder === newSub) return;
       const allSubs = ['ALL', ...childSubfoldersList.map((s) => s.name)];
       const oldIdx = allSubs.indexOf(selectedSubfolder || 'ALL');
       const newIdx = allSubs.indexOf(newSub || 'ALL');
-      setSlideDirection(newIdx >= oldIdx ? 'right' : 'left');
+      setActiveTransitionClass(newIdx >= oldIdx ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left');
       setSelectedSubfolder(newSub);
       updateRoute({ subfolder: newSub });
     },
-    [selectedSubfolder, childSubfoldersList, updateRoute]
+    [selectedSubfolder, childSubfoldersList, updateRoute, recordUserActivity]
   );
 
   // Home navigation handler: returns to Public News Overview & resets all state
   const handleExitToHome = useCallback(() => {
+    recordUserActivity();
     setSelectedCategory('NEWS');
     setSelectedSubfolder(null);
     setActiveCelebrityFilter('ALL');
     setActiveCelebrityTab('DISPATCHES');
     setActiveVideoId(null);
     setIsReelPlayerOpen(false);
-    setSlideDirection('left');
+    setActiveTransitionClass('animate-kinetic-slide-left');
     updateRoute({ category: 'NEWS', subfolder: null, videoId: null, mediaId: null, celebrityStar: null });
     setVaultDrawerOpen(false);
-  }, [updateRoute]);
+  }, [updateRoute, recordUserActivity]);
+
+  // =========================================================================
+  // 10-SECOND AUTONOMOUS SHOWCASE TOUR / IDLE CAROUSEL ROLLER
+  // Cycles automatically across folders: NEWS -> SHORTS -> CLIPS ->
+  // PHOTOGRAPHY -> CLASSIC -> MUSIC -> NEWS every 10s if visitor is idle.
+  // Immediately pauses and resets on any mouse, touch, scroll, or key action.
+  // =========================================================================
+  const IDLE_ROLL_LIMIT_MS = 10000;
+
+  useEffect(() => {
+    // If any modal, player, or drawer is active, pause rolling
+    if (isModalOpen || isReelPlayerOpen || isVaultDrawerOpen || isAutoTourPaused) {
+      setIdleTourProgress(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (isModalOpen || isReelPlayerOpen || isVaultDrawerOpen || isAutoTourPaused) {
+        setIdleTourProgress(0);
+        return;
+      }
+
+      const idleDuration = Date.now() - lastUserActivityRef.current;
+      const pct = Math.min(100, (idleDuration / IDLE_ROLL_LIMIT_MS) * 100);
+      setIdleTourProgress(pct);
+
+      if (idleDuration >= IDLE_ROLL_LIMIT_MS) {
+        // Reset timer for next 10 seconds
+        lastUserActivityRef.current = Date.now();
+        setIdleTourProgress(0);
+
+        // Pick a random animated transition from the pool
+        const randomAnim =
+          TRANSITION_ANIMATIONS[Math.floor(Math.random() * TRANSITION_ANIMATIONS.length)];
+        setActiveTransitionClass(randomAnim);
+
+        setSelectedCategory((currentCat) => {
+          const current = currentCat || 'NEWS';
+          const curIdx = MAIN_TAB_ORDER.indexOf(current as any);
+          const nextIdx = curIdx === -1 ? 0 : (curIdx + 1) % MAIN_TAB_ORDER.length;
+          const nextCat = MAIN_TAB_ORDER[nextIdx];
+
+          setSelectedSubfolder(null);
+          updateRoute({ category: nextCat as any, subfolder: null, videoId: null });
+          return nextCat;
+        });
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [
+    isModalOpen,
+    isReelPlayerOpen,
+    isVaultDrawerOpen,
+    isAutoTourPaused,
+    MAIN_TAB_ORDER,
+    TRANSITION_ANIMATIONS,
+    updateRoute,
+  ]);
 
   // Return to Category Subfolders handler (Level 2 -> Level 1)
   const handleReturnToCategory = useCallback(() => {
@@ -755,7 +868,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       </div>
 
       {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Minimalist Status */}
-      <header className="w-full px-4 sm:px-8 py-3 flex items-center justify-between border-b border-white/[0.08] bg-[#050505]/95 backdrop-blur-md z-30 shrink-0">
+      <header className="relative w-full px-4 sm:px-8 py-3 flex items-center justify-between border-b border-white/[0.08] bg-[#050505]/95 backdrop-blur-md z-30 shrink-0">
+        {/* Dynamic 10-Second Idle Tour Laser Progress Line */}
+        <div className="absolute bottom-0 left-0 h-[2px] w-full bg-white/[0.03] overflow-hidden pointer-events-none">
+          <div
+            className="h-full bg-[#ccff00] transition-all duration-200 ease-linear shadow-[0_0_8px_#ccff00]"
+            style={{
+              width: `${idleTourProgress}%`,
+              opacity: isAutoTourPaused ? 0 : 0.85,
+            }}
+          />
+        </div>
+
         <div className="flex items-center gap-3">
           <HeaderBrandLogo
             trackingClass="tracking-[0.2em] sm:tracking-[0.24em]"
@@ -778,6 +902,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
         {/* Avant-Garde Quick Select Keys: Consolidated Tabs */}
         <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
+          {/* Subtle Auto Tour Pill with Pause/Resume */}
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              setIsAutoTourPaused((p) => !p);
+            }}
+            title={isAutoTourPaused ? 'Click to resume 10s auto-tour' : 'Click to pause 10s auto-tour'}
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-mono tracking-wider uppercase border border-white/[0.08] hover:border-[#ccff00]/40 transition-colors text-neutral-400 hover:text-white bg-white/[0.02] cursor-pointer mr-1"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isAutoTourPaused ? 'bg-neutral-500' : 'bg-[#ccff00] animate-pulse shadow-[0_0_6px_#ccff00]'
+              }`}
+            />
+            <span>{isAutoTourPaused ? 'PAUSED' : 'AUTO TOUR'}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -871,12 +1013,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* TAB 1: NEWS // CELEBRITY PRESS INTELLIGENCE & VERIFIED DISPATCHES     */
         /* ===================================================================== */
         <main
+          key="news-hub"
           aria-label="Celebrity Press Intelligence & News Dispatches"
           className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
-          }`}
+          } ${activeTransitionClass}`}
         >
-          <div key="news-feed" className={`w-full h-full ${slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
+          <div key="news-feed" className={`w-full h-full ${activeTransitionClass}`}>
             <CelebrityShowcase
               onOpenPhoto={onOpenPhoto}
               initialTab="DISPATCHES"
@@ -903,10 +1046,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* TAB 2: REELS/SHORTS // 9:16 VERTICAL STREAM FEED                      */
         /* ===================================================================== */
         <main
+          key="shorts-hub"
           aria-label="Reels and Shorts Hub"
           className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar p-4 sm:p-7 lg:p-10 z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
-          }`}
+          } ${activeTransitionClass}`}
         >
           {selectedSubfolder === null || selectedSubfolder === 'Celebrity Reels' ? (
             <>
@@ -1150,10 +1294,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* TAB 3: VIDEO CLIPS // 16:9 WIDESCREEN CINEMA & MUSIC RELEASES         */
         /* ===================================================================== */
         <main
+          key="clips-hub"
           aria-label="Video Clips Hub"
           className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
-          }`}
+          } ${activeTransitionClass}`}
         >
           {selectedSubfolder === null || selectedSubfolder === 'Official Releases' ? (
             <div key="clips-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">
@@ -1214,9 +1359,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           ) : (
             <div
               key={`clips-${selectedSubfolder || 'all'}`}
-              className={`w-full pb-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 ${
-                slideDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'
-              }`}
+              className={`w-full pb-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 ${activeTransitionClass}`}
             >
               {activeMediaList.map((item, idx) => {
                 const isPhoto =
@@ -1304,21 +1447,26 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         /* ===================================================================== */
         /* TAB 5: CLASSIC // RETRO & GOLDEN ERA CINEMA (THE INTERNET ARCHIVE)    */
         /* ===================================================================== */
-        <ClassicShowcase />
+        <div key="classic-stage" className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar z-10 ${activeTransitionClass}`}>
+          <ClassicShowcase />
+        </div>
       ) : selectedCategory === 'MUSIC' ? (
         /* ===================================================================== */
         /* TAB 6: MUSIC // AUDIOVISUAL FILM SOUNDTRACK LOUNGE                    */
         /* ===================================================================== */
-        <MusicShowcase />
+        <div key="music-stage" className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar z-10 ${activeTransitionClass}`}>
+          <MusicShowcase />
+        </div>
       ) : (
         /* ===================================================================== */
         /* TAB 4: PHOTOGRAPHS // HIGH-RESOLUTION EDITORIAL PORTRAITS             */
         /* ===================================================================== */
         <main
+          key="photos-hub"
           aria-label="Photographs Hub"
           className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
-          }`}
+          } ${activeTransitionClass}`}
         >
           {selectedSubfolder === null || selectedSubfolder === 'Celebrity Portraits' ? (
             <div key="photos-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">

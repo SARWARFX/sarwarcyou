@@ -407,6 +407,60 @@ html, body, #root {
   -webkit-backface-visibility: hidden;
 }
 
+@keyframes kineticZoomDissolve {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-kinetic-zoom-dissolve {
+  animation: kineticZoomDissolve 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes cyberShimmerFade {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    filter: blur(6px) brightness(1.25);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px) brightness(1);
+  }
+}
+
+.animate-cyber-shimmer-fade {
+  animation: cyberShimmerFade 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes kineticSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(36px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
+.animate-kinetic-slide-up {
+  animation: kineticSlideUp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
 /* 2. Hero Origin & Keynote Modal Zoom: Apple Keynote Fluid Physics */
 @keyframes keynoteModalZoomIn {
   0% {
