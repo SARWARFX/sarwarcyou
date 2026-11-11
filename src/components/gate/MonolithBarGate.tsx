@@ -621,7 +621,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }, [isReelPlayerOpen, isVaultDrawerOpen, selectedSubfolder, selectedCategory, handleReturnToCategory, handleExitToHome, updateRoute])
   );
 
-  const renderCategorySubfolderBar = (category: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY') => {
+  const renderCategorySubfolderBar = (category: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY', compact = false) => {
     let subOptions: { name: string; count: number; isCelebrity?: boolean }[] = [];
     if (category === 'SHORTS') {
       subOptions = [
@@ -633,7 +633,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const clipsNode = rootMap.get('Clips');
       const catalogSubs = clipsNode ? Array.from(clipsNode.subfolders.keys()).filter((s) => s !== 'Official Releases') : [];
       subOptions = [
-        { name: 'Official Releases', count: 110, isCelebrity: true },
+        { name: 'Official Releases', count: 20, isCelebrity: true },
         ...catalogSubs.map((s) => ({
           name: s,
           count: clipsNode?.subfolders.get(s)?.files.length || 0,
@@ -643,7 +643,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const imagesNode = rootMap.get('Images');
       const catalogSubs = imagesNode ? Array.from(imagesNode.subfolders.keys()).filter((s) => s !== 'Celebrity Portraits') : [];
       subOptions = [
-        { name: 'Celebrity Portraits', count: 358, isCelebrity: true },
+        { name: 'Celebrity Portraits', count: 255, isCelebrity: true },
         ...catalogSubs.map((s) => ({
           name: s,
           count: imagesNode?.subfolders.get(s)?.files.length || 0,
@@ -654,7 +654,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     const currentSub = selectedSubfolder || subOptions[0]?.name;
 
     return (
-      <div className="w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-2 mb-4 shrink-0 min-h-[46px] border-b border-white/[0.08]">
+      <div
+        className={`flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 max-w-full ${
+          compact ? 'py-0.5' : 'w-full py-2 mb-4 min-h-[46px] border-b border-white/[0.08]'
+        }`}
+      >
         {subOptions.map((sub) => {
           const isActive = currentSub === sub.name;
           return (
@@ -665,7 +669,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 hapticMedium();
                 navigateSubfolder(sub.isCelebrity ? null : sub.name);
               }}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
+              className={`flex items-center gap-1.5 ${
+                compact ? 'px-3 py-1 text-[11px]' : 'px-3.5 py-1.5 text-xs'
+              } rounded-full font-mono font-bold tracking-wider uppercase transition-all duration-150 cursor-pointer shrink-0 border ${
                 isActive
                   ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                   : 'bg-white/[0.03] text-neutral-400 border-white/10 hover:text-white hover:border-white/20'
@@ -855,13 +861,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >
-          {renderCategorySubfolderBar('SHORTS')}
-
           {selectedSubfolder === null || selectedSubfolder === 'Celebrity Reels' ? (
             <>
               {/* Header Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-white/10 shrink-0">
-                <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10 shrink-0">
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <Music2 className="w-5 h-5 text-[#ccff00]" />
                     <span className="font-['Space_Grotesk'] font-black text-lg sm:text-xl tracking-wider uppercase text-white">
@@ -876,11 +880,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse" />
-                  <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
-                    DAILY INGESTION • 365-DAY RETENTION
-                  </span>
+                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+                  {renderCategorySubfolderBar('SHORTS', true)}
                 </div>
               </div>
 
@@ -1048,33 +1049,53 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
             </>
           ) : (
-            /* Subfolder Media Grid (Shorts Classic or REALTube Shorts) */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-20">
-              {activeMediaList.map((item, idx) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleOpenItem(item, idx)}
-                  className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <img
-                    src={item.thumbnail || item.url}
-                    alt={item.title || item.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
-                      <Play className="w-5 h-5 fill-current ml-0.5" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 inset-x-0 p-3">
-                    <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
-                    <span className="text-[10px] font-mono text-[#ccff00]">{selectedSubfolder}</span>
+            <>
+              {/* Header Bar for Catalog Subfolder */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
+                  <Film className="w-5 h-5 text-[#ccff00]" />
+                  <div>
+                    <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
+                      {selectedSubfolder}
+                    </h1>
+                    <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
+                      Archived Shorts Stream • {activeMediaList.length} Items Indexed
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+                  {renderCategorySubfolderBar('SHORTS', true)}
+                </div>
+              </div>
+
+              {/* Subfolder Media Grid (Shorts Classic or REALTube Shorts) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-20">
+                {activeMediaList.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleOpenItem(item, idx)}
+                    className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <img
+                      src={item.thumbnail || item.url}
+                      alt={item.title || item.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-0 inset-x-0 p-3">
+                      <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
+                      <span className="text-[10px] font-mono text-[#ccff00]">{selectedSubfolder}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </main>
       ) : selectedCategory === 'CLIPS' ? (
@@ -1087,16 +1108,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >
-          <div className="px-4 sm:px-8 pt-3 shrink-0">
-            {renderCategorySubfolderBar('CLIPS')}
-          </div>
-
           {selectedSubfolder === null || selectedSubfolder === 'Official Releases' ? (
             <div key="clips-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">
               <CelebrityShowcase
                 onOpenPhoto={onOpenPhoto}
                 initialTab="REELS"
                 hideViewTabs={true}
+                subfolderBar={renderCategorySubfolderBar('CLIPS', true)}
                 initialFilter={activeCelebrityFilter}
                 initialVideoId={activeVideoId}
                 onTabChange={(tab) => {
@@ -1115,6 +1133,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           ) : (
             <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
+              {/* Header Bar for Catalog Subfolder */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
+                  <Film className="w-5 h-5 text-[#ccff00]" />
+                  <div>
+                    <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
+                      {selectedSubfolder}
+                    </h1>
+                    <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
+                      Archived Video Clips & Broadcasts • {activeMediaList.length} Items Indexed
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+                  {renderCategorySubfolderBar('CLIPS', true)}
+                </div>
+              </div>
 
           {/* Media Items Presentation Grid */}
           {activeMediaList.length === 0 ? (
@@ -1228,16 +1263,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           }`}
         >
-          <div className="px-4 sm:px-8 pt-3 shrink-0">
-            {renderCategorySubfolderBar('PHOTOGRAPHY')}
-          </div>
-
           {selectedSubfolder === null || selectedSubfolder === 'Celebrity Portraits' ? (
             <div key="photos-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">
               <CelebrityShowcase
                 onOpenPhoto={onOpenPhoto}
                 initialTab="PORTRAITS"
                 hideViewTabs={true}
+                subfolderBar={renderCategorySubfolderBar('PHOTOGRAPHY', true)}
                 initialFilter={activeCelebrityFilter}
                 initialVideoId={activeVideoId}
                 onTabChange={(tab) => {
@@ -1257,6 +1289,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           ) : (
             /* Subfolder Media Grid for Photographs (e.g. REALTube Photos, H2026) */
             <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
+              {/* Header Bar for Catalog Subfolder */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
+                  <Folder className="w-5 h-5 text-[#ccff00]" />
+                  <div>
+                    <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
+                      {selectedSubfolder}
+                    </h1>
+                    <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
+                      Archived Photo Collection • {activeMediaList.length} Items Indexed
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+                  {renderCategorySubfolderBar('PHOTOGRAPHY', true)}
+                </div>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-20">
                 {activeMediaList.map((item, idx) => (
                   <div

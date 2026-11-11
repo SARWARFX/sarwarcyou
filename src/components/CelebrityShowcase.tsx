@@ -49,6 +49,7 @@ export interface CelebrityShowcaseProps {
   initialFilter?: string;
   initialVideoId?: string | null;
   hideViewTabs?: boolean;
+  subfolderBar?: React.ReactNode;
   onTabChange?: (tab: 'PORTRAITS' | 'DISPATCHES' | 'REELS') => void;
   onFilterChange?: (filter: string) => void;
   onVideoChange?: (videoId: string | null) => void;
@@ -85,6 +86,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   initialFilter,
   initialVideoId,
   hideViewTabs = false,
+  subfolderBar,
   onTabChange,
   onFilterChange,
   onVideoChange,
@@ -444,8 +446,8 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
           headerVisible ? 'visible' : 'hidden'
         } flex flex-col gap-3.5`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <div>
               <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
                 {hideViewTabs
@@ -468,7 +470,11 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
             </div>
           </div>
 
-          {!hideViewTabs && (
+          {subfolderBar ? (
+            <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+              {subfolderBar}
+            </div>
+          ) : !hideViewTabs ? (
             <div className="flex items-center gap-2.5">
               {/* View Toggle Tabs */}
               <div className="flex items-center gap-1 p-1 rounded-lg bg-[#121215] border border-white/[0.08]">
@@ -521,7 +527,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* 2-Tier Navigation Engine: Guaranteed Flex-Col Separation */}
