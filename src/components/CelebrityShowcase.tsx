@@ -6,6 +6,7 @@ import {
   Newspaper,
   Film,
   Play,
+  Loader2,
 } from 'lucide-react';
 import celebrityData from '../data/celebrityGallery.json';
 import celebrityNewsData from '../data/celebrityNews.json';
@@ -307,6 +308,8 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
   const lastScrollY = useRef(0);
   const accumulatedDelta = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<() => void>(() => {});
 
   // Measure actual rendered header height dynamically (handles mobile wrapping, font sizing, orientations)
   useEffect(() => {
@@ -369,7 +372,15 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
 
     const container = scrollContainerRef.current;
     const onContainerScroll = () => {
-      if (container) handleScroll(container.scrollTop);
+      if (container) {
+        handleScroll(container.scrollTop);
+        if (
+          activeTab === 'PORTRAITS' &&
+          container.scrollTop + container.clientHeight >= container.scrollHeight - 500
+        ) {
+          loadMoreRef.current();
+        }
+      }
     };
     const onWindowScroll = () => {
       handleScroll(window.scrollY);
@@ -401,6 +412,55 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
     }
     return list;
   }, [rawWallpapers, activeFilter, regionalActressNames]);
+
+  // Progressive Batch Rendering / Infinite Scroll Controller (Theme-Matched Lazy Loading)
+  const PHOTO_BATCH_SIZE = 24;
+  const [visibleCount, setVisibleCount] = useState<number>(PHOTO_BATCH_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+
+  // Reset pagination count whenever filter, region, or tab changes
+  useEffect(() => {
+    setVisibleCount(PHOTO_BATCH_SIZE);
+    setIsLoadingMore(false);
+  }, [activeFilter, selectedRegion, activeTab]);
+
+  const visibleWallpapers = useMemo(() => {
+    return filteredWallpapers.slice(0, visibleCount);
+  }, [filteredWallpapers, visibleCount]);
+
+  const loadMorePhotos = useCallback(() => {
+    if (isLoadingMore) return;
+    if (visibleCount >= filteredWallpapers.length) return;
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + PHOTO_BATCH_SIZE, filteredWallpapers.length));
+      setIsLoadingMore(false);
+    }, 240);
+  }, [isLoadingMore, visibleCount, filteredWallpapers.length]);
+
+  loadMoreRef.current = loadMorePhotos;
+
+  useEffect(() => {
+    if (activeTab !== 'PORTRAITS') return;
+    const sentinel = sentinelRef.current;
+    const container = scrollContainerRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreRef.current();
+        }
+      },
+      {
+        root: container,
+        rootMargin: '450px',
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [activeTab, visibleWallpapers.length, filteredWallpapers.length]);
 
   const filteredNews = useMemo(() => {
     let list = rawNews;
@@ -632,7 +692,7 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
         <main className="p-4 sm:p-6 lg:p-8 pt-3 sm:pt-5 pb-20">
           {activeTab === 'PORTRAITS' ? (
             <div key={`portraits-${activeFilter}`} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch ${showcaseDirection === 'right' ? 'animate-kinetic-slide-right' : 'animate-kinetic-slide-left'}`}>
-              {filteredWallpapers.map((item, idx) => {
+              {visibleWallpapers.map((item, idx) => {
                 return (
                   <div
                     key={item.id}
@@ -645,8 +705,8 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                         handleCardClick(idx);
                       }
                     }}
-                    style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
-                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade cursor-pointer flex flex-col justify-end aspect-[3/4]"
+                    style={{ animationDelay: `${Math.min((idx % PHOTO_BATCH_SIZE) * 28, 250)}ms` }}
+                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-photo-reveal cursor-pointer flex flex-col justify-end aspect-[3/4]"
                   >
                     {/* Background Image Loading Shimmer Layer */}
                     <div
@@ -703,6 +763,41 @@ export const CelebrityShowcase: React.FC<CelebrityShowcaseProps> = ({
                   </div>
                 );
               })}
+
+              {/* Progressive Scroll Loading Sentinel / Theme Indicator */}
+              {visibleCount < filteredWallpapers.length ? (
+                <div
+                  ref={sentinelRef}
+                  className="col-span-full py-10 flex flex-col items-center justify-center"
+                >
+                  <div className="flex items-center gap-3 px-6 py-3 rounded-full bg-[#0d0e12]/90 border border-white/[0.08] hover:border-[#ccff00]/40 backdrop-blur-md shadow-2xl relative overflow-hidden transition-all duration-300">
+                    {/* Futuristic Laser Sweep Light Beam */}
+                    <div
+                      className="absolute inset-0 w-full h-full animate-laser-sweep pointer-events-none opacity-30"
+                      style={{
+                        background:
+                          'linear-gradient(90deg, transparent 0%, rgba(204,255,0,0.25) 50%, transparent 100%)',
+                      }}
+                    />
+                    <Loader2 className="w-4 h-4 text-[#ccff00] animate-spin shrink-0" />
+                    <span className="font-mono text-xs tracking-wider uppercase text-neutral-300">
+                      Drawing Next Editorial Batch...
+                    </span>
+                    <span className="font-mono text-xs text-[#ccff00] font-bold">
+                      [{visibleWallpapers.length} / {filteredWallpapers.length}]
+                    </span>
+                  </div>
+                </div>
+              ) : filteredWallpapers.length > 0 ? (
+                <div className="col-span-full py-12 flex flex-col items-center justify-center">
+                  <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-[#09090b]/80 border border-white/[0.08] backdrop-blur-md shadow-lg">
+                    <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_8px_#ccff00]" />
+                    <span className="font-mono text-[11px] uppercase tracking-widest text-neutral-400">
+                      Archive Complete • All {filteredWallpapers.length} Portraits Drawn
+                    </span>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : activeTab === 'DISPATCHES' ? (
             /* BROADSHEET NEWSPAPER EDITORIAL SECTION */

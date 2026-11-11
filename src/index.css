@@ -914,6 +914,47 @@ html, body, #root {
   }
 }
 
+/* ==========================================================================
+   PHOTO LAZY SCROLL & KINETIC WATERFALL REVEAL
+   ========================================================================== */
+
+@keyframes photoReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  60% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-photo-reveal {
+  animation: photoReveal 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes laserPulseSweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.2;
+  }
+}
+
+.animate-laser-sweep {
+  animation: laserPulseSweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+
 
 
 
