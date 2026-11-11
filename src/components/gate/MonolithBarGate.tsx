@@ -3,18 +3,13 @@ import { Play, Folder, Film } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
-import { SmartThumbnail } from '../common/SmartThumbnail';
 import { MAJOR_FOLDERS } from '../navigation/SidebarAccordionNav';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
-import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
 import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
-import { CelebrityShowcase } from '../CelebrityShowcase';
-import { ClassicShowcase } from '../ClassicShowcase';
-import { MusicShowcase } from '../MusicShowcase';
 import { VaultDrawer } from '../VaultDrawer';
 import { hapticMedium } from '../../utils/hapticsManager';
 import { trackActivityEvent } from '../../utils/usageTelemetry';
@@ -102,18 +97,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const initialRoute = useMemo(() => parseIdRoute(), []);
 
   // Navigation states:
-  // 4 Top Categories: 'NEWS' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
+  // 3 Core Categories solely for Hugging Face Directory: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
-    if (!initialRoute.category || initialRoute.category === 'ARCHIVE' || initialRoute.category === 'NEWS') return 'NEWS';
-    if (initialRoute.category === 'YOUTUBE') return 'SHORTS';
-    if (initialRoute.category === 'REALTUBE') return 'CLIPS';
+    if (!initialRoute.category || initialRoute.category === 'ARCHIVE' || initialRoute.category === 'NEWS' || initialRoute.category === 'YOUTUBE' || initialRoute.category === 'SHORTS') return 'SHORTS';
+    if (initialRoute.category === 'REALTUBE' || initialRoute.category === 'CLIPS') return 'CLIPS';
+    if (initialRoute.category === 'PHOTOGRAPHY' || (initialRoute.category as string) === 'IMAGES') return 'PHOTOGRAPHY';
     return initialRoute.category;
   });
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(initialRoute.subfolder);
-  const [activeCelebrityFilter, setActiveCelebrityFilter] = useState<string>(initialRoute.celebrityStar || 'ALL');
-  const [activeCelebrityTab, setActiveCelebrityTab] = useState<'PORTRAITS' | 'DISPATCHES'>(
-    (initialRoute.celebrityTab as any) === 'DISPATCHES' ? 'DISPATCHES' : 'PORTRAITS'
-  );
   const [activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
 
   // Dynamic Animated Transition Pool for Fluid Channel Surfing & Shift Animations
@@ -140,40 +131,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {
           category: newRoute.category !== undefined ? newRoute.category : (selectedCategory as any),
           subfolder: newRoute.subfolder !== undefined ? newRoute.subfolder : selectedSubfolder,
-          celebrityStar:
-            newRoute.celebrityStar !== undefined ? newRoute.celebrityStar : activeCelebrityFilter,
-          celebrityTab: newRoute.celebrityTab !== undefined ? newRoute.celebrityTab : activeCelebrityTab,
           videoId: newRoute.videoId !== undefined ? newRoute.videoId : activeVideoId,
         },
         replace
       );
     },
-    [selectedCategory, selectedSubfolder, activeCelebrityFilter, activeCelebrityTab, activeVideoId]
+    [selectedCategory, selectedSubfolder, activeVideoId]
   );
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
   useEffect(() => {
     const handlePopState = () => {
       const route = parseIdRoute();
-      const cat = (!route.category || route.category === 'ARCHIVE' || route.category === 'NEWS')
-        ? 'NEWS'
-        : route.category === 'YOUTUBE'
+      const cat = (!route.category || route.category === 'ARCHIVE' || route.category === 'NEWS' || route.category === 'YOUTUBE' || route.category === 'SHORTS')
         ? 'SHORTS'
-        : route.category === 'REALTUBE'
+        : (route.category === 'REALTUBE' || route.category === 'CLIPS')
         ? 'CLIPS'
-        : route.category;
+        : 'PHOTOGRAPHY';
       setSelectedCategory(cat);
       setSelectedSubfolder(route.subfolder);
-      if (route.celebrityStar) {
-        setActiveCelebrityFilter(route.celebrityStar);
-      } else if (cat === 'NEWS') {
-        setActiveCelebrityFilter('ALL');
-      }
-      if (route.celebrityTab) {
-        setActiveCelebrityTab((route.celebrityTab as any) === 'DISPATCHES' ? 'DISPATCHES' : 'PORTRAITS');
-      } else if (cat === 'NEWS') {
-        setActiveCelebrityTab('DISPATCHES');
-      }
       setActiveVideoId(route.videoId);
     };
 
@@ -250,7 +226,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
     ensureSubfolders('Clips', ['H2027', 'H2026', 'H2025', 'Favorite', 'REALTube Broadcasts', 'Others']);
     ensureSubfolders('Shorts', ['Shorts 2027', 'Shorts Classic', 'REALTube Shorts']);
-    ensureSubfolders('Images', ['Celebrity Portraits', 'H2026', 'H2025', 'Bandhobis', 'Works', 'Classic', 'REALTube Photos']);
+    ensureSubfolders('Images', ['H2026', 'H2025', 'Bandhobis', 'works', 'Classic', 'REALTube Photos']);
 
     // Sort files descending
     for (const rootNode of map.values()) {
@@ -468,7 +444,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [rootMap, updateRoute]
   );
 
-  const MAIN_TAB_ORDER = useMemo(() => ['NEWS', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY', 'CLASSIC', 'MUSIC'], []);
+  const MAIN_TAB_ORDER = useMemo(() => ['SHORTS', 'CLIPS', 'PHOTOGRAPHY'], []);
 
   // User activity tracker: any touch, keypress, click, or scroll resets the 10-second idle timer
   const recordUserActivity = useCallback(() => {
@@ -538,13 +514,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Home navigation handler: returns to Public News Overview & resets all state
   const handleExitToHome = useCallback(() => {
     recordUserActivity();
-    setSelectedCategory('NEWS');
+    setSelectedCategory('SHORTS');
     setSelectedSubfolder(null);
-    setActiveCelebrityFilter('ALL');
-    setActiveCelebrityTab('DISPATCHES');
     setActiveVideoId(null);
     setActiveTransitionClass('animate-kinetic-slide-left');
-    updateRoute({ category: 'NEWS', subfolder: null, videoId: null, mediaId: null, celebrityStar: null });
+    updateRoute({ category: 'SHORTS', subfolder: null, videoId: null, mediaId: null });
     setVaultDrawerOpen(false);
   }, [updateRoute, recordUserActivity]);
 
@@ -787,13 +761,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               ? 'PHOTOGRAPHS'
               : selectedCategory === 'CLIPS'
               ? 'VIDEO CLIPS'
-              : selectedCategory === 'SHORTS'
-              ? 'REELS/SHORTS'
-              : selectedCategory === 'CLASSIC'
-              ? 'CLASSIC CINEMA'
-              : selectedCategory === 'MUSIC'
-              ? 'MUSIC LOUNGE'
-              : 'NEWS'}
+              : 'REELS/SHORTS'}
           </span>
         </div>
 
@@ -833,24 +801,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
-              navigateTab('NEWS');
-            }}
-            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
-              selectedCategory === 'NEWS' || selectedCategory === null
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            NEWS
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
               navigateTab('SHORTS');
             }}
             className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
-              selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE'
+              selectedCategory === 'SHORTS' || selectedCategory === null || selectedCategory === 'YOUTUBE'
                 ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
@@ -885,69 +839,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           >
             PHOTOGRAPHS
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              navigateTab('CLASSIC');
-            }}
-            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
-              selectedCategory === 'CLASSIC'
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            CLASSIC
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              navigateTab('MUSIC');
-            }}
-            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
-              selectedCategory === 'MUSIC'
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            MUSIC
-          </button>
         </div>
       </header>
 
-      {/* MAIN VIEWPORT STAGE: Exactly 4 Consolidated Sections */}
-      {selectedCategory === 'NEWS' || selectedCategory === null ? (
+      {/* MAIN VIEWPORT STAGE: 3 Hugging Face Directory Sections */}
+      {selectedCategory === 'SHORTS' || selectedCategory === null || selectedCategory === 'YOUTUBE' ? (
         /* ===================================================================== */
-        /* TAB 1: NEWS // CELEBRITY PRESS INTELLIGENCE & VERIFIED DISPATCHES     */
-        /* ===================================================================== */
-        <main
-          key="news-hub"
-          aria-label="Celebrity Press Intelligence & News Dispatches"
-          className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
-          } ${activeTransitionClass}`}
-        >
-          <div key="news-feed" className={`w-full h-full ${activeTransitionClass}`}>
-            <CelebrityShowcase
-              onOpenPhoto={onOpenPhoto}
-              initialTab="DISPATCHES"
-              hideViewTabs={true}
-              initialFilter={activeCelebrityFilter}
-              onTabChange={(tab) => {
-                setActiveCelebrityTab(tab);
-                updateRoute({ celebrityTab: tab });
-              }}
-              onFilterChange={(filter) => {
-                setActiveCelebrityFilter(filter);
-                updateRoute({ celebrityStar: filter });
-              }}
-            />
-          </div>
-        </main>
-      ) : selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE' ? (
-        /* ===================================================================== */
-        /* TAB 2: REELS/SHORTS // 9:16 VERTICAL STREAM FEED                      */
+        /* TAB 1: REELS / SHORTS // 9:16 VERTICAL STREAM FEED                    */
         /* ===================================================================== */
         <main
           key="shorts-hub"
@@ -1016,9 +914,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           )}
         </main>
-      ) : selectedCategory === 'CLIPS' ? (
+      ) : selectedCategory === 'CLIPS' || selectedCategory === 'REALTUBE' ? (
         /* ===================================================================== */
-        /* TAB 3: VIDEO CLIPS // 16:9 WIDESCREEN CINEMA & MUSIC RELEASES         */
+        /* TAB 2: VIDEO CLIPS // 16:9 WIDESCREEN CINEMA & MUSIC RELEASES         */
         /* ===================================================================== */
         <main
           key="clips-hub"
@@ -1027,213 +925,150 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
           } ${activeTransitionClass}`}
         >
-            <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
-              {/* Header Bar for Catalog Subfolder */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-3 shrink-0">
-                  <Film className="w-5 h-5 text-[#ccff00]" />
-                  <div>
-                    <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                      {selectedSubfolder}
-                    </h1>
-                    <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
-                      Archived Video Clips & Broadcasts • {activeMediaList.length} Items Indexed
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
-                  {renderCategorySubfolderBar('CLIPS', true)}
+          <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
+            {/* Header Bar for Catalog Subfolder */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
+                <Film className="w-5 h-5 text-[#ccff00]" />
+                <div>
+                  <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
+                    {selectedSubfolder || 'H2027'}
+                  </h1>
+                  <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
+                    Archived Video Clips & Broadcasts • {activeMediaList.length} Items Indexed
+                  </p>
                 </div>
               </div>
+              <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+                {renderCategorySubfolderBar('CLIPS', true)}
+              </div>
+            </div>
 
-          {/* Media Items Presentation Grid */}
+            {/* Media Items Presentation Grid */}
+            {activeMediaList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-16 text-center my-auto min-h-[40vh] border border-white/5 rounded-2xl bg-[#08080a]">
+                <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mb-3">
+                  <Folder className="w-6 h-6" />
+                </div>
+                <p className="font-['Space_Grotesk',sans-serif] text-white text-base font-bold uppercase tracking-wider mb-1">
+                  No Media Items in this Collection
+                </p>
+                <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
+                  INDEX READY // SCAN COMPLETE
+                </span>
+              </div>
+            ) : (
+              <div
+                key={`clips-${selectedSubfolder || 'all'}`}
+                className={`w-full pb-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 ${activeTransitionClass}`}
+              >
+                {activeMediaList.map((item, idx) => {
+                  const imageSrc =
+                    (item as any).thumbnail ||
+                    resolveStaticVideoThumbnail(item) ||
+                    item.poster ||
+                    item.url;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleOpenItem(item, idx)}
+                      className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex flex-col justify-between aspect-video select-none"
+                    >
+                      <img
+                        src={imageSrc}
+                        alt={item.title || item.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <div className="w-11 h-11 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none">
+                        <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#ccff00] transition-colors">
+                          {item.title || item.name}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 mt-0.5">
+                          <Film className="w-3 h-3 text-[#ccff00]" />
+                          <span>{selectedSubfolder || 'H2027'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </main>
+      ) : (
+        /* ===================================================================== */
+        /* TAB 3: PHOTOGRAPHS // HIGH-RESOLUTION PHOTO VAULT                     */
+        /* ===================================================================== */
+        <main
+          key="photos-hub"
+          aria-label="Photographs Hub"
+          className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12 z-10 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
+          } ${activeTransitionClass}`}
+        >
+          {/* Header Bar for Catalog Subfolder */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
+              <Folder className="w-5 h-5 text-[#ccff00]" />
+              <div>
+                <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
+                  {selectedSubfolder || 'H2026'}
+                </h1>
+                <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
+                  Archived Photo Collection • {activeMediaList.length} Items Indexed
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
+              {renderCategorySubfolderBar('PHOTOGRAPHY', true)}
+            </div>
+          </div>
+
           {activeMediaList.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-16 text-center my-auto min-h-[40vh] border border-white/5 rounded-2xl bg-[#08080a]">
               <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mb-3">
                 <Folder className="w-6 h-6" />
               </div>
               <p className="font-['Space_Grotesk',sans-serif] text-white text-base font-bold uppercase tracking-wider mb-1">
-                No Media Items in this Collection
+                No Photographs in this Collection
               </p>
               <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
                 INDEX READY // SCAN COMPLETE
               </span>
             </div>
           ) : (
-            <div
-              key={`clips-${selectedSubfolder || 'all'}`}
-              className={`w-full pb-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 ${activeTransitionClass}`}
-            >
-              {activeMediaList.map((item, idx) => {
-                const isPhoto =
-                  item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
-
-                const imageSrc =
-                  (item as any).thumbnail ||
-                  (item as any).src ||
-                  item.url ||
-                  (item as any).image ||
-                  item.path ||
-                  '';
-
-                const thumb = isPhoto
-                  ? getMediaUrl(imageSrc) || imageSrc
-                  : getImageUrl(item) ||
-                    getThumbnailUrl(item) ||
-                    resolveStaticVideoThumbnail(item) ||
-                    getMediaUrl(imageSrc) ||
-                    imageSrc;
-
-                const displayName = item.title || (item.name ? item.name.replace(/\.[a-z0-9]+$/i, '') : 'Media');
-
-                /* ------------------------------------------------------------- */
-                /* 16:9 Widescreen Cinema Card for Video Clips & Broadcasts      */
-                /* ------------------------------------------------------------- */
-                return (
-                  <div
-                    key={item.id || item.url || idx}
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenItem(item, idx);
-                    }}
-                    style={{ animationDelay: `${Math.min(idx * 28, 300)}ms` }}
-                    className="group relative rounded-xl overflow-hidden bg-[#08080a] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_25px_rgba(204,255,0,0.25)] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] animate-velvet-cascade flex flex-col select-none"
-                  >
-                    <div className="relative aspect-video w-full overflow-hidden bg-[#050505]">
-                      <SmartThumbnail
-                        src={thumb}
-                        alt=""
-                        aspectClass="aspect-video"
-                        containerClassName="w-full h-full border-0"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-
-                      {/* 4K UHD Badge */}
-                      <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
-                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase text-black bg-[#ccff00] shadow-sm">
-                          4K UHD
-                        </span>
-                      </div>
-
-                      {/* Hover Center Play Button */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                        <div className="w-11 h-11 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.7)] group-hover:scale-110 transition-transform">
-                          <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Info Details */}
-                    <div className="p-3 sm:p-3.5 flex flex-col gap-1 bg-[#0a0a0d]">
-                      <span className="text-[9px] font-mono font-bold text-[#ccff00] uppercase tracking-wider block truncate">
-                        {item.parentAlbum || selectedCategory}
-                      </span>
-                      <h3 className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-white transition-colors">
-                        {displayName}
-                      </h3>
-                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 mt-0.5">
-                        <Film className="w-3 h-3 text-[#ccff00]" />
-                        <span>STREAM READY</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-            </div>
-        </main>
-      ) : selectedCategory === 'CLASSIC' ? (
-        /* ===================================================================== */
-        /* TAB 5: CLASSIC // RETRO & GOLDEN ERA CINEMA (THE INTERNET ARCHIVE)    */
-        /* ===================================================================== */
-        <div key="classic-stage" className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar z-10 ${activeTransitionClass}`}>
-          <ClassicShowcase />
-        </div>
-      ) : selectedCategory === 'MUSIC' ? (
-        /* ===================================================================== */
-        /* TAB 6: MUSIC // AUDIOVISUAL FILM SOUNDTRACK LOUNGE                    */
-        /* ===================================================================== */
-        <div key="music-stage" className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar z-10 ${activeTransitionClass}`}>
-          <MusicShowcase />
-        </div>
-      ) : (
-        /* ===================================================================== */
-        /* TAB 4: PHOTOGRAPHS // HIGH-RESOLUTION EDITORIAL PORTRAITS             */
-        /* ===================================================================== */
-        <main
-          key="photos-hub"
-          aria-label="Photographs Hub"
-          className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
-          } ${activeTransitionClass}`}
-        >
-          {selectedSubfolder === null || selectedSubfolder === 'Celebrity Portraits' ? (
-            <div key="photos-celebrity" className="flex-1 w-full min-h-0 overflow-hidden">
-              <CelebrityShowcase
-                onOpenPhoto={onOpenPhoto}
-                initialTab="PORTRAITS"
-                hideViewTabs={true}
-                subfolderBar={renderCategorySubfolderBar('PHOTOGRAPHY', true)}
-                initialFilter={activeCelebrityFilter}
-                onTabChange={(tab) => {
-                  setActiveCelebrityTab(tab);
-                  updateRoute({ celebrityTab: tab });
-                }}
-                onFilterChange={(filter) => {
-                  setActiveCelebrityFilter(filter);
-                  updateRoute({ celebrityStar: filter });
-                }}
-              />
-            </div>
-          ) : (
-            /* Subfolder Media Grid for Photographs (e.g. REALTube Photos, H2026) */
-            <div className="flex-1 w-full overflow-y-auto space-scrollbar p-5 sm:p-8 lg:p-12">
-              {/* Header Bar for Catalog Subfolder */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-3 shrink-0">
-                  <Folder className="w-5 h-5 text-[#ccff00]" />
-                  <div>
-                    <h1 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                      {selectedSubfolder}
-                    </h1>
-                    <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
-                      Archived Photo Collection • {activeMediaList.length} Items Indexed
-                    </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-20">
+              {activeMediaList.map((item, idx) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleOpenItem(item, idx)}
+                  className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] cursor-pointer aspect-[3/4] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <img
+                    src={item.thumbnail || item.url}
+                    alt={item.title || item.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-0 inset-x-0 p-3">
+                    <p className="text-xs font-bold text-white line-clamp-1">{item.title || item.name}</p>
+                    <span className="text-[10px] font-mono text-neutral-400">{selectedSubfolder || 'Photographs'}</span>
                   </div>
                 </div>
-                <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
-                  {renderCategorySubfolderBar('PHOTOGRAPHY', true)}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-20">
-                {activeMediaList.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleOpenItem(item, idx)}
-                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] cursor-pointer aspect-[3/4] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <img
-                      src={item.thumbnail || item.url}
-                      alt={item.title || item.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <div className="absolute bottom-0 inset-x-0 p-3">
-                      <p className="text-xs font-bold text-white line-clamp-1">{item.title || item.name}</p>
-                      <span className="text-[10px] font-mono text-neutral-400">{selectedSubfolder}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           )}
         </main>
       )}
-
     </div>
   );
 };
