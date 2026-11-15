@@ -1356,6 +1356,21 @@ html, body, #root {
   user-select: none;
 }
 
+/* Explicit position priority: ensure fixed & absolute utilities take precedence */
+.reticle-btn.fixed,
+.fixed.reticle-btn,
+.reticle-zoom-box.fixed,
+.fixed.reticle-zoom-box {
+  position: fixed !important;
+}
+
+.reticle-btn.absolute,
+.absolute.reticle-btn,
+.reticle-zoom-box.absolute,
+.absolute.reticle-zoom-box {
+  position: absolute !important;
+}
+
 /* Corner Reticle Targeting Brackets */
 .reticle-btn::before,
 .reticle-btn::after {
@@ -1526,7 +1541,6 @@ html, body, #root {
   border-radius: 12px;
   padding: 10px 8px;
   box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
-  position: relative;
 }
 
 .reticle-zoom-box::before {

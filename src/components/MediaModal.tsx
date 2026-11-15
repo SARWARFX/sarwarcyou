@@ -775,8 +775,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           e.stopPropagation();
           onClose();
         }}
-        className={`reticle-btn reticle-btn-close pointer-events-auto fixed top-6 right-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer ${
-          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+        className={`reticle-btn reticle-btn-close fixed top-6 right-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+          showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Close (Esc)"
         aria-label="Close image viewer"
@@ -796,8 +796,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-prev pointer-events-auto fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer ${
-            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+          className={`reticle-btn reticle-btn-prev fixed left-4 sm:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+            showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Previous Photo (←)"
           aria-label="Previous photo"
@@ -818,8 +818,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-next pointer-events-auto fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer ${
-            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+          className={`reticle-btn reticle-btn-next fixed right-4 sm:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+            showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Next Photo (→)"
           aria-label="Next photo"
@@ -834,8 +834,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
         }}
         onMouseLeave={scheduleAutoHide}
-        className={`reticle-zoom-box pointer-events-auto fixed right-3 sm:right-6 bottom-20 z-40 transition-all duration-300 ${
-          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
+        className={`reticle-zoom-box fixed right-4 sm:right-6 bottom-24 z-40 transition-all duration-300 pointer-events-auto ${
+          showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
         }`}
         style={{ touchAction: 'none' }}
         onClick={(e) => e.stopPropagation()}
@@ -976,7 +976,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         />
       </div>
 
-      {/* Floating Download Button at Bottom Left */}
+      {/* Floating Download Button at Bottom Left (Precision Sci-Fi Reticle) */}
       <button
         type="button"
         onClick={(e) => {
@@ -984,8 +984,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           handleDownload();
         }}
         disabled={isDownloading}
-        className={`pointer-events-auto fixed bottom-6 left-6 z-50 p-3.5 rounded-full bg-black/60 hover:bg-neutral-800 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-white shadow-2xl transition-all duration-300 cursor-pointer disabled:opacity-40 ${
-          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+        className={`reticle-btn fixed bottom-6 left-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer disabled:opacity-40 pointer-events-auto ${
+          showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Download Original Photo"
         aria-label="Download photo"
