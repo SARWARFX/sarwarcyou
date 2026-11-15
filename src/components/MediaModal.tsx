@@ -59,6 +59,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [showControls, setShowControls] = useState<boolean>(true);
   const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Desktop vs Mobile layout detection (lg: = 1024px)
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const scheduleAutoHide = useCallback(() => {
     if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
     hideControlsTimerRef.current = setTimeout(() => {
@@ -708,7 +717,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 animate-flank-left ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
-          style={{ width: 'clamp(160px, 16vw, 240px)' }}
+          style={{ width: 'clamp(180px, 15vw, 220px)' }}
           title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
         >
           <div className="relative w-full aspect-[3/4] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
@@ -741,7 +750,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 animate-flank-right ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
-          style={{ width: 'clamp(160px, 16vw, 240px)' }}
+          style={{ width: 'clamp(180px, 15vw, 220px)' }}
           title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
         >
           <div className="relative w-full aspect-[3/4] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
@@ -827,8 +836,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             WebkitUserSelect: 'none',
             WebkitTouchCallout: 'none',
             overscrollBehavior: 'none',
+            maxWidth: isDesktop ? 'calc(100vw - 560px)' : '100vw',
+            maxHeight: isDesktop ? '82vh' : '100vh',
           }}
-          className={`pointer-events-auto select-none touch-none object-contain max-w-full max-h-full lg:max-w-[calc(100vw-clamp(360px,36vw,540px))] lg:max-h-[85vh] will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-pointer ${
+          className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-pointer ${
             slideDirection === 'next'
               ? 'animate-photo-slide-next'
               : slideDirection === 'prev'
