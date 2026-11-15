@@ -14,7 +14,7 @@ export interface ShortsFeedModalProps {
 }
 
 // Living Constellation Configuration & Dynamic Position Generator for Recommended Shorts
-const CONSTELLATION_LABELS = ['DISCOVER', 'SUGGESTED', 'RECOMMENDED', 'FOR YOU', 'TRENDING', 'HOT PICKS'];
+const CONSTELLATION_LABELS = ['DISCOVER', 'SUGGESTED', 'RECOMMENDED', 'FOR YOU', 'TRENDING', 'HOT PICKS', 'RANDOM', 'FEATURED'];
 
 interface ConstellationCard {
   item: StageMediaItem;
@@ -25,6 +25,32 @@ interface ConstellationCard {
   label: string;
   visibilityClass: string;
 }
+
+interface WingAnchor {
+  topPercent: number;
+  depthVw: number;
+  depthPx: number;
+  visibilityClass: string;
+}
+
+// 10 Staggered Anchors per Wing: natural multi-column layout filling available peripheral space
+const WING_ANCHORS: WingAnchor[] = [
+  // Column 1: Outer edge (5 cards distributed top to bottom)
+  { topPercent: 7,  depthVw: 1.8, depthPx: 20, visibilityClass: 'hidden lg:flex' },
+  { topPercent: 27, depthVw: 3.2, depthPx: 34, visibilityClass: 'hidden lg:flex' },
+  { topPercent: 48, depthVw: 1.8, depthPx: 22, visibilityClass: 'hidden lg:flex' },
+  { topPercent: 69, depthVw: 3.4, depthPx: 36, visibilityClass: 'hidden lg:flex' },
+  { topPercent: 88, depthVw: 1.8, depthPx: 22, visibilityClass: 'hidden lg:flex' },
+
+  // Column 2: Mid-wing (3 cards staggered in-between outer heights)
+  { topPercent: 17, depthVw: 8.5, depthPx: 115, visibilityClass: 'hidden xl:flex' },
+  { topPercent: 39, depthVw: 9.8, depthPx: 135, visibilityClass: 'hidden xl:flex' },
+  { topPercent: 61, depthVw: 8.8, depthPx: 120, visibilityClass: 'hidden xl:flex' },
+
+  // Column 3: Inner wing (2 cards closer to the center player)
+  { topPercent: 29, depthVw: 15.5, depthPx: 210, visibilityClass: 'hidden 2xl:flex' },
+  { topPercent: 73, depthVw: 15.0, depthPx: 205, visibilityClass: 'hidden 2xl:flex' },
+];
 
 function generateDynamicConstellation(
   shorts: StageMediaItem[],
@@ -37,46 +63,39 @@ function generateDynamicConstellation(
 
   if (pool.length === 0) return [];
 
-  // Randomize cards to select
+  // Pick up to 20 random items (10 for left wing, 10 for right wing)
   const shuffled = [...pool].sort(() => 0.5 - Math.random());
-  const selected = shuffled.slice(0, Math.min(6, shuffled.length));
+  const selected: { item: StageMediaItem; originalIndex: number }[] = [];
+  for (let i = 0; i < 20; i++) {
+    selected.push(shuffled[i % shuffled.length]);
+  }
 
-  // 3 vertical height zones (in %) for clean vertical distribution without collisions
-  const topZones = [
-    { min: 7, max: 22 },   // Upper section
-    { min: 36, max: 51 },  // Middle section
-    { min: 65, max: 80 },  // Lower section
-  ];
-
-  // 3 depth zones (measuring inward from respective screen edge)
-  const depthZones = [
-    { minVw: 1.5, maxVw: 3.5, minPx: 16, maxPx: 45, visibility: 'hidden 2xl:flex' },  // Far outer edge
-    { minVw: 7.5, maxVw: 12.5, minPx: 100, maxPx: 180, visibility: 'hidden xl:flex' }, // Mid peripheral wing
-    { minVw: 15.5, maxVw: 21, minPx: 220, maxPx: 310, visibility: 'hidden xl:flex' }, // Near center deck
-  ];
-
-  // Randomize depth assignments for both left and right wings so positions change dynamically each cycle
-  const leftDepthOrder = [0, 1, 2].sort(() => 0.5 - Math.random());
-  const rightDepthOrder = [0, 1, 2].sort(() => 0.5 - Math.random());
+  // Shuffle anchor assignments for both left and right wings so positions change dynamically each cycle
+  const leftAnchorIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => 0.5 - Math.random());
+  const rightAnchorIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => 0.5 - Math.random());
 
   return selected.map((entry, index) => {
-    const isLeft = index < 3;
-    const wingIndex = isLeft ? index : index - 3;
-    const depthIndex = isLeft ? leftDepthOrder[wingIndex] : rightDepthOrder[wingIndex];
+    const isLeft = index < 10;
+    const wingIndex = isLeft ? index : index - 10;
+    const anchorIndex = isLeft ? leftAnchorIndices[wingIndex] : rightAnchorIndices[wingIndex];
+    const anchor = WING_ANCHORS[anchorIndex];
 
-    const topZone = topZones[wingIndex];
-    const depthZone = depthZones[depthIndex];
+    // Organic randomized jitter to keep coordinates living and non-rigid
+    const jitterTop = (Math.random() * 5 - 2.5);
+    const topPercent = Math.max(5, Math.min(91, anchor.topPercent + jitterTop)).toFixed(1);
 
-    const topPercent = (topZone.min + Math.random() * (topZone.max - topZone.min)).toFixed(1);
-    const vw = (depthZone.minVw + Math.random() * (depthZone.maxVw - depthZone.minVw)).toFixed(1);
-    const px = Math.round(depthZone.minPx + Math.random() * (depthZone.maxPx - depthZone.minPx));
+    const jitterPx = Math.round(Math.random() * 20 - 10);
+    const px = Math.max(12, anchor.depthPx + jitterPx);
 
-    const cardWidthMin = 105 + Math.round(Math.random() * 20);
-    const cardWidthVw = (7.2 + Math.random() * 1.6).toFixed(1);
-    const cardWidthMax = 140 + Math.round(Math.random() * 25);
+    const jitterVw = (Math.random() * 1.4 - 0.7);
+    const vw = Math.max(1.0, anchor.depthVw + jitterVw).toFixed(1);
+
+    const cardWidthMin = 90 + Math.round(Math.random() * 16);
+    const cardWidthVw = (6.0 + Math.random() * 1.4).toFixed(1);
+    const cardWidthMax = 125 + Math.round(Math.random() * 20);
 
     const rotation = (Math.random() * 6 - 3).toFixed(1);
-    const delay = `${Math.round(Math.random() * 300)}ms`;
+    const delay = `${Math.round(Math.random() * 450)}ms`;
     const label = CONSTELLATION_LABELS[Math.floor(Math.random() * CONSTELLATION_LABELS.length)];
 
     const style: React.CSSProperties = {
@@ -84,8 +103,8 @@ function generateDynamicConstellation(
       width: `clamp(${cardWidthMin}px, ${cardWidthVw}vw, ${cardWidthMax}px)`,
       transform: `rotate(${rotation}deg)`,
       ...(isLeft
-        ? { left: `clamp(${px}px, ${vw}vw, calc(50vw - 260px))` }
-        : { right: `clamp(${px}px, ${vw}vw, calc(50vw - 260px))` }),
+        ? { left: `clamp(${px}px, ${vw}vw, calc(50vw - 230px))` }
+        : { right: `clamp(${px}px, ${vw}vw, calc(50vw - 230px))` }),
     };
 
     return {
@@ -94,7 +113,7 @@ function generateDynamicConstellation(
       style,
       delay,
       label,
-      visibilityClass: depthZone.visibility,
+      visibilityClass: anchor.visibilityClass,
     };
   });
 }
@@ -864,82 +883,37 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         );
       })}
 
-      {/* ===== DESKTOP LEFT FLANKING PREVIEW (Near Previous Short, PREV-1) ===== */}
-      {activeIndex > 0 && (
-        <div
-          key={`short-prev-${activeIndex}-${slideDirection}`}
+      {/* ===== DESKTOP FLOATING EDGE NAVIGATION ARROWS (OUTLINE-FREE CANVAS) ===== */}
+      {isDesktop && activeIndex > 0 && (
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             goToShortIndex(activeIndex - 1, 'prev');
           }}
-          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-90 hover:opacity-100 ${
-            slideDirection === 'next'
-              ? 'animate-flank-elevate-up'
-              : slideDirection === 'prev'
-              ? 'animate-flank-dip-down'
-              : ''
+          className={`fixed left-3.5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/75 hover:bg-[#ccff00] hover:text-black text-white/80 border border-white/20 flex items-center justify-center transition-all duration-300 shadow-2xl backdrop-blur-md cursor-pointer active:scale-95 ${
+            showControls ? 'opacity-90 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
-          style={{ right: 'calc(50% + 225px)', width: 'clamp(165px, 11vw, 215px)' }}
-          title={shorts[activeIndex - 1]?.title || 'Previous Short'}
+          title="Previous Short (Left Arrow)"
         >
-          <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
-            <img
-              src={getThumbnailUrl(shorts[activeIndex - 1]) || (shorts[activeIndex - 1]?.thumbnail ? getMediaUrl(shorts[activeIndex - 1].thumbnail!) : '')}
-              alt={shorts[activeIndex - 1]?.title || 'Previous short'}
-              className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
-                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-              }`}>
-                <ChevronLeft className="w-6 h-6 -ml-0.5" />
-              </div>
-            </div>
-            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
-              <p className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">PREV</p>
-              <p className="text-[10px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex - 1]?.title || ''}</p>
-            </div>
-          </div>
-        </div>
+          <ChevronLeft className="w-6 h-6 -ml-0.5" />
+        </button>
       )}
 
-      {/* ===== DESKTOP RIGHT FLANKING PREVIEW (Near Next Short, NEXT-1) ===== */}
-      {activeIndex < shorts.length - 1 && (
-        <div
-          key={`short-next-${activeIndex}-${slideDirection}`}
+      {isDesktop && activeIndex < shorts.length - 1 && (
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             goToShortIndex(activeIndex + 1, 'next');
           }}
-          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-90 hover:opacity-100 ${
-            slideDirection === 'next'
-              ? 'animate-flank-dip-down'
-              : slideDirection === 'prev'
-              ? 'animate-flank-elevate-up'
-              : ''
+          className={`fixed right-3.5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/75 hover:bg-[#ccff00] hover:text-black text-white/80 border border-white/20 flex items-center justify-center transition-all duration-300 shadow-2xl backdrop-blur-md cursor-pointer active:scale-95 ${
+            showControls ? 'opacity-90 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
-          style={{ left: 'calc(50% + 225px)', width: 'clamp(165px, 11vw, 215px)' }}
-          title={shorts[activeIndex + 1]?.title || 'Next Short'}
+          title="Next Short (Right Arrow)"
         >
-          <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
-            <img
-              src={getThumbnailUrl(shorts[activeIndex + 1]) || (shorts[activeIndex + 1]?.thumbnail ? getMediaUrl(shorts[activeIndex + 1].thumbnail!) : '')}
-              alt={shorts[activeIndex + 1]?.title || 'Next short'}
-              className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
-                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-              }`}>
-                <ChevronRight className="w-6 h-6 -mr-0.5" />
-              </div>
-            </div>
-            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
-              <p className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">NEXT</p>
-              <p className="text-[10px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex + 1]?.title || ''}</p>
-            </div>
-          </div>
-        </div>
+          <ChevronRight className="w-6 h-6 -mr-0.5" />
+        </button>
       )}
       {/* Desktop Stage (In-Place 5-Card Deck Centerpiece) vs Mobile Scroll-Snap Reels */}
       {isDesktop ? (
