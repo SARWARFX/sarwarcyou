@@ -24,6 +24,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const [centerIcon, setCenterIcon] = useState<{ idx: number; type: 'play' | 'pause'; id: number } | null>(null);
   const [showControls, setShowControls] = useState(true);
+  const [slideDirection, setSlideDirection] = useState<'next' | 'prev' | null>(null);
 
   // Enhanced Shorts Experience States
   const [currentTime, setCurrentTime] = useState(0);
@@ -289,10 +290,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
         if (e.cancelable) e.preventDefault();
+        setSlideDirection('next');
         slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
       }
       if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft') {
         if (e.cancelable) e.preventDefault();
+        setSlideDirection('prev');
         slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
       }
       if (e.key === 'm' || e.key === 'M') setIsMuted((prev) => !prev);
@@ -406,7 +409,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           onClose();
         }
       }}
-      className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-keynote-modal cursor-pointer"
+      className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-backdrop-fade cursor-pointer"
     >
       {/* Top HUD Controls - Auto-hides on mobile during playback */}
       <header
@@ -460,10 +463,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             hapticLight();
+            setSlideDirection('prev');
             const prevIdx = activeIndex - 1;
             slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 ${
+          className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-left ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
           style={{ width: 'clamp(160px, 16vw, 240px)' }}
@@ -494,10 +498,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             hapticLight();
+            setSlideDirection('next');
             const nextIdx = activeIndex + 1;
             slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 ${
+          className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-right ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
           style={{ width: 'clamp(160px, 16vw, 240px)' }}
@@ -546,8 +551,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && Math.abs(e.deltaY) > 10) {
             e.preventDefault();
             if (e.deltaY > 0 && activeIndex < shorts.length - 1) {
+              setSlideDirection('next');
               slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
             } else if (e.deltaY < 0 && activeIndex > 0) {
+              setSlideDirection('prev');
               slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
             }
           }
@@ -600,6 +607,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                   isLandscape
                     ? 'w-full lg:max-w-[calc(100vw-clamp(360px,36vw,540px))] md:aspect-[16/9] md:h-[80vh] md:max-h-[85vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
                     : 'w-full md:max-w-[420px] lg:max-w-[min(420px,calc(100vw-clamp(360px,36vw,540px)))] h-full md:max-h-[88vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
+                } ${
+                  idx === activeIndex
+                    ? slideDirection === 'next'
+                      ? 'animate-short-slide-next'
+                      : slideDirection === 'prev'
+                      ? 'animate-short-slide-prev'
+                      : 'animate-media-open'
+                    : 'opacity-40 scale-[0.95]'
                 }`}
               >
                 {!failedPermanently[idx] ? (

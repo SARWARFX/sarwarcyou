@@ -1000,7 +1000,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   <div
                     key={item.id}
                     onClick={() => handleOpenItem(item, idx)}
-                    className="group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] cursor-pointer aspect-[9/16] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    style={{ animationDelay: `${Math.min(idx, 15) * 25}ms` }}
+                    className="animate-card-enter group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_24px_rgba(204,255,0,0.22)] cursor-pointer aspect-[9/16] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] active:scale-[0.96]"
                   >
                     <img
                       src={item.thumbnail || item.url}
@@ -1099,7 +1100,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       <div
                         key={item.id}
                         onClick={() => handleOpenItem(item, idx)}
-                        className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex flex-col justify-between aspect-video select-none"
+                        style={{ animationDelay: `${Math.min(idx, 15) * 25}ms` }}
+                        className="animate-card-enter group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_24px_rgba(204,255,0,0.22)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] active:scale-[0.96] cursor-pointer flex flex-col justify-between aspect-video select-none"
                       >
                         <img
                           src={imageSrc}
@@ -1194,7 +1196,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   <div
                     key={item.id}
                     onClick={() => handleOpenItem(item, idx)}
-                    className="group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] cursor-pointer aspect-[3/4] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    style={{ animationDelay: `${Math.min(idx, 15) * 25}ms` }}
+                    className="animate-card-enter group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_24px_rgba(204,255,0,0.22)] cursor-pointer aspect-[3/4] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] active:scale-[0.96]"
                   >
                     <img
                       src={item.thumbnail || item.url}

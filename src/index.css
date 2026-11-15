@@ -410,36 +410,40 @@ html, body, #root {
 /* Native File Manager / Gallery Photo Slide Transitions */
 @keyframes photoSlideNext {
   0% {
-    opacity: 0.35;
-    transform: translate3d(55px, 0, 0) scale(0.97);
+    opacity: 0.15;
+    transform: translate3d(50px, 0, 0) scale(0.95);
+    filter: blur(5px);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
   }
 }
 
 @keyframes photoSlidePrev {
   0% {
-    opacity: 0.35;
-    transform: translate3d(-55px, 0, 0) scale(0.97);
+    opacity: 0.15;
+    transform: translate3d(-50px, 0, 0) scale(0.95);
+    filter: blur(5px);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
   }
 }
 
 .animate-photo-slide-next {
-  animation: photoSlideNext 260ms cubic-bezier(0.2, 0.85, 0.32, 1.05) both;
-  will-change: transform, opacity;
+  animation: photoSlideNext 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
 .animate-photo-slide-prev {
-  animation: photoSlidePrev 260ms cubic-bezier(0.2, 0.85, 0.32, 1.05) both;
-  will-change: transform, opacity;
+  animation: photoSlidePrev 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
@@ -535,6 +539,124 @@ html, body, #root {
 
 .animate-keynote-backdrop {
   animation: keynoteBackdropFadeIn 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 4. Opulent Modal Backdrop Fade & Dissolve */
+@keyframes modalBackdropFade {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+}
+
+.animate-backdrop-fade {
+  animation: modalBackdropFade 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, backdrop-filter;
+}
+
+/* 5. Center Media Card Opening Zoom */
+@keyframes mediaOpenZoom {
+  0% {
+    opacity: 0;
+    transform: scale(0.90) translateY(18px);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+  }
+}
+
+.animate-media-open {
+  animation: mediaOpenZoom 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 6. Flanking Cards Fluid Entrance */
+@keyframes flankSlideLeftIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(-35px, -50%, 0) scale(0.92);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, -50%, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-flank-left {
+  animation: flankSlideLeftIn 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes flankSlideRightIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(35px, -50%, 0) scale(0.92);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, -50%, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-flank-right {
+  animation: flankSlideRightIn 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+/* 7. Shorts Player Kinetic Next/Prev Slide Transitions */
+@keyframes shortSlideNext {
+  0% {
+    opacity: 0.15;
+    transform: translate3d(45px, 0, 0) scale(0.96);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-short-slide-next {
+  animation: shortSlideNext 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@keyframes shortSlidePrev {
+  0% {
+    opacity: 0.15;
+    transform: translate3d(-45px, 0, 0) scale(0.96);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-short-slide-prev {
+  animation: shortSlidePrev 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Futuristic Laser Shimmer Loader */

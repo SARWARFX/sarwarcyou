@@ -658,7 +658,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       aria-modal="true"
       onMouseMove={handleUserActivity}
       onTouchStart={handleUserActivity}
-      className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-keynote-modal"
+      className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-backdrop-fade"
       style={{
         touchAction: 'none',
         WebkitBackdropFilter: 'blur(20px)',
@@ -705,7 +705,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             goToPrev();
           }}
-          className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 ${
+          className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 animate-flank-left ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
           style={{ width: 'clamp(160px, 16vw, 240px)' }}
@@ -738,7 +738,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             goToNext();
           }}
-          className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 ${
+          className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 animate-flank-right ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
           style={{ width: 'clamp(160px, 16vw, 240px)' }}
@@ -833,7 +833,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               ? 'animate-photo-slide-next'
               : slideDirection === 'prev'
               ? 'animate-photo-slide-prev'
-              : ''
+              : 'animate-media-open'
           }`}
           draggable={false}
         />
