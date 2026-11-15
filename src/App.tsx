@@ -792,6 +792,9 @@ function App() {
               item={theaterState.item}
               playlist={theaterState.playlist}
               allFolders={rawFeed.videoVaultFolders}
+              photoPool={rawFeed.allMediaPool.filter(
+                (i) => i.type === 'image' || isPhotoExtension(i.path || i.url || i.name || '')
+              )}
               onSelectItem={(item) => {
                 setTheaterState((prev) => ({ ...prev, item }));
                 addRecentMediaItem(item);
