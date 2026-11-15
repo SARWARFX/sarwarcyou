@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Volume2, VolumeX, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
@@ -12,6 +12,78 @@ import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
 }
+
+// Living Constellation Slots Configuration for Peripheral Wings
+const WING_SLOTS = [
+  // Left Wing Slots (Outer & Upper/Lower)
+  {
+    side: 'left' as const,
+    style: {
+      right: 'calc(50% + 450px + clamp(15px, 2.5vw, 60px))',
+      top: '12%',
+      width: 'clamp(115px, 8vw, 150px)',
+      transform: 'rotate(-2deg)',
+    },
+    delay: '0ms',
+    label: 'DISCOVER',
+  },
+  {
+    side: 'left' as const,
+    style: {
+      right: 'calc(50% + 450px + clamp(130px, 9vw, 210px))',
+      top: '44%',
+      width: 'clamp(120px, 8.5vw, 155px)',
+      transform: 'rotate(1.5deg)',
+    },
+    delay: '120ms',
+    label: 'SUGGESTED',
+  },
+  {
+    side: 'left' as const,
+    style: {
+      right: 'calc(50% + 450px + clamp(30px, 3.5vw, 85px))',
+      top: '72%',
+      width: 'clamp(110px, 7.5vw, 140px)',
+      transform: 'rotate(-1.5deg)',
+    },
+    delay: '240ms',
+    label: 'RECOMMENDED',
+  },
+  // Right Wing Slots (Outer & Upper/Lower)
+  {
+    side: 'right' as const,
+    style: {
+      left: 'calc(50% + 450px + clamp(15px, 2.5vw, 60px))',
+      top: '14%',
+      width: 'clamp(115px, 8vw, 150px)',
+      transform: 'rotate(2deg)',
+    },
+    delay: '60ms',
+    label: 'DISCOVER',
+  },
+  {
+    side: 'right' as const,
+    style: {
+      left: 'calc(50% + 450px + clamp(130px, 9vw, 210px))',
+      top: '46%',
+      width: 'clamp(120px, 8.5vw, 155px)',
+      transform: 'rotate(-2deg)',
+    },
+    delay: '180ms',
+    label: 'SUGGESTED',
+  },
+  {
+    side: 'right' as const,
+    style: {
+      left: 'calc(50% + 450px + clamp(30px, 3.5vw, 85px))',
+      top: '74%',
+      width: 'clamp(110px, 7.5vw, 140px)',
+      transform: 'rotate(1deg)',
+    },
+    delay: '300ms',
+    label: 'RECOMMENDED',
+  },
+];
 
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   isOpen, onClose, shorts, initialIndex = 0, onIndexChange,
@@ -32,6 +104,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [duration, setDuration] = useState(0);
   const [is2XSpeed, setIs2XSpeed] = useState(false);
   const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
+
+  // Living Constellation: Recommended Shorts in Outer Flanks
+  const [recommendedDeck, setRecommendedDeck] = useState<
+    { item: StageMediaItem; originalIndex: number; slot: number }[]
+  >([]);
+  const [isHoveredRecommendation, setIsHoveredRecommendation] = useState(false);
+  const [deckCycleKey, setDeckCycleKey] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -99,6 +178,34 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
     }
   }, [activeIndex]);
+
+  // Living Constellation: Recommended Shorts Slots & Periodic Sampler (5s cycle)
+  useEffect(() => {
+    if (!isOpen || !isDesktop || shorts.length <= 2) return;
+
+    const sampleRecommendations = () => {
+      if (isHoveredRecommendation) return; // Freeze rotation while user is hovering to view/click
+      const excluded = new Set([activeIndex, activeIndex - 1, activeIndex + 1]);
+      const pool = shorts
+        .map((item, idx) => ({ item, originalIndex: idx }))
+        .filter(({ originalIndex }) => !excluded.has(originalIndex));
+
+      if (pool.length === 0) return;
+
+      const shuffled = [...pool].sort(() => 0.5 - Math.random());
+      const count = Math.min(6, shuffled.length);
+      const chosen = shuffled.slice(0, count).map((entry, slot) => ({
+        ...entry,
+        slot,
+      }));
+      setRecommendedDeck(chosen);
+      setDeckCycleKey((k) => k + 1);
+    };
+
+    sampleRecommendations();
+    const timer = setInterval(sampleRecommendations, 5000);
+    return () => clearInterval(timer);
+  }, [isOpen, isDesktop, activeIndex, shorts, isHoveredRecommendation]);
 
   // Unified short navigation handler for cards, keys, and gestures
   const goToShortIndex = useCallback((targetIdx: number, dir: 'next' | 'prev') => {
@@ -701,47 +808,63 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       </header>
 
-      {/* ===== DESKTOP FAR-LEFT FLANKING PREVIEW (Previous-to-Previous Short, PREV-2) ===== */}
-      {activeIndex > 1 && (
-        <div
-          key={`short-prev2-${activeIndex}-${slideDirection}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            goToShortIndex(activeIndex - 2, 'prev');
-          }}
-          className={`hidden xl:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-75 hover:opacity-100 scale-95 hover:scale-100 ${
-            slideDirection === 'next'
-              ? 'animate-flank-elevate-up'
-              : slideDirection === 'prev'
-              ? 'animate-flank-dip-down'
-              : ''
-          }`}
-          style={{
-            right: 'calc(50% + 225px + clamp(165px, 11vw, 215px) + 16px)',
-            width: 'clamp(140px, 9.5vw, 185px)',
-          }}
-          title={shorts[activeIndex - 2]?.title || 'Previous Short'}
-        >
-          <div className="relative w-full aspect-[9/16] max-h-[62vh] rounded-2xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] transition-all duration-300">
-            <img
-              src={getThumbnailUrl(shorts[activeIndex - 2]) || (shorts[activeIndex - 2]?.thumbnail ? getMediaUrl(shorts[activeIndex - 2].thumbnail!) : '')}
-              alt={shorts[activeIndex - 2]?.title || 'Previous short'}
-              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.75] transition-all duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent flex items-center justify-center">
-              <div className={`w-9 h-9 rounded-full bg-black/75 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
-                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-              }`}>
-                <ChevronLeft className="w-5 h-5 -ml-0.5" />
+      {/* ===== LIVING CONSTELLATION: AMBIENT RECOMMENDED SHORTS (LEFT & RIGHT WINGS) ===== */}
+      {isDesktop && recommendedDeck.map(({ item, originalIndex, slot }) => {
+        const cfg = WING_SLOTS[slot];
+        if (!cfg || !item) return null;
+        const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
+
+        return (
+          <div
+            key={`constellation-${deckCycleKey}-${item.id || originalIndex}-${slot}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              goToShortIndex(originalIndex, originalIndex > activeIndex ? 'next' : 'prev');
+            }}
+            onMouseEnter={() => setIsHoveredRecommendation(true)}
+            onMouseLeave={() => setIsHoveredRecommendation(false)}
+            style={{
+              ...cfg.style,
+              animationDelay: cfg.delay,
+            }}
+            className={`fixed z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-500 opacity-40 hover:opacity-100 hover:scale-105 hover:z-30 animate-constellation-in ${
+              slot === 1 || slot === 4 ? 'hidden 2xl:flex' : 'hidden xl:flex'
+            }`}
+            title={item.title || 'Recommended Short'}
+          >
+            <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-950/80 border border-white/10 group-hover:border-[#ccff00]/70 group-hover:shadow-[0_0_20px_rgba(204,255,0,0.3)] transition-all duration-300 backdrop-blur-sm">
+              <img
+                src={thumbUrl}
+                alt={item.title || 'Recommended short'}
+                className="w-full h-full object-cover brightness-[0.5] group-hover:brightness-[0.9] transition-all duration-300"
+                loading="lazy"
+              />
+
+              {/* Ambient discovery badge */}
+              <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 border border-[#ccff00]/30 backdrop-blur-md">
+                <Sparkles className="w-2.5 h-2.5 text-[#ccff00]" />
+                <span className="text-[8px] font-mono font-bold tracking-wider text-[#ccff00] uppercase">
+                  {cfg.label}
+                </span>
+              </div>
+
+              {/* Hover play prompt */}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.5)]">
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                </div>
+              </div>
+
+              {/* Title snippet */}
+              <div className="absolute bottom-2 inset-x-0 px-2 text-center pointer-events-none">
+                <p className="text-[10px] text-neutral-300 group-hover:text-white line-clamp-1 font-sans drop-shadow-md">
+                  {item.title || 'Short'}
+                </p>
               </div>
             </div>
-            <div className="absolute bottom-2.5 inset-x-0 text-center pointer-events-none px-2">
-              <p className="text-[11px] font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">PREV 2</p>
-              <p className="text-[9px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex - 2]?.title || ''}</p>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })}
 
       {/* ===== DESKTOP LEFT FLANKING PREVIEW (Near Previous Short, PREV-1) ===== */}
       {activeIndex > 0 && (
@@ -816,48 +939,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
               <p className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">NEXT</p>
               <p className="text-[10px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex + 1]?.title || ''}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== DESKTOP FAR-RIGHT FLANKING PREVIEW (Next-to-Next Short, NEXT-2) ===== */}
-      {activeIndex < shorts.length - 2 && (
-        <div
-          key={`short-next2-${activeIndex}-${slideDirection}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            goToShortIndex(activeIndex + 2, 'next');
-          }}
-          className={`hidden xl:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-75 hover:opacity-100 scale-95 hover:scale-100 ${
-            slideDirection === 'next'
-              ? 'animate-flank-dip-down'
-              : slideDirection === 'prev'
-              ? 'animate-flank-elevate-up'
-              : ''
-          }`}
-          style={{
-            left: 'calc(50% + 225px + clamp(165px, 11vw, 215px) + 16px)',
-            width: 'clamp(140px, 9.5vw, 185px)',
-          }}
-          title={shorts[activeIndex + 2]?.title || 'Next Short'}
-        >
-          <div className="relative w-full aspect-[9/16] max-h-[62vh] rounded-2xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] transition-all duration-300">
-            <img
-              src={getThumbnailUrl(shorts[activeIndex + 2]) || (shorts[activeIndex + 2]?.thumbnail ? getMediaUrl(shorts[activeIndex + 2].thumbnail!) : '')}
-              alt={shorts[activeIndex + 2]?.title || 'Next short'}
-              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.75] transition-all duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-transparent to-transparent flex items-center justify-center">
-              <div className={`w-9 h-9 rounded-full bg-black/75 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
-                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-              }`}>
-                <ChevronRight className="w-5 h-5 -mr-0.5" />
-              </div>
-            </div>
-            <div className="absolute bottom-2.5 inset-x-0 text-center pointer-events-none px-2">
-              <p className="text-[11px] font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">NEXT 2</p>
-              <p className="text-[9px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex + 2]?.title || ''}</p>
             </div>
           </div>
         </div>

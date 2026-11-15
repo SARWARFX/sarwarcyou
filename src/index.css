@@ -521,6 +521,25 @@ html, body, #root {
   will-change: transform;
 }
 
+/* Ambient Constellation Float In for Recommended Shorts */
+@keyframes constellationFloatIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.92);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 0.45;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-constellation-in {
+  animation: constellationFloatIn 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
 @keyframes kineticZoomDissolve {
   0% {
     opacity: 0;
