@@ -37,7 +37,7 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
       className={`inline-flex items-center select-none bg-transparent border-0 p-0 cursor-pointer focus:outline-none group ${className}`}
     >
       <span
-        className={`font-['Space_Grotesk',sans-serif] font-black ${trackingClass} text-sm sm:text-base uppercase text-white flex items-center group-hover:opacity-90 transition-opacity`}
+        className={`font-['Orbitron',sans-serif] font-black ${trackingClass} text-sm sm:text-base uppercase text-white flex items-center group-hover:opacity-90 transition-opacity`}
       >
         SARWAR<span className="text-[#ccff00]">.CYOU</span>
       </span>

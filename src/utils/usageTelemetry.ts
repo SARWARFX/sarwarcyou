@@ -198,6 +198,51 @@ export function initSessionTimeTracker(): void {
   } catch (_) {}
 }
 
+/**
+ * Retrieve rolling 15-day session time statistics with zero suppression
+ * Days with zero data are omitted completely.
+ */
+export const getRolling15DayUsage = (): DailyUsage[] => {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(TIME_STORAGE_KEY) : null;
+    const history: Record<string, number> = raw ? JSON.parse(raw) : {};
+
+    const activeDays: DailyUsage[] = [];
+    const now = new Date();
+
+    for (let i = 14; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const iso = d.toISOString().split('T')[0];
+      const mins = history[iso] || 0;
+
+      if (mins <= 0) continue;
+
+      let label = DAY_NAMES[d.getDay()];
+      if (i === 0) label = 'Today';
+      else if (i === 1) label = 'Yesterday';
+
+      const weekday = DAY_NAMES[d.getDay()];
+      const formattedDate = `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+
+      activeDays.push({
+        date: iso,
+        label,
+        weekday,
+        formattedDate,
+        minutes: mins,
+        formattedMinutes: formatShortDuration(mins),
+        count: mins,
+      });
+    }
+
+    return activeDays;
+  } catch (e) {
+    console.warn('Telemetry 15-day read failed', e);
+    return [];
+  }
+};
+
 if (typeof window !== 'undefined') {
   initSessionTimeTracker();
 }

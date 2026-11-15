@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Roboto+Condensed:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -24,7 +24,7 @@
   --font-brand: 'Roboto Condensed', sans-serif;
   --font-display: 'Roboto Condensed', sans-serif;
   --font-audiowide: 'Audiowide', cursive, sans-serif;
-  --font-orbitron: 'Roboto Condensed', sans-serif;
+  --font-orbitron: 'Orbitron', -apple-system, sans-serif;
   --font-rajdhani: 'Roboto Condensed', sans-serif;
 
   --color-neutral-border: rgba(255, 255, 255, 0.12);

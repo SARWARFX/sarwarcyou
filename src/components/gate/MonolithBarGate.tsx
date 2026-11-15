@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ChevronDown, X, Volume2, VolumeX, Sun } from 'lucide-react';
+import { X, Volume2, VolumeX } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -8,10 +8,9 @@ import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
-import { HeaderBrandLogo } from '../updater/HeaderBrandLogo';
 import { VaultDrawer } from '../VaultDrawer';
 import { hapticMedium, hapticLight } from '../../utils/hapticsManager';
-import { trackActivityEvent } from '../../utils/usageTelemetry';
+import { trackActivityEvent, getRolling15DayUsage } from '../../utils/usageTelemetry';
 import {
   parseIdRoute,
   parseAppPathname,
@@ -124,11 +123,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Dropdown open states for the 3 tabs: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null
   const [activeDropdown, setActiveDropdown] = useState<'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null>(null);
 
-  // Auto Tour state (default OFF)
-  const [isAutoTour, setIsAutoTour] = useState(false);
-
   // Keep screen on state
   const [keepAwakeOn, setKeepAwakeOn] = useState(() => getKeepScreenOnState());
+
+  // 15-Day Minimalist Telemetry Graph Modal state
+  const [isTelemetryModalOpen, setIsTelemetryModalOpen] = useState(false);
 
   // Muted states for homepage 5 living video wall columns
   const [mutedColumns, setMutedColumns] = useState<boolean[]>([true, true, true, true, true]);
@@ -158,7 +157,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return unsub;
   }, []);
 
-  // Keyboard shortcut listener for Ctrl+K, Cmd+K, or /
+  // Keyboard shortcut listener for Ctrl+K, Cmd+K, /, or Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -173,15 +172,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setIsSearchOpen(true);
       } else if (e.key === 'Escape') {
         setActiveDropdown(null);
-      } else if (e.key === 'ArrowRight' && !isModalOpen) {
+        setIsTelemetryModalOpen(false);
+      } else if (e.key === 'ArrowRight' && !isModalOpen && !isTelemetryModalOpen) {
         setTabIndex((prev) => Math.min(3, prev + 1));
-      } else if (e.key === 'ArrowLeft' && !isModalOpen) {
+      } else if (e.key === 'ArrowLeft' && !isModalOpen && !isTelemetryModalOpen) {
         setTabIndex((prev) => Math.max(0, prev - 1));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen]);
+  }, [isModalOpen, isTelemetryModalOpen]);
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
   useEffect(() => {
@@ -211,15 +211,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       : '/';
     updateBrowserUrl(targetPath, false);
   }, []);
-
-  // Auto Tour Timer
-  useEffect(() => {
-    if (!isAutoTour) return;
-    const interval = setInterval(() => {
-      setTabIndex((prev) => (prev + 1) % 4);
-    }, 7500);
-    return () => clearInterval(interval);
-  }, [isAutoTour]);
 
   // Group media into hierarchical directory nodes
   const rootMap = useMemo(() => {
@@ -353,37 +344,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return allShortsFiles;
   }, [allShortsFiles]);
 
-  // Subfolder lists and item counts for dropdown menus
-  const shortsSubOptions = useMemo(() => {
-    const node = rootMap.get('Shorts');
-    if (!node) return [];
-    const subs = Array.from(node.subfolders.keys());
-    return subs.map((s) => ({
-      name: s,
-      count: node.subfolders.get(s)?.files.length || 0,
-    }));
-  }, [rootMap]);
-
-  const clipsSubOptions = useMemo(() => {
-    const node = rootMap.get('Clips');
-    if (!node) return [];
-    const subs = Array.from(node.subfolders.keys());
-    return subs.map((s) => ({
-      name: s,
-      count: node.subfolders.get(s)?.files.length || 0,
-    }));
-  }, [rootMap]);
-
-  const photosSubOptions = useMemo(() => {
-    const node = rootMap.get('Images');
-    if (!node) return [];
-    const subs = Array.from(node.subfolders.keys());
-    return subs.map((s) => ({
-      name: s,
-      count: node.subfolders.get(s)?.files.length || 0,
-    }));
-  }, [rootMap]);
-
   // Filtered active media lists
   const activeShortsList = useMemo(() => {
     if (shortsSubfolder === 'ALL') return allShortsFiles;
@@ -446,9 +406,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
-  // Back button closes active drawer/dropdown
+  // Back button closes active modal/drawer/dropdown or returns home
   useBackButton(
     useCallback(() => {
+      if (isTelemetryModalOpen) {
+        setIsTelemetryModalOpen(false);
+        return true;
+      }
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+        return true;
+      }
       if (activeDropdown) {
         setActiveDropdown(null);
         return true;
@@ -462,20 +430,50 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return true;
       }
       return false;
-    }, [activeDropdown, isVaultDrawerOpen, tabIndex, switchTab]),
-    Boolean(activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
+    }, [isTelemetryModalOpen, isSearchOpen, activeDropdown, isVaultDrawerOpen, tabIndex, switchTab]),
+    Boolean(isTelemetryModalOpen || isSearchOpen || activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
   );
 
-  // 7-day session telemetry metrics for futuristic graph
-  const telemetryData = useMemo(() => [
-    { label: 'MON', val: 24, fill: 55 },
-    { label: 'TUE', val: 32, fill: 72 },
-    { label: 'WED', val: 19, fill: 42 },
-    { label: 'THU', val: 41, fill: 88 },
-    { label: 'FRI', val: 37, fill: 78 },
-    { label: 'SAT', val: 48, fill: 94 },
-    { label: 'TODAY', val: 56, fill: 100, today: true },
-  ], []);
+  // 15-day rolling session telemetry metrics (zero suppression: days with 0 data are excluded)
+  const telemetry15DayData = useMemo(() => {
+    return getRolling15DayUsage();
+  }, [isTelemetryModalOpen]);
+
+  const max15Minutes = useMemo(() => {
+    if (telemetry15DayData.length === 0) return 60;
+    return Math.max(...telemetry15DayData.map((d) => d.minutes), 60);
+  }, [telemetry15DayData]);
+
+  // Subfolders list corresponding to the currently active tab
+  const activeSubfoldersList = useMemo(() => {
+    if (tabIndex === 1) {
+      const list = Array.from(rootMap.get('Shorts')?.subfolders.values() || []).map((s) => s.name);
+      return ['ALL', ...list];
+    }
+    if (tabIndex === 2) {
+      const list = Array.from(rootMap.get('Clips')?.subfolders.values() || []).map((s) => s.name);
+      return ['ALL', ...list];
+    }
+    if (tabIndex === 3) {
+      const list = Array.from(rootMap.get('Images')?.subfolders.values() || []).map((s) => s.name);
+      return ['ALL', ...list];
+    }
+    return [];
+  }, [tabIndex, rootMap]);
+
+  const currentActiveSubfolder = useMemo(() => {
+    if (tabIndex === 1) return shortsSubfolder;
+    if (tabIndex === 2) return clipsSubfolder;
+    if (tabIndex === 3) return photosSubfolder;
+    return 'ALL';
+  }, [tabIndex, shortsSubfolder, clipsSubfolder, photosSubfolder]);
+
+  const handleSubfolderSelect = useCallback((subName: string) => {
+    hapticLight();
+    if (tabIndex === 1) setShortsSubfolder(subName);
+    else if (tabIndex === 2) setClipsSubfolder(subName);
+    else if (tabIndex === 3) setPhotosSubfolder(subName);
+  }, [tabIndex]);
 
   return (
     <div
@@ -557,236 +555,178 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </div>
 
-      {/* 2. TRANSPARENT FLOATING HEADER (RIGHT UNDER EULO BAR) */}
-      <header className="fixed top-[28px] inset-x-0 h-[58px] px-3 sm:px-6 flex items-center justify-between z-40 bg-transparent pointer-events-none">
-        {/* Left: Authentic Brand Logo + Section Badge + Auto Tour Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
-          <HeaderBrandLogo
-            trackingClass="tracking-[0.2em] sm:tracking-[0.25em]"
-            onTrigger={() => switchTab(0)}
-          />
+      {/* 2. MIDDLE-RIGHT SIDE: PURE TEXT SVP DOCK (NO BACKGROUND, NO OUTLINE) */}
+      <aside
+        className="fixed right-4 sm:right-7 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-4 sm:gap-5 select-none pointer-events-auto"
+        aria-label="SVP Navigation"
+      >
+        <button
+          type="button"
+          onClick={() => switchTab(1)}
+          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
+            tabIndex === 1
+              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
+              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
+          }`}
+          title="Shorts"
+        >
+          S
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab(2)}
+          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
+            tabIndex === 2
+              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
+              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
+          }`}
+          title="Video Clips"
+        >
+          V
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab(3)}
+          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
+            tabIndex === 3
+              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
+              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
+          }`}
+          title="Photographs"
+        >
+          P
+        </button>
+      </aside>
 
-          {/* Section Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#0a0b0f]/85 border border-[#ccff00]/30 text-[#ccff00] font-mono text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] shadow-[0_0_8px_#ccff00]" />
-            <span>
-              {tabIndex === 0 ? 'LIVE FEED' : tabIndex === 1 ? (shortsSubfolder === 'ALL' ? 'SHORTS' : `SHORTS // ${shortsSubfolder}`) : tabIndex === 2 ? (clipsSubfolder === 'ALL' ? 'VIDEO CLIPS' : `CLIPS // ${clipsSubfolder}`) : (photosSubfolder === 'ALL' ? 'PHOTOGRAPHS' : `PHOTOS // ${photosSubfolder}`)}
-            </span>
-          </div>
+      {/* 3. BOTTOM-LEFT CORNER: PURE TEXT SARWAR.CYOU LOGO (DUAL ACTION) */}
+      <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => {
+            hapticMedium();
+            if (tabIndex !== 0) {
+              switchTab(0);
+            } else {
+              setIsTelemetryModalOpen(true);
+            }
+          }}
+          className="inline-flex items-baseline cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none"
+          title={tabIndex !== 0 ? 'Return to Homepage' : 'Open 15-Day Time Log'}
+        >
+          <span className="font-['Orbitron',sans-serif] font-black text-sm sm:text-lg tracking-[0.2em] uppercase text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.25)] hover:drop-shadow-[0_0_16px_rgba(255,255,255,0.6)]">
+            SARWAR
+          </span>
+          <span className="font-['Orbitron',sans-serif] font-black text-sm sm:text-lg tracking-[0.2em] uppercase text-[#ccff00] drop-shadow-[0_0_14px_rgba(204,255,0,0.6)] hover:drop-shadow-[0_0_24px_#ccff00]">
+            .CYOU
+          </span>
+        </button>
+      </div>
 
-          {/* Auto Tour Toggle Button */}
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              setIsAutoTour((prev) => !prev);
-            }}
-            title="Auto Tour (Cycles tabs)"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono text-[10px] font-bold tracking-wider uppercase cursor-pointer backdrop-blur-md transition-all ${
-              isAutoTour
-                ? 'bg-[#0a0b0f]/95 border-[#ccff00] text-[#ccff00] shadow-[0_0_16px_rgba(204,255,0,0.35)]'
-                : 'bg-[#0a0b0f]/80 border-white/15 text-neutral-400 hover:border-[#ccff00] hover:text-white'
-            }`}
+      {/* 4. BOTTOM-RIGHT CORNER: PURE TEXT SUBFOLDERS (HORIZONTAL DESKTOP / VERTICAL MOBILE) */}
+      {activeSubfoldersList.length > 0 && (
+        <nav
+          className="fixed bottom-4 sm:bottom-6 right-4 sm:right-7 z-40 flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-4 max-h-[45vh] sm:max-h-none overflow-y-auto sm:overflow-visible select-none pointer-events-auto"
+          aria-label="Subfolders Filter"
+        >
+          {activeSubfoldersList.map((subName) => {
+            const isActive = currentActiveSubfolder === subName;
+            return (
+              <button
+                key={subName}
+                type="button"
+                onClick={() => handleSubfolderSelect(subName)}
+                className={`font-['Orbitron',sans-serif] text-[9.5px] sm:text-[11px] tracking-[0.14em] uppercase transition-all duration-200 cursor-pointer whitespace-nowrap p-0.5 ${
+                  isActive
+                    ? 'text-[#ccff00] font-black drop-shadow-[0_0_12px_#ccff00] scale-105'
+                    : 'text-white/45 hover:text-white font-bold'
+                }`}
+              >
+                {subName}
+              </button>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* 5. 15-DAY MINIMALIST TELEMETRY GRAPH MODAL (DISMISSED VIA CLICK OUTSIDE OR ESC) */}
+      {isTelemetryModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-2xl flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setIsTelemetryModalOpen(false)}
+        >
+          <div
+            className="bg-[#080808]/95 border border-white/10 rounded-2xl p-6 sm:p-7 max-w-2xl w-full shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(204,255,0,0.12)] relative cursor-default"
+            onClick={(e) => e.stopPropagation()}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${isAutoTour ? 'bg-[#ccff00] shadow-[0_0_8px_#ccff00] animate-pulse' : 'bg-neutral-500'}`} />
-            <span className="hidden sm:inline">TOUR:</span>
-            <span>{isAutoTour ? 'ON' : 'OFF'}</span>
-          </button>
-        </div>
-
-        {/* Right: Three Tabs with Subfolder Dropdown Menus */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="tabs-dock">
-
-            {/* TAB 1: SHORTS + DROPDOWN */}
-            <div
-              className={`tab-dropdown-wrap ${activeDropdown === 'SHORTS' ? 'open' : ''}`}
-              onMouseEnter={() => setActiveDropdown('SHORTS')}
-              onMouseLeave={() => setActiveDropdown(null)}
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsTelemetryModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all text-2xl cursor-pointer"
+              title="Close (Esc)"
             >
-              <button
-                type="button"
-                onClick={() => {
-                  if (tabIndex === 1) {
-                    setActiveDropdown((prev) => (prev === 'SHORTS' ? null : 'SHORTS'));
-                  } else {
-                    switchTab(1);
-                  }
-                }}
-                className={`reticle-chip whitespace-nowrap ${tabIndex === 1 ? 'active-chip' : ''}`}
-                title="Shorts Exhibition & Subfolders"
-              >
-                <span className="tab-label-full">SHORTS</span>
-                <span className="tab-label-short">S</span>
-                <ChevronDown className="w-3 h-3 tab-chevron" />
-              </button>
+              &times;
+            </button>
 
-              <div className="tab-dropdown-menu">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShortsSubfolder('ALL');
-                    switchTab(1);
-                  }}
-                  className={`dropdown-item ${shortsSubfolder === 'ALL' ? 'active' : ''}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                    <span>ALL SHORTS</span>
-                  </span>
-                  <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-300 font-mono">
-                    {allShortsFiles.length}
-                  </span>
-                </button>
-                {shortsSubOptions.map((sub) => (
-                  <button
-                    key={sub.name}
-                    type="button"
-                    onClick={() => {
-                      setShortsSubfolder(sub.name);
-                      switchTab(1);
-                    }}
-                    className={`dropdown-item ${shortsSubfolder === sub.name ? 'active' : ''}`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      <span>{sub.name}</span>
+            {/* Pure Bars Chart (Only Bars, exact time at top, day at bottom) */}
+            <div className="flex items-end justify-between gap-3 h-[210px] border-b border-white/10 pb-3 mt-4 overflow-x-auto">
+              {telemetry15DayData.map((d) => {
+                const isToday = d.label === 'Today';
+                const heightPct = Math.max(12, Math.round((d.minutes / max15Minutes) * 100));
+                return (
+                  <div key={d.date} className="flex-1 min-w-[42px] flex flex-col items-center justify-end h-full gap-2">
+                    <span className="font-mono text-[10.5px] font-bold text-white/85 whitespace-nowrap">
+                      {d.formattedMinutes}
                     </span>
-                    <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-300 font-mono">
-                      {sub.count}
+                    <div className="w-full max-w-[22px] bg-white/[0.05] rounded-xl flex items-end h-[145px] p-0.5 overflow-hidden">
+                      <div
+                        className="w-full bg-gradient-to-t from-[#99cc00] to-[#ccff00] rounded-lg shadow-[0_0_14px_rgba(204,255,0,0.45)] transition-all duration-500"
+                        style={{ height: `${heightPct}%` }}
+                      />
+                    </div>
+                    <span
+                      className={`font-['Orbitron',sans-serif] text-[9.5px] tracking-wider uppercase pt-1 whitespace-nowrap ${
+                        isToday ? 'text-[#ccff00] font-black' : 'text-white/50 font-bold'
+                      }`}
+                    >
+                      {d.label}
                     </span>
-                  </button>
-                ))}
-              </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* TAB 2: VIDEO CLIPS + DROPDOWN */}
-            <div
-              className={`tab-dropdown-wrap ${activeDropdown === 'CLIPS' ? 'open' : ''}`}
-              onMouseEnter={() => setActiveDropdown('CLIPS')}
-              onMouseLeave={() => setActiveDropdown(null)}
-            >
-              <button
-                type="button"
+            {/* Minimalist Footer with Keep Screen On Toggle */}
+            <div className="flex items-center justify-between mt-4 pt-1">
+              <label
+                className="inline-flex items-center gap-2.5 cursor-pointer select-none"
                 onClick={() => {
-                  if (tabIndex === 2) {
-                    setActiveDropdown((prev) => (prev === 'CLIPS' ? null : 'CLIPS'));
-                  } else {
-                    switchTab(2);
-                  }
+                  hapticLight();
+                  toggleKeepScreenOn();
                 }}
-                className={`reticle-chip whitespace-nowrap ${tabIndex === 2 ? 'active-chip' : ''}`}
-                title="Video Clips Exhibition & Subfolders"
               >
-                <span className="tab-label-full">VIDEO CLIPS</span>
-                <span className="tab-label-short">V</span>
-                <ChevronDown className="w-3 h-3 tab-chevron" />
-              </button>
-
-              <div className="tab-dropdown-menu">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setClipsSubfolder('ALL');
-                    switchTab(2);
-                  }}
-                  className={`dropdown-item ${clipsSubfolder === 'ALL' ? 'active' : ''}`}
+                <div
+                  className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${
+                    keepAwakeOn ? 'bg-[#ccff00]' : 'bg-white/15'
+                  }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                    <span>ALL VIDEO CLIPS</span>
-                  </span>
-                  <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-300 font-mono">
-                    {allClipsFiles.length}
-                  </span>
-                </button>
-                {clipsSubOptions.map((sub) => (
-                  <button
-                    key={sub.name}
-                    type="button"
-                    onClick={() => {
-                      setClipsSubfolder(sub.name);
-                      switchTab(2);
-                    }}
-                    className={`dropdown-item ${clipsSubfolder === sub.name ? 'active' : ''}`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      <span>{sub.name}</span>
-                    </span>
-                    <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-300 font-mono">
-                      {sub.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                  <div
+                    className={`w-4 h-4 rounded-full absolute top-0.5 transition-transform duration-200 ${
+                      keepAwakeOn ? 'translate-x-4 bg-black' : 'translate-x-0.5 bg-white'
+                    }`}
+                  />
+                </div>
+                <span className="font-mono text-[11px] text-white/60 tracking-wider">
+                  Keep Screen On
+                </span>
+              </label>
+              <span className="font-mono text-[10px] text-white/30">
+                ESC to dismiss
+              </span>
             </div>
-
-            {/* TAB 3: PHOTOGRAPHS + DROPDOWN */}
-            <div
-              className={`tab-dropdown-wrap ${activeDropdown === 'PHOTOGRAPHY' ? 'open' : ''}`}
-              onMouseEnter={() => setActiveDropdown('PHOTOGRAPHY')}
-              onMouseLeave={() => setActiveDropdown(null)}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  if (tabIndex === 3) {
-                    setActiveDropdown((prev) => (prev === 'PHOTOGRAPHY' ? null : 'PHOTOGRAPHY'));
-                  } else {
-                    switchTab(3);
-                  }
-                }}
-                className={`reticle-chip whitespace-nowrap ${tabIndex === 3 ? 'active-chip' : ''}`}
-                title="Photographs Exhibition & Subfolders"
-              >
-                <span className="tab-label-full">PHOTOGRAPHS</span>
-                <span className="tab-label-short">P</span>
-                <ChevronDown className="w-3 h-3 tab-chevron" />
-              </button>
-
-              <div className="tab-dropdown-menu">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhotosSubfolder('ALL');
-                    switchTab(3);
-                  }}
-                  className={`dropdown-item ${photosSubfolder === 'ALL' ? 'active' : ''}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                    <span>ALL PHOTOGRAPHS</span>
-                  </span>
-                  <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-300 font-mono">
-                    {allPhotosFiles.length}
-                  </span>
-                </button>
-                {photosSubOptions.map((sub) => (
-                  <button
-                    key={sub.name}
-                    type="button"
-                    onClick={() => {
-                      setPhotosSubfolder(sub.name);
-                      switchTab(3);
-                    }}
-                    className={`dropdown-item ${photosSubfolder === sub.name ? 'active' : ''}`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      <span>{sub.name}</span>
-                    </span>
-                    <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-300 font-mono">
-                      {sub.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
           </div>
         </div>
-      </header>
+      )}
 
       {/* 3. 4-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}
       <main
@@ -829,10 +769,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       }}
                     />
 
-                    {/* Badge */}
-                    <div className="absolute top-[72px] left-[18px] bg-black/85 border border-[#ccff00] rounded px-2 py-0.5 font-mono text-[9px] font-bold text-[#ccff00] tracking-wider backdrop-blur-sm z-10 pointer-events-none">
-                      {idx === 0 ? 'PREMIERE' : idx === 1 ? 'FEATURED' : idx === 2 ? 'LATEST' : idx === 3 ? 'TRENDING' : 'POPULAR'}
-                    </div>
+
 
                     {/* Sound toggle button */}
                     <button
@@ -846,7 +783,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                         });
                       }}
                       title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                      className="absolute top-[72px] right-[18px] w-7 h-7 rounded-full bg-black/75 border border-white/20 flex items-center justify-center text-white hover:border-[#ccff00] hover:text-[#ccff00] hover:scale-110 transition-all z-20 cursor-pointer"
+                      className="absolute top-4 right-4 w-7 h-7 rounded-full bg-black/75 border border-white/20 flex items-center justify-center text-white hover:border-[#ccff00] hover:text-[#ccff00] hover:scale-110 transition-all z-20 cursor-pointer"
                     >
                       {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                     </button>
@@ -865,74 +802,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               })}
             </div>
 
-            {/* Bottom-Left HUD: Futuristic Telemetry Graph + Compact Wake Lock Pill */}
-            <div
-              className={`fixed bottom-6 left-6 z-30 flex flex-col items-start gap-2 transition-all duration-300 pointer-events-auto ${
-                tabIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-              }`}
-            >
-              {/* Compact Keep Screen On Toggle Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  hapticLight();
-                  toggleKeepScreenOn();
-                }}
-                title="Toggle Screen Wake Lock"
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[9px] font-bold tracking-wider uppercase backdrop-blur-md transition-all cursor-pointer border ${
-                  keepAwakeOn
-                    ? 'bg-[#0a0b0f]/95 border-[#ccff00] text-[#ccff00] shadow-[0_0_14px_rgba(204,255,0,0.3)]'
-                    : 'bg-[#0a0b0f]/85 border-white/15 text-neutral-400 hover:border-[#ccff00] hover:text-white'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${keepAwakeOn ? 'bg-[#ccff00] shadow-[0_0_8px_#ccff00] animate-pulse' : 'bg-neutral-500'}`} />
-                <Sun className="w-3 h-3" />
-                <span>WAKE LOCK {keepAwakeOn ? '[ACTIVE]' : ''}</span>
-              </button>
-
-              {/* Futuristic Cyber Telemetry Graph */}
-              <div className="futuristic-graph-card">
-                <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-                  <div className="font-mono text-[9.5px] font-extrabold text-[#ccff00] tracking-wider uppercase flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] shadow-[0_0_6px_#ccff00]" />
-                    <span>SESSION TELEMETRY</span>
-                  </div>
-                  <div className="font-mono text-[8.5px] text-neutral-400 tracking-wide">
-                    SYS_60FPS // LIVE
-                  </div>
-                </div>
-
-                <div className="flex items-end justify-between gap-2 h-[60px] pt-1">
-                  {telemetryData.map((d) => (
-                    <div key={d.label} className="flex-1 flex flex-col items-center justify-end h-full">
-                      <span className={`font-mono text-[8px] font-bold mb-0.5 ${d.today ? 'text-[#ccff00]' : 'text-neutral-400'}`}>
-                        {d.val}
-                      </span>
-                      <div className="w-full max-w-[22px] h-[36px] bg-white/[0.06] rounded-sm flex items-end overflow-hidden border border-white/[0.04]">
-                        <div
-                          className={`w-full rounded-t-sm transition-all duration-300 ${
-                            d.today
-                              ? 'bg-gradient-to-t from-[#ccff00]/40 to-[#ccff00] shadow-[0_0_10px_rgba(204,255,0,0.7)]'
-                              : 'bg-gradient-to-t from-white/20 to-white/50'
-                          }`}
-                          style={{ height: `${d.fill}%` }}
-                        />
-                      </div>
-                      <span className={`font-['Space_Grotesk',sans-serif] text-[8px] font-bold mt-1 tracking-wide uppercase ${d.today ? 'text-white' : 'text-neutral-500'}`}>
-                        {d.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            
           </section>
 
           {/* ================================================================= */}
           {/* PANEL 1: SHORTS TAB PAGE (PURE FULL-BLEED GRID OF SHORTS CARDS)   */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
-            <div className="w-full h-full overflow-y-auto space-scrollbar pt-[70px] pb-16 px-3 sm:px-6 lg:px-8">
+            <div className="w-full h-full overflow-y-auto space-scrollbar pt-3 sm:pt-4 pb-16 px-3 sm:px-6 lg:px-8">
               {/* Filter Active Notice Bar */}
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
@@ -990,7 +867,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           {/* PANEL 2: VIDEO CLIPS TAB PAGE (PURE FULL-BLEED GRID OF VIDEO)     */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
-            <div className="w-full h-full overflow-y-auto space-scrollbar pt-[70px] pb-16 px-3 sm:px-6 lg:px-8">
+            <div className="w-full h-full overflow-y-auto space-scrollbar pt-3 sm:pt-4 pb-16 px-3 sm:px-6 lg:px-8">
               {/* Filter Active Notice Bar */}
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
@@ -1048,7 +925,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           {/* PANEL 3: PHOTOGRAPHS TAB PAGE (PURE FULL-BLEED GRID OF PHOTOS)    */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
-            <div className="w-full h-full overflow-y-auto space-scrollbar pt-[70px] pb-16 px-3 sm:px-6 lg:px-8">
+            <div className="w-full h-full overflow-y-auto space-scrollbar pt-3 sm:pt-4 pb-16 px-3 sm:px-6 lg:px-8">
               {/* Filter Active Notice Bar */}
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
