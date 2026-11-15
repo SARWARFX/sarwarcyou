@@ -25,6 +25,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [overrides, setOverrides] = useState<Record<number, string>>({});
   const [failedPermanently, setFailedPermanently] = useState<Record<number, boolean>>({});
   const [landscapeMap, setLandscapeMap] = useState<Record<number, boolean>>({});
+  const [aspectRatioMap, setAspectRatioMap] = useState<Record<number, number>>({});
 
   const [centerIcon, setCenterIcon] = useState<{ idx: number; type: 'play' | 'pause'; id: number } | null>(null);
   const [showControls, setShowControls] = useState(true);
@@ -61,14 +62,46 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const pointerStartXRef = useRef<number>(0);
   const pointerStartYRef = useRef<number>(0);
 
-  // Desktop vs Mobile layout detection (lg: = 1024px)
+  // Desktop vs Mobile layout detection and Screen Orientation detection
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  const [isScreenLandscape, setIsScreenLandscape] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
+  );
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    const checkOrientation = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+      setIsScreenLandscape(window.innerWidth > window.innerHeight);
+    };
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
   }, []);
+
+  // Immediate pre-detection of video aspect ratio & orientation from thumbnails
+  useEffect(() => {
+    if (!shorts || shorts.length === 0) return;
+    [activeIndex - 1, activeIndex, activeIndex + 1].forEach((idx) => {
+      if (idx < 0 || idx >= shorts.length) return;
+      const item = shorts[idx];
+      if (!item || landscapeMap[idx] !== undefined) return;
+      const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
+      if (thumbUrl) {
+        const img = new Image();
+        img.src = thumbUrl;
+        img.onload = () => {
+          if (img.naturalWidth && img.naturalHeight) {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            const isWide = ratio > 1.15;
+            setLandscapeMap((prev) => (prev[idx] === undefined ? { ...prev, [idx]: isWide } : prev));
+            setAspectRatioMap((prev) => (prev[idx] === undefined ? { ...prev, [idx]: ratio } : prev));
+          }
+        };
+      }
+    });
+  }, [activeIndex, shorts, landscapeMap]);
 
   // Gesture Engine Refs
   const isScrubbingRef = useRef(false);
@@ -506,6 +539,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const streamUrl = overrides[idx] || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
     const posterUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
     const isLandscape = landscapeMap[idx];
+    const currentRatio = aspectRatioMap[idx] || (isLandscape ? 16 / 9 : 9 / 16);
 
     return (
       <div
@@ -515,17 +549,32 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         onPointerMove={handleVideoPointerMove}
         onPointerUp={(e) => handleVideoPointerUp(e, idx)}
         onPointerCancel={() => handleVideoPointerCancel(idx)}
-        style={{
-          width: isDesktop ? 'calc(100vh * (9 / 16))' : '100%',
-          maxWidth: isDesktop ? 'calc(100vh * (9 / 16))' : '100%',
-          height: isDesktop ? '100vh' : '100%',
-        }}
+        style={
+          isDesktop
+            ? isLandscape
+              ? {
+                  width: `min(88vw, calc(82vh * ${currentRatio}))`,
+                  maxWidth: '88vw',
+                  height: `min(82vh, calc(88vw / ${currentRatio}))`,
+                  maxHeight: '82vh',
+                  aspectRatio: `${currentRatio}`,
+                }
+              : {
+                  width: 'calc(100vh * (9 / 16))',
+                  maxWidth: 'calc(100vh * (9 / 16))',
+                  height: '100vh',
+                }
+            : {
+                width: '100%',
+                height: '100%',
+              }
+        }
         className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
           isDesktop
-            ? 'h-screen rounded-none border-l-2 border-r-2 border-[#ccff00] shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7),-10px_0_25px_rgba(204,255,0,0.35),10px_0_25px_rgba(204,255,0,0.35)] bg-black'
-            : isLandscape
-            ? 'w-full md:aspect-[16/9] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
-            : 'w-full md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
+            ? isLandscape
+              ? 'rounded-2xl border-2 border-[#ccff00] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(204,255,0,0.35)] bg-black'
+              : 'h-screen rounded-none border-l-2 border-r-2 border-[#ccff00] shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7),-10px_0_25px_rgba(204,255,0,0.35),10px_0_25px_rgba(204,255,0,0.35)] bg-black'
+            : 'w-full h-full bg-black'
         } ${
           isActive
             ? slideDirection === 'next'
@@ -551,12 +600,24 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               loop
               muted={isMuted}
               preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-              className={`w-full h-full ${isLandscape ? 'object-contain' : 'object-cover'} rounded-none bg-black`}
+              className={`w-full h-full ${
+                isDesktop
+                  ? isLandscape
+                    ? 'object-cover rounded-2xl'
+                    : 'object-cover'
+                  : isLandscape
+                  ? isScreenLandscape
+                    ? 'object-cover'
+                    : 'object-contain'
+                  : 'object-cover'
+              } rounded-none bg-black`}
               onLoadedMetadata={(e) => {
                 const v = e.currentTarget;
                 if (v.videoWidth && v.videoHeight) {
-                  const isWide = v.videoWidth > v.videoHeight;
+                  const ratio = v.videoWidth / v.videoHeight;
+                  const isWide = ratio > 1.15;
                   setLandscapeMap((prev) => (prev[idx] === isWide ? prev : { ...prev, [idx]: isWide }));
+                  setAspectRatioMap((prev) => (prev[idx] === ratio ? prev : { ...prev, [idx]: ratio }));
                 }
                 if (idx === activeIndex) {
                   setDuration(v.duration || 0);
@@ -802,15 +863,21 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           <ChevronRight className="w-6 h-6 -mr-0.5" />
         </button>
       )}
-      {/* Desktop Stage (Seamless 100vh Centerpiece with Soft Aura) vs Mobile Scroll-Snap Reels */}
+      {/* Desktop Stage (Adaptive Landscape vs 100vh Portrait Centerpiece) vs Mobile Scroll-Snap Reels */}
       {isDesktop ? (
         <div
-          className="fixed inset-0 z-20 flex items-center justify-center p-0 bg-transparent pointer-events-none select-none"
+          className="fixed inset-0 z-20 flex items-center justify-center p-4 sm:p-6 bg-transparent pointer-events-none select-none"
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
         >
-          <div className="pointer-events-auto h-screen aspect-[9/16] flex items-center justify-center">
+          <div
+            className={`pointer-events-auto flex items-center justify-center transition-all duration-300 ${
+              landscapeMap[activeIndex]
+                ? 'w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9]'
+                : 'h-screen aspect-[9/16]'
+            }`}
+          >
             {renderVideoCard(shorts[activeIndex], activeIndex, true)}
           </div>
           {/* Preload adjacent videos for zero-latency instant transitions */}
