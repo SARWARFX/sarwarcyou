@@ -133,10 +133,6 @@ button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
   animation-play-state: paused;
 }
 
-.speed-slow .trailer-track-left { animation-duration: 75s; }
-.speed-slow .trailer-track-right { animation-duration: 85s; }
-.speed-fast .trailer-track-left { animation-duration: 25s; }
-.speed-fast .trailer-track-right { animation-duration: 30s; }
 .motion-paused .trailer-track-left,
 .motion-paused .trailer-track-right { animation-play-state: paused !important; }
 

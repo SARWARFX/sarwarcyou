@@ -29,7 +29,6 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
 }) => {
   // Motion Controls State
   const [isMotionPaused, setIsMotionPaused] = useState<boolean>(false);
-  const [speed, setSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
 
   // Hero Spotlight Index & Auto-Timer
   const [heroIdx, setHeroIdx] = useState<number>(0);
@@ -85,6 +84,22 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
     if (shuffleKey > 0) pool.sort(() => Math.random() - 0.5);
     return pool.slice(0, Math.max(30, Math.floor(pool.length * 0.55)));
   }, [effectiveImages, shuffleKey]);
+
+  // Standard uniform physical cruising velocity across all 3 rails (~48px per second)
+  // Regardless of how many media cards exist in each section, all rails glide at the exact same physical speed!
+  const STANDARD_VELOCITY_PX_PER_SEC = 48;
+
+  const shortsDurationSec = useMemo(() => {
+    return Math.max(15, Math.round((displayShorts.length * 196) / STANDARD_VELOCITY_PX_PER_SEC));
+  }, [displayShorts.length]);
+
+  const clipsDurationSec = useMemo(() => {
+    return Math.max(15, Math.round((displayClips.length * 306) / STANDARD_VELOCITY_PX_PER_SEC));
+  }, [displayClips.length]);
+
+  const imagesDurationSec = useMemo(() => {
+    return Math.max(15, Math.round((displayImages.length * 206) / STANDARD_VELOCITY_PX_PER_SEC));
+  }, [displayImages.length]);
 
   // Featured Hero Items (curated mixture across all 3 media types)
   const heroItems = useMemo(() => {
@@ -161,11 +176,10 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
     }
   }, [heroIdx, activeHero, isModalOpen]);
 
-  const speedClass = speed === 'slow' ? 'speed-slow' : speed === 'fast' ? 'speed-fast' : '';
   const pausedClass = isMotionPaused || isModalOpen ? 'motion-paused' : '';
 
   return (
-    <div className={`w-full min-h-0 flex-1 overflow-y-auto space-scrollbar p-3 sm:p-6 lg:p-8 space-y-8 z-10 transition-all duration-300 ${speedClass} ${pausedClass}`}>
+    <div className={`w-full min-h-0 flex-1 overflow-y-auto space-scrollbar p-3 sm:p-6 lg:p-8 space-y-8 z-10 transition-all duration-300 ${pausedClass}`}>
       
       {/* ===== HEADER CONTROLS DECK ===== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10 shrink-0">
@@ -199,45 +213,6 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
             {isMotionPaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5 fill-current" />}
             <span>{isMotionPaused ? 'RESUME MOTION' : 'PAUSE MOTION'}</span>
           </button>
-
-          <div className="hidden sm:flex items-center gap-1 bg-neutral-900/90 border border-white/10 p-1 rounded-xl text-[11px] font-mono">
-            <button
-              type="button"
-              onClick={() => {
-                hapticLight();
-                setSpeed('slow');
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                speed === 'slow' ? 'bg-white/10 text-[#ccff00] font-bold' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              SLOW
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                hapticLight();
-                setSpeed('normal');
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                speed === 'normal' ? 'bg-white/10 text-[#ccff00] font-bold' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              NORMAL
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                hapticLight();
-                setSpeed('fast');
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                speed === 'fast' ? 'bg-white/10 text-[#ccff00] font-bold' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              CRUISE
-            </button>
-          </div>
 
           <button
             type="button"
@@ -389,7 +364,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
           <div className="absolute left-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
 
-          <div className="trailer-track-left gap-3.5 sm:gap-4">
+          <div className="trailer-track-left gap-3.5 sm:gap-4" style={{ animationDuration: `${shortsDurationSec}s` }}>
             {[...displayShorts, ...displayShorts].map((short, idx) => {
               const realIdx = idx % displayShorts.length;
               return (
@@ -453,7 +428,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
           <div className="absolute left-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
 
-          <div className="trailer-track-right gap-3.5 sm:gap-4">
+          <div className="trailer-track-right gap-3.5 sm:gap-4" style={{ animationDuration: `${clipsDurationSec}s` }}>
             {[...displayClips, ...displayClips].map((clip, idx) => {
               return (
                 <div
@@ -518,7 +493,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
           <div className="absolute left-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
 
-          <div className="trailer-track-left gap-3.5 sm:gap-4">
+          <div className="trailer-track-left gap-3.5 sm:gap-4" style={{ animationDuration: `${imagesDurationSec}s` }}>
             {[...displayImages, ...displayImages].map((imgItem, idx) => {
               const realIdx = idx % displayImages.length;
               return (
