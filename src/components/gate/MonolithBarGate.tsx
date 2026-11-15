@@ -1118,6 +1118,51 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <span className="tab-label-short">✦</span>
           </button>
         </div>
+
+        {/* ROW 2: Subfolder Title (under Logo on Left) + Subfolder Filter Pills (under Tabs on Right) */}
+        <div className="w-full px-3 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-3 bg-[#08080a]/90 backdrop-blur-md">
+          {/* Active Subfolder Title & Item Count (Directly under the website logo) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
+            {selectedCategory === 'PHOTOGRAPHY' ? (
+              <Folder className="w-4 h-4 text-[#ccff00] shrink-0" />
+            ) : (
+              <Film className="w-4 h-4 text-[#ccff00] shrink-0" />
+            )}
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-xs sm:text-sm font-bold tracking-wider text-white uppercase truncate font-mono">
+                {selectedCategory === 'PHOTOGRAPHY'
+                  ? photosSubfolder && photosSubfolder !== 'ALL'
+                    ? photosSubfolder
+                    : 'ALL PHOTOGRAPHS'
+                  : selectedCategory === 'CLIPS'
+                  ? clipsSubfolder && clipsSubfolder !== 'ALL'
+                    ? clipsSubfolder
+                    : 'ALL VIDEO CLIPS'
+                  : shortsSubfolder && shortsSubfolder !== 'ALL'
+                  ? shortsSubfolder
+                  : 'ALL SHORTS'}
+              </span>
+              <span className="text-[10px] font-mono text-neutral-400 shrink-0">
+                (
+                {selectedCategory === 'PHOTOGRAPHY'
+                  ? activePhotosList.length
+                  : selectedCategory === 'CLIPS'
+                  ? activeClipsList.length
+                  : activeShortsList.length}
+                )
+              </span>
+            </div>
+          </div>
+
+          {/* Subfolder Filter Pills (Directly under navigation tabs on the right) */}
+          <div className="flex items-center justify-end overflow-x-auto no-scrollbar max-w-[65%] sm:max-w-[75%] shrink-0">
+            {selectedCategory === 'PHOTOGRAPHY'
+              ? renderCategorySubfolderBar('PHOTOGRAPHY', photosSubfolder, setPhotosSubfolder, true)
+              : selectedCategory === 'CLIPS'
+              ? renderCategorySubfolderBar('CLIPS', clipsSubfolder, setClipsSubfolder, true)
+              : renderCategorySubfolderBar('SHORTS', shortsSubfolder, setShortsSubfolder, true)}
+          </div>
+        </div>
       </header>
 
       {/* Sector Spatial Waypoint Radar on Right Edge (Desktop & Tablet) */}
@@ -1149,26 +1194,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* ===================================================================== */}
         <section
           id="section-shorts"
-          className="w-full p-4 sm:p-7 lg:p-10 border-b border-white/[0.06] flex flex-col shrink-0"
+          className="w-full px-3 sm:px-6 lg:px-8 pt-3 pb-6 sm:pb-8 border-b border-white/[0.06] flex flex-col shrink-0"
         >
-          {/* Header Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
-            <div className="flex items-center gap-3 shrink-0">
-              <Film className="w-5 h-5 text-[#ccff00]" />
-              <div>
-                <h2 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  {shortsSubfolder && shortsSubfolder !== 'ALL' ? shortsSubfolder : 'ALL SHORTS'}
-                </h2>
-                <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
-                  Archived Shorts Stream • {activeShortsList.length} Items Indexed
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
-              {renderCategorySubfolderBar('SHORTS', shortsSubfolder, setShortsSubfolder, true)}
-            </div>
-          </div>
-
           {/* Spotlight Horizontal Carousel Reel */}
           <SpotlightCarouselRow
             title="SPOTLIGHT SHORTS // HIGH-VELOCITY REELS"
@@ -1238,26 +1265,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* ===================================================================== */}
         <section
           id="section-clips"
-          className="w-full p-4 sm:p-7 lg:p-10 border-b border-white/[0.06] flex flex-col shrink-0"
+          className="w-full px-3 sm:px-6 lg:px-8 pt-3 pb-6 sm:pb-8 border-b border-white/[0.06] flex flex-col shrink-0"
         >
-          {/* Header Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
-            <div className="flex items-center gap-3 shrink-0">
-              <Film className="w-5 h-5 text-[#ccff00]" />
-              <div>
-                <h2 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  {clipsSubfolder && clipsSubfolder !== 'ALL' ? clipsSubfolder : 'ALL VIDEO CLIPS'}
-                </h2>
-                <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
-                  Archived Video Clips & Broadcasts • {activeClipsList.length} Items Indexed
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
-              {renderCategorySubfolderBar('CLIPS', clipsSubfolder, setClipsSubfolder, true)}
-            </div>
-          </div>
-
           {/* Spotlight Horizontal Carousel Reel */}
           <SpotlightCarouselRow
             title="SPOTLIGHT CINEMA // 16:9 PREMIERES"
@@ -1327,26 +1336,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {/* ===================================================================== */}
         <section
           id="section-photographs"
-          className="w-full p-4 sm:p-7 lg:p-10 flex flex-col shrink-0"
+          className="w-full px-3 sm:px-6 lg:px-8 pt-3 pb-6 sm:pb-8 flex flex-col shrink-0"
         >
-          {/* Header Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10 shrink-0">
-            <div className="flex items-center gap-3 shrink-0">
-              <Folder className="w-5 h-5 text-[#ccff00]" />
-              <div>
-                <h2 className="text-base sm:text-lg font-serif font-bold tracking-widest text-[#f4f4f5] uppercase">
-                  {photosSubfolder && photosSubfolder !== 'ALL' ? photosSubfolder : 'ALL PHOTOGRAPHS'}
-                </h2>
-                <p className="text-[10px] sm:text-[11px] tracking-wide text-neutral-400">
-                  Archived Photo Collection • {activePhotosList.length} Items Indexed
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center md:justify-end gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[70%] shrink-0">
-              {renderCategorySubfolderBar('PHOTOGRAPHY', photosSubfolder, setPhotosSubfolder, true)}
-            </div>
-          </div>
-
           {/* Spotlight Horizontal Carousel Reel */}
           <SpotlightCarouselRow
             title="SPOTLIGHT PORTRAITS // MASTER GALLERY"
