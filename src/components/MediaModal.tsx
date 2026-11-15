@@ -91,6 +91,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   }, [isOpen, activeIdx, scheduleAutoHide]);
 
   const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [slideDirection, setSlideDirection] = useState<'next' | 'prev' | null>(null);
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
@@ -116,6 +117,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const goToNext = useCallback(() => {
     if (items && items.length > 0 && activeIdx < items.length - 1) {
       const next = activeIdx + 1;
+      setSlideDirection('next');
       setAnimationClass('animate-photo-slide-next');
       setActiveIdx(next);
       _onIndexChange?.(next);
@@ -126,6 +128,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const goToPrev = useCallback(() => {
     if (items && items.length > 0 && activeIdx > 0) {
       const prev = activeIdx - 1;
+      setSlideDirection('prev');
       setAnimationClass('animate-photo-slide-prev');
       setActiveIdx(prev);
       _onIndexChange?.(prev);
@@ -565,7 +568,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     let dragStartY = 0;
 
     const onMouseDown = (e: MouseEvent) => {
-      if (e.button !== 0 || scaleRef.current <= 1.05) return;
+      if (e.button !== 0) return;
       e.preventDefault();
       setAnimationClass('');
       isMouseDown = true;
@@ -573,30 +576,53 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       dragStartY = e.clientY;
       startPanX = positionRef.current.x;
       startPanY = positionRef.current.y;
-      if (img) img.style.cursor = 'grabbing';
+      if (img) img.style.cursor = scaleRef.current > 1.05 ? 'grabbing' : 'grab';
     };
 
     const onMouseMove = (e: MouseEvent) => {
-      if (!isMouseDown || scaleRef.current <= 1.05) return;
+      if (!isMouseDown) return;
       e.preventDefault();
       lastGestureTimeRef.current = Date.now();
       const dx = e.clientX - dragStartX;
       const dy = e.clientY - dragStartY;
-      const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-      let nextX = startPanX + dx;
-      let nextY = startPanY + dy;
-      nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
-      nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
-      posX = nextX;
-      posY = nextY;
-      applyTransform(false);
+
+      if (scaleRef.current > 1.05) {
+        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+        let nextX = startPanX + dx;
+        let nextY = startPanY + dy;
+        nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
+        nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
+        posX = nextX;
+        posY = nextY;
+        applyTransform(false);
+      } else {
+        // Drag swipe preview when not zoomed
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+          posX = dx * 0.35;
+          posY = 0;
+          applyTransform(false);
+        }
+      }
     };
 
-    const onMouseUp = () => {
+    const onMouseUp = (e: MouseEvent) => {
       if (isMouseDown) {
         isMouseDown = false;
         if (img) img.style.cursor = scaleRef.current > 1.05 ? 'grab' : 'pointer';
-        commitTransform(false);
+        if (scaleRef.current > 1.05) {
+          commitTransform(false);
+        } else {
+          const dx = e.clientX - dragStartX;
+          if (dx < -45 && hasItemList && activeIdx < (items?.length || 0) - 1) {
+            goToNext();
+          } else if (dx > 45 && hasItemList && activeIdx > 0) {
+            goToPrev();
+          } else {
+            posX = 0;
+            posY = 0;
+            commitTransform(true);
+          }
+        }
       }
     };
 
@@ -604,6 +630,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       e.preventDefault();
       lastGestureTimeRef.current = Date.now();
       setAnimationClass('');
+
+      // Horizontal trackpad swipe navigation
+      if (!e.ctrlKey && scaleRef.current <= 1.05 && Math.abs(e.deltaX) > 25 && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        if (e.deltaX > 25 && hasItemList && activeIdx < (items?.length || 0) - 1) {
+          goToNext();
+          return;
+        } else if (e.deltaX < -25 && hasItemList && activeIdx > 0) {
+          goToPrev();
+          return;
+        }
+      }
 
       let targetScale = scaleRef.current;
       if (e.ctrlKey) {
@@ -767,12 +804,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* 1. Left Previous Media Card (Side-by-side, smaller, z-10 underneath) */}
         {prevPhotoItem ? (
           <div
+            key={`photo-prev-${activeIdx}-${slideDirection}`}
             onClick={(e) => {
               e.stopPropagation();
               goToPrev();
             }}
-            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto animate-flank-left ${
-              showControls && scale <= 1.05 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto ${
+              scale <= 1.05 ? 'opacity-90 hover:opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            } ${
+              slideDirection === 'next'
+                ? 'animate-flank-elevate-up'
+                : slideDirection === 'prev'
+                ? 'animate-flank-dip-down'
+                : ''
             }`}
             style={{ width: 'clamp(180px, 14vw, 240px)' }}
             title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
@@ -784,7 +828,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 className="w-full h-full object-cover brightness-[0.45] group-hover:brightness-[0.75] transition-all duration-300"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
-                <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
+                  showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+                }`}>
                   <ChevronLeft className="w-6 h-6 -ml-0.5" />
                 </div>
               </div>
@@ -880,12 +926,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         {/* 3. Right Next Media Card (Side-by-side, smaller, z-10 underneath) */}
         {nextPhotoItem ? (
           <div
+            key={`photo-next-${activeIdx}-${slideDirection}`}
             onClick={(e) => {
               e.stopPropagation();
               goToNext();
             }}
-            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto animate-flank-right ${
-              showControls && scale <= 1.05 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto ${
+              scale <= 1.05 ? 'opacity-90 hover:opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            } ${
+              slideDirection === 'next'
+                ? 'animate-flank-dip-down'
+                : slideDirection === 'prev'
+                ? 'animate-flank-elevate-up'
+                : ''
             }`}
             style={{ width: 'clamp(180px, 14vw, 240px)' }}
             title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
@@ -897,7 +950,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 className="w-full h-full object-cover brightness-[0.45] group-hover:brightness-[0.75] transition-all duration-300"
               />
               <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
-                <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
+                  showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+                }`}>
                   <ChevronRight className="w-6 h-6 -mr-0.5" />
                 </div>
               </div>

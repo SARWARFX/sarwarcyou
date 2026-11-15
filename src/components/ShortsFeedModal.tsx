@@ -40,6 +40,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const iconTimerRef = useRef<number | null>(null);
   const hideControlsTimerRef = useRef<number | null>(null);
   const lastTouchTimeRef = useRef<number>(0);
+  const touchStartXRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
   const backdropClickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -105,14 +106,34 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const handleTouchStart = (e: React.TouchEvent) => {
     lastTouchTimeRef.current = Date.now();
+    touchStartXRef.current = e.touches[0].clientX;
     touchStartYRef.current = e.touches[0].clientY;
     isSwipingRef.current = false;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     lastTouchTimeRef.current = Date.now();
-    if (Math.abs(e.touches[0].clientY - touchStartYRef.current) > 10) {
+    const dx = Math.abs(e.touches[0].clientX - touchStartXRef.current);
+    const dy = Math.abs(e.touches[0].clientY - touchStartYRef.current);
+    if (dx > 10 || dy > 10) {
       isSwipingRef.current = true;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartXRef.current;
+    const dy = e.changedTouches[0].clientY - touchStartYRef.current;
+    // Horizontal swipe gesture detection for shorts
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0 && activeIndex < shorts.length - 1) {
+        // Swiped left -> NEXT short
+        setSlideDirection('next');
+        slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+      } else if (dx > 0 && activeIndex > 0) {
+        // Swiped right -> PREV short
+        setSlideDirection('prev');
+        slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+      }
     }
   };
 
@@ -404,6 +425,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       onMouseMove={handleMouseMove}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -460,6 +482,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* ===== DESKTOP LEFT FLANKING PREVIEW (Previous Short) ===== */}
       {activeIndex > 0 && (
         <div
+          key={`short-prev-${activeIndex}-${slideDirection}`}
           onClick={(e) => {
             e.stopPropagation();
             hapticLight();
@@ -467,8 +490,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const prevIdx = activeIndex - 1;
             slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-left ${
-            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
+          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-90 hover:opacity-100 ${
+            slideDirection === 'next'
+              ? 'animate-flank-elevate-up'
+              : slideDirection === 'prev'
+              ? 'animate-flank-dip-down'
+              : ''
           }`}
           style={{ right: 'calc(50% + 225px)', width: 'clamp(180px, 14vw, 240px)' }}
           title={shorts[activeIndex - 1]?.title || 'Previous Short'}
@@ -480,7 +507,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+              <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
+                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+              }`}>
                 <ChevronLeft className="w-6 h-6 -ml-0.5" />
               </div>
             </div>
@@ -495,6 +524,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* ===== DESKTOP RIGHT FLANKING PREVIEW (Next Short) ===== */}
       {activeIndex < shorts.length - 1 && (
         <div
+          key={`short-next-${activeIndex}-${slideDirection}`}
           onClick={(e) => {
             e.stopPropagation();
             hapticLight();
@@ -502,8 +532,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const nextIdx = activeIndex + 1;
             slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-right ${
-            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
+          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-90 hover:opacity-100 ${
+            slideDirection === 'next'
+              ? 'animate-flank-dip-down'
+              : slideDirection === 'prev'
+              ? 'animate-flank-elevate-up'
+              : ''
           }`}
           style={{ left: 'calc(50% + 225px)', width: 'clamp(180px, 14vw, 240px)' }}
           title={shorts[activeIndex + 1]?.title || 'Next Short'}
@@ -515,7 +549,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+              <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
+                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+              }`}>
                 <ChevronRight className="w-6 h-6 -mr-0.5" />
               </div>
             </div>
