@@ -7,6 +7,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -16,7 +18,7 @@ import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 
 import { unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
-import { hapticMedium } from '../utils/hapticsManager';
+import { hapticLight, hapticMedium } from '../utils/hapticsManager';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 
@@ -60,15 +62,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [showControls, setShowControls] = useState<boolean>(true);
   const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Desktop vs Mobile layout detection (lg: = 1024px)
-  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
   const scheduleAutoHide = useCallback(() => {
     if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
     hideControlsTimerRef.current = setTimeout(() => {
@@ -92,7 +85,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   }, [isOpen, activeIdx, scheduleAutoHide]);
 
   const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [slideDirection, setSlideDirection] = useState<'next' | 'prev' | null>(null);
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
@@ -118,7 +110,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const goToNext = useCallback(() => {
     if (items && items.length > 0 && activeIdx < items.length - 1) {
       const next = activeIdx + 1;
-      setSlideDirection('next');
       setAnimationClass('animate-photo-slide-next');
       setActiveIdx(next);
       _onIndexChange?.(next);
@@ -132,7 +123,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const goToPrev = useCallback(() => {
     if (items && items.length > 0 && activeIdx > 0) {
       const prev = activeIdx - 1;
-      setSlideDirection('prev');
       setAnimationClass('animate-photo-slide-prev');
       setActiveIdx(prev);
       _onIndexChange?.(prev);
@@ -275,6 +265,63 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     return { maxPanX, maxPanY, baseW, baseH };
   }, [imgDimensions]);
 
+  // Controlled Zoom Level Setter (used by Zoom Column, Wheel & Double-Tap)
+  const setZoomLevel = useCallback((newScale: number, smooth = true) => {
+    const clampedScale = Math.max(1, Math.min(4.5, newScale));
+    scaleRef.current = clampedScale;
+    setScale(clampedScale);
+
+    if (clampedScale <= 1.02) {
+      positionRef.current = { x: 0, y: 0 };
+      setPos({ x: 0, y: 0 });
+      if (imgRef.current) {
+        imgRef.current.style.transition = smooth ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+        imgRef.current.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
+      }
+    } else {
+      const { maxPanX, maxPanY } = calculatePanLimits(clampedScale);
+      const nextX = Math.max(-maxPanX, Math.min(maxPanX, positionRef.current.x));
+      const nextY = Math.max(-maxPanY, Math.min(maxPanY, positionRef.current.y));
+      positionRef.current = { x: nextX, y: nextY };
+      setPos({ x: nextX, y: nextY });
+      if (imgRef.current) {
+        imgRef.current.style.transition = smooth ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+        imgRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${clampedScale})`;
+      }
+    }
+  }, [calculatePanLimits]);
+
+  const zoomTrackRef = useRef<HTMLDivElement | null>(null);
+
+  const handleZoomTrackPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const track = e.currentTarget;
+    const updateFromPointer = (clientY: number) => {
+      const rect = track.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
+      const targetScale = 1 + ratio * (4.5 - 1);
+      setZoomLevel(targetScale, false);
+    };
+    updateFromPointer(e.clientY);
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      updateFromPointer(moveEvent.clientY);
+    };
+    const onPointerUp = (upEvent: PointerEvent) => {
+      track.removeEventListener('pointermove', onPointerMove);
+      track.removeEventListener('pointerup', onPointerUp);
+      track.removeEventListener('pointercancel', onPointerUp);
+      try {
+        track.releasePointerCapture(upEvent.pointerId);
+      } catch (_) {}
+      hapticLight();
+    };
+    track.addEventListener('pointermove', onPointerMove);
+    track.addEventListener('pointerup', onPointerUp);
+    track.addEventListener('pointercancel', onPointerUp);
+  }, [setZoomLevel]);
+
   // Handle window resizing while zoomed to prevent edge gaps
   useEffect(() => {
     const handleResize = () => {
@@ -413,10 +460,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     let initialPinchMidY = 0;
     let initialPinchPosX = 0;
     let initialPinchPosY = 0;
-    let swipeDeltaX = 0;
 
     const onTouchStart = (e: TouchEvent) => {
-      swipeDeltaX = 0;
       currentScale = scaleRef.current;
       posX = positionRef.current.x;
       posY = positionRef.current.y;
@@ -447,12 +492,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         startTouchX = touch.clientX;
         startTouchY = touch.clientY;
 
-        if (scaleRef.current > 1.05) {
-          setAnimationClass('');
-          isPanning = true;
-          startPanX = positionRef.current.x;
-          startPanY = positionRef.current.y;
-        }
+        // Picasa-style free pan & drag at any scale
+        setAnimationClass('');
+        isPanning = true;
+        startPanX = positionRef.current.x;
+        startPanY = positionRef.current.y;
       } else if (e.touches.length === 2) {
         e.preventDefault();
         setAnimationClass('');
@@ -495,9 +539,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const touch = e.touches[0];
         const dx = touch.clientX - startTouchX;
         const dy = touch.clientY - startTouchY;
-        swipeDeltaX = dx;
 
-        if (scaleRef.current > 1.05 && isPanning) {
+        if (isPanning) {
           e.preventDefault();
           lastGestureTimeRef.current = Date.now();
           const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
@@ -513,13 +556,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           posX = nextX;
           posY = nextY;
           applyTransform(false);
-        } else if (scaleRef.current <= 1.05) {
-          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
-            e.preventDefault();
-            posX = dx * 0.38;
-            posY = 0;
-            applyTransform(false);
-          }
         }
       }
     };
@@ -549,25 +585,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
       if (remainingTouches === 0) {
         isPanning = false;
-
-        if (scaleRef.current > 1.05) {
-          const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-          posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
-          posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
-          commitTransform(true);
-        } else {
-          // Check 1x horizontal swipe navigation
-          if (swipeDeltaX < -55 && hasItemList && activeIdx < (items?.length || 0) - 1) {
-            goToNext();
-          } else if (swipeDeltaX > 55 && hasItemList && activeIdx > 0) {
-            goToPrev();
-          } else {
-            // Snap back to center
-            posX = 0;
-            posY = 0;
-            commitTransform(true);
-          }
-        }
+        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+        posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
+        posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
+        commitTransform(true);
       }
     };
 
@@ -593,7 +614,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       dragStartY = e.clientY;
       startPanX = positionRef.current.x;
       startPanY = positionRef.current.y;
-      if (img) img.style.cursor = scaleRef.current > 1.05 ? 'grabbing' : 'grab';
+      if (img) img.style.cursor = 'grabbing';
     };
 
     const onMouseMove = (e: MouseEvent) => {
@@ -603,43 +624,21 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       const dx = e.clientX - dragStartX;
       const dy = e.clientY - dragStartY;
 
-      if (scaleRef.current > 1.05) {
-        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-        let nextX = startPanX + dx;
-        let nextY = startPanY + dy;
-        nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
-        nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
-        posX = nextX;
-        posY = nextY;
-        applyTransform(false);
-      } else {
-        // Drag swipe preview when not zoomed
-        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
-          posX = dx * 0.35;
-          posY = 0;
-          applyTransform(false);
-        }
-      }
+      const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+      let nextX = startPanX + dx;
+      let nextY = startPanY + dy;
+      nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
+      nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
+      posX = nextX;
+      posY = nextY;
+      applyTransform(false);
     };
 
-    const onMouseUp = (e: MouseEvent) => {
+    const onMouseUp = (_e: MouseEvent) => {
       if (isMouseDown) {
         isMouseDown = false;
-        if (img) img.style.cursor = scaleRef.current > 1.05 ? 'grab' : 'pointer';
-        if (scaleRef.current > 1.05) {
-          commitTransform(false);
-        } else {
-          const dx = e.clientX - dragStartX;
-          if (dx < -45 && hasItemList && activeIdx < (items?.length || 0) - 1) {
-            goToNext();
-          } else if (dx > 45 && hasItemList && activeIdx > 0) {
-            goToPrev();
-          } else {
-            posX = 0;
-            posY = 0;
-            commitTransform(true);
-          }
-        }
+        if (img) img.style.cursor = 'grab';
+        commitTransform(false);
       }
     };
 
@@ -648,47 +647,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       lastGestureTimeRef.current = Date.now();
       setAnimationClass('');
 
-      // Horizontal trackpad swipe navigation
-      if (!e.ctrlKey && scaleRef.current <= 1.05 && Math.abs(e.deltaX) > 25 && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        if (e.deltaX > 25 && hasItemList && activeIdx < (items?.length || 0) - 1) {
-          goToNext();
-          return;
-        } else if (e.deltaX < -25 && hasItemList && activeIdx > 0) {
-          goToPrev();
-          return;
+      const delta = -e.deltaY * 0.002;
+      const nextScale = Math.min(Math.max(currentScale + delta, 1.0), 4.5);
+
+      if (Math.abs(nextScale - currentScale) > 0.003) {
+        currentScale = nextScale;
+        if (currentScale <= 1.02) {
+          posX = 0;
+          posY = 0;
+        } else {
+          const { maxPanX, maxPanY } = calculatePanLimits(currentScale);
+          posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
+          posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
         }
-      }
-
-      let targetScale = scaleRef.current;
-      if (e.ctrlKey) {
-        // Trackpad pinch zoom
-        const factor = Math.exp(-e.deltaY * 0.012);
-        targetScale = Math.min(Math.max(scaleRef.current * factor, 1), 5);
-      } else {
-        // Mouse wheel scroll zoom
-        const factor = e.deltaY < 0 ? 1.25 : 0.8;
-        targetScale = Math.min(Math.max(scaleRef.current * factor, 1), 5);
-      }
-
-      if (targetScale <= 1.02) {
-        currentScale = 1;
-        posX = 0;
-        posY = 0;
-        commitTransform(true);
-      } else {
-        const scaleChange = targetScale / scaleRef.current;
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const cx = vw / 2;
-        const cy = vh / 2;
-        let nextX = e.clientX - cx - (e.clientX - cx - positionRef.current.x) * scaleChange;
-        let nextY = e.clientY - cy - (e.clientY - cy - positionRef.current.y) * scaleChange;
-        const { maxPanX, maxPanY } = calculatePanLimits(targetScale);
-        nextX = Math.max(-maxPanX, Math.min(maxPanX, nextX));
-        nextY = Math.max(-maxPanY, Math.min(maxPanY, nextY));
-        currentScale = targetScale;
-        posX = nextX;
-        posY = nextY;
         commitTransform(false);
       }
     };
@@ -766,9 +737,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const secureUrl = activeUrl.replace(/^http:\/\//i, 'https://');
   const cleanTitle = sanitizeMediaTitle(activeTitle, type === 'video' ? 'Video' : 'Photograph');
 
-  const prevPhotoItem = hasItemList && activeIdx > 0 ? items[activeIdx - 1] : null;
-  const nextPhotoItem = hasItemList && activeIdx < items.length - 1 ? items[activeIdx + 1] : null;
-
   return createPortal(
     <div
       ref={mediaBoxRef}
@@ -816,176 +784,196 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         <X className="w-5 h-5" />
       </button>
 
-      {/* Unified Side-by-Side 3-Card Stage: PREV | ACTIVE (on top) | NEXT */}
-      <div className="relative z-10 w-full h-full flex items-center justify-center gap-3 sm:gap-5 xl:gap-8 overflow-hidden pointer-events-none px-4 sm:px-6">
-        {/* 1. Left Previous Media Card (Side-by-side, smaller, z-10 underneath) */}
-        {prevPhotoItem ? (
-          <div
-            key={`photo-prev-${activeIdx}-${slideDirection}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              goToPrev();
-            }}
-            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto ${
-              scale <= 1.05 ? 'opacity-90 hover:opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-            } ${
-              slideDirection === 'next'
-                ? 'animate-flank-elevate-up'
-                : slideDirection === 'prev'
-                ? 'animate-flank-dip-down'
-                : ''
-            }`}
-            style={{ width: 'clamp(180px, 14vw, 240px)' }}
-            title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
-          >
-            <div className="relative w-full aspect-[3/4] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
-              <img
-                src={prevPhotoItem.thumbnail || getMediaUrl(prevPhotoItem.url || prevPhotoItem.path || prevPhotoItem.id)}
-                alt={prevPhotoItem.title || 'Previous photo'}
-                className="w-full h-full object-cover brightness-[0.45] group-hover:brightness-[0.75] transition-all duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
-                <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
-                  showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-                }`}>
-                  <ChevronLeft className="w-6 h-6 -ml-0.5" />
-                </div>
-              </div>
-              <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
-                <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
-                  PREV
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div
-            className="hidden lg:block shrink-0 pointer-events-none invisible"
-            style={{ width: 'clamp(180px, 14vw, 240px)' }}
-          />
-        )}
-
-        {/* 2. Middle Active Main Image Card (z-30 on top of any overlap) */}
-        <div
-          ref={imageContainerRef}
+      {/* Floating Left Edge Navigation Arrow */}
+      {hasItemList && activeIdx > 0 && (
+        <button
+          type="button"
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              if (Date.now() - lastGestureTimeRef.current < 400) return;
-              if (scaleRef.current > 1.05) {
-                resetZoom();
-                return;
-              }
-              onClose();
-            }
+            e.stopPropagation();
+            goToPrev();
           }}
-          className="relative z-30 flex items-center justify-center shrink-0 min-w-0 max-w-full max-h-full pointer-events-auto overflow-visible"
+          onMouseEnter={() => {
+            if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+          }}
+          onMouseLeave={scheduleAutoHide}
+          className={`pointer-events-auto fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 text-white/90 hover:text-[#ccff00] backdrop-blur-xl shadow-2xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+          }`}
+          title="Previous Photo (←)"
+          aria-label="Previous photo"
         >
-          <img
-            key={currentItem?.id || activeUrl || activeIdx}
-            ref={imgRef}
-            src={getMediaUrl(secureUrl)}
-            alt={cleanTitle}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (Date.now() - lastGestureTimeRef.current < 350) return;
-              if (scaleRef.current > 1.05) return;
-              setShowControls((prev) => !prev);
-              if (!showControls) {
-                scheduleAutoHide();
-              } else if (hideControlsTimerRef.current) {
-                clearTimeout(hideControlsTimerRef.current);
-              }
-            }}
-            onDoubleClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setAnimationClass('');
-              handleDoubleTap(e.clientX, e.clientY);
-            }}
-            onDragStart={(e) => e.preventDefault()}
-            onError={(e) => {
-              // Hotlink / 403 protection: fall back to high-reliability thumbnail or unproxied source
-              if (currentItem?.thumbnail && e.currentTarget.src !== currentItem.thumbnail) {
-                e.currentTarget.src = currentItem.thumbnail;
-              }
-            }}
-            onLoad={(e) => {
-              setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
-              if (e.currentTarget.offsetWidth > 0) {
-                baseDimensionsRef.current = {
-                  w: e.currentTarget.offsetWidth,
-                  h: e.currentTarget.offsetHeight,
-                };
-              }
-            }}
-            onAnimationEnd={() => {
-              setAnimationClass('');
-            }}
+          <ChevronLeft className="w-6 h-6 -ml-0.5" />
+        </button>
+      )}
+
+      {/* Floating Right Edge Navigation Arrow */}
+      {hasItemList && activeIdx < items.length - 1 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            goToNext();
+          }}
+          onMouseEnter={() => {
+            if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+          }}
+          onMouseLeave={scheduleAutoHide}
+          className={`pointer-events-auto fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 text-white/90 hover:text-[#ccff00] backdrop-blur-xl shadow-2xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
+          }`}
+          title="Next Photo (→)"
+          aria-label="Next photo"
+        >
+          <ChevronRight className="w-6 h-6 -mr-0.5" />
+        </button>
+      )}
+
+      {/* Dedicated Universal Zoom Column (All Screens: Desktop, Tablet, Mobile) */}
+      <div
+        onMouseEnter={() => {
+          if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+        }}
+        onMouseLeave={scheduleAutoHide}
+        className={`pointer-events-auto fixed right-3 sm:right-6 bottom-20 z-40 flex flex-col items-center gap-1.5 p-1.5 sm:p-2 rounded-2xl bg-black/70 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-2xl transition-all duration-300 ${
+          showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
+        }`}
+        style={{ touchAction: 'none' }}
+        onClick={(e) => e.stopPropagation()}
+        onWheel={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const delta = e.deltaY < 0 ? 0.25 : -0.25;
+          setZoomLevel(scaleRef.current + delta);
+        }}
+      >
+        {/* Zoom In Button */}
+        <button
+          type="button"
+          onClick={() => setZoomLevel(scaleRef.current + 0.35)}
+          disabled={scale >= 4.5}
+          className="w-8 h-8 rounded-xl bg-white/5 hover:bg-[#ccff00] hover:text-black text-white/90 flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-90"
+          title="Zoom In (+)"
+          aria-label="Zoom in"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+
+        {/* Interactive Vertical Slider Track */}
+        <div
+          ref={zoomTrackRef}
+          onPointerDown={handleZoomTrackPointerDown}
+          className="relative w-2.5 h-24 sm:h-28 bg-white/15 hover:bg-white/25 rounded-full my-1 cursor-pointer transition-colors"
+          title="Drag up/down to zoom"
+        >
+          <div
+            className="absolute bottom-0 inset-x-0 bg-[#ccff00] rounded-full shadow-[0_0_8px_rgba(204,255,0,0.6)]"
             style={{
-              transformOrigin: 'center center',
-              willChange: 'transform',
-              transform: `translate3d(${pos.x}px, ${pos.y}px, 0px) scale(${scale})`,
-              transition: isTransitioning ? 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
-              touchAction: 'none',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
-              overscrollBehavior: 'none',
-              maxHeight: isDesktop ? '82vh' : '100vh',
-              maxWidth: isDesktop ? 'min(58vw, calc(100vw - 480px))' : '100vw',
-              cursor: scale > 1.05 ? 'grab' : 'pointer',
+              height: `${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}%`,
             }}
-            className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-xl drop-shadow-[0_20px_45px_rgba(0,0,0,0.9)] ${animationClass}`}
-            draggable={false}
+          />
+          <div
+            className="absolute -left-1.5 w-5 h-5 rounded-full bg-white text-black font-mono font-bold text-[9px] flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.8)] border-2 border-[#ccff00] -translate-y-1/2 transition-transform active:scale-125"
+            style={{
+              bottom: `calc(${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}% - 2px)`,
+            }}
           />
         </div>
 
-        {/* 3. Right Next Media Card (Side-by-side, smaller, z-10 underneath) */}
-        {nextPhotoItem ? (
-          <div
-            key={`photo-next-${activeIdx}-${slideDirection}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              goToNext();
-            }}
-            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto ${
-              scale <= 1.05 ? 'opacity-90 hover:opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-            } ${
-              slideDirection === 'next'
-                ? 'animate-flank-dip-down'
-                : slideDirection === 'prev'
-                ? 'animate-flank-elevate-up'
-                : ''
-            }`}
-            style={{ width: 'clamp(180px, 14vw, 240px)' }}
-            title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
-          >
-            <div className="relative w-full aspect-[3/4] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
-              <img
-                src={nextPhotoItem.thumbnail || getMediaUrl(nextPhotoItem.url || nextPhotoItem.path || nextPhotoItem.id)}
-                alt={nextPhotoItem.title || 'Next photo'}
-                className="w-full h-full object-cover brightness-[0.45] group-hover:brightness-[0.75] transition-all duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
-                <div className={`w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
-                  showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-                }`}>
-                  <ChevronRight className="w-6 h-6 -mr-0.5" />
-                </div>
-              </div>
-              <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
-                <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
-                  NEXT
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div
-            className="hidden lg:block shrink-0 pointer-events-none invisible"
-            style={{ width: 'clamp(180px, 14vw, 240px)' }}
-          />
-        )}
+        {/* Zoom Out Button */}
+        <button
+          type="button"
+          onClick={() => setZoomLevel(scaleRef.current - 0.35)}
+          disabled={scale <= 1.02}
+          className="w-8 h-8 rounded-xl bg-white/5 hover:bg-[#ccff00] hover:text-black text-white/90 flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-90"
+          title="Zoom Out (−)"
+          aria-label="Zoom out"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+
+        {/* 1-Click Fit / 100% Reset Button */}
+        <button
+          type="button"
+          onClick={resetZoom}
+          className="px-1.5 py-1 rounded-lg bg-white/10 hover:bg-[#ccff00] hover:text-black text-[9px] font-mono font-bold tracking-wider text-neutral-300 transition-all cursor-pointer active:scale-90 mt-0.5"
+          title="Reset to 100% Screen Fit"
+          aria-label="Reset zoom"
+        >
+          {Math.round(scale * 100)}%
+        </button>
+      </div>
+
+      {/* Picasa Full-Screen Viewport Stage (100% Uncluttered Screen Canvas) */}
+      <div
+        ref={imageContainerRef}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            if (Date.now() - lastGestureTimeRef.current < 400) return;
+            if (scaleRef.current > 1.05) {
+              resetZoom();
+              return;
+            }
+            onClose();
+          }
+        }}
+        className="relative z-30 w-full h-full flex items-center justify-center pointer-events-auto overflow-hidden select-none"
+      >
+        <img
+          key={currentItem?.id || activeUrl || activeIdx}
+          ref={imgRef}
+          src={getMediaUrl(secureUrl)}
+          alt={cleanTitle}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (Date.now() - lastGestureTimeRef.current < 350) return;
+            setShowControls((prev) => !prev);
+            if (!showControls) {
+              scheduleAutoHide();
+            } else if (hideControlsTimerRef.current) {
+              clearTimeout(hideControlsTimerRef.current);
+            }
+          }}
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setAnimationClass('');
+            handleDoubleTap(e.clientX, e.clientY);
+          }}
+          onDragStart={(e) => e.preventDefault()}
+          onError={(e) => {
+            if (currentItem?.thumbnail && e.currentTarget.src !== currentItem.thumbnail) {
+              e.currentTarget.src = currentItem.thumbnail;
+            }
+          }}
+          onLoad={(e) => {
+            setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
+            if (e.currentTarget.offsetWidth > 0) {
+              baseDimensionsRef.current = {
+                w: e.currentTarget.offsetWidth,
+                h: e.currentTarget.offsetHeight,
+              };
+            }
+          }}
+          onAnimationEnd={() => {
+            setAnimationClass('');
+          }}
+          style={{
+            transformOrigin: 'center center',
+            willChange: 'transform',
+            transform: `translate3d(${pos.x}px, ${pos.y}px, 0px) scale(${scale})`,
+            transition: isTransitioning ? 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+            touchAction: 'none',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            WebkitTouchCallout: 'none',
+            overscrollBehavior: 'none',
+            maxHeight: '92vh',
+            maxWidth: '94vw',
+            cursor: 'grab',
+          }}
+          className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-xl drop-shadow-[0_20px_45px_rgba(0,0,0,0.9)] active:cursor-grabbing ${animationClass}`}
+          draggable={false}
+        />
       </div>
 
       {/* Floating Download Button at Bottom Left */}
