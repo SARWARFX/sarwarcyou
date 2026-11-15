@@ -41,6 +41,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const lastTouchTimeRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
+  const backdropClickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Desktop vs Mobile layout detection (lg: = 1024px)
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
@@ -400,7 +401,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       onMouseMove={handleMouseMove}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-keynote-modal"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-keynote-modal cursor-pointer"
     >
       {/* Top HUD Controls - Auto-hides on mobile during playback */}
       <header
@@ -457,8 +463,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const prevIdx = activeIndex - 1;
             slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className="hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
-          style={{ width: 'min(24vw, 320px)' }}
+          className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 ${
+            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
+          }`}
+          style={{ width: 'clamp(160px, 16vw, 240px)' }}
           title={shorts[activeIndex - 1]?.title || 'Previous Short'}
         >
           <div className="relative w-full aspect-[9/16] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
@@ -489,8 +497,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const nextIdx = activeIndex + 1;
             slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className="hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
-          style={{ width: 'min(24vw, 320px)' }}
+          className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 ${
+            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
+          }`}
+          style={{ width: 'clamp(160px, 16vw, 240px)' }}
           title={shorts[activeIndex + 1]?.title || 'Next Short'}
         >
           <div className="relative w-full aspect-[9/16] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
@@ -514,6 +524,22 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* Scroll-Snap Feed Container: Vertical on mobile, Horizontal on desktop */}
       <div
         ref={containerRef}
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget) {
+            backdropClickStartRef.current = { x: e.clientX, y: e.clientY };
+          }
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            const dist = Math.hypot(
+              e.clientX - backdropClickStartRef.current.x,
+              e.clientY - backdropClickStartRef.current.y
+            );
+            if (dist < 10) {
+              onClose();
+            }
+          }
+        }}
         onWheel={(e) => {
           if (!isDesktop || !containerRef.current) return;
           // In horizontal desktop mode, translate vertical wheel gestures to horizontal scroll
@@ -544,19 +570,36 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               ref={(el) => { slideRefs.current[idx] = el; }}
               data-index={idx}
               data-reel-index={idx}
+              onPointerDown={(e) => {
+                if (e.target === e.currentTarget) {
+                  backdropClickStartRef.current = { x: e.clientX, y: e.clientY };
+                }
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  const dist = Math.hypot(
+                    e.clientX - backdropClickStartRef.current.x,
+                    e.clientY - backdropClickStartRef.current.y
+                  );
+                  if (dist < 10) {
+                    onClose();
+                  }
+                }
+              }}
               className={isDesktop
-                ? "w-screen h-full shrink-0 snap-start snap-always relative flex items-center justify-center p-4 bg-transparent"
-                : "w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent"
+                ? "w-screen h-full shrink-0 snap-start snap-always relative flex items-center justify-center p-4 bg-transparent cursor-pointer"
+                : "w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent cursor-pointer"
               }
             >
               <div
+                onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => handleVideoPointerDown(e, idx)}
                 onPointerUp={(e) => handleVideoPointerUp(e, idx)}
                 onPointerCancel={() => handleVideoPointerCancel(idx)}
                 className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
                   isLandscape
-                    ? 'w-full md:aspect-[16/9] md:max-w-[85vw] md:h-[80vh] md:max-h-[85vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
-                    : 'w-full md:max-w-[480px] h-full md:max-h-[92vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
+                    ? 'w-full lg:max-w-[calc(100vw-clamp(360px,36vw,540px))] md:aspect-[16/9] md:h-[80vh] md:max-h-[85vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
+                    : 'w-full md:max-w-[420px] lg:max-w-[min(420px,calc(100vw-clamp(360px,36vw,540px)))] h-full md:max-h-[88vh] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
                 }`}
               >
                 {!failedPermanently[idx] ? (
