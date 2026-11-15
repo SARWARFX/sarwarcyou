@@ -687,23 +687,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             goToPrev();
           }}
-          className="hidden lg:flex fixed left-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer"
-          style={{ width: 'calc((100vw - min(80vh * (4/3), 80vw)) / 2 - 8px)' }}
+          className="hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer"
+          style={{ width: 'min(24vw, 320px)' }}
           title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
         >
-          <div className="relative w-full h-[85vh] max-h-[85vh] mx-3 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
+          <div className="relative w-full aspect-[3/4] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
             <img
               src={prevPhotoItem.thumbnail || getMediaUrl(prevPhotoItem.url || prevPhotoItem.path || prevPhotoItem.id)}
               alt={prevPhotoItem.title || 'Previous photo'}
               className="w-full h-full object-cover brightness-50 group-hover:brightness-75 transition-all duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
-                <ChevronLeft className="w-7 h-7" />
+              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronLeft className="w-6 h-6 -ml-0.5" />
               </div>
             </div>
-            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
-              <span className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">
+            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
+              <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
                 PREV
               </span>
             </div>
@@ -718,23 +718,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             goToNext();
           }}
-          className="hidden lg:flex fixed right-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer"
-          style={{ width: 'calc((100vw - min(80vh * (4/3), 80vw)) / 2 - 8px)' }}
+          className="hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer"
+          style={{ width: 'min(24vw, 320px)' }}
           title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
         >
-          <div className="relative w-full h-[85vh] max-h-[85vh] mx-3 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
+          <div className="relative w-full aspect-[3/4] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
             <img
               src={nextPhotoItem.thumbnail || getMediaUrl(nextPhotoItem.url || nextPhotoItem.path || nextPhotoItem.id)}
               alt={nextPhotoItem.title || 'Next photo'}
               className="w-full h-full object-cover brightness-50 group-hover:brightness-75 transition-all duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
-                <ChevronRight className="w-7 h-7" />
+              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronRight className="w-6 h-6 -mr-0.5" />
               </div>
             </div>
-            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
-              <span className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">
+            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
+              <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
                 NEXT
               </span>
             </div>

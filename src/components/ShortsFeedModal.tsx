@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Volume2, VolumeX, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
@@ -457,24 +457,24 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const prevIdx = activeIndex - 1;
             slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className="hidden lg:flex fixed left-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
-          style={{ width: 'calc((100vw - min(56vh * (9/16), 480px)) / 2 - 8px)' }}
+          className="hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
+          style={{ width: 'min(24vw, 320px)' }}
           title={shorts[activeIndex - 1]?.title || 'Previous Short'}
         >
-          <div className="relative w-full h-[88vh] max-h-[88vh] mx-2 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
+          <div className="relative w-full aspect-[9/16] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
             <img
               src={getThumbnailUrl(shorts[activeIndex - 1]) || (shorts[activeIndex - 1]?.thumbnail ? getMediaUrl(shorts[activeIndex - 1].thumbnail!) : '')}
               alt={shorts[activeIndex - 1]?.title || 'Previous short'}
-              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.6] transition-all duration-300"
+              className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
-                <ChevronUp className="w-7 h-7" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronLeft className="w-6 h-6 -ml-0.5" />
               </div>
             </div>
-            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
-              <p className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">PREV</p>
-              <p className="text-[10px] text-neutral-500 line-clamp-1 mt-0.5 px-3">{shorts[activeIndex - 1]?.title || ''}</p>
+            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
+              <p className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">PREV</p>
+              <p className="text-[10px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex - 1]?.title || ''}</p>
             </div>
           </div>
         </div>
@@ -489,24 +489,24 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const nextIdx = activeIndex + 1;
             slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className="hidden lg:flex fixed right-0 top-0 bottom-0 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
-          style={{ width: 'calc((100vw - min(56vh * (9/16), 480px)) / 2 - 8px)' }}
+          className="hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto"
+          style={{ width: 'min(24vw, 320px)' }}
           title={shorts[activeIndex + 1]?.title || 'Next Short'}
         >
-          <div className="relative w-full h-[88vh] max-h-[88vh] mx-2 rounded-2xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_40px_rgba(204,255,0,0.2)] transition-all duration-300">
+          <div className="relative w-full aspect-[9/16] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
             <img
               src={getThumbnailUrl(shorts[activeIndex + 1]) || (shorts[activeIndex + 1]?.thumbnail ? getMediaUrl(shorts[activeIndex + 1].thumbnail!) : '')}
               alt={shorts[activeIndex + 1]?.title || 'Next short'}
-              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.6] transition-all duration-300"
+              className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
             />
-            <div className="absolute inset-0 bg-gradient-to-l from-black/50 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
-                <ChevronDown className="w-7 h-7" />
+            <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                <ChevronRight className="w-6 h-6 -mr-0.5" />
               </div>
             </div>
-            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
-              <p className="text-xs font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">NEXT</p>
-              <p className="text-[10px] text-neutral-500 line-clamp-1 mt-0.5 px-3">{shorts[activeIndex + 1]?.title || ''}</p>
+            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
+              <p className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">NEXT</p>
+              <p className="text-[10px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex + 1]?.title || ''}</p>
             </div>
           </div>
         </div>
@@ -514,6 +514,18 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* Scroll-Snap Feed Container: Vertical on mobile, Horizontal on desktop */}
       <div
         ref={containerRef}
+        onWheel={(e) => {
+          if (!isDesktop || !containerRef.current) return;
+          // In horizontal desktop mode, translate vertical wheel gestures to horizontal scroll
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && Math.abs(e.deltaY) > 10) {
+            e.preventDefault();
+            if (e.deltaY > 0 && activeIndex < shorts.length - 1) {
+              slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+            } else if (e.deltaY < 0 && activeIndex > 0) {
+              slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+            }
+          }
+        }}
         className={isDesktop
           ? "w-full h-full overflow-x-scroll overflow-y-hidden snap-x snap-mandatory scroll-smooth overscroll-x-contain flex flex-row items-center no-scrollbar"
           : "w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth overscroll-y-contain flex flex-col items-center no-scrollbar"

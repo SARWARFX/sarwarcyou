@@ -413,8 +413,8 @@ function App() {
       setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
       setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
 
-      // 3. If albumQuery is present in URL, restore the previous album viewAllState
-      if (albumQuery) {
+      // 3. If albumQuery is present in URL, restore the previous album viewAllState (disabled in Monolith Gate)
+      if (albumQuery && !ENABLE_MONOLITH_GATE && ACTIVE_INTERFACE !== 'MONOLITH_GATE') {
         const isShortsAlbum = albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts';
         if (isShortsAlbum) {
           handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts', undefined, undefined, undefined, false);
@@ -450,6 +450,13 @@ function App() {
   useEffect(() => {
     if (isLoading || !data || !rawFeed || rawFeed.allMediaPool.length === 0 || !isDynamicReady) return;
     if (hasInitializedUrlRef.current) return;
+
+    // In Monolith Gate mode, direct links or album queries land cleanly on the nav bar category tabs instead of launching the legacy FullAlbumViewModal
+    if (ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE') {
+      hasInitializedUrlRef.current = true;
+      setViewAllState({ isOpen: false, title: '', items: [] });
+      return;
+    }
 
     const { albumQuery, mediaQuery } = parseUrlState();
     if (!albumQuery && !mediaQuery) {
