@@ -95,13 +95,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const initialRoute = useMemo(() => parseIdRoute(), []);
 
   // Navigation states:
-  // 4 Core Categories: 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
+  // 4 Core Categories: 'TRAILER' (Homepage) | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
+  // The website must always start with the homepage. Whenever the visitor reloads the page, it starts with the homepage.
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
-    if (!initialRoute.category || initialRoute.category === 'ARCHIVE' || initialRoute.category === 'NEWS' || initialRoute.category === 'YOUTUBE' || initialRoute.category === 'TRAILER') return 'TRAILER';
-    if (initialRoute.category === 'SHORTS') return 'SHORTS';
-    if (initialRoute.category === 'REALTUBE' || initialRoute.category === 'CLIPS') return 'CLIPS';
-    if (initialRoute.category === 'PHOTOGRAPHY' || (initialRoute.category as string) === 'IMAGES') return 'PHOTOGRAPHY';
-    return initialRoute.category;
+    // Only route directly to a sub-tab if an explicit media query (?v=... or ?m=... or ?id=...) was provided in the URL
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    if (search.includes('v=') || search.includes('video=') || search.includes('m=') || search.includes('media=')) {
+      if (initialRoute.category === 'SHORTS') return 'SHORTS';
+      if (initialRoute.category === 'REALTUBE' || initialRoute.category === 'CLIPS') return 'CLIPS';
+      if (initialRoute.category === 'PHOTOGRAPHY' || (initialRoute.category as string) === 'IMAGES') return 'PHOTOGRAPHY';
+    }
+    return 'TRAILER';
   });
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(initialRoute.subfolder);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
@@ -659,14 +663,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [selectedSubfolder, childSubfoldersList, updateRoute, recordUserActivity]
   );
 
-  // Home navigation handler: returns to Public News Overview & resets all state
+  // Home navigation handler: returns to Homepage (Dynamic Movie Trailer) & resets all state
   const handleExitToHome = useCallback(() => {
     recordUserActivity();
-    setSelectedCategory('SHORTS');
+    setSelectedCategory('TRAILER');
     setSelectedSubfolder(null);
     setActiveVideoId(null);
     setActiveTransitionClass('animate-kinetic-slide-left');
-    updateRoute({ category: 'SHORTS', subfolder: null, videoId: null, mediaId: null });
+    updateRoute({ category: 'TRAILER', subfolder: null, videoId: null, mediaId: null }, true);
     setVaultDrawerOpen(false);
   }, [updateRoute, recordUserActivity]);
 
@@ -953,7 +957,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               ? 'PHOTOGRAPHS'
               : selectedCategory === 'CLIPS'
               ? 'VIDEO CLIPS'
-              : 'SHORTS'}
+              : selectedCategory === 'SHORTS'
+              ? 'SHORTS'
+              : 'HOMEPAGE'}
           </span>
         </div>
 
@@ -989,20 +995,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <span>{isAutoTourPaused ? 'START TOUR' : 'AUTO TOUR'}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              navigateTab('TRAILER');
-            }}
-            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              selectedCategory === 'TRAILER' || selectedCategory === null
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <span>★</span> TRAILER
-          </button>
           <button
             type="button"
             onClick={() => {

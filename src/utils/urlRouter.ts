@@ -944,9 +944,6 @@ export function parseIdRoute(): AppIdRoute {
     };
   }
 
-  // First check if there is persisted session route from a tab refresh (F5)
-  const sessionSaved = getStoredSessionRoute();
-
   const searchParams = new URLSearchParams(window.location.search);
   const hash = window.location.hash.replace(/^#\/?/, '').trim();
   const hashParams = hash.includes('=') ? new URLSearchParams(hash) : null;
@@ -978,15 +975,15 @@ export function parseIdRoute(): AppIdRoute {
     ''
   ).trim();
 
-  // If URL parameters are completely clean (or stripped), hydrate seamlessly from sessionStorage
-  if (!rawId && !videoId && !mediaId && sessionSaved) {
+  // Whenever the visitor reloads or opens the site, it MUST always start with the homepage ('TRAILER')
+  if (!rawId && !videoId && !mediaId) {
     return {
-      category: sessionSaved.category || null,
-      subfolder: sessionSaved.subfolder || null,
-      celebrityStar: sessionSaved.celebrityStar || null,
-      celebrityTab: sessionSaved.celebrityTab || null,
-      videoId: sessionSaved.videoId || null,
-      mediaId: sessionSaved.mediaId || null,
+      category: 'TRAILER',
+      subfolder: null,
+      celebrityStar: null,
+      celebrityTab: null,
+      videoId: null,
+      mediaId: null,
     };
   }
 
