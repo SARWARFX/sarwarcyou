@@ -8,6 +8,7 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight, hapticMedium } from '../utils/hapticsManager';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
+import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -940,6 +941,25 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           })}
         </div>
       )}
+
+      {/* Brand Watermark Logo on Desktop/Tablet: shows at bottom-right corner when buttons disappear */}
+      <div
+        onClick={() => {
+          setShowControls(true);
+          scheduleAutoHide();
+        }}
+        onMouseEnter={() => {
+          setShowControls(true);
+          scheduleAutoHide();
+        }}
+        className={`fixed bottom-6 right-6 z-40 hidden sm:flex items-center select-none cursor-pointer transition-all duration-300 ease-out ${
+          !showControls ? 'opacity-90 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+        }`}
+      >
+        <div className="px-3 py-1.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center">
+          <HeaderBrandLogo trackingClass="tracking-[0.2em]" />
+        </div>
+      </div>
     </div>
   );
 };
