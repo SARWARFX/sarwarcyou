@@ -18,6 +18,7 @@ import {
   syncAppRoute,
   type AppIdRoute,
 } from '../../utils/urlRouter';
+import { DynamicTrailerShowcase } from './DynamicTrailerShowcase';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -93,9 +94,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const initialRoute = useMemo(() => parseIdRoute(), []);
 
   // Navigation states:
-  // 3 Core Categories solely for Hugging Face Directory: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
+  // 4 Core Categories: 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
-    if (!initialRoute.category || initialRoute.category === 'ARCHIVE' || initialRoute.category === 'NEWS' || initialRoute.category === 'YOUTUBE' || initialRoute.category === 'SHORTS') return 'SHORTS';
+    if (!initialRoute.category || initialRoute.category === 'ARCHIVE' || initialRoute.category === 'NEWS' || initialRoute.category === 'YOUTUBE' || initialRoute.category === 'TRAILER') return 'TRAILER';
+    if (initialRoute.category === 'SHORTS') return 'SHORTS';
     if (initialRoute.category === 'REALTUBE' || initialRoute.category === 'CLIPS') return 'CLIPS';
     if (initialRoute.category === 'PHOTOGRAPHY' || (initialRoute.category as string) === 'IMAGES') return 'PHOTOGRAPHY';
     return initialRoute.category;
@@ -139,7 +141,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   useEffect(() => {
     const handlePopState = () => {
       const route = parseIdRoute();
-      const cat = (!route.category || route.category === 'ARCHIVE' || route.category === 'NEWS' || route.category === 'YOUTUBE' || route.category === 'SHORTS')
+      const cat = (!route.category || route.category === 'ARCHIVE' || route.category === 'NEWS' || route.category === 'YOUTUBE' || route.category === 'TRAILER')
+        ? 'TRAILER'
+        : route.category === 'SHORTS'
         ? 'SHORTS'
         : (route.category === 'REALTUBE' || route.category === 'CLIPS')
         ? 'CLIPS'
@@ -506,7 +510,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [rootMap, updateRoute]
   );
 
-  const MAIN_TAB_ORDER = useMemo(() => ['SHORTS', 'CLIPS', 'PHOTOGRAPHY'], []);
+  const MAIN_TAB_ORDER = useMemo(() => ['TRAILER', 'SHORTS', 'CLIPS', 'PHOTOGRAPHY'], []);
 
   // User activity tracker: any touch, keypress, click, or scroll resets the 10-second idle timer
   const recordUserActivity = useCallback(() => {
@@ -908,10 +912,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             type="button"
             onClick={() => {
               hapticMedium();
+              navigateTab('TRAILER');
+            }}
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              selectedCategory === 'TRAILER' || selectedCategory === null
+                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>★</span> TRAILER
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
               navigateTab('SHORTS');
             }}
             className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
-              selectedCategory === 'SHORTS' || selectedCategory === null || selectedCategory === 'YOUTUBE'
+              selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE'
                 ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
@@ -949,8 +967,30 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </header>
 
-      {/* MAIN VIEWPORT STAGE: 3 Hugging Face Directory Sections */}
-      {selectedCategory === 'SHORTS' || selectedCategory === null || selectedCategory === 'YOUTUBE' ? (
+      {/* MAIN VIEWPORT STAGE: Dynamic Trailer Showcase or 3 Hugging Face Directory Sections */}
+      {selectedCategory === 'TRAILER' || selectedCategory === null ? (
+        /* ===================================================================== */
+        /* TAB 0: DYNAMIC MOVIE TRAILER EXPERIENCE // LIVING PARALLAX STREAMS    */
+        /* ===================================================================== */
+        <main
+          key="trailer-hub"
+          aria-label="Dynamic Archive Trailer"
+          className={`flex-1 w-full min-h-0 overflow-hidden flex flex-col min-w-0 z-10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
+          } ${activeTransitionClass}`}
+        >
+          <DynamicTrailerShowcase
+            shorts={rootMap.get('Shorts')?.files || []}
+            clips={rootMap.get('Clips')?.files || []}
+            images={rootMap.get('Images')?.files || []}
+            onOpenPhoto={onOpenPhoto}
+            onOpenVideo={onOpenVideo}
+            onOpenShort={onOpenShort}
+            onNavigateCategory={(cat) => navigateTab(cat)}
+            isModalOpen={isModalOpen}
+          />
+        </main>
+      ) : selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE' ? (
         /* ===================================================================== */
         /* TAB 1: SHORTS // 9:16 VERTICAL STREAM FEED                            */
         /* ===================================================================== */

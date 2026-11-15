@@ -104,6 +104,42 @@ button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
   animation-play-state: paused;
 }
 
+/* Dynamic Movie Trailer Experience Rails */
+@keyframes trailerScrollLeft {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes trailerScrollRight {
+  0% { transform: translate3d(-50%, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.trailer-track-left {
+  display: flex;
+  width: max-content;
+  animation: trailerScrollLeft 48s linear infinite;
+  will-change: transform;
+}
+
+.trailer-track-right {
+  display: flex;
+  width: max-content;
+  animation: trailerScrollRight 52s linear infinite;
+  will-change: transform;
+}
+
+.trailer-container:hover .trailer-track-left,
+.trailer-container:hover .trailer-track-right {
+  animation-play-state: paused;
+}
+
+.speed-slow .trailer-track-left { animation-duration: 75s; }
+.speed-slow .trailer-track-right { animation-duration: 85s; }
+.speed-fast .trailer-track-left { animation-duration: 25s; }
+.speed-fast .trailer-track-right { animation-duration: 30s; }
+.motion-paused .trailer-track-left,
+.motion-paused .trailer-track-right { animation-play-state: paused !important; }
+
 html, body {
   margin: 0;
   padding: 0;

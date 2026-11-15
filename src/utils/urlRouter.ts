@@ -900,7 +900,7 @@ export function getStarSlug(fullName: string): string {
 }
 
 export interface AppIdRoute {
-  category: 'NEWS' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'CLASSIC' | 'MUSIC' | 'ARCHIVE' | 'YOUTUBE' | 'REALTUBE' | null;
+  category: 'TRAILER' | 'NEWS' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'CLASSIC' | 'MUSIC' | 'ARCHIVE' | 'YOUTUBE' | 'REALTUBE' | null;
   subfolder: string | null;
   celebrityStar: string | null;
   celebrityTab: 'PORTRAITS' | 'DISPATCHES' | 'REELS' | null;
@@ -1042,11 +1042,11 @@ export function parseIdRoute(): AppIdRoute {
 
   const cleanId = rawId.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-  if (['news', 'dispatches', 'feed', 'chronicle'].includes(cleanId)) {
+  if (['trailer', 'home', 'main', 'archive'].includes(cleanId)) {
+    category = 'TRAILER';
+  } else if (['news', 'dispatches', 'feed', 'chronicle'].includes(cleanId)) {
     category = 'NEWS';
     celebrityTab = 'DISPATCHES';
-  } else if (['archive', 'home', 'main'].includes(cleanId)) {
-    category = 'NEWS';
   } else if (['classic', 'classics', 'retro', 'vintage'].includes(cleanId)) {
     category = 'CLASSIC';
   } else if (['music', 'soundtrack', 'soundtracks', 'songs', 'lounge'].includes(cleanId)) {
