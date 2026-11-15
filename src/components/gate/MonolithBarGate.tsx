@@ -412,7 +412,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       stats[key].total += 1;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
     } catch (e) {
-      console.warn('Failed to update media views:', e);
+      if (import.meta.env.DEV) {
+        console.warn('Failed to update media views:', e);
+      }
     }
 
     if (item.id) {

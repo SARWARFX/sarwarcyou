@@ -705,113 +705,18 @@ export interface SyncUrlStateOptions {
 
 /**
  * Synchronizes browser URL search parameters without full page reload.
+ * When URL linking is disabled, this keeps the address bar permanently at root ('/').
  */
-export function syncUrlState({ album, mediaItem, sort, replace = true }: SyncUrlStateOptions): void {
+export function syncUrlState(_options?: SyncUrlStateOptions): void {
   if (typeof window === 'undefined') return;
 
-  const url = new URL(window.location.href);
-  const searchParams = url.searchParams;
-
-  if (sort && sort !== 'newest') {
-    searchParams.set('sort', sort);
-  } else {
-    searchParams.delete('sort');
-  }
-
-  if (album) {
-    const albumSlug = typeof album === 'string' ? getAlbumSlug(album) : getAlbumSlug(album.name);
-    searchParams.set('album', albumSlug);
-    setStoredLastActiveAlbum(albumSlug);
-
-    if (mediaItem) {
-      const mediaSlug = getMediaSlug(mediaItem);
-      searchParams.set('media', mediaSlug);
-    } else {
-      searchParams.delete('media');
-      searchParams.delete('item');
-      searchParams.delete('view');
+  // Keep the address bar permanently at the clean base root ('/')
+  if (window.location.search || window.location.hash) {
+    try {
+      window.history.replaceState(null, '', window.location.pathname || '/');
+    } catch {
+      // ignore
     }
-  } else if (mediaItem) {
-    searchParams.delete('album');
-    const mediaSlug = getMediaSlug(mediaItem);
-    searchParams.set('media', mediaSlug);
-  } else {
-    // Reset home
-    searchParams.delete('album');
-    searchParams.delete('media');
-    searchParams.delete('item');
-    searchParams.delete('view');
-    url.hash = '';
-    removeStoredLastActiveAlbum();
-  }
-
-  const queryPart = searchParams.toString() ? `?${searchParams.toString()}` : '';
-  const newUrl = `${url.pathname}${queryPart}${url.hash}`;
-  const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-
-  if (newUrl !== currentFull) {
-    const stateObj = {
-      album: typeof album === 'string' ? album : album?.name,
-      media: mediaItem?.id,
-    };
-    if (replace) {
-      window.history.replaceState(stateObj, '', newUrl);
-    } else {
-      window.history.pushState(stateObj, '', newUrl);
-    }
-  }
-}
-
-/**
- * Creates a clean, shareable deep-link for an album.
- */
-export function createShareableAlbumUrl(albumNameOrSlug: string): string {
-  if (typeof window === 'undefined') return '';
-  const slug = getAlbumSlug(albumNameOrSlug);
-  return `${window.location.origin}${window.location.pathname}#/album/${slug}`;
-}
-
-/**
- * Creates a clean, shareable deep-link for an individual media item.
- */
-export function createShareableMediaUrl(item: StageMediaItem | string, albumName?: string): string {
-  if (typeof window === 'undefined') return '';
-  const mediaSlug = getMediaSlug(item);
-  const url = new URL(window.location.origin + window.location.pathname);
-  if (albumName) {
-    url.searchParams.set('album', getAlbumSlug(albumName));
-  }
-  url.searchParams.set('media', mediaSlug);
-  return url.toString();
-}
-
-/**
- * Copy text to clipboard with modern API and reliable execCommand fallback.
- */
-export async function copyToClipboard(text: string): Promise<boolean> {
-  if (!text) return false;
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    // fallback
-  }
-  try {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    const successful = document.execCommand('copy');
-    textArea.remove();
-    return successful;
-  } catch {
-    return false;
   }
 }
 
@@ -1003,6 +908,30 @@ export interface AppIdRoute {
   mediaId: string | null;
 }
 
+/**
+ * Storage keys for Tab Refresh Persistence without changing browser URL.
+ */
+export const SESSION_STORAGE_ROUTE_KEY = 'sarwarcyou_session_route';
+
+export function getStoredSessionRoute(): Partial<AppIdRoute> | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(SESSION_STORAGE_ROUTE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredSessionRoute(route: Partial<AppIdRoute>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(SESSION_STORAGE_ROUTE_KEY, JSON.stringify(route));
+  } catch {
+    // ignore quota/private browsing issues
+  }
+}
+
 export function parseIdRoute(): AppIdRoute {
   if (typeof window === 'undefined') {
     return {
@@ -1014,6 +943,9 @@ export function parseIdRoute(): AppIdRoute {
       mediaId: null,
     };
   }
+
+  // First check if there is persisted session route from a tab refresh (F5)
+  const sessionSaved = getStoredSessionRoute();
 
   const searchParams = new URLSearchParams(window.location.search);
   const hash = window.location.hash.replace(/^#\/?/, '').trim();
@@ -1045,6 +977,18 @@ export function parseIdRoute(): AppIdRoute {
     hashParams?.get('media') ||
     ''
   ).trim();
+
+  // If URL parameters are completely clean (or stripped), hydrate seamlessly from sessionStorage
+  if (!rawId && !videoId && !mediaId && sessionSaved) {
+    return {
+      category: sessionSaved.category || null,
+      subfolder: sessionSaved.subfolder || null,
+      celebrityStar: sessionSaved.celebrityStar || null,
+      celebrityTab: sessionSaved.celebrityTab || null,
+      videoId: sessionSaved.videoId || null,
+      mediaId: sessionSaved.mediaId || null,
+    };
+  }
 
   const starParam = (
     searchParams.get('star') ||
@@ -1216,18 +1160,18 @@ export function buildIdUrl(route: Partial<AppIdRoute>): string {
   return '/';
 }
 
-export function syncAppRoute(route: Partial<AppIdRoute>, replace = false): void {
+export function syncAppRoute(route: Partial<AppIdRoute>, _replace = false): void {
   if (typeof window === 'undefined') return;
 
-  const newUrl = buildIdUrl(route);
-  const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  // Persist current active view to sessionStorage so F5 refreshes retain category/subfolder/actress view
+  setStoredSessionRoute(route);
 
-  if (newUrl !== currentFull) {
-    const stateObj = { route };
-    if (replace) {
-      window.history.replaceState(stateObj, '', newUrl);
-    } else {
-      window.history.pushState(stateObj, '', newUrl);
+  // Keep browser address bar permanently clean at base root ('/')
+  if (window.location.search || window.location.hash) {
+    try {
+      window.history.replaceState({ route }, '', window.location.pathname || '/');
+    } catch {
+      // ignore
     }
   }
 }

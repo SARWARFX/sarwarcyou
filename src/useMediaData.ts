@@ -473,7 +473,9 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
       }
     }
   } catch (err) {
-    console.warn('Parallel dynamic catalog fetch failed, using fallback data:', err);
+    if (import.meta.env.DEV) {
+      console.warn('Parallel dynamic catalog fetch failed, using fallback data:', err);
+    }
   }
 
   // 3. Bundled Fallback (instant zero-delay)
@@ -553,7 +555,9 @@ export const useMediaData = () => {
       setIsDynamicReady(true);
       return refreshed;
     } catch (err) {
-      console.error('Error refreshing dynamic media catalog from Hugging Face CDN:', err);
+      if (import.meta.env.DEV) {
+        console.error('Error refreshing dynamic media catalog from Hugging Face CDN:', err);
+      }
     }
   };
 

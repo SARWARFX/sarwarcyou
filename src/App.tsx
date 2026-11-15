@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { useBackButton } from './utils/backButtonManager';
 import { useMediaData } from './useMediaData';
 import { organizeVaultFeed } from './utils/vaultFeedOrganizer';
-import { CyberVideoPlayer } from './components/CyberVideoPlayer';
-import { ShortsFeedModal } from './components/ShortsFeedModal';
-import { MediaModal } from './components/MediaModal';
-import { FullAlbumViewModal } from './components/FullAlbumViewModal';
+const CyberVideoPlayer = lazy(() => import('./components/CyberVideoPlayer'));
+const ShortsFeedModal = lazy(() => import('./components/ShortsFeedModal'));
+const MediaModal = lazy(() => import('./components/MediaModal'));
+const FullAlbumViewModal = lazy(() => import('./components/FullAlbumViewModal'));
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
 import { NetworkStatusHUD } from './components/NetworkStatusHUD';
@@ -43,7 +43,6 @@ import {
   findMatchingMediaItem,
   findMatchingFolder,
   getAlbumSlug,
-  getMediaSlug,
   searchCatalogRecursively,
 } from './utils/urlRouter';
 
@@ -52,18 +51,14 @@ function buildHomeUrl(): string {
   return window.location.pathname || '/';
 }
 
-function buildMediaUrl(item: StageMediaItem, _albumContext?: string): string {
-  if (typeof window === 'undefined') return '';
-  return `/?id=${encodeURIComponent(item.id || getMediaSlug(item))}`;
+function buildMediaUrl(_item: StageMediaItem, _albumContext?: string): string {
+  if (typeof window === 'undefined') return '/';
+  return window.location.pathname || '/';
 }
 
-function buildAlbumUrl(albumNameOrSlug: string): string {
-  if (typeof window === 'undefined') return '';
-  const clean = albumNameOrSlug.toLowerCase().trim();
-  if (clean === 'shorts' || clean === 'clips' || clean === 'reels' || clean === 'photo' || clean === 'realtube') {
-    return `/?id=${clean}`;
-  }
-  return `/?id=${getAlbumSlug(albumNameOrSlug)}`;
+function buildAlbumUrl(_albumNameOrSlug: string): string {
+  if (typeof window === 'undefined') return '/';
+  return window.location.pathname || '/';
 }
 
 function App() {
@@ -767,101 +762,97 @@ function App() {
       {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
       {theaterState.isOpen && theaterState.item && (
         <PlayerErrorBoundary onClose={() => handleCloseModal('theater')} fallbackTitle="Video Player Error">
-          <CyberVideoPlayer
-            isOpen={theaterState.isOpen}
-            onClose={() => handleCloseModal('theater')}
-            item={theaterState.item}
-            playlist={theaterState.playlist}
-            allFolders={rawFeed.videoVaultFolders}
-            onSelectItem={(item) => {
-              setTheaterState((prev) => ({ ...prev, item }));
-              const targetUrl = buildMediaUrl(item, item.category || item.parentAlbum);
-              window.history.replaceState({ modalOpen: true, view: 'theater', id: item.id }, '', targetUrl);
-            }}
-            onSelectFolder={(folder) => {
-              if (folder.items.length > 0) {
-                const firstItem = folder.items[0];
-                openMediaItem(firstItem, folder.items, folder.name, true);
-              }
-            }}
-          />
+          <Suspense fallback={null}>
+            <CyberVideoPlayer
+              isOpen={theaterState.isOpen}
+              onClose={() => handleCloseModal('theater')}
+              item={theaterState.item}
+              playlist={theaterState.playlist}
+              allFolders={rawFeed.videoVaultFolders}
+              onSelectItem={(item) => {
+                setTheaterState((prev) => ({ ...prev, item }));
+              }}
+              onSelectFolder={(folder) => {
+                if (folder.items.length > 0) {
+                  const firstItem = folder.items[0];
+                  openMediaItem(firstItem, folder.items, folder.name, true);
+                }
+              }}
+            />
+          </Suspense>
         </PlayerErrorBoundary>
       )}
 
       {/* 4. Single Global Shorts Feed Player (Reels) - Completely unmounted when closed */}
       {shortsState.isOpen && (
         <PlayerErrorBoundary onClose={() => handleCloseModal('shorts')} fallbackTitle="Shorts Player Error">
-          <ShortsFeedModal
-            isOpen={shortsState.isOpen}
-            onClose={() => handleCloseModal('shorts')}
-            shorts={shortsState.shorts}
-            initialIndex={shortsState.initialIndex}
-            onIndexChange={(idx) => {
-              setShortsState((prev) => ({
-                ...prev,
-                initialIndex: idx,
-              }));
-              const currentShort = shortsState.shorts[idx];
-              if (currentShort) {
-                const albumTarget = currentShort.category || currentShort.parentAlbum || 'Shorts';
-                const targetUrl = buildMediaUrl(currentShort, albumTarget);
-                window.history.replaceState({ modalOpen: true, view: 'shorts', id: currentShort.id }, '', targetUrl);
-              }
-            }}
-          />
+          <Suspense fallback={null}>
+            <ShortsFeedModal
+              isOpen={shortsState.isOpen}
+              onClose={() => handleCloseModal('shorts')}
+              shorts={shortsState.shorts}
+              initialIndex={shortsState.initialIndex}
+              onIndexChange={(idx) => {
+                setShortsState((prev) => ({
+                  ...prev,
+                  initialIndex: idx,
+                }));
+              }}
+            />
+          </Suspense>
         </PlayerErrorBoundary>
       )}
 
       {/* 5. Single High-Definition Image Lightbox - Completely unmounted when closed */}
       {lightboxState.isOpen && lightboxState.item && (
         <PlayerErrorBoundary onClose={() => handleCloseModal('lightbox')} fallbackTitle="Image Viewer Error">
-          <MediaModal
-            isOpen={lightboxState.isOpen}
-            onClose={() => handleCloseModal('lightbox')}
-            url={lightboxState.item?.url || null}
-            type="image"
-            title={lightboxState.item?.title}
-            items={lightboxState.items}
-            currentIndex={lightboxState.initialIndex}
-            allFolders={rawFeed.photoVaultFolders}
-            onSelectFolder={(folder) => {
-              if (folder.items.length > 0) {
-                const firstItem = folder.items[0];
-                openMediaItem(firstItem, folder.items, folder.name, true);
-              }
-            }}
-            onIndexChange={(idx) => {
-              setLightboxState((prev) => {
-                const nextItem = prev.items[idx] || prev.item;
-                if (nextItem) {
-                  const targetUrl = buildMediaUrl(nextItem, nextItem.category || nextItem.parentAlbum);
-                  window.history.replaceState({ modalOpen: true, view: 'lightbox', id: nextItem.id }, '', targetUrl);
+          <Suspense fallback={null}>
+            <MediaModal
+              isOpen={lightboxState.isOpen}
+              onClose={() => handleCloseModal('lightbox')}
+              url={lightboxState.item?.url || null}
+              type="image"
+              title={lightboxState.item?.title}
+              items={lightboxState.items}
+              currentIndex={lightboxState.initialIndex}
+              allFolders={rawFeed.photoVaultFolders}
+              onSelectFolder={(folder) => {
+                if (folder.items.length > 0) {
+                  const firstItem = folder.items[0];
+                  openMediaItem(firstItem, folder.items, folder.name, true);
                 }
-                return {
-                  ...prev,
-                  initialIndex: idx,
-                  item: nextItem,
-                };
-              });
-            }}
-          />
+              }}
+              onIndexChange={(idx) => {
+                setLightboxState((prev) => {
+                  const nextItem = prev.items[idx] || prev.item;
+                  return {
+                    ...prev,
+                    initialIndex: idx,
+                    item: nextItem,
+                  };
+                });
+              }}
+            />
+          </Suspense>
         </PlayerErrorBoundary>
       )}
 
       {/* 6. FullAlbumViewModal (for backward compatibility / deep links) */}
       {viewAllState.isOpen && (
         <PlayerErrorBoundary onClose={() => handleCloseModal('viewAll')} fallbackTitle="Album View Error">
-          <FullAlbumViewModal
-            isOpen={viewAllState.isOpen}
-            title={viewAllState.title}
-            subtitle={viewAllState.subtitle}
-            items={viewAllState.items}
-            variant={viewAllState.variant}
-            hasMultipleTypes={viewAllState.hasMultipleTypes}
-            typeCounts={viewAllState.typeCounts}
-            onClose={() => handleCloseModal('viewAll')}
-            onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
-          />
+          <Suspense fallback={null}>
+            <FullAlbumViewModal
+              isOpen={viewAllState.isOpen}
+              title={viewAllState.title}
+              subtitle={viewAllState.subtitle}
+              items={viewAllState.items}
+              variant={viewAllState.variant}
+              hasMultipleTypes={viewAllState.hasMultipleTypes}
+              typeCounts={viewAllState.typeCounts}
+              onClose={() => handleCloseModal('viewAll')}
+              onSelectItem={(item, currentList) => handleSelectItem(item, currentList, viewAllState.title)}
+            />
+          </Suspense>
         </PlayerErrorBoundary>
       )}
 

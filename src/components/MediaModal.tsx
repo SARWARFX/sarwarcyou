@@ -572,6 +572,19 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
     };
 
+    const onWindowResize = () => {
+      if (imgRef.current && imgRef.current.offsetWidth > 0) {
+        baseDimensionsRef.current = {
+          w: imgRef.current.offsetWidth,
+          h: imgRef.current.offsetHeight,
+        };
+        const { maxPanX, maxPanY } = calculatePanLimits(currentScale);
+        posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
+        posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
+        commitTransform(false);
+      }
+    };
+
     container.addEventListener('touchstart', onTouchStart, { passive: false });
     container.addEventListener('touchmove', onTouchMove, { passive: false });
     container.addEventListener('touchend', onTouchEnd);
@@ -581,6 +594,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     container.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('resize', onWindowResize);
     container.addEventListener('wheel', onWheel, { passive: false });
 
     return () => {
@@ -593,6 +607,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       container.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('resize', onWindowResize);
       container.removeEventListener('wheel', onWheel);
     };
   }, [activeUrl, activeIdx, type, calculatePanLimits, goToNext, goToPrev, hasItemList, items?.length]);

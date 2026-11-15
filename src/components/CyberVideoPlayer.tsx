@@ -100,7 +100,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         await videoRef.current.requestPictureInPicture();
       }
     } catch (err) {
-      console.warn('PiP error:', err);
+      if (import.meta.env.DEV) console.warn('PiP error:', err);
     }
   };
 
@@ -717,7 +717,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           await (container as any).webkitRequestFullscreen();
         }
       } catch (err) {
-        console.warn('Fullscreen request notice:', err);
+        if (import.meta.env.DEV) console.warn('Fullscreen request notice:', err);
       }
 
       // Force rotate phone screen to landscape on video fullscreen
@@ -730,7 +730,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           await (document as any).webkitExitFullscreen();
         }
       } catch (err) {
-        console.warn('Fullscreen exit notice:', err);
+        if (import.meta.env.DEV) console.warn('Fullscreen exit notice:', err);
       }
 
       await unlockOrientation();
@@ -918,7 +918,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 2200);
     } catch (err) {
-      console.error('Video download error:', err);
+      if (import.meta.env.DEV) console.error('Video download error:', err);
     } finally {
       setIsDownloading(false);
     }
@@ -1307,14 +1307,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             const itemKey = item.id || item.url || item.path || 'active';
             if (!fallbackAttemptedRef.current[itemKey] && directHfUrl && streamUrl !== directHfUrl) {
               fallbackAttemptedRef.current[itemKey] = true;
-              console.warn(`[CyberPlayer] Stream failed on ${streamUrl}, falling back to direct HF CDN: ${directHfUrl}`);
+              if (import.meta.env.DEV) {
+                console.warn(`[CyberPlayer] Stream failed on ${streamUrl}, falling back to direct HF CDN: ${directHfUrl}`);
+              }
               setSourceOverride(directHfUrl);
               v.src = directHfUrl;
               v.load();
               return;
             }
             fallbackAttemptedRef.current[itemKey] = true;
-            console.warn('[CyberPlayer] Both primary and CDN fallback failed for:', itemKey, v.error.message);
+            if (import.meta.env.DEV) {
+              console.warn('[CyberPlayer] Both primary and CDN fallback failed for:', itemKey, v.error.message);
+            }
             setHasPlaybackError(true);
           }}
         />
