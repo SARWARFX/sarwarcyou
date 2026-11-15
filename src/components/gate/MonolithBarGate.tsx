@@ -155,10 +155,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const [idleTourProgress, setIdleTourProgress] = useState<number>(0);
-  const [isAutoTourPaused, setIsAutoTourPaused] = useState<boolean>(true);
-  const lastUserActivityRef = useRef<number>(Date.now());
-
   // Synchronize state when browser Back / Forward (popstate) is clicked
   useEffect(() => {
     const handlePopState = () => {
@@ -580,8 +576,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const scrollToSection = useCallback(
     (targetSection: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY') => {
-      lastUserActivityRef.current = Date.now();
-      setIdleTourProgress(0);
       setSelectedCategory(targetSection);
       const targetId =
         targetSection === 'SHORTS'
@@ -634,80 +628,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
     handleOpenItem(randomItem, randomIndex);
   }, [items]);
-
-  // User activity tracker: any touch, keypress, click, or scroll resets the 10-second idle timer
-  const recordUserActivity = useCallback(() => {
-    lastUserActivityRef.current = Date.now();
-    setIdleTourProgress(0);
-  }, []);
-
-  // Listen to all user activity events across window & document
-  useEffect(() => {
-    const activityEvents = [
-      'mousemove',
-      'mousedown',
-      'pointerdown',
-      'keydown',
-      'touchstart',
-      'touchmove',
-      'wheel',
-      'scroll',
-    ];
-
-    const resetIdleTimer = () => {
-      lastUserActivityRef.current = Date.now();
-      setIdleTourProgress(0);
-    };
-
-    activityEvents.forEach((evt) => {
-      window.addEventListener(evt, resetIdleTimer, { passive: true, capture: true });
-    });
-
-    return () => {
-      activityEvents.forEach((evt) => {
-        window.removeEventListener(evt, resetIdleTimer, { capture: true });
-      });
-    };
-  }, []);
-
-  // =========================================================================
-  // 10-SECOND AUTONOMOUS SHOWCASE TOUR: Smoothly scrolls across sections in SVP sequence
-  // =========================================================================
-  const IDLE_ROLL_LIMIT_MS = 10000;
-
-  useEffect(() => {
-    if (isModalOpen || isVaultDrawerOpen || isAutoTourPaused) {
-      setIdleTourProgress(0);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if (isModalOpen || isVaultDrawerOpen || isAutoTourPaused) {
-        setIdleTourProgress(0);
-        return;
-      }
-
-      const idleDuration = Date.now() - lastUserActivityRef.current;
-      const pct = Math.min(100, (idleDuration / IDLE_ROLL_LIMIT_MS) * 100);
-      setIdleTourProgress(pct);
-
-      if (idleDuration >= IDLE_ROLL_LIMIT_MS) {
-        lastUserActivityRef.current = Date.now();
-        setIdleTourProgress(0);
-
-        setSelectedCategory((curr) => {
-          const next = curr === 'SHORTS' ? 'CLIPS' : curr === 'CLIPS' ? 'PHOTOGRAPHY' : 'SHORTS';
-          const targetId = next === 'SHORTS' ? 'section-shorts' : next === 'CLIPS' ? 'section-clips' : 'section-photographs';
-          document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          const targetPath = next === 'SHORTS' ? '/shorts' : next === 'CLIPS' ? '/clips' : '/photographs';
-          updateBrowserUrl(targetPath, true);
-          return next;
-        });
-      }
-    }, 200);
-
-    return () => clearInterval(interval);
-  }, [isModalOpen, isVaultDrawerOpen, isAutoTourPaused]);
 
   // Scroll spy via IntersectionObserver: updates selectedCategory and URL as user scrolls
   useEffect(() => {
@@ -971,76 +891,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </div>
 
-      {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Minimalist Status */}
-      <header className="relative w-full px-3 sm:px-8 py-2.5 sm:py-3 flex items-center justify-between border-b border-white/[0.08] bg-[#050505]/95 backdrop-blur-md z-30 shrink-0">
-        {/* Dynamic 10-Second Idle Tour Laser Progress Line */}
-        <div className="absolute bottom-0 left-0 h-[2px] w-full bg-white/[0.03] overflow-hidden pointer-events-none">
-          <div
-            className="h-full bg-[#ccff00] transition-all duration-200 ease-linear shadow-[0_0_8px_#ccff00]"
-            style={{
-              width: `${idleTourProgress}%`,
-              opacity: isAutoTourPaused ? 0 : 0.85,
-            }}
-          />
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <HeaderBrandLogo
-            trackingClass="tracking-[0.16em] sm:tracking-[0.24em]"
-            onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
-          />
-          {/* Active Tab Indicator / Autonomous Tour Trigger Button */}
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              setIsAutoTourPaused((p) => {
-                const nextState = !p;
-                if (!nextState) {
-                  lastUserActivityRef.current = Date.now();
-                  setIdleTourProgress(0);
-                }
-                return nextState;
-              });
-            }}
-            title={isAutoTourPaused ? 'Click to start tour' : 'Click to stop tour'}
-            className={`group relative inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest px-2 sm:px-2.5 py-1 rounded transition-all duration-200 cursor-pointer shrink-0 ${
-              !isAutoTourPaused
-                ? 'bg-[#ccff00]/15 border border-[#ccff00] text-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.25)]'
-                : 'bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 hover:border-[#ccff00] text-[#ccff00]'
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full transition-all shrink-0 ${
-                !isAutoTourPaused
-                  ? 'bg-[#ccff00] animate-pulse shadow-[0_0_6px_#ccff00]'
-                  : 'bg-neutral-500 group-hover:bg-[#ccff00]'
-              }`}
+      {/* TOP HEADER BAR: Compact 2-Row Cyber Dock */}
+      <header className="sticky top-0 w-full flex flex-col border-b border-white/[0.08] bg-[#050505]/95 backdrop-blur-md z-30 shrink-0">
+        {/* ROW 1: Clean Brand Logo on Left + Primary SVP Tabs & Tools on Right */}
+        <div className="w-full px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 border-b border-white/[0.08]">
+          <div className="flex items-center shrink-0">
+            <HeaderBrandLogo
+              trackingClass="tracking-[0.16em] sm:tracking-[0.24em]"
+              onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
             />
-            <span className="tab-label-full">
-              {selectedCategory === 'PHOTOGRAPHY'
-                ? 'PHOTOGRAPHS'
-                : selectedCategory === 'CLIPS'
-                ? 'VIDEO CLIPS'
-                : 'SHORTS'}
-            </span>
-            <span className="tab-label-short">
-              {selectedCategory === 'PHOTOGRAPHY'
-                ? 'PHOTOS'
-                : selectedCategory === 'CLIPS'
-                ? 'CLIPS'
-                : 'SHORTS'}
-            </span>
+          </div>
 
-            {/* Instant Floating Hover Tooltip */}
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-black/95 border border-[#ccff00]/50 text-[#ccff00] text-[9px] font-mono font-bold tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 shadow-xl z-50">
-              {isAutoTourPaused ? 'Click to start tour' : 'Click to stop tour'}
-            </div>
-          </button>
-        </div>
-
-        {/* Avant-Garde Quick Select Keys: Consolidated Tabs (SVP on mobile portrait, Full on landscape/desktop) */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0 py-0.5">
+          {/* Avant-Garde Quick Select Keys: Consolidated Tabs (SVP on mobile portrait, Full on landscape/desktop) */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0 py-0.5">
           <button
             type="button"
             onClick={() => {
@@ -1118,6 +981,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <span className="tab-label-short">✦</span>
           </button>
         </div>
+      </div>
 
         {/* ROW 2: Subfolder Title (under Logo on Left) + Subfolder Filter Pills (under Tabs on Right) */}
         <div className="w-full px-3 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-3 bg-[#08080a]/90 backdrop-blur-md">
@@ -1184,7 +1048,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {/* MAIN VIEWPORT STAGE: Single-Page SVP Media Hub (Shorts -> Video Clips -> Photographs) */}
       <main
         aria-label="Single-Page Media Hub"
-        onScroll={recordUserActivity}
         className={`flex-1 w-full min-h-0 overflow-y-auto space-scrollbar z-10 flex flex-col bg-transparent transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isModalOpen ? 'scale-[0.985] brightness-[0.7] blur-[1px]' : 'scale-100 brightness-100 blur-0'
         }`}

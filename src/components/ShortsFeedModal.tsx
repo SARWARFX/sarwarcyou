@@ -431,6 +431,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         }
       }
       if (e.key === 'm' || e.key === 'M') setIsMuted((prev) => !prev);
+      if (e.key === 'w' || e.key === 'W' || e.key === 'f' || e.key === 'F') {
+        const currentLandscape = !!landscapeMap[activeIndex];
+        const nextState = !currentLandscape;
+        setLandscapeMap((prev) => ({ ...prev, [activeIndex]: nextState }));
+        setAspectRatioMap((prev) => ({ ...prev, [activeIndex]: nextState ? 16 / 9 : 9 / 16 }));
+      }
       if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
         if (e.cancelable) e.preventDefault();
         const v = videoRefs.current[activeIndex];
@@ -750,6 +756,30 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           {activeIndex + 1} / {shorts.length}
         </span>
         <div className="flex items-center gap-2.5 pointer-events-auto">
+          {/* Aspect Ratio / Cinema Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              hapticLight();
+              const currentLandscape = !!landscapeMap[activeIndex];
+              const nextState = !currentLandscape;
+              setLandscapeMap((prev) => ({ ...prev, [activeIndex]: nextState }));
+              setAspectRatioMap((prev) => ({ ...prev, [activeIndex]: nextState ? 16 / 9 : 9 / 16 }));
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className={`reticle-btn px-2 h-9 rounded-lg font-mono text-[10px] font-bold tracking-wider transition-all cursor-pointer ${
+              landscapeMap[activeIndex] ? 'text-[#ccff00] border-[#ccff00] bg-[#ccff00]/15' : 'text-neutral-300'
+            }`}
+            title={
+              landscapeMap[activeIndex]
+                ? 'Cinema 16:9 Mode Active (Click for 9:16 Portrait)'
+                : 'Portrait 9:16 Mode (Click for 16:9 Cinema)'
+            }
+          >
+            {landscapeMap[activeIndex] ? '16:9' : '9:16'}
+          </button>
           <button
             type="button"
             onClick={(e) => {
