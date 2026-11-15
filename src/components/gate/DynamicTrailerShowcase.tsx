@@ -101,17 +101,10 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
     return Math.max(15, Math.round((displayImages.length * 206) / STANDARD_VELOCITY_PX_PER_SEC));
   }, [displayImages.length]);
 
-  // Featured Hero Items (curated mixture across all 3 media types)
+  // Featured Hero Items: Strictly landscape video clips only - never vertical shorts, never static images
   const heroItems = useMemo(() => {
-    const list: { item: StageMediaItem; category: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' }[] = [];
-    if (displayClips.length > 0) list.push({ item: displayClips[0], category: 'CLIPS' });
-    if (displayShorts.length > 0) list.push({ item: displayShorts[0], category: 'SHORTS' });
-    if (displayImages.length > 0) list.push({ item: displayImages[0], category: 'PHOTOGRAPHY' });
-    if (displayClips.length > 1) list.push({ item: displayClips[1], category: 'CLIPS' });
-    if (displayShorts.length > 1) list.push({ item: displayShorts[1], category: 'SHORTS' });
-    if (displayImages.length > 1) list.push({ item: displayImages[1], category: 'PHOTOGRAPHY' });
-    return list;
-  }, [displayClips, displayShorts, displayImages]);
+    return displayClips.map((item) => ({ item, category: 'CLIPS' as const }));
+  }, [displayClips]);
 
   const activeHero = heroItems[heroIdx % (heroItems.length || 1)];
 
@@ -152,25 +145,15 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
   const handleOpenHero = useCallback(() => {
     if (!activeHero) return;
     hapticMedium();
-    const { item, category } = activeHero;
-    if (category === 'PHOTOGRAPHY') {
-      const idx = displayImages.findIndex((p) => p.id === item.id || p.url === item.url);
-      onOpenPhoto(item, displayImages, idx >= 0 ? idx : 0);
-    } else if (category === 'SHORTS') {
-      const idx = displayShorts.findIndex((s) => s.id === item.id || s.url === item.url);
-      onOpenShort(item, displayShorts, idx >= 0 ? idx : 0, 'Shorts');
-    } else {
-      onOpenVideo(item, displayClips);
-    }
-  }, [activeHero, displayImages, displayShorts, displayClips, onOpenPhoto, onOpenShort, onOpenVideo]);
+    onOpenVideo(activeHero.item, displayClips);
+  }, [activeHero, displayClips, onOpenVideo]);
 
   const heroVideoRef = useRef<HTMLVideoElement>(null);
 
   // Play/pause preview video when hero changes
   useEffect(() => {
-    if (!activeHero) return;
-    const isVideo = activeHero.category === 'CLIPS' || activeHero.category === 'SHORTS';
-    if (isVideo && heroVideoRef.current && !isModalOpen) {
+    if (!activeHero || isModalOpen) return;
+    if (heroVideoRef.current) {
       heroVideoRef.current.currentTime = 0;
       heroVideoRef.current.play().catch(() => {});
     }
@@ -228,36 +211,27 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
         </div>
       </div>
 
-      {/* ===== SECTION 1: THE LIVING HERO SPOTLIGHT TEASER ===== */}
+      {/* ===== SECTION 1: THE LIVING CINEMATIC ARCHIVE TRAILER (OUTLINE-FREE / BORDERLESS) ===== */}
       {activeHero && (
-        <section className="relative w-full rounded-3xl overflow-hidden bg-black/60 border border-white/15 shadow-[0_0_80px_-20px_rgba(204,255,0,0.25)] transition-all duration-500">
-          <div className="relative w-full aspect-[16/8] sm:aspect-[21/9] max-h-[500px] overflow-hidden bg-black flex items-center justify-center">
+        <section className="relative w-full overflow-hidden bg-transparent transition-all duration-500">
+          <div className="relative w-full aspect-[16/8] sm:aspect-[21/9] max-h-[520px] overflow-hidden flex items-center justify-center bg-transparent">
             
-            {/* Visual Teaser Background */}
-            {activeHero.category === 'PHOTOGRAPHY' ? (
-              <img
-                key={activeHero.item.id || activeHero.item.url}
-                src={getMediaUrl(activeHero.item.url || activeHero.item.thumbnail)}
-                alt={activeHero.item.title || activeHero.item.name}
-                className="absolute inset-0 w-full h-full object-cover brightness-[0.7] transition-all duration-700 transform scale-105"
-              />
-            ) : (
-              <video
-                key={activeHero.item.id || activeHero.item.url}
-                ref={heroVideoRef}
-                src={getMediaUrl(activeHero.item.url)}
-                poster={activeHero.item.thumbnail ? getMediaUrl(activeHero.item.thumbnail) : undefined}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover brightness-[0.72] transition-opacity duration-700"
-              />
-            )}
+            {/* Strictly Landscape Cinematic Video Scene */}
+            <video
+              key={activeHero.item.id || activeHero.item.url}
+              ref={heroVideoRef}
+              src={getMediaUrl(activeHero.item.url)}
+              poster={activeHero.item.thumbnail ? getMediaUrl(activeHero.item.thumbnail) : undefined}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover brightness-[0.82] transition-opacity duration-700"
+            />
 
-            {/* Ambient Vignette & Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#050505]/85 via-transparent to-[#050505]/70 pointer-events-none" />
+            {/* Seamless Ambient Vignette & Gradient Overlays - Seamlessly blends into #08090c page canvas */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#08090c] via-transparent to-[#08090c]/80 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#08090c]/90 via-transparent to-[#08090c]/85 pointer-events-none" />
 
             {/* Upper Badge */}
             <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2.5 z-20">
@@ -266,7 +240,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ccff00]" />
               </span>
               <span className="text-[11px] font-mono uppercase tracking-widest text-[#ccff00] font-bold px-3 py-1 rounded-full bg-black/60 border border-[#ccff00]/30 backdrop-blur-md">
-                FEATURED TRAILER REEL
+                CINEMATIC ARCHIVE TRAILER
               </span>
               <span className="text-[11px] font-mono text-neutral-400 px-2.5 py-1 rounded-full bg-black/50 border border-white/10 backdrop-blur-md">
                 {String(heroIdx + 1).padStart(2, '0')} / {String(heroItems.length).padStart(2, '0')}
@@ -279,7 +253,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                 type="button"
                 onClick={handleHeroPrev}
                 className="w-9 h-9 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 flex items-center justify-center text-white/80 hover:text-[#ccff00] transition-all cursor-pointer backdrop-blur-md active:scale-95"
-                title="Previous Trailer Reel"
+                title="Previous Cinematic Trailer"
               >
                 <ChevronLeft className="w-5 h-5 -ml-0.5" />
               </button>
@@ -287,7 +261,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                 type="button"
                 onClick={handleHeroNext}
                 className="w-9 h-9 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 flex items-center justify-center text-white/80 hover:text-[#ccff00] transition-all cursor-pointer backdrop-blur-md active:scale-95"
-                title="Next Trailer Reel"
+                title="Next Cinematic Trailer"
               >
                 <ChevronRight className="w-5 h-5 -mr-0.5" />
               </button>
@@ -298,17 +272,17 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
               <div className="space-y-1.5 max-w-2xl">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-[#ccff00] text-black">
-                    {activeHero.category}
+                    CINEMATIC SCENE
                   </span>
                   <span className="text-xs font-mono text-neutral-400">
-                    Live Auto-Advancing Trailer
+                    Living Trailer Stream
                   </span>
                 </div>
                 <h3 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-md line-clamp-1">
-                  {sanitizeMediaTitle(activeHero.item.title || activeHero.item.name, activeHero.category === 'PHOTOGRAPHY' ? 'Photograph' : 'Video')}
+                  {sanitizeMediaTitle(activeHero.item.title || activeHero.item.name, 'Video')}
                 </h3>
                 <p className="text-xs sm:text-sm text-neutral-300 font-light line-clamp-1">
-                  Interactive movie trailer representing your directory with full momentum animations and zoom.
+                  High-definition landscape archive scene presented in seamless borderless cinematic motion.
                 </p>
               </div>
 
