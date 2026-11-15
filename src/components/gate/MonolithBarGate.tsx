@@ -712,7 +712,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <div className="flex sm:hidden flex-col gap-2.5 max-h-[290px] overflow-y-auto space-scrollbar border-b border-white/10 pb-3 mt-1">
               {telemetry15DayData.map((d) => {
                 const isToday = d.label === 'Today';
-                const widthPct = Math.max(10, Math.round((d.minutes / max15Minutes) * 100));
+                const widthPct = d.minutes > 0 ? Math.max(8, Math.round((d.minutes / max15Minutes) * 100)) : 0;
                 return (
                   <div key={d.date} className="flex items-center justify-between gap-3">
                     <span
@@ -740,7 +740,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <div className="hidden sm:flex items-end justify-between gap-3 h-[210px] border-b border-white/10 pb-3 mt-2 overflow-x-auto">
               {telemetry15DayData.map((d) => {
                 const isToday = d.label === 'Today';
-                const heightPct = Math.max(12, Math.round((d.minutes / max15Minutes) * 100));
+                const heightPct = d.minutes > 0 ? Math.max(12, Math.round((d.minutes / max15Minutes) * 100)) : 2;
                 return (
                   <div key={d.date} className="flex-1 min-w-[42px] flex flex-col items-center justify-end h-full gap-2">
                     <span className="font-mono text-[10.5px] font-bold text-white/85 whitespace-nowrap">

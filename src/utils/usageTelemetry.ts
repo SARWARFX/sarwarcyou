@@ -216,7 +216,8 @@ export const getRolling15DayUsage = (): DailyUsage[] => {
       const iso = d.toISOString().split('T')[0];
       const mins = history[iso] || 0;
 
-      if (mins <= 0) continue;
+      // Keep Today and Yestd always anchored; exclude days older than yesterday if zero data
+      if (i > 1 && mins <= 0) continue;
 
       let label = DAY_NAMES[d.getDay()];
       if (i === 0) label = 'Today';
