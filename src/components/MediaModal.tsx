@@ -707,147 +707,153 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         <X className="w-5 h-5" />
       </button>
 
-      {/* Desktop Previous Media Flanking Preview Card */}
-      {prevPhotoItem && (
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-            goToPrev();
-          }}
-          className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 animate-flank-left ${
-            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
-          }`}
-          style={{ width: 'clamp(180px, 15vw, 220px)' }}
-          title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
-        >
-          <div className="relative w-full aspect-[3/4] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
-            <img
-              src={prevPhotoItem.thumbnail || getMediaUrl(prevPhotoItem.url || prevPhotoItem.path || prevPhotoItem.id)}
-              alt={prevPhotoItem.title || 'Previous photo'}
-              className="w-full h-full object-cover brightness-50 group-hover:brightness-75 transition-all duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
-                <ChevronLeft className="w-6 h-6 -ml-0.5" />
+      {/* Unified Side-by-Side 3-Card Stage: PREV | ACTIVE (on top) | NEXT */}
+      <div className="relative z-10 w-full h-full flex items-center justify-center gap-3 sm:gap-5 xl:gap-8 overflow-hidden pointer-events-none px-4 sm:px-6">
+        {/* 1. Left Previous Media Card (Side-by-side, smaller, z-10 underneath) */}
+        {prevPhotoItem ? (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              goToPrev();
+            }}
+            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto animate-flank-left ${
+              showControls ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            }`}
+            style={{ width: 'clamp(180px, 14vw, 240px)' }}
+            title={`Previous: ${prevPhotoItem.title || prevPhotoItem.name}`}
+          >
+            <div className="relative w-full aspect-[3/4] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
+              <img
+                src={prevPhotoItem.thumbnail || getMediaUrl(prevPhotoItem.url || prevPhotoItem.path || prevPhotoItem.id)}
+                alt={prevPhotoItem.title || 'Previous photo'}
+                className="w-full h-full object-cover brightness-[0.45] group-hover:brightness-[0.75] transition-all duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                  <ChevronLeft className="w-6 h-6 -ml-0.5" />
+                </div>
+              </div>
+              <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
+                <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
+                  PREV
+                </span>
               </div>
             </div>
-            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
-              <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
-                PREV
-              </span>
-            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div
+            className="hidden lg:block shrink-0 pointer-events-none invisible"
+            style={{ width: 'clamp(180px, 14vw, 240px)' }}
+          />
+        )}
 
-      {/* Desktop Next Media Flanking Preview Card */}
-      {nextPhotoItem && (
+        {/* 2. Middle Active Main Image Card (z-20 on top of any overlap) */}
         <div
+          ref={imageContainerRef}
           onClick={(e) => {
-            e.stopPropagation();
-            goToNext();
+            if (e.target === e.currentTarget) {
+              if (Date.now() - lastGestureTimeRef.current < 400) return;
+              if (scaleRef.current > 1.05) {
+                resetZoom();
+                return;
+              }
+              onClose();
+            }
           }}
-          className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer transition-all duration-300 animate-flank-right ${
-            showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
-          }`}
-          style={{ width: 'clamp(180px, 15vw, 220px)' }}
-          title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
+          className="relative z-20 flex items-center justify-center shrink-0 max-w-full max-h-full pointer-events-auto"
         >
-          <div className="relative w-full aspect-[3/4] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
-            <img
-              src={nextPhotoItem.thumbnail || getMediaUrl(nextPhotoItem.url || nextPhotoItem.path || nextPhotoItem.id)}
-              alt={nextPhotoItem.title || 'Next photo'}
-              className="w-full h-full object-cover brightness-50 group-hover:brightness-75 transition-all duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
-                <ChevronRight className="w-6 h-6 -mr-0.5" />
+          <img
+            key={currentItem?.id || activeUrl || activeIdx}
+            ref={imgRef}
+            src={getMediaUrl(secureUrl)}
+            alt={cleanTitle}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (Date.now() - lastGestureTimeRef.current < 350) return;
+              if (scaleRef.current > 1.05) return;
+              setShowControls((prev) => !prev);
+              if (!showControls) {
+                scheduleAutoHide();
+              } else if (hideControlsTimerRef.current) {
+                clearTimeout(hideControlsTimerRef.current);
+              }
+            }}
+            onError={(e) => {
+              // Hotlink / 403 protection: fall back to high-reliability thumbnail or unproxied source
+              if (currentItem?.thumbnail && e.currentTarget.src !== currentItem.thumbnail) {
+                e.currentTarget.src = currentItem.thumbnail;
+              }
+            }}
+            onLoad={(e) => {
+              setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
+              if (e.currentTarget.offsetWidth > 0) {
+                baseDimensionsRef.current = {
+                  w: e.currentTarget.offsetWidth,
+                  h: e.currentTarget.offsetHeight,
+                };
+              }
+            }}
+            style={{
+              transformOrigin: 'center center',
+              willChange: 'transform',
+              transform: `translate3d(${pos.x}px, ${pos.y}px, 0px) scale(${scale})`,
+              transition: isTransitioning ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+              touchAction: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              overscrollBehavior: 'none',
+              maxHeight: isDesktop ? '82vh' : '100vh',
+              maxWidth: isDesktop ? '60vw' : '100vw',
+            }}
+            className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-xl drop-shadow-[0_20px_45px_rgba(0,0,0,0.9)] cursor-pointer ${
+              slideDirection === 'next'
+                ? 'animate-photo-slide-next'
+                : slideDirection === 'prev'
+                ? 'animate-photo-slide-prev'
+                : 'animate-media-open'
+            }`}
+            draggable={false}
+          />
+        </div>
+
+        {/* 3. Right Next Media Card (Side-by-side, smaller, z-10 underneath) */}
+        {nextPhotoItem ? (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              goToNext();
+            }}
+            className={`hidden lg:flex shrink-0 items-center justify-center group cursor-pointer transition-all duration-300 z-10 pointer-events-auto animate-flank-right ${
+              showControls ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            }`}
+            style={{ width: 'clamp(180px, 14vw, 240px)' }}
+            title={`Next: ${nextPhotoItem.title || nextPhotoItem.name}`}
+          >
+            <div className="relative w-full aspect-[3/4] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
+              <img
+                src={nextPhotoItem.thumbnail || getMediaUrl(nextPhotoItem.url || nextPhotoItem.path || nextPhotoItem.id)}
+                alt={nextPhotoItem.title || 'Next photo'}
+                className="w-full h-full object-cover brightness-[0.45] group-hover:brightness-[0.75] transition-all duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+                  <ChevronRight className="w-6 h-6 -mr-0.5" />
+                </div>
+              </div>
+              <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
+                <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
+                  NEXT
+                </span>
               </div>
             </div>
-            <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
-              <span className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">
-                NEXT
-              </span>
-            </div>
           </div>
-        </div>
-      )}
-
-      {/* Pure Image Stage */}
-      <div
-        ref={imageContainerRef}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            if (Date.now() - lastGestureTimeRef.current < 400) return;
-            if (scaleRef.current > 1.05) {
-              resetZoom();
-              return;
-            }
-            onClose();
-          }
-        }}
-        className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden touch-none"
-        style={{
-          touchAction: 'none',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          WebkitTouchCallout: 'none',
-          overscrollBehavior: 'none',
-        }}
-      >
-        <img
-          key={currentItem?.id || activeUrl || activeIdx}
-          ref={imgRef}
-          src={getMediaUrl(secureUrl)}
-          alt={cleanTitle}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (Date.now() - lastGestureTimeRef.current < 350) return;
-            if (scaleRef.current > 1.05) return;
-            setShowControls((prev) => !prev);
-            if (!showControls) {
-              scheduleAutoHide();
-            } else if (hideControlsTimerRef.current) {
-              clearTimeout(hideControlsTimerRef.current);
-            }
-          }}
-          onError={(e) => {
-            // Hotlink / 403 protection: fall back to high-reliability thumbnail or unproxied source
-            if (currentItem?.thumbnail && e.currentTarget.src !== currentItem.thumbnail) {
-              e.currentTarget.src = currentItem.thumbnail;
-            }
-          }}
-          onLoad={(e) => {
-            setImgDimensions({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
-            if (e.currentTarget.offsetWidth > 0) {
-              baseDimensionsRef.current = {
-                w: e.currentTarget.offsetWidth,
-                h: e.currentTarget.offsetHeight,
-              };
-            }
-          }}
-          style={{
-            transformOrigin: 'center center',
-            willChange: 'transform',
-            transform: `translate3d(${pos.x}px, ${pos.y}px, 0px) scale(${scale})`,
-            transition: isTransitioning ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
-            touchAction: 'none',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            WebkitTouchCallout: 'none',
-            overscrollBehavior: 'none',
-            maxWidth: isDesktop ? 'calc(100vw - 560px)' : '100vw',
-            maxHeight: isDesktop ? '82vh' : '100vh',
-          }}
-          className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-pointer ${
-            slideDirection === 'next'
-              ? 'animate-photo-slide-next'
-              : slideDirection === 'prev'
-              ? 'animate-photo-slide-prev'
-              : 'animate-media-open'
-          }`}
-          draggable={false}
-        />
+        ) : (
+          <div
+            className="hidden lg:block shrink-0 pointer-events-none invisible"
+            style={{ width: 'clamp(180px, 14vw, 240px)' }}
+          />
+        )}
       </div>
 
       {/* Floating Download Button at Bottom Left */}

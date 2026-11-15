@@ -467,20 +467,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const prevIdx = activeIndex - 1;
             slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-left ${
+          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-left ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
-          style={{ width: 'clamp(180px, 15vw, 220px)' }}
+          style={{ right: 'calc(50% + 225px)', width: 'clamp(180px, 14vw, 240px)' }}
           title={shorts[activeIndex - 1]?.title || 'Previous Short'}
         >
-          <div className="relative w-full aspect-[9/16] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
+          <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
             <img
               src={getThumbnailUrl(shorts[activeIndex - 1]) || (shorts[activeIndex - 1]?.thumbnail ? getMediaUrl(shorts[activeIndex - 1].thumbnail!) : '')}
               alt={shorts[activeIndex - 1]?.title || 'Previous short'}
               className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+              <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
                 <ChevronLeft className="w-6 h-6 -ml-0.5" />
               </div>
             </div>
@@ -502,20 +502,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const nextIdx = activeIndex + 1;
             slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
           }}
-          className={`hidden lg:flex fixed right-4 xl:right-8 top-1/2 -translate-y-1/2 z-20 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-right ${
+          className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 animate-flank-right ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
           }`}
-          style={{ width: 'clamp(180px, 15vw, 220px)' }}
+          style={{ left: 'calc(50% + 225px)', width: 'clamp(180px, 14vw, 240px)' }}
           title={shorts[activeIndex + 1]?.title || 'Next Short'}
         >
-          <div className="relative w-full aspect-[9/16] max-h-[80vh] rounded-2xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-[#ccff00]/50 group-hover:shadow-[0_0_30px_rgba(204,255,0,0.25)] transition-all duration-300">
+          <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
             <img
               src={getThumbnailUrl(shorts[activeIndex + 1]) || (shorts[activeIndex + 1]?.thumbnail ? getMediaUrl(shorts[activeIndex + 1].thumbnail!) : '')}
               alt={shorts[activeIndex + 1]?.title || 'Next short'}
               className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.75] transition-all duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
+              <div className="w-11 h-11 rounded-full bg-black/70 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm">
                 <ChevronRight className="w-6 h-6 -mr-0.5" />
               </div>
             </div>
@@ -607,7 +607,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                   maxWidth: isDesktop ? (isLandscape ? 'calc(100vw - 560px)' : '420px') : '100%',
                   maxHeight: isDesktop ? '85vh' : '100%',
                 }}
-                className={`relative w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
+                className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
                   isLandscape
                     ? 'w-full md:aspect-[16/9] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
                     : 'w-full md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
