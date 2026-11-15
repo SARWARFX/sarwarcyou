@@ -658,18 +658,36 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             className="bg-[#080808]/95 border border-white/10 rounded-2xl p-6 sm:p-7 max-w-2xl w-full shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(204,255,0,0.12)] relative cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => setIsTelemetryModalOpen(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all text-2xl cursor-pointer"
-              title="Close (Esc)"
-            >
-              &times;
-            </button>
+            {/* Mobile View: Adaptive Horizontal Track Rails (< 640px) */}
+            <div className="flex sm:hidden flex-col gap-2.5 max-h-[290px] overflow-y-auto space-scrollbar border-b border-white/10 pb-3 mt-1">
+              {telemetry15DayData.map((d) => {
+                const isToday = d.label === 'Today';
+                const widthPct = Math.max(10, Math.round((d.minutes / max15Minutes) * 100));
+                return (
+                  <div key={d.date} className="flex items-center justify-between gap-3">
+                    <span
+                      className={`w-14 font-['Orbitron',sans-serif] text-[10px] tracking-wider uppercase shrink-0 ${
+                        isToday ? 'text-[#ccff00] font-black' : 'text-white/50 font-bold'
+                      }`}
+                    >
+                      {d.label}
+                    </span>
+                    <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden flex items-center p-0.5">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#77aa00] to-[#ccff00] rounded-full shadow-[0_0_10px_rgba(204,255,0,0.4)] transition-all duration-500"
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                    <span className="w-14 font-mono text-[10px] font-bold text-white text-right shrink-0">
+                      {d.formattedMinutes}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
-            {/* Pure Bars Chart (Only Bars, exact time at top, day at bottom) */}
-            <div className="flex items-end justify-between gap-3 h-[210px] border-b border-white/10 pb-3 mt-4 overflow-x-auto">
+            {/* Desktop View: Pure Vertical Pillar Bars (>= 640px) */}
+            <div className="hidden sm:flex items-end justify-between gap-3 h-[210px] border-b border-white/10 pb-3 mt-2 overflow-x-auto">
               {telemetry15DayData.map((d) => {
                 const isToday = d.label === 'Today';
                 const heightPct = Math.max(12, Math.round((d.minutes / max15Minutes) * 100));
@@ -697,7 +715,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
 
             {/* Minimalist Footer with Keep Screen On Toggle */}
-            <div className="flex items-center justify-between mt-4 pt-1">
+            <div className="flex items-center justify-start mt-4 pt-1">
               <label
                 className="inline-flex items-center gap-2.5 cursor-pointer select-none"
                 onClick={() => {
@@ -720,9 +738,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   Keep Screen On
                 </span>
               </label>
-              <span className="font-mono text-[10px] text-white/30">
-                ESC to dismiss
-              </span>
             </div>
           </div>
         </div>

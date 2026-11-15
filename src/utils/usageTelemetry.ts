@@ -220,7 +220,7 @@ export const getRolling15DayUsage = (): DailyUsage[] => {
 
       let label = DAY_NAMES[d.getDay()];
       if (i === 0) label = 'Today';
-      else if (i === 1) label = 'Yesterday';
+      else if (i === 1) label = 'Yestd';
 
       const weekday = DAY_NAMES[d.getDay()];
       const formattedDate = `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
