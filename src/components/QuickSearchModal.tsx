@@ -105,14 +105,14 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
       >
         {/* Search Input Bar */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">
-          <Search className="w-5 h-5 text-[var(--accent-color)] shrink-0" />
+          <Search className="w-5 h-5 text-[#ccff00] shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search vault media, categories, titles..."
-            className="w-full bg-transparent border-none outline-none text-white text-base font-['Roboto_Condensed'] font-sans tracking-wide placeholder:text-slate-500"
+            placeholder="Search archive media, sectors, titles... (Press Esc to close)"
+            className="w-full bg-transparent border-none outline-none text-white text-base font-['Roboto_Condensed'] font-sans tracking-wide placeholder:text-neutral-500"
           />
           {query && (
             <button
@@ -121,7 +121,7 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
                 setQuery('');
                 inputRef.current?.focus();
               }}
-              className="p-1 rounded-full text-slate-400 hover:text-white"
+              className="p-1 rounded-full text-neutral-400 hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -139,9 +139,9 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
         <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto no-scrollbar border-b border-white/5 bg-black/20">
           {(
             [
-              { id: 'all', label: 'All Vault', icon: Sparkles },
-              { id: 'clips', label: 'Clips', icon: Video },
+              { id: 'all', label: 'All Sectors', icon: Sparkles },
               { id: 'shorts', label: 'Shorts', icon: Flame },
+              { id: 'clips', label: 'Clips', icon: Video },
               { id: 'photos', label: 'Photos', icon: ImageIcon },
               { id: 'favorites', label: 'Favorites', icon: Star },
             ] as const
@@ -158,11 +158,11 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-['Roboto_Condensed'] font-sans uppercase tracking-wider transition-all duration-150 shrink-0 cursor-pointer border ${
                   isActive
-                    ? 'bg-[var(--accent-glow)] border-[var(--accent-color)] text-white shadow-[0_0_12px_var(--accent-glow)]'
-                    : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]'
+                    ? 'bg-[#ccff00]/15 border-[#ccff00] text-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.25)]'
+                    : 'bg-white/[0.04] border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.08]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[var(--accent-color)]' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#ccff00]' : 'text-neutral-400'}`} />
                 <span>{filter.label}</span>
               </button>
             );
@@ -172,8 +172,8 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
         {/* Results List */}
         <div className="flex-1 overflow-y-auto space-scrollbar divide-y divide-white/5 p-2">
           {filteredResults.length === 0 ? (
-            <div className="py-14 text-center text-slate-500 font-['Roboto_Condensed'] font-sans uppercase tracking-wider text-sm">
-              No matching media found in vault
+            <div className="py-14 text-center text-neutral-500 font-['Roboto_Condensed'] font-sans uppercase tracking-wider text-sm">
+              No matching media found in archive
             </div>
           ) : (
             filteredResults.map((item, idx) => {
@@ -184,7 +184,7 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
               );
               const isVid = !isShort && (item.type === 'video' || item.mediaType === 'clip' || isVideoExtension(item.url || item.id || item.path));
               const title = item.title || item.name || 'Untitled';
-              const cat = item.category || item.parentAlbum || 'Catalog';
+              const cat = item.category || item.parentAlbum || 'Archive';
               const isFav = isItemFavorite(item);
 
               return (
@@ -195,14 +195,14 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
                   className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-3">
-                    <div className="w-9 h-9 rounded-lg bg-black/60 border border-white/10 flex items-center justify-center shrink-0 text-slate-400 group-hover:text-[var(--accent-color)] group-hover:border-[var(--accent-color)]/40 transition-colors">
+                    <div className="w-9 h-9 rounded-lg bg-black/60 border border-white/10 flex items-center justify-center shrink-0 text-neutral-400 group-hover:text-[#ccff00] group-hover:border-[#ccff00]/40 transition-colors">
                       {isShort ? <Flame className="w-4 h-4 text-amber-400" /> : isVid ? <Video className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
                     </div>
                     <div className="min-w-0 flex flex-col">
-                      <span className="text-sm font-semibold text-white truncate group-hover:text-[var(--accent-color)] transition-colors">
+                      <span className="text-sm font-semibold text-white truncate group-hover:text-[#ccff00] transition-colors">
                         {title}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-mono tracking-wider truncate uppercase">
+                      <span className="text-[11px] text-neutral-400 font-mono tracking-wider truncate uppercase">
                         {cat}
                       </span>
                     </div>
@@ -210,7 +210,7 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
 
                   <div className="flex items-center gap-2 shrink-0">
                     {isFav && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-white/5 text-neutral-400 border border-white/10">
                       {isShort ? 'SHORT' : isVid ? 'CLIP' : 'PHOTO'}
                     </span>
                   </div>

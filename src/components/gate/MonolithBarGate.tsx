@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Play, Folder, Film } from 'lucide-react';
+import { Folder, Film, Search, Shuffle } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
 import { MAJOR_FOLDERS } from '../navigation/SidebarAccordionNav';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
-import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
@@ -22,6 +21,11 @@ import {
 } from '../../utils/urlRouter';
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { FALLBACK_HF_CATALOG } from '../../data/fallbackData';
+import { LivingMediaCard } from './LivingMediaCard';
+import { SectorRadarRail } from './SectorRadarRail';
+import { SectorTelemetryDivider } from './SectorTelemetryDivider';
+import { SpotlightCarouselRow } from './SpotlightCarouselRow';
+import { QuickSearchModal } from '../QuickSearchModal';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -128,6 +132,28 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     path: '',
     tab: 'TRAILER',
   });
+
+  // Universal Command Palette / Fast-Find Search state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Keyboard shortcut listener for Ctrl+K, Cmd+K, or /
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      } else if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const [idleTourProgress, setIdleTourProgress] = useState<number>(0);
   const [isAutoTourPaused, setIsAutoTourPaused] = useState<boolean>(true);
@@ -598,6 +624,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [scrollToSection]
   );
 
+  // Surprise Me // Random Archive Warp
+  const handleRandomWarp = useCallback(() => {
+    hapticMedium();
+    if (!items || items.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * items.length);
+    const randomItem = items[randomIndex];
+    if (!randomItem) return;
+
+    handleOpenItem(randomItem, randomIndex);
+  }, [items]);
+
   // User activity tracker: any touch, keypress, click, or scroll resets the 10-second idle timer
   const recordUserActivity = useCallback(() => {
     lastUserActivityRef.current = Date.now();
@@ -1003,7 +1040,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
 
         {/* Avant-Garde Quick Select Keys: Consolidated Tabs (SVP on mobile portrait, Full on landscape/desktop) */}
-        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 py-0.5">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0 py-0.5">
           <button
             type="button"
             onClick={() => {
@@ -1052,8 +1089,52 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <span className="tab-label-full">PHOTOGRAPHS</span>
             <span className="tab-label-short">P</span>
           </button>
+
+          {/* Quick Search Action Button */}
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              setIsSearchOpen(true);
+            }}
+            title="Universal Command Search (Ctrl+K or /)"
+            className="reticle-chip whitespace-nowrap flex items-center gap-1.5"
+          >
+            <Search className="w-3.5 h-3.5 text-[#ccff00]" />
+            <span className="tab-label-full">SEARCH</span>
+            <span className="tab-label-short">?</span>
+            <kbd className="hidden lg:inline text-[8px] bg-white/10 px-1 py-0.5 rounded text-neutral-400 font-mono">⌘K</kbd>
+          </button>
+
+          {/* Surprise Me / Random Warp Trigger */}
+          <button
+            type="button"
+            onClick={handleRandomWarp}
+            title="Surprise Me // Random Archive Warp"
+            className="reticle-chip whitespace-nowrap flex items-center gap-1.5 text-[#ccff00] border-[#ccff00]/40 hover:border-[#ccff00] hover:bg-[#ccff00]/10"
+          >
+            <Shuffle className="w-3.5 h-3.5" />
+            <span className="tab-label-full">WARP</span>
+            <span className="tab-label-short">✦</span>
+          </button>
         </div>
       </header>
+
+      {/* Sector Spatial Waypoint Radar on Right Edge (Desktop & Tablet) */}
+      <SectorRadarRail
+        activeSector={selectedCategory as any}
+        onNavigateSector={(sector) => scrollToSection(sector)}
+      />
+
+      {/* Universal Instant Command Search Palette */}
+      <QuickSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        items={items}
+        onOpenPhoto={onOpenPhoto}
+        onOpenVideo={onOpenVideo}
+        onOpenShort={onOpenShort}
+      />
 
       {/* MAIN VIEWPORT STAGE: Single-Page SVP Media Hub (Shorts -> Video Clips -> Photographs) */}
       <main
@@ -1088,6 +1169,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           </div>
 
+          {/* Spotlight Horizontal Carousel Reel */}
+          <SpotlightCarouselRow
+            title="SPOTLIGHT SHORTS // HIGH-VELOCITY REELS"
+            badge="FEATURED"
+            items={allShortsFiles}
+            aspectRatio="9/16"
+            cardWidthClass="w-36 sm:w-44 lg:w-52"
+            onOpenItem={handleOpenItem}
+            subfolderLabelResolver={getItemSubfolderLabel}
+          />
+
           {activeShortsList.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[30vh] border border-white/5 rounded-2xl bg-[#08080a]">
               <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mb-3">
@@ -1104,29 +1196,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-6">
                 {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
-                  <div
-                    key={item.id}
+                  <LivingMediaCard
+                    key={item.id || item.url || idx}
+                    item={item}
+                    aspectRatio="9/16"
+                    subfolderLabel={getItemSubfolderLabel(item)}
+                    delayIdx={idx}
                     onClick={() => handleOpenItem(item, idx)}
-                    style={{ animationDelay: `${Math.min(idx, 15) * 25}ms` }}
-                    className="animate-card-enter group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_24px_rgba(204,255,0,0.22)] cursor-pointer aspect-[9/16] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] active:scale-[0.96]"
-                  >
-                    <img
-                      src={item.thumbnail || item.url}
-                      alt={item.title || item.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg">
-                        <Play className="w-5 h-5 fill-current ml-0.5" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-0 inset-x-0 p-3">
-                      <p className="text-xs font-bold text-white line-clamp-2">{item.title || item.name}</p>
-                      <span className="text-[10px] font-mono text-[#ccff00]">{getItemSubfolderLabel(item)}</span>
-                    </div>
-                  </div>
+                  />
                 ))}
               </div>
 
@@ -1147,6 +1224,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </>
           )}
         </section>
+
+        {/* Cinematic Chapter Telemetry Divider 1 -> 2 */}
+        <SectorTelemetryDivider
+          sectorNumber="02"
+          sectorTitle="WIDESCREEN CINEMA"
+          subtitle="16:9 Cinema Broadcasts, Music Videos & Master Visual Cuts"
+          telemetryTags={['BUFFER: SYNCHRONIZED', 'LATENCY: 0.12ms', 'VERIFIED 4K']}
+        />
 
         {/* ===================================================================== */}
         {/* SECTION 2: VIDEO CLIPS // 16:9 WIDESCREEN CINEMA & MUSIC RELEASES     */}
@@ -1173,6 +1258,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           </div>
 
+          {/* Spotlight Horizontal Carousel Reel */}
+          <SpotlightCarouselRow
+            title="SPOTLIGHT CINEMA // 16:9 PREMIERES"
+            badge="PREMIERE"
+            items={allClipsFiles}
+            aspectRatio="16/9"
+            cardWidthClass="w-56 sm:w-72 lg:w-80"
+            onOpenItem={handleOpenItem}
+            subfolderLabelResolver={getItemSubfolderLabel}
+          />
+
           {activeClipsList.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[30vh] border border-white/5 rounded-2xl bg-[#08080a]">
               <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mb-3">
@@ -1188,44 +1284,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           ) : (
             <>
               <div className="w-full pb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                {activeClipsList.slice(0, visibleClips).map((item, idx) => {
-                  const imageSrc =
-                    (item as any).thumbnail ||
-                    resolveStaticVideoThumbnail(item) ||
-                    item.poster ||
-                    item.url;
-
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleOpenItem(item, idx)}
-                      style={{ animationDelay: `${Math.min(idx, 15) * 25}ms` }}
-                      className="animate-card-enter group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_24px_rgba(204,255,0,0.22)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] active:scale-[0.96] cursor-pointer flex flex-col justify-between aspect-video select-none"
-                    >
-                      <img
-                        src={imageSrc}
-                        alt={item.title || item.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                        <div className="w-11 h-11 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
-                        </div>
-                      </div>
-                      <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none">
-                        <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#ccff00] transition-colors">
-                          {item.title || item.name}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 mt-0.5">
-                          <Film className="w-3 h-3 text-[#ccff00]" />
-                          <span>{getItemSubfolderLabel(item)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {activeClipsList.slice(0, visibleClips).map((item, idx) => (
+                  <LivingMediaCard
+                    key={item.id || item.url || idx}
+                    item={item}
+                    aspectRatio="16/9"
+                    subfolderLabel={getItemSubfolderLabel(item)}
+                    delayIdx={idx}
+                    onClick={() => handleOpenItem(item, idx)}
+                  />
+                ))}
               </div>
 
               {visibleClips < activeClipsList.length && (
@@ -1245,6 +1313,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </>
           )}
         </section>
+
+        {/* Cinematic Chapter Telemetry Divider 2 -> 3 */}
+        <SectorTelemetryDivider
+          sectorNumber="03"
+          sectorTitle="PHOTOGRAPHIC VAULT"
+          subtitle="High-Resolution Celebrity Portraits & Master Photographic Stills"
+          telemetryTags={['SPECTRAL: RAW EXIF', 'COLORSPACE: DCI-P3', 'LOSSLESS']}
+        />
 
         {/* ===================================================================== */}
         {/* SECTION 3: PHOTOGRAPHS // HIGH-RESOLUTION PHOTO VAULT                 */}
@@ -1271,6 +1347,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </div>
           </div>
 
+          {/* Spotlight Horizontal Carousel Reel */}
+          <SpotlightCarouselRow
+            title="SPOTLIGHT PORTRAITS // MASTER GALLERY"
+            badge="GALLERY PICK"
+            items={allPhotosFiles}
+            aspectRatio="3/4"
+            cardWidthClass="w-36 sm:w-44 lg:w-52"
+            onOpenItem={handleOpenItem}
+            subfolderLabelResolver={getItemSubfolderLabel}
+          />
+
           {activePhotosList.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[30vh] border border-white/5 rounded-2xl bg-[#08080a]">
               <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mb-3">
@@ -1287,24 +1374,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-6">
                 {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
-                  <div
-                    key={item.id}
+                  <LivingMediaCard
+                    key={item.id || item.url || idx}
+                    item={item}
+                    aspectRatio="3/4"
+                    subfolderLabel={getItemSubfolderLabel(item)}
+                    delayIdx={idx}
                     onClick={() => handleOpenItem(item, idx)}
-                    style={{ animationDelay: `${Math.min(idx, 15) * 25}ms` }}
-                    className="animate-card-enter group relative rounded-xl overflow-hidden bg-[#0d0d10] border border-white/[0.08] hover:border-[#ccff00] hover:shadow-[0_0_24px_rgba(204,255,0,0.22)] cursor-pointer aspect-[3/4] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] active:scale-[0.96]"
-                  >
-                    <img
-                      src={item.thumbnail || item.url}
-                      alt={item.title || item.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <div className="absolute bottom-0 inset-x-0 p-3">
-                      <p className="text-xs font-bold text-white line-clamp-1">{item.title || item.name}</p>
-                      <span className="text-[10px] font-mono text-neutral-400">{getItemSubfolderLabel(item)}</span>
-                    </div>
-                  </div>
+                  />
                 ))}
               </div>
 
