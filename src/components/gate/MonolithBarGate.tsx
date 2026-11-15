@@ -1027,7 +1027,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       </div>
 
       {/* TOP HEADER BAR: Zero-Clue Logo Trigger & Minimalist Status */}
-      <header className="relative w-full px-4 sm:px-8 py-3 flex items-center justify-between border-b border-white/[0.08] bg-[#050505]/95 backdrop-blur-md z-30 shrink-0">
+      <header className="relative w-full px-3 sm:px-8 py-2.5 sm:py-3 flex items-center justify-between border-b border-white/[0.08] bg-[#050505]/95 backdrop-blur-md z-30 shrink-0">
         {/* Dynamic 10-Second Idle Tour Laser Progress Line */}
         <div className="absolute bottom-0 left-0 h-[2px] w-full bg-white/[0.03] overflow-hidden pointer-events-none">
           <div
@@ -1039,9 +1039,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <HeaderBrandLogo
-            trackingClass="tracking-[0.2em] sm:tracking-[0.24em]"
+            trackingClass="tracking-[0.16em] sm:tracking-[0.24em]"
             onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
           />
           {/* Active Tab Indicator / Autonomous Tour Trigger Button */}
@@ -1059,20 +1059,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               });
             }}
             title={isAutoTourPaused ? 'Click to start tour' : 'Click to stop tour'}
-            className={`group relative inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded transition-all duration-200 cursor-pointer ${
+            className={`group relative inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest px-2 sm:px-2.5 py-1 rounded transition-all duration-200 cursor-pointer shrink-0 ${
               !isAutoTourPaused
                 ? 'bg-[#ccff00]/15 border border-[#ccff00] text-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.25)]'
                 : 'bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 hover:border-[#ccff00] text-[#ccff00]'
             }`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full transition-all ${
+              className={`w-1.5 h-1.5 rounded-full transition-all shrink-0 ${
                 !isAutoTourPaused
                   ? 'bg-[#ccff00] animate-pulse shadow-[0_0_6px_#ccff00]'
                   : 'bg-neutral-500 group-hover:bg-[#ccff00]'
               }`}
             />
-            <span>
+            <span className="tab-label-full">
               {selectedCategory === 'PHOTOGRAPHY'
                 ? 'PHOTOGRAPHS'
                 : selectedCategory === 'CLIPS'
@@ -1080,6 +1080,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 : selectedCategory === 'SHORTS'
                 ? 'SHORTS'
                 : 'HOMEPAGE'}
+            </span>
+            <span className="tab-label-short">
+              {selectedCategory === 'PHOTOGRAPHY'
+                ? 'PHOTOS'
+                : selectedCategory === 'CLIPS'
+                ? 'CLIPS'
+                : selectedCategory === 'SHORTS'
+                ? 'SHORTS'
+                : 'HOME'}
             </span>
 
             {/* Instant Floating Hover Tooltip */}
@@ -1089,21 +1098,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </button>
         </div>
 
-        {/* Avant-Garde Quick Select Keys: Consolidated Tabs (Precision Sci-Fi Reticle) */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5">
+        {/* Avant-Garde Quick Select Keys: Consolidated Tabs (SVP on mobile portrait, Full on landscape/desktop) */}
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 py-0.5">
           <button
             type="button"
             onClick={() => {
               hapticMedium();
               navigateTab('SHORTS');
             }}
+            title="Shorts"
             className={`reticle-chip whitespace-nowrap ${
               selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE'
                 ? 'active-chip'
                 : ''
             }`}
           >
-            SHORTS
+            <span className="tab-label-full">SHORTS</span>
+            <span className="tab-label-short">S</span>
           </button>
           <button
             type="button"
@@ -1111,13 +1122,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('CLIPS');
             }}
+            title="Video Clips"
             className={`reticle-chip whitespace-nowrap ${
               selectedCategory === 'CLIPS' || selectedCategory === 'REALTUBE'
                 ? 'active-chip'
                 : ''
             }`}
           >
-            VIDEO CLIPS
+            <span className="tab-label-full">VIDEO CLIPS</span>
+            <span className="tab-label-short">V</span>
           </button>
           <button
             type="button"
@@ -1125,13 +1138,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('PHOTOGRAPHY');
             }}
+            title="Photographs"
             className={`reticle-chip whitespace-nowrap ${
               selectedCategory === 'PHOTOGRAPHY'
                 ? 'active-chip'
                 : ''
             }`}
           >
-            PHOTOGRAPHS
+            <span className="tab-label-full">PHOTOGRAPHS</span>
+            <span className="tab-label-short">P</span>
           </button>
         </div>
       </header>

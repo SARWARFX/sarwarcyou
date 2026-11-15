@@ -1526,6 +1526,33 @@ html, body, #root {
   box-shadow: 0 0 16px rgba(204, 255, 0, 0.3);
 }
 
+/* Dynamic Header Tabs: SVP on compact portrait screens, Full names on landscape or wide screens */
+.tab-label-full {
+  display: none;
+}
+
+.tab-label-short {
+  display: inline;
+}
+
+@media (min-width: 640px), (orientation: landscape) and (min-width: 480px) {
+  .tab-label-full {
+    display: inline;
+  }
+  .tab-label-short {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) and (orientation: portrait) {
+  .reticle-chip {
+    padding: 5px 10px;
+    font-size: 11px;
+    min-width: 32px;
+    justify-content: center;
+  }
+}
+
 /* Reticle Zoom Column Precision Box */
 .reticle-zoom-box {
   display: flex;
