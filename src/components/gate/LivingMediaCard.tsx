@@ -17,7 +17,6 @@ export interface LivingMediaCardProps {
 export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
   item,
   aspectRatio,
-  subfolderLabel,
   onClick,
   delayIdx = 0,
   featuredBadge,
@@ -83,7 +82,7 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{ animationDelay: `${Math.min(delayIdx, 15) * 25}ms` }}
-      className={`animate-card-enter group relative rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00] hover:shadow-[0_0_24px_rgba(204,255,0,0.25)] cursor-pointer ${aspectClass} transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.025] active:scale-[0.96] select-none`}
+      className={`animate-card-enter group relative rounded-none overflow-hidden bg-[#090d16] border-0 cursor-pointer ${aspectClass} transition-all duration-300 ease-out hover:scale-[1.08] hover:z-30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.95),0_0_30px_rgba(204,255,0,0.4)] active:scale-[0.98] select-none`}
     >
       {/* Static High-Res Poster Thumbnail */}
       <img
@@ -142,16 +141,11 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
         </div>
       </div>
 
-      {/* Bottom Title & Subfolder Metadata Badge */}
-      <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none z-20">
+      {/* Bottom Title on Hover */}
+      <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
         <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#ccff00] transition-colors drop-shadow">
           {item.title || item.name}
         </p>
-        {subfolderLabel && (
-          <span className="text-[10px] font-mono text-[#ccff00]/90 mt-0.5 inline-block">
-            {subfolderLabel}
-          </span>
-        )}
       </div>
     </div>
   );

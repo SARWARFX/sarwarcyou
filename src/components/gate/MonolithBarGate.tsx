@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { X, Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -116,9 +116,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [photosSubfolder, setPhotosSubfolder] = useState<string>('ALL');
 
   // Progressive batch visibility for each section
-  const [visibleShorts, setVisibleShorts] = useState<number>(36);
-  const [visibleClips, setVisibleClips] = useState<number>(36);
-  const [visiblePhotos, setVisiblePhotos] = useState<number>(48);
+  const [visibleShorts, setVisibleShorts] = useState<number>(24);
+  const [visibleClips, setVisibleClips] = useState<number>(16);
+  const [visiblePhotos, setVisiblePhotos] = useState<number>(24);
 
   // Dropdown open states for the 3 tabs: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null
   const [activeDropdown, setActiveDropdown] = useState<'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null>(null);
@@ -475,6 +475,56 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     else if (tabIndex === 3) setPhotosSubfolder(subName);
   }, [tabIndex]);
 
+  // Infinite scroll handlers for each media tab (automatic progressive loading)
+  const handleShortsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+      setVisibleShorts((prev) => {
+        if (prev < activeShortsList.length) {
+          return Math.min(prev + 18, activeShortsList.length);
+        }
+        return prev;
+      });
+    }
+  }, [activeShortsList.length]);
+
+  const handleClipsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+      setVisibleClips((prev) => {
+        if (prev < activeClipsList.length) {
+          return Math.min(prev + 12, activeClipsList.length);
+        }
+        return prev;
+      });
+    }
+  }, [activeClipsList.length]);
+
+  const handlePhotosScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+      setVisiblePhotos((prev) => {
+        if (prev < activePhotosList.length) {
+          return Math.min(prev + 16, activePhotosList.length);
+        }
+        return prev;
+      });
+    }
+  }, [activePhotosList.length]);
+
+  // Reset pagination count when subfolders change
+  useEffect(() => {
+    setVisibleShorts(24);
+  }, [shortsSubfolder]);
+
+  useEffect(() => {
+    setVisibleClips(16);
+  }, [clipsSubfolder]);
+
+  useEffect(() => {
+    setVisiblePhotos(24);
+  }, [photosSubfolder]);
+
   return (
     <div
       className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-black relative select-none font-['Roboto_Condensed'] font-sans text-white"
@@ -821,176 +871,71 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 1: SHORTS TAB PAGE (PURE FULL-BLEED GRID OF SHORTS CARDS)   */}
+          {/* PANEL 1: SHORTS TAB PAGE (SEAMLESS FULL-BLEED GRID OF SHORTS)     */}
+          {/* ZERO GAP ABOVE, BELOW, AND BETWEEN CARDS                          */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
-            <div className="w-full h-full overflow-y-auto space-scrollbar pt-3 sm:pt-4 pb-16 px-3 sm:px-6 lg:px-8">
-              {/* Filter Active Notice Bar */}
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#ccff00]/10 border border-[#ccff00]/30 text-[#ccff00] font-mono text-[10px] font-bold uppercase tracking-wider">
-                    SUBFOLDER // {shortsSubfolder}
-                  </span>
-                  <span className="font-mono text-[10px] text-neutral-400">
-                    {activeShortsList.length} items indexed
-                  </span>
-                </div>
-                {shortsSubfolder !== 'ALL' && (
-                  <button
-                    type="button"
-                    onClick={() => setShortsSubfolder('ALL')}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded border border-white/20 text-neutral-400 hover:text-[#ccff00] hover:border-[#ccff00] text-[10px] font-mono font-bold uppercase transition-all cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                    <span>SHOW ALL</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Cards Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4 pb-6">
+            <div
+              onScroll={handleShortsScroll}
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
                 {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
                   <LivingMediaCard
                     key={item.id || item.url || idx}
                     item={item}
                     aspectRatio="9/16"
-                    subfolderLabel={getItemSubfolderLabel(item)}
                     delayIdx={idx}
                     onClick={() => handleOpenItem(item, idx)}
                   />
                 ))}
               </div>
-
-              {visibleShorts < activeShortsList.length && (
-                <div className="w-full py-6 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      hapticLight();
-                      setVisibleShorts((v) => v + 24);
-                    }}
-                    className="reticle-chip px-6 py-2.5 text-xs text-[#ccff00] border-[#ccff00]/40 hover:border-[#ccff00] hover:bg-[#ccff00]/10 transition-all cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.15)]"
-                  >
-                    SHOW MORE SHORTS ({Math.min(visibleShorts, activeShortsList.length)} / {activeShortsList.length})
-                  </button>
-                </div>
-              )}
             </div>
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 2: VIDEO CLIPS TAB PAGE (PURE FULL-BLEED GRID OF VIDEO)     */}
+          {/* PANEL 2: VIDEO CLIPS TAB PAGE (SEAMLESS FULL-BLEED GRID OF CLIPS) */}
+          {/* ZERO GAP ABOVE, BELOW, AND BETWEEN CARDS                          */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
-            <div className="w-full h-full overflow-y-auto space-scrollbar pt-3 sm:pt-4 pb-16 px-3 sm:px-6 lg:px-8">
-              {/* Filter Active Notice Bar */}
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#ccff00]/10 border border-[#ccff00]/30 text-[#ccff00] font-mono text-[10px] font-bold uppercase tracking-wider">
-                    SUBFOLDER // {clipsSubfolder}
-                  </span>
-                  <span className="font-mono text-[10px] text-neutral-400">
-                    {activeClipsList.length} items indexed
-                  </span>
-                </div>
-                {clipsSubfolder !== 'ALL' && (
-                  <button
-                    type="button"
-                    onClick={() => setClipsSubfolder('ALL')}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded border border-white/20 text-neutral-400 hover:text-[#ccff00] hover:border-[#ccff00] text-[10px] font-mono font-bold uppercase transition-all cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                    <span>SHOW ALL</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 pb-6">
+            <div
+              onScroll={handleClipsScroll}
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
                 {activeClipsList.slice(0, visibleClips).map((item, idx) => (
                   <LivingMediaCard
                     key={item.id || item.url || idx}
                     item={item}
                     aspectRatio="16/9"
-                    subfolderLabel={getItemSubfolderLabel(item)}
                     delayIdx={idx}
                     onClick={() => handleOpenItem(item, idx)}
                   />
                 ))}
               </div>
-
-              {visibleClips < activeClipsList.length && (
-                <div className="w-full py-6 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      hapticLight();
-                      setVisibleClips((v) => v + 24);
-                    }}
-                    className="reticle-chip px-6 py-2.5 text-xs text-[#ccff00] border-[#ccff00]/40 hover:border-[#ccff00] hover:bg-[#ccff00]/10 transition-all cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.15)]"
-                  >
-                    SHOW MORE CLIPS ({Math.min(visibleClips, activeClipsList.length)} / {activeClipsList.length})
-                  </button>
-                </div>
-              )}
             </div>
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 3: PHOTOGRAPHS TAB PAGE (PURE FULL-BLEED GRID OF PHOTOS)    */}
+          {/* PANEL 3: PHOTOGRAPHS TAB PAGE (SEAMLESS FULL-BLEED GRID OF PHOTOS)*/}
+          {/* ZERO GAP ABOVE, BELOW, AND BETWEEN CARDS                          */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
-            <div className="w-full h-full overflow-y-auto space-scrollbar pt-3 sm:pt-4 pb-16 px-3 sm:px-6 lg:px-8">
-              {/* Filter Active Notice Bar */}
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#ccff00]/10 border border-[#ccff00]/30 text-[#ccff00] font-mono text-[10px] font-bold uppercase tracking-wider">
-                    SUBFOLDER // {photosSubfolder}
-                  </span>
-                  <span className="font-mono text-[10px] text-neutral-400">
-                    {activePhotosList.length} items indexed
-                  </span>
-                </div>
-                {photosSubfolder !== 'ALL' && (
-                  <button
-                    type="button"
-                    onClick={() => setPhotosSubfolder('ALL')}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded border border-white/20 text-neutral-400 hover:text-[#ccff00] hover:border-[#ccff00] text-[10px] font-mono font-bold uppercase transition-all cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                    <span>SHOW ALL</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Cards Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 pb-6">
+            <div
+              onScroll={handlePhotosScroll}
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0">
                 {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
                   <LivingMediaCard
                     key={item.id || item.url || idx}
                     item={item}
                     aspectRatio="3/4"
-                    subfolderLabel={getItemSubfolderLabel(item)}
                     delayIdx={idx}
                     onClick={() => handleOpenItem(item, idx)}
                   />
                 ))}
               </div>
-
-              {visiblePhotos < activePhotosList.length && (
-                <div className="w-full py-6 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      hapticLight();
-                      setVisiblePhotos((v) => v + 24);
-                    }}
-                    className="reticle-chip px-6 py-2.5 text-xs text-[#ccff00] border-[#ccff00]/40 hover:border-[#ccff00] hover:bg-[#ccff00]/10 transition-all cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.15)]"
-                  >
-                    SHOW MORE PHOTOGRAPHS ({Math.min(visiblePhotos, activePhotosList.length)} / {activePhotosList.length})
-                  </button>
-                </div>
-              )}
             </div>
           </section>
 
