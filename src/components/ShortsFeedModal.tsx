@@ -45,6 +45,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
   const backdropClickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pointerStartXRef = useRef<number>(0);
+  const pointerStartYRef = useRef<number>(0);
 
   // Desktop vs Mobile layout detection (lg: = 1024px)
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
@@ -98,6 +100,25 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [activeIndex]);
 
+  // Unified short navigation handler for cards, keys, and gestures
+  const goToShortIndex = useCallback((targetIdx: number, dir: 'next' | 'prev') => {
+    if (targetIdx < 0 || targetIdx >= shorts.length) return;
+    hapticLight();
+    setSlideDirection(dir);
+    setActiveIndex(targetIdx);
+    setCurrentTime(0);
+    setDuration(0);
+    onIndexChange?.(targetIdx);
+    setShowControls(false);
+    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    if (shorts[targetIdx]) {
+      updateBrowserUrl('/shorts/' + getMediaShortId(shorts[targetIdx]), true);
+    }
+    if (!isDesktop && containerRef.current) {
+      slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    }
+  }, [shorts, isDesktop, onIndexChange]);
+
   // Desktop mouse movement reveals HUD and resets 2.5s idle timer (suppressed on touch gestures)
   const handleMouseMove = useCallback(() => {
     if (Date.now() - lastTouchTimeRef.current < 800) return;
@@ -127,13 +148,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     // Horizontal swipe gesture detection for shorts
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0 && activeIndex < shorts.length - 1) {
-        // Swiped left -> NEXT short
-        setSlideDirection('next');
-        slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+        goToShortIndex(activeIndex + 1, 'next');
       } else if (dx > 0 && activeIndex > 0) {
-        // Swiped right -> PREV short
-        setSlideDirection('prev');
-        slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+        goToShortIndex(activeIndex - 1, 'prev');
       }
     }
   };
@@ -173,9 +190,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
   }, [showControls, scheduleAutoHide]);
 
-  // Video Pointer Engine: Double-tap to Like, Hold-to-2x Speed
+  // Video Pointer Engine: Double-tap to Like, Hold-to-2x Speed, Desktop Drag
   const handleVideoPointerDown = useCallback((_e: React.PointerEvent, idx: number) => {
     if (idx !== activeIndex) return;
+    pointerStartXRef.current = _e.clientX;
+    pointerStartYRef.current = _e.clientY;
     const now = Date.now();
 
     // Double-tap detection (< 280ms)
@@ -211,6 +230,17 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }, 280);
   }, [activeIndex, shorts]);
 
+  const handleVideoPointerMove = useCallback((_e: React.PointerEvent) => {
+    const dx = Math.abs(_e.clientX - pointerStartXRef.current);
+    const dy = Math.abs(_e.clientY - pointerStartYRef.current);
+    if (dx > 12 || dy > 12) {
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
+    }
+  }, []);
+
   const handleVideoPointerUp = useCallback((_e: React.PointerEvent, idx: number) => {
     if (idx !== activeIndex) return;
 
@@ -232,13 +262,41 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       return;
     }
 
+    const dx = _e.clientX - pointerStartXRef.current;
+    const dy = _e.clientY - pointerStartYRef.current;
+
+    // Horizontal drag on desktop / touch: navigate next or prev
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
+      }
+      lastTapTimeRef.current = 0;
+      if (dx < 0 && activeIndex < shorts.length - 1) {
+        goToShortIndex(activeIndex + 1, 'next');
+      } else if (dx > 0 && activeIndex > 0) {
+        goToShortIndex(activeIndex - 1, 'prev');
+      }
+      return;
+    }
+
+    // Vertical drag on desktop is strictly ignored without triggering taps
+    if (isDesktop && Math.abs(dy) > 30 && Math.abs(dy) > Math.abs(dx)) {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
+      }
+      lastTapTimeRef.current = 0;
+      return;
+    }
+
     // Schedule single tap with short delay to allow double-tap detection
     if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
     tapTimeoutRef.current = window.setTimeout(() => {
       handleScreenTap(idx);
       tapTimeoutRef.current = null;
     }, 250);
-  }, [activeIndex, handleScreenTap]);
+  }, [activeIndex, handleScreenTap, isDesktop, goToShortIndex, shorts.length]);
 
   const handleVideoPointerCancel = useCallback((idx: number) => {
     if (holdTimerRef.current) {
@@ -310,15 +368,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
+      // On desktop, only ArrowRight navigates next; ArrowDown/PageDown are ignored
+      if (e.key === 'ArrowRight' || (!isDesktop && (e.key === 'ArrowDown' || e.key === 'PageDown'))) {
         if (e.cancelable) e.preventDefault();
-        setSlideDirection('next');
-        slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+        if (activeIndex < shorts.length - 1) {
+          goToShortIndex(activeIndex + 1, 'next');
+        }
       }
-      if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft') {
+      // On desktop, only ArrowLeft navigates prev; ArrowUp/PageUp are ignored
+      if (e.key === 'ArrowLeft' || (!isDesktop && (e.key === 'ArrowUp' || e.key === 'PageUp'))) {
         if (e.cancelable) e.preventDefault();
-        setSlideDirection('prev');
-        slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+        if (activeIndex > 0) {
+          goToShortIndex(activeIndex - 1, 'prev');
+        }
       }
       if (e.key === 'm' || e.key === 'M') setIsMuted((prev) => !prev);
       if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
@@ -341,11 +403,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, activeIndex, onClose, scheduleAutoHide]);
+  }, [isOpen, activeIndex, onClose, scheduleAutoHide, isDesktop, goToShortIndex, shorts.length]);
 
   // Initial index accurate scrolling and playback on mount
   useEffect(() => {
-    if (!isOpen || !containerRef.current || shorts.length === 0) return;
+    if (!isOpen || shorts.length === 0) return;
     hasInitialScrolledRef.current = false;
     const targetIdx = Math.max(0, Math.min(initialIndex || 0, shorts.length - 1));
     setActiveIndex(targetIdx);
@@ -353,11 +415,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       updateBrowserUrl('/shorts/' + getMediaShortId(shorts[targetIdx]), true);
     }
 
-    const targetElement =
-      containerRef.current.querySelector<HTMLElement>(`[data-index="${targetIdx}"]`) ||
-      slideRefs.current[targetIdx];
-    if (targetElement) {
-      targetElement.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+    if (!isDesktop && containerRef.current) {
+      const targetElement =
+        containerRef.current.querySelector<HTMLElement>(`[data-index="${targetIdx}"]`) ||
+        slideRefs.current[targetIdx];
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+      }
     }
 
     videoRefs.current.forEach((v, i) => {
@@ -378,11 +442,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       hasInitialScrolledRef.current = true;
     }, 150);
     return () => clearTimeout(timer);
-  }, [isOpen, initialIndex, shorts.length]);
+  }, [isOpen, initialIndex, shorts.length, isDesktop]);
 
-  // Clean Native CSS Scroll-Snap Observer (threshold: 0.6)
+  // Clean Native CSS Scroll-Snap Observer for Mobile (threshold: 0.6)
   useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
+    if (!isOpen || isDesktop || !containerRef.current) return;
     const observer = new IntersectionObserver((entries) => {
       if (!hasInitialScrolledRef.current) return;
       entries.forEach((entry) => {
@@ -396,7 +460,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               if (shorts[idx]) {
                 updateBrowserUrl('/shorts/' + getMediaShortId(shorts[idx]), true);
               }
-              // Swiping up/down to next short: strictly keep controls hidden
+              // Swiping up/down to next short on mobile: strictly keep controls hidden
               setShowControls(false);
               if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
               videoRefs.current.forEach((v, i) => {
@@ -411,8 +475,159 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }, { root: containerRef.current, threshold: 0.6 });
     slideRefs.current.forEach((el) => { if (el) observer.observe(el); });
     return () => observer.disconnect();
-  }, [isOpen, shorts.length, onIndexChange, isMuted]);
+  }, [isOpen, isDesktop, shorts.length, onIndexChange, isMuted]);
 
+
+  // Effect to ensure active video audio mute state synchronization
+  useEffect(() => {
+    const currentVideo = videoRefs.current[activeIndex];
+    if (currentVideo) {
+      currentVideo.muted = isMuted;
+    }
+  }, [activeIndex, isMuted]);
+
+  // Render single video card (used for desktop center stage & mobile scroll container)
+  const renderVideoCard = (item: StageMediaItem, idx: number, isActive: boolean) => {
+    if (!item) return null;
+    const streamUrl = overrides[idx] || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
+    const posterUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
+    const isLandscape = landscapeMap[idx];
+
+    return (
+      <div
+        key={`video-card-${idx}-${slideDirection || 'init'}`}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => handleVideoPointerDown(e, idx)}
+        onPointerMove={handleVideoPointerMove}
+        onPointerUp={(e) => handleVideoPointerUp(e, idx)}
+        onPointerCancel={() => handleVideoPointerCancel(idx)}
+        style={{
+          maxWidth: isDesktop ? (isLandscape ? 'calc(100vw - 560px)' : '420px') : '100%',
+          maxHeight: isDesktop ? '85vh' : '100%',
+        }}
+        className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
+          isLandscape
+            ? 'w-full md:aspect-[16/9] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
+            : 'w-full md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
+        } ${
+          isActive
+            ? slideDirection === 'next'
+              ? 'animate-short-slide-next'
+              : slideDirection === 'prev'
+              ? 'animate-short-slide-prev'
+              : 'animate-media-open'
+            : 'opacity-40 scale-[0.95]'
+        }`}
+      >
+        {!failedPermanently[idx] ? (
+          <>
+            <video
+              ref={(el) => {
+                videoRefs.current[idx] = el;
+                if (el && idx === activeIndex && isActive && !el.paused) {
+                  el.muted = isMuted;
+                }
+              }}
+              src={streamUrl}
+              poster={posterUrl || undefined}
+              playsInline
+              loop
+              muted={isMuted}
+              preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
+              className="w-full h-full object-contain rounded-none md:rounded-lg shadow-2xl bg-black md:bg-transparent"
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                if (v.videoWidth && v.videoHeight) {
+                  const isWide = v.videoWidth > v.videoHeight;
+                  setLandscapeMap((prev) => (prev[idx] === isWide ? prev : { ...prev, [idx]: isWide }));
+                }
+                if (idx === activeIndex) {
+                  setDuration(v.duration || 0);
+                  v.muted = isMuted;
+                  v.play().catch(() => {
+                    v.muted = true;
+                    v.play().catch(() => {});
+                  });
+                }
+              }}
+              onTimeUpdate={(e) => {
+                if (idx === activeIndex && !isScrubbingRef.current) {
+                  setCurrentTime(e.currentTarget.currentTime);
+                }
+              }}
+              onPause={() => {
+                if (idx === activeIndex) {
+                  if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+                  setShowControls(true);
+                }
+              }}
+              onPlay={() => {
+                if (idx === activeIndex) {
+                  scheduleAutoHide();
+                }
+              }}
+              onError={() => handleVideoError(idx, item, streamUrl)}
+            />
+
+            {/* 2X Speed HUD Pill */}
+            {is2XSpeed && idx === activeIndex && (
+              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-black/85 border border-amber-400/60 text-amber-300 font-mono text-xs font-bold tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.5)] animate-pulse pointer-events-none">
+                <span>2X SPEED</span>
+                <FastForward className="w-3.5 h-3.5 fill-current" />
+              </div>
+            )}
+
+            {/* Double-tap Like Heart Burst */}
+            {likeHeart && idx === activeIndex && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-out fade-out zoom-out duration-700">
+                <div className="w-24 h-24 rounded-full bg-red-500/20 backdrop-blur-md flex items-center justify-center border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.6)]">
+                  <Heart className="w-14 h-14 text-red-500 fill-red-500" />
+                </div>
+              </div>
+            )}
+
+            {/* Interactive glowing scrub timeline */}
+            {idx === activeIndex && duration > 0 && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => handleScrubPointerDown(e, idx)}
+                onPointerMove={(e) => handleScrubPointerMove(e, idx)}
+                onPointerUp={handleScrubPointerUp}
+                onPointerCancel={handleScrubPointerUp}
+                className="absolute bottom-0 inset-x-0 h-6 flex items-end pb-1.5 px-3 z-30 cursor-pointer group"
+              >
+                <div className="w-full h-1 group-hover:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-150 relative">
+                  <div
+                    className="h-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.6)] rounded-full transition-[width] duration-75"
+                    style={{ width: `${Math.min(100, Math.max(0, (currentTime / (duration || 1)) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {centerIcon && centerIcon.idx === idx && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-out fade-out zoom-out duration-700">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center text-white border border-neutral-700 shadow-2xl">
+                  {centerIcon.type === 'play' ? (
+                    <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current ml-1" />
+                  ) : (
+                    <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-neutral-950/95 rounded-lg p-6 text-center border border-neutral-800">
+            <div className="w-12 h-12 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center text-neutral-300 mb-3 shadow">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-normal text-neutral-200 mb-1 font-serif">Video Unavailable</h3>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!isOpen) return null;
   if (!shorts || shorts.length === 0) {
@@ -492,10 +707,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           key={`short-prev2-${activeIndex}-${slideDirection}`}
           onClick={(e) => {
             e.stopPropagation();
-            hapticLight();
-            setSlideDirection('prev');
-            const targetIdx = activeIndex - 2;
-            slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+            goToShortIndex(activeIndex - 2, 'prev');
           }}
           className={`hidden xl:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-75 hover:opacity-100 scale-95 hover:scale-100 ${
             slideDirection === 'next'
@@ -537,10 +749,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           key={`short-prev-${activeIndex}-${slideDirection}`}
           onClick={(e) => {
             e.stopPropagation();
-            hapticLight();
-            setSlideDirection('prev');
-            const prevIdx = activeIndex - 1;
-            slideRefs.current[prevIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+            goToShortIndex(activeIndex - 1, 'prev');
           }}
           className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-90 hover:opacity-100 ${
             slideDirection === 'next'
@@ -579,10 +788,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           key={`short-next-${activeIndex}-${slideDirection}`}
           onClick={(e) => {
             e.stopPropagation();
-            hapticLight();
-            setSlideDirection('next');
-            const nextIdx = activeIndex + 1;
-            slideRefs.current[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+            goToShortIndex(activeIndex + 1, 'next');
           }}
           className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-90 hover:opacity-100 ${
             slideDirection === 'next'
@@ -621,10 +827,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           key={`short-next2-${activeIndex}-${slideDirection}`}
           onClick={(e) => {
             e.stopPropagation();
-            hapticLight();
-            setSlideDirection('next');
-            const targetIdx = activeIndex + 2;
-            slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+            goToShortIndex(activeIndex + 2, 'next');
           }}
           className={`hidden xl:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-75 hover:opacity-100 scale-95 hover:scale-100 ${
             slideDirection === 'next'
@@ -659,202 +862,77 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           </div>
         </div>
       )}
-      {/* Scroll-Snap Feed Container: Vertical on mobile, Horizontal on desktop */}
-      <div
-        ref={containerRef}
-        onPointerDown={(e) => {
-          if (e.target === e.currentTarget) {
-            backdropClickStartRef.current = { x: e.clientX, y: e.clientY };
-          }
-        }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            const dist = Math.hypot(
-              e.clientX - backdropClickStartRef.current.x,
-              e.clientY - backdropClickStartRef.current.y
-            );
-            if (dist < 10) {
-              onClose();
+      {/* Desktop Stage (In-Place 5-Card Deck Centerpiece) vs Mobile Scroll-Snap Reels */}
+      {isDesktop ? (
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center p-4 bg-transparent pointer-events-none select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
+          <div className="pointer-events-auto flex items-center justify-center">
+            {renderVideoCard(shorts[activeIndex], activeIndex, true)}
+          </div>
+          {/* Preload adjacent videos for zero-latency instant transitions */}
+          {activeIndex + 1 < shorts.length && (
+            <video
+              key={`preload-next-${activeIndex + 1}`}
+              src={overrides[activeIndex + 1] || getVideoStreamUrl(shorts[activeIndex + 1]) || getDirectHfVideoUrl(shorts[activeIndex + 1])}
+              preload="auto"
+              muted
+              playsInline
+              className="hidden"
+            />
+          )}
+          {activeIndex - 1 >= 0 && (
+            <video
+              key={`preload-prev-${activeIndex - 1}`}
+              src={overrides[activeIndex - 1] || getVideoStreamUrl(shorts[activeIndex - 1]) || getDirectHfVideoUrl(shorts[activeIndex - 1])}
+              preload="auto"
+              muted
+              playsInline
+              className="hidden"
+            />
+          )}
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          onPointerDown={(e) => {
+            if (e.target === e.currentTarget) {
+              backdropClickStartRef.current = { x: e.clientX, y: e.clientY };
             }
-          }
-        }}
-        onWheel={(e) => {
-          if (!isDesktop || !containerRef.current) return;
-          // In horizontal desktop mode, translate vertical wheel gestures to horizontal scroll
-          if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && Math.abs(e.deltaY) > 10) {
-            e.preventDefault();
-            if (e.deltaY > 0 && activeIndex < shorts.length - 1) {
-              setSlideDirection('next');
-              slideRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
-            } else if (e.deltaY < 0 && activeIndex > 0) {
-              setSlideDirection('prev');
-              slideRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
-            }
-          }
-        }}
-        className={isDesktop
-          ? "w-full h-full overflow-x-scroll overflow-y-hidden snap-x snap-mandatory scroll-smooth overscroll-x-contain flex flex-row items-center no-scrollbar"
-          : "w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth overscroll-y-contain flex flex-col items-center no-scrollbar"
-        }
-        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-      >
-        {shorts.map((item, idx) => {
-          if (!item) return null;
-          const streamUrl = overrides[idx] || getVideoStreamUrl(item) || getDirectHfVideoUrl(item);
-          const posterUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
-          const isLandscape = landscapeMap[idx];
-
-          return (
-            <div
-              key={item.id || idx}
-              ref={(el) => { slideRefs.current[idx] = el; }}
-              data-index={idx}
-              data-reel-index={idx}
-              onPointerDown={(e) => {
-                if (e.target === e.currentTarget) {
-                  backdropClickStartRef.current = { x: e.clientX, y: e.clientY };
-                }
-              }}
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  const dist = Math.hypot(
-                    e.clientX - backdropClickStartRef.current.x,
-                    e.clientY - backdropClickStartRef.current.y
-                  );
-                  if (dist < 10) {
-                    onClose();
-                  }
-                }
-              }}
-              className={isDesktop
-                ? "w-screen h-full shrink-0 snap-start snap-always relative flex items-center justify-center p-4 bg-transparent cursor-pointer"
-                : "w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent cursor-pointer"
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              const dist = Math.hypot(
+                e.clientX - backdropClickStartRef.current.x,
+                e.clientY - backdropClickStartRef.current.y
+              );
+              if (dist < 10) {
+                onClose();
               }
-            >
+            }
+          }}
+          className="w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth overscroll-y-contain flex flex-col items-center no-scrollbar"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          {shorts.map((item, idx) => {
+            if (!item) return null;
+            return (
               <div
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => handleVideoPointerDown(e, idx)}
-                onPointerUp={(e) => handleVideoPointerUp(e, idx)}
-                onPointerCancel={() => handleVideoPointerCancel(idx)}
-                style={{
-                  maxWidth: isDesktop ? (isLandscape ? 'calc(100vw - 560px)' : '420px') : '100%',
-                  maxHeight: isDesktop ? '85vh' : '100%',
-                }}
-                className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
-                  isLandscape
-                    ? 'w-full md:aspect-[16/9] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
-                    : 'w-full md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
-                } ${
-                  idx === activeIndex
-                    ? slideDirection === 'next'
-                      ? 'animate-short-slide-next'
-                      : slideDirection === 'prev'
-                      ? 'animate-short-slide-prev'
-                      : 'animate-media-open'
-                    : 'opacity-40 scale-[0.95]'
-                }`}
+                key={item.id || idx}
+                ref={(el) => { slideRefs.current[idx] = el; }}
+                data-index={idx}
+                data-reel-index={idx}
+                className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent cursor-pointer"
               >
-                {!failedPermanently[idx] ? (
-                  <>
-                    <video
-                      ref={(el) => { videoRefs.current[idx] = el; }}
-                      src={streamUrl}
-                      poster={posterUrl || undefined}
-                      playsInline
-                      loop
-                      muted={isMuted}
-                      preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-                      className="w-full h-full object-contain rounded-none md:rounded-lg shadow-2xl bg-black md:bg-transparent"
-                      onLoadedMetadata={(e) => {
-                        const v = e.currentTarget;
-                        if (v.videoWidth && v.videoHeight) {
-                          const isWide = v.videoWidth > v.videoHeight;
-                          setLandscapeMap((prev) => (prev[idx] === isWide ? prev : { ...prev, [idx]: isWide }));
-                        }
-                        if (idx === activeIndex) {
-                          setDuration(v.duration || 0);
-                        }
-                      }}
-                      onTimeUpdate={(e) => {
-                        if (idx === activeIndex && !isScrubbingRef.current) {
-                          setCurrentTime(e.currentTarget.currentTime);
-                        }
-                      }}
-                      onPause={() => {
-                        if (idx === activeIndex) {
-                          if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-                          setShowControls(true);
-                        }
-                      }}
-                      onPlay={() => {
-                        if (idx === activeIndex) {
-                          scheduleAutoHide();
-                        }
-                      }}
-                      onError={() => handleVideoError(idx, item, streamUrl)}
-                    />
-
-                    {/* 2X Speed HUD Pill */}
-                    {is2XSpeed && idx === activeIndex && (
-                      <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-black/85 border border-amber-400/60 text-amber-300 font-mono text-xs font-bold tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.5)] animate-pulse pointer-events-none">
-                        <span>2X SPEED</span>
-                        <FastForward className="w-3.5 h-3.5 fill-current" />
-                      </div>
-                    )}
-
-                    {/* Double-tap Like Heart Burst */}
-                    {likeHeart && idx === activeIndex && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-out fade-out zoom-out duration-700">
-                        <div className="w-24 h-24 rounded-full bg-red-500/20 backdrop-blur-md flex items-center justify-center border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.6)]">
-                          <Heart className="w-14 h-14 text-red-500 fill-red-500" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Interactive glowing scrub timeline */}
-                    {idx === activeIndex && duration > 0 && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => handleScrubPointerDown(e, idx)}
-                        onPointerMove={(e) => handleScrubPointerMove(e, idx)}
-                        onPointerUp={handleScrubPointerUp}
-                        onPointerCancel={handleScrubPointerUp}
-                        className="absolute bottom-0 inset-x-0 h-6 flex items-end pb-1.5 px-3 z-30 cursor-pointer group"
-                      >
-                        <div className="w-full h-1 group-hover:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-150 relative">
-                          <div
-                            className="h-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.6)] rounded-full transition-[width] duration-75"
-                            style={{ width: `${Math.min(100, Math.max(0, (currentTime / (duration || 1)) * 100))}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {centerIcon && centerIcon.idx === idx && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-out fade-out zoom-out duration-700">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center text-white border border-neutral-700 shadow-2xl">
-                          {centerIcon.type === 'play' ? (
-                            <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current ml-1" />
-                          ) : (
-                            <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-neutral-950/95 rounded-lg p-6 text-center border border-neutral-800">
-                    <div className="w-12 h-12 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center text-neutral-300 mb-3 shadow">
-                      <AlertTriangle className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-base font-normal text-neutral-200 mb-1 font-serif">Video Unavailable</h3>
-                  </div>
-                )}
+                {renderVideoCard(item, idx, idx === activeIndex)}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
