@@ -44,21 +44,37 @@ import {
   findMatchingFolder,
   getAlbumSlug,
   searchCatalogRecursively,
+  getMediaShortId,
+  updateBrowserUrl,
 } from './utils/urlRouter';
+import { isPhotoExtension } from './utils/mediaTypeDetector';
 
 function buildHomeUrl(): string {
-  if (typeof window === 'undefined') return '/';
-  return window.location.pathname || '/';
+  return '/';
 }
 
-function buildMediaUrl(_item: StageMediaItem, _albumContext?: string): string {
+function buildMediaUrl(item: StageMediaItem, albumContext?: string): string {
   if (typeof window === 'undefined') return '/';
-  return window.location.pathname || '/';
+  const shortId = getMediaShortId(item);
+  const isPhoto = item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+  const isShort =
+    item.mediaType === 'short' ||
+    item.path?.toLowerCase().includes('short') ||
+    item.url?.toLowerCase().includes('short') ||
+    (typeof albumContext === 'string' && albumContext.toLowerCase().includes('short'));
+
+  if (isPhoto) return `/photographs/${shortId}`;
+  if (isShort) return `/shorts/${shortId}`;
+  return `/clips/${shortId}`;
 }
 
-function buildAlbumUrl(_albumNameOrSlug: string): string {
+function buildAlbumUrl(albumNameOrSlug: string): string {
   if (typeof window === 'undefined') return '/';
-  return window.location.pathname || '/';
+  const clean = albumNameOrSlug.toLowerCase();
+  if (clean.includes('short')) return '/shorts';
+  if (clean.includes('clip') || clean.includes('video')) return '/clips';
+  if (clean.includes('photo') || clean.includes('image')) return '/photographs';
+  return '/';
 }
 
 function App() {
@@ -139,7 +155,7 @@ function App() {
     }
   }, []);
 
-  const handleCloseModal = useCallback((_type?: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
+  const handleCloseModal = useCallback((type?: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
     // 1. Immediately reset all modal states to completely unmount players
     setTheaterState({ isOpen: false, item: null, playlist: [] });
     setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
@@ -147,10 +163,13 @@ function App() {
     setViewAllState({ isOpen: false, title: '', items: [] });
     historyDepthRef.current = 0;
 
-    // 2. Cleanly clear all player query parameters (media=..., album=...) from URL
-    // using replaceState so closing NEVER triggers nested back-stack loops
-    const targetUrl = buildHomeUrl();
-    window.history.replaceState({ tab: 'all' }, '', targetUrl);
+    // 2. Cleanly restore current category path
+    const targetUrl =
+      type === 'shorts' ? '/shorts'
+      : type === 'lightbox' ? '/photographs'
+      : type === 'theater' ? '/clips'
+      : '/';
+    updateBrowserUrl(targetUrl, true);
   }, []);
 
   // Web Theme Accent Initialization

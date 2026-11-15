@@ -2,6 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- SPA redirect decode for GitHub Pages -->
+    <script type="text/javascript">
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -14,7 +27,7 @@
 
     <!-- Robots: No Indexing -->
     <title>Sarwar C You</title>
-    <meta name="description" content="Celebrity Archive - Curated High-Definition Portraits &amp; Verified Intelligence on Leading Actresses" />
+    <meta name="description" content="Dynamic Visual Media Archive // Curated Cinematic Streams, Shorts &amp; High-Resolution Photographs" />
     <meta name="robots" content="noindex, nofollow" />
 
     <!-- Fonts: Roboto Condensed, JetBrains Mono, Playfair Display & Merriweather -->

@@ -17,6 +17,7 @@ import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticMedium } from '../utils/hapticsManager';
+import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 
 interface MediaModalProps {
@@ -122,6 +123,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setActiveIdx(next);
       _onIndexChange?.(next);
       resetZoom();
+      if (items[next]) {
+        updateBrowserUrl('/photographs/' + getMediaShortId(items[next]), true);
+      }
     }
   }, [items, activeIdx, _onIndexChange, resetZoom]);
 
@@ -133,6 +137,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setActiveIdx(prev);
       _onIndexChange?.(prev);
       resetZoom();
+      if (items[prev]) {
+        updateBrowserUrl('/photographs/' + getMediaShortId(items[prev]), true);
+      }
     }
   }, [items, activeIdx, _onIndexChange, resetZoom]);
 
@@ -165,6 +172,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   useEffect(() => {
     resetZoom();
   }, [activeIdx, activeUrl, resetZoom]);
+
+  // Keep browser address bar in sync with active photograph
+  useEffect(() => {
+    if (isOpen && currentItem) {
+      updateBrowserUrl('/photographs/' + getMediaShortId(currentItem), true);
+    }
+  }, [isOpen, activeIdx, currentItem]);
 
   // Android Native Hardware Back Button handler
   useBackButton(

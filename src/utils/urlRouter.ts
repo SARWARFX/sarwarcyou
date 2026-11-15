@@ -1,4 +1,5 @@
 import type { AlbumData, StageMediaItem, MediaFolderEntry, SortOrder } from '../types';
+import { isPhotoExtension } from './mediaTypeDetector';
 
 export const STORAGE_LAST_ACTIVE_ALBUM = 'last_active_album';
 
@@ -707,10 +708,32 @@ export interface SyncUrlStateOptions {
  * Synchronizes browser URL search parameters without full page reload.
  * When URL linking is disabled, this keeps the address bar permanently at root ('/').
  */
-export function syncUrlState(_options?: SyncUrlStateOptions): void {
+export function syncUrlState(options?: SyncUrlStateOptions): void {
   if (typeof window === 'undefined') return;
 
-  // Keep the address bar permanently at the clean base root ('/')
+  if (options?.mediaItem) {
+    const item = options.mediaItem;
+    const shortId = getMediaShortId(item);
+    const isPhoto = item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+    const isShort =
+      item.mediaType === 'short' ||
+      item.path?.toLowerCase().includes('short') ||
+      item.url?.toLowerCase().includes('short') ||
+      (typeof options.album === 'string' && options.album.toLowerCase().includes('short'));
+
+    if (isPhoto) {
+      updateBrowserUrl('/photographs/' + shortId, options.replace ?? true);
+      return;
+    }
+    if (isShort) {
+      updateBrowserUrl('/shorts/' + shortId, options.replace ?? true);
+      return;
+    }
+    updateBrowserUrl('/clips/' + shortId, options.replace ?? true);
+    return;
+  }
+
+  // Keep the address bar permanently at the clean base root or path
   if (window.location.search || window.location.hash) {
     try {
       window.history.replaceState(null, '', window.location.pathname || '/');
@@ -1170,6 +1193,134 @@ export function syncAppRoute(route: Partial<AppIdRoute>, _replace = false): void
     } catch {
       // ignore
     }
+  }
+}
+
+const BASE62_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+/**
+ * Deterministically generates an ultra-compact 4-character Base62 ID for any media item
+ * e.g. "7mK9", "3KFz", "1hBI"
+ */
+export function getMediaShortId(
+  item: StageMediaItem | { id?: string; path?: string; name?: string; url?: string } | string
+): string {
+  const raw = typeof item === 'string'
+    ? item
+    : (item.path || item.id || item.url || item.name || '');
+
+  let h = 2166136261;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  h >>>= 0;
+
+  let res = '';
+  while (res.length < 4) {
+    res = BASE62_CHARS[h % 62] + res;
+    h = Math.floor(h / 62);
+  }
+  return res;
+}
+
+/**
+ * Finds a media item in a catalog by its 4-character short ID or fallback ID
+ */
+export function findMediaByShortId(
+  items: StageMediaItem[],
+  shortId: string
+): { item: StageMediaItem; index: number } | null {
+  if (!shortId || !items || items.length === 0) return null;
+  const target = shortId.trim();
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item) continue;
+    const computedId = getMediaShortId(item);
+    if (computedId === target) {
+      return { item, index: i };
+    }
+  }
+
+  // Fallback: Check direct item.id, item.name, or slug match in case legacy link was used
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item) continue;
+    if (item.id === target || item.name === target || getMediaSlug(item) === target) {
+      return { item, index: i };
+    }
+  }
+
+  return null;
+}
+
+export type AppTabRoute = 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY';
+
+export interface ParsedAppRoute {
+  tab: AppTabRoute;
+  shortId: string | null;
+  rawPath: string;
+  isNotFound: boolean;
+}
+
+/**
+ * Parses modern clean pathnames such as:
+ * - "/" -> Home (Trailer)
+ * - "/shorts" -> Shorts Tab
+ * - "/shorts/7mK9" -> Shorts Tab + Media 7mK9
+ * - "/clips" or "/videoclips" -> Video Clips Tab
+ * - "/clips/x2P4" -> Video Clips Tab + Media x2P4
+ * - "/photographs" or "/photos" -> Photographs Tab
+ * - "/photographs/v9Q1" -> Photographs Tab + Media v9Q1
+ */
+export function parseAppPathname(pathname?: string): ParsedAppRoute {
+  if (typeof window === 'undefined') {
+    return { tab: 'TRAILER', shortId: null, rawPath: '/', isNotFound: false };
+  }
+
+  const raw = (pathname ?? window.location.pathname).replace(/^\/+|\/+$/g, '').trim();
+  if (!raw || raw === 'home' || raw === 'trailer') {
+    return { tab: 'TRAILER', shortId: null, rawPath: '/', isNotFound: false };
+  }
+
+  const segments = raw.split('/').map((s) => s.trim()).filter(Boolean);
+  const root = segments[0]?.toLowerCase();
+  const shortId = segments[1] || null;
+
+  if (root === 'shorts') {
+    return { tab: 'SHORTS', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+  }
+
+  if (root === 'clips' || root === 'videoclips' || root === 'videos') {
+    return { tab: 'CLIPS', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+  }
+
+  if (root === 'photographs' || root === 'photos' || root === 'images') {
+    return { tab: 'PHOTOGRAPHY', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+  }
+
+  // Any unrecognized root path
+  return { tab: 'TRAILER', shortId: null, rawPath: raw, isNotFound: true };
+}
+
+/**
+ * Updates browser address bar cleanly without page reload
+ */
+export function updateBrowserUrl(path: string, replace = false): void {
+  if (typeof window === 'undefined') return;
+  const target = path.startsWith('/') ? path : `/${path}`;
+  if (window.location.pathname === target && !window.location.search && !window.location.hash) {
+    return;
+  }
+  try {
+    if (replace) {
+      window.history.replaceState({ path: target }, '', target);
+    } else {
+      window.history.pushState({ path: target }, '', target);
+    }
+  } catch {
+    // ignore
   }
 }
 

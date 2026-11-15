@@ -7,6 +7,7 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight, hapticMedium } from '../utils/hapticsManager';
+import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -348,6 +349,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     hasInitialScrolledRef.current = false;
     const targetIdx = Math.max(0, Math.min(initialIndex || 0, shorts.length - 1));
     setActiveIndex(targetIdx);
+    if (shorts[targetIdx]) {
+      updateBrowserUrl('/shorts/' + getMediaShortId(shorts[targetIdx]), true);
+    }
 
     const targetElement =
       containerRef.current.querySelector<HTMLElement>(`[data-index="${targetIdx}"]`) ||
@@ -389,6 +393,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             if (!isNaN(idx)) {
               setActiveIndex(idx);
               onIndexChange?.(idx);
+              if (shorts[idx]) {
+                updateBrowserUrl('/shorts/' + getMediaShortId(shorts[idx]), true);
+              }
               // Swiping up/down to next short: strictly keep controls hidden
               setShowControls(false);
               if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);

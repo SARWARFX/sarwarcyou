@@ -17,7 +17,12 @@ import {
   parseIdRoute,
   syncAppRoute,
   type AppIdRoute,
+  getMediaShortId,
+  findMediaByShortId,
+  parseAppPathname,
+  updateBrowserUrl,
 } from '../../utils/urlRouter';
+import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { DynamicTrailerShowcase } from './DynamicTrailerShowcase';
 import { FALLBACK_HF_CATALOG } from '../../data/fallbackData';
 
@@ -96,10 +101,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   // Navigation states:
   // 4 Core Categories: 'TRAILER' (Homepage) | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY'
-  // The website must always start with the homepage. Whenever the visitor reloads the page, it starts with the homepage.
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
-    // Only route directly to a sub-tab if an explicit media query (?v=... or ?m=... or ?id=...) was provided in the URL
-    const search = typeof window !== 'undefined' ? window.location.search : '';
+    if (typeof window === 'undefined') return 'TRAILER';
+    const parsed = parseAppPathname();
+    if (parsed.tab !== 'TRAILER') {
+      return parsed.tab;
+    }
+    const search = window.location.search;
     if (search.includes('v=') || search.includes('video=') || search.includes('m=') || search.includes('media=')) {
       if (initialRoute.category === 'SHORTS') return 'SHORTS';
       if (initialRoute.category === 'REALTUBE' || initialRoute.category === 'CLIPS') return 'CLIPS';
@@ -109,6 +117,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   });
   const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(initialRoute.subfolder);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
+
+  // 404 Media / Route Not Found Dialog State
+  const [notFoundInfo, setNotFoundInfo] = useState<{
+    isOpen: boolean;
+    path: string;
+    tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'TRAILER';
+  }>({
+    isOpen: false,
+    path: '',
+    tab: 'TRAILER',
+  });
 
   // Dynamic Animated Transition Pool for Fluid Channel Surfing & Shift Animations
   const TRANSITION_ANIMATIONS = useMemo(
@@ -145,17 +164,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Synchronize state when browser Back / Forward (popstate) is clicked
   useEffect(() => {
     const handlePopState = () => {
-      const route = parseIdRoute();
-      const cat = (!route.category || route.category === 'ARCHIVE' || route.category === 'NEWS' || route.category === 'YOUTUBE' || route.category === 'TRAILER')
-        ? 'TRAILER'
-        : route.category === 'SHORTS'
-        ? 'SHORTS'
-        : (route.category === 'REALTUBE' || route.category === 'CLIPS')
-        ? 'CLIPS'
-        : 'PHOTOGRAPHY';
-      setSelectedCategory(cat);
-      setSelectedSubfolder(route.subfolder);
-      setActiveVideoId(route.videoId);
+      const parsed = parseAppPathname();
+      setSelectedCategory(parsed.tab);
+      setSelectedSubfolder(null);
+      setActiveVideoId(parsed.shortId);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -167,10 +179,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   useEffect(() => {
     if (prevModalOpen.current && !isModalOpen) {
       setActiveVideoId(null);
-      updateRoute({ videoId: null, mediaId: null }, true);
+      const targetPath =
+        selectedCategory === 'SHORTS' ? '/shorts'
+        : selectedCategory === 'CLIPS' || selectedCategory === 'REALTUBE' ? '/clips'
+        : selectedCategory === 'PHOTOGRAPHY' ? '/photographs'
+        : '/';
+      updateBrowserUrl(targetPath, true);
     }
     prevModalOpen.current = isModalOpen;
-  }, [isModalOpen, updateRoute]);
+  }, [isModalOpen, selectedCategory]);
 
   // Concealed Option A Terminal Drawer State
   const [isVaultDrawerOpen, setVaultDrawerOpen] = useState(false);
@@ -347,25 +364,75 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
   }, [initialAlbum, items.length, rootMap]);
 
-  // Direct ID URL auto-launch on initial mount
+  // Direct Short ID or Slug URL auto-launch on initial mount
   const hasAutoLaunchedRef = useRef(false);
   useEffect(() => {
-    if (hasAutoLaunchedRef.current) return;
+    if (hasAutoLaunchedRef.current || !items || items.length === 0) return;
 
-    if (initialRoute.mediaId && items.length > 0) {
-      const matched = items.find(
+    const parsed = parseAppPathname();
+
+    // 1. If path is an unrecognized root path (e.g. /unknown-page)
+    if (parsed.isNotFound) {
+      hasAutoLaunchedRef.current = true;
+      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+      return;
+    }
+
+    // 2. If path has a media short ID (e.g. /shorts/7mK9 or /photographs/v9Q1)
+    if (parsed.shortId) {
+      hasAutoLaunchedRef.current = true;
+      const matched = findMediaByShortId(items, parsed.shortId);
+      if (matched) {
+        const item = matched.item;
+        const isPhoto =
+          parsed.tab === 'PHOTOGRAPHY' ||
+          item.type === 'image' ||
+          isPhotoExtension(item.path || item.url || item.name || '');
+        const isShort =
+          parsed.tab === 'SHORTS' ||
+          item.mediaType === 'short' ||
+          item.path?.toLowerCase().includes('short') ||
+          item.url?.toLowerCase().includes('short');
+
+        if (isPhoto) {
+          setSelectedCategory('PHOTOGRAPHY');
+          const photoPool = items.filter(
+            (f) => f.type === 'image' || isPhotoExtension(f.path || f.url || f.name || '')
+          );
+          const idx = photoPool.findIndex((p) => p.id === item.id || p.url === item.url);
+          onOpenPhoto(item, photoPool.length > 0 ? photoPool : [item], idx >= 0 ? idx : 0);
+        } else if (isShort) {
+          setSelectedCategory('SHORTS');
+          const shortPool = items.filter(
+            (f) =>
+              f.mediaType === 'short' ||
+              f.path?.toLowerCase().includes('short') ||
+              f.url?.toLowerCase().includes('short')
+          );
+          const idx = shortPool.findIndex((s) => s.id === item.id || s.url === item.url);
+          onOpenShort(item, shortPool.length > 0 ? shortPool : [item], idx >= 0 ? idx : 0);
+        } else {
+          setSelectedCategory('CLIPS');
+          onOpenVideo(item, [item]);
+        }
+      } else {
+        // Short ID not found in library -> Show animated Not Found modal!
+        setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+      }
+      return;
+    }
+
+    // 3. Fallback: check legacy query params
+    if (initialRoute.mediaId) {
+      const matchedLegacy = items.find(
         (it) => it.id === initialRoute.mediaId || (it.url && it.url.includes(initialRoute.mediaId!))
       );
-      if (matched) {
+      if (matchedLegacy) {
         hasAutoLaunchedRef.current = true;
-        onOpenPhoto(matched, [matched], 0);
+        onOpenPhoto(matchedLegacy, [matchedLegacy], 0);
       }
     }
-  }, [
-    initialRoute,
-    items,
-    onOpenPhoto,
-  ]);
+  }, [items, onOpenPhoto, onOpenShort, onOpenVideo, initialRoute]);
 
   // Active Category Root Node
   const activeCategoryNode = useMemo(() => {
@@ -506,14 +573,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     }
 
-    if (item.id) {
-      updateRoute({ mediaId: item.id });
-    }
+    const shortId = getMediaShortId(item);
 
     const isPhoto =
       item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
 
     if (isPhoto) {
+      updateBrowserUrl('/photographs/' + shortId);
       const photoPool = activeMediaList.filter(
         (f) =>
           f.type === 'image' || isPhotoExtension(f.path || f.url || f.name || '')
@@ -531,6 +597,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       selectedCategory === 'SHORTS';
 
     if (isShort) {
+      updateBrowserUrl('/shorts/' + shortId);
       const shortPool = activeMediaList.filter(
         (f) =>
           f.mediaType === 'short' ||
@@ -552,6 +619,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     const videoPool = activeMediaList.filter(
       (f) => f.type === 'video' || (!f.type && !isPhoto && !isShort)
     );
+    updateBrowserUrl('/clips/' + shortId);
     onOpenVideo(item, videoPool.length > 0 ? videoPool : [item]);
   };
 
@@ -635,8 +703,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const navigateTab = useCallback(
     (newCat: string | null) => {
       recordUserActivity();
-      const currentKey = selectedCategory || 'NEWS';
-      const targetKey = newCat || 'NEWS';
+      const currentKey = selectedCategory || 'TRAILER';
+      const targetKey = newCat || 'TRAILER';
       if (currentKey === targetKey) return;
       const oldIdx = MAIN_TAB_ORDER.indexOf(currentKey);
       const newIdx = MAIN_TAB_ORDER.indexOf(targetKey);
@@ -644,6 +712,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setSelectedCategory(targetKey);
       setSelectedSubfolder(null);
       updateRoute({ category: targetKey as any, subfolder: null, videoId: null });
+
+      const targetPath =
+        targetKey === 'SHORTS' ? '/shorts'
+        : targetKey === 'CLIPS' || targetKey === 'REALTUBE' ? '/clips'
+        : targetKey === 'PHOTOGRAPHY' ? '/photographs'
+        : '/';
+      updateBrowserUrl(targetPath);
     },
     [selectedCategory, MAIN_TAB_ORDER, updateRoute, recordUserActivity]
   );
@@ -671,6 +746,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     setActiveVideoId(null);
     setActiveTransitionClass('animate-kinetic-slide-left');
     updateRoute({ category: 'TRAILER', subfolder: null, videoId: null, mediaId: null }, true);
+    updateBrowserUrl('/', true);
     setVaultDrawerOpen(false);
   }, [updateRoute, recordUserActivity]);
 
@@ -903,6 +979,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         onOpenVideo={(item) => onOpenVideo(item, [item])}
       />
 
+      {/* 404 Media / Route Not Found Modal */}
+      <MediaNotFoundDialog
+        isOpen={notFoundInfo.isOpen}
+        attemptedPath={notFoundInfo.path}
+        suggestedTab={notFoundInfo.tab}
+        onClose={() => setNotFoundInfo((prev) => ({ ...prev, isOpen: false }))}
+        onNavigateTab={(tab) => {
+          setNotFoundInfo((prev) => ({ ...prev, isOpen: false }));
+          if (tab === 'TRAILER') {
+            handleExitToHome();
+          } else {
+            navigateTab(tab);
+          }
+        }}
+      />
+
       {/* Top Acid Lime Kinetic Marquee Ticker */}
       <div className="w-full overflow-hidden py-1 sm:py-1.5 bg-[#ccff00] text-black font-mono font-black text-[11px] sm:text-xs uppercase tracking-widest select-none shrink-0 z-40 shadow-md">
         <div className="animate-marquee whitespace-nowrap flex gap-8 items-center">
@@ -1056,9 +1148,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             shorts={trailerShorts}
             clips={trailerClips}
             images={trailerImages}
-            onOpenPhoto={onOpenPhoto}
-            onOpenVideo={onOpenVideo}
-            onOpenShort={onOpenShort}
+            onOpenPhoto={(item, playlist, index) => {
+              updateBrowserUrl('/photographs/' + getMediaShortId(item));
+              onOpenPhoto(item, playlist, index);
+            }}
+            onOpenVideo={(item, playlist) => {
+              updateBrowserUrl('/clips/' + getMediaShortId(item));
+              onOpenVideo(item, playlist);
+            }}
+            onOpenShort={(item, shorts, index, folderName) => {
+              updateBrowserUrl('/shorts/' + getMediaShortId(item));
+              onOpenShort(item, shorts, index, folderName);
+            }}
             onNavigateCategory={(cat) => navigateTab(cat)}
             isModalOpen={isModalOpen}
           />
