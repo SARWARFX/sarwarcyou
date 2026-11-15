@@ -1044,20 +1044,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             trackingClass="tracking-[0.2em] sm:tracking-[0.24em]"
             onTrigger={() => setVaultDrawerOpen((prev) => !prev)}
           />
-          <span className="hidden sm:inline-block text-[10px] font-mono text-[#ccff00] uppercase tracking-widest px-2 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/25">
-            {selectedCategory === 'PHOTOGRAPHY'
-              ? 'PHOTOGRAPHS'
-              : selectedCategory === 'CLIPS'
-              ? 'VIDEO CLIPS'
-              : selectedCategory === 'SHORTS'
-              ? 'SHORTS'
-              : 'HOMEPAGE'}
-          </span>
-        </div>
-
-        {/* Avant-Garde Quick Select Keys: Consolidated Tabs (Precision Sci-Fi Reticle) */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5">
-          {/* Autonomous Rolling Tour Toggle Pill */}
+          {/* Active Tab Indicator / Autonomous Tour Trigger Button */}
           <button
             type="button"
             onClick={() => {
@@ -1071,19 +1058,39 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 return nextState;
               });
             }}
-            title={isAutoTourPaused ? 'Click to start 10s autonomous tour across feeds' : 'Click to pause autonomous tour'}
-            className={`reticle-chip ${
-              !isAutoTourPaused ? 'active-chip' : ''
+            title={isAutoTourPaused ? 'Click to start tour' : 'Click to stop tour'}
+            className={`group relative inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded transition-all duration-200 cursor-pointer ${
+              !isAutoTourPaused
+                ? 'bg-[#ccff00]/15 border border-[#ccff00] text-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.25)]'
+                : 'bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 hover:border-[#ccff00] text-[#ccff00]'
             }`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isAutoTourPaused ? 'bg-neutral-500' : 'bg-[#ccff00] animate-pulse shadow-[0_0_6px_#ccff00]'
+              className={`w-1.5 h-1.5 rounded-full transition-all ${
+                !isAutoTourPaused
+                  ? 'bg-[#ccff00] animate-pulse shadow-[0_0_6px_#ccff00]'
+                  : 'bg-neutral-500 group-hover:bg-[#ccff00]'
               }`}
             />
-            <span>{isAutoTourPaused ? 'START TOUR' : 'AUTO TOUR'}</span>
-          </button>
+            <span>
+              {selectedCategory === 'PHOTOGRAPHY'
+                ? 'PHOTOGRAPHS'
+                : selectedCategory === 'CLIPS'
+                ? 'VIDEO CLIPS'
+                : selectedCategory === 'SHORTS'
+                ? 'SHORTS'
+                : 'HOMEPAGE'}
+            </span>
 
+            {/* Instant Floating Hover Tooltip */}
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-black/95 border border-[#ccff00]/50 text-[#ccff00] text-[9px] font-mono font-bold tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 shadow-xl z-50">
+              {isAutoTourPaused ? 'Click to start tour' : 'Click to stop tour'}
+            </div>
+          </button>
+        </div>
+
+        {/* Avant-Garde Quick Select Keys: Consolidated Tabs (Precision Sci-Fi Reticle) */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5">
           <button
             type="button"
             onClick={() => {
