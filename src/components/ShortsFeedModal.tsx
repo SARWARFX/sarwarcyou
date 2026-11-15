@@ -522,7 +522,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         }}
         className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
           isDesktop
-            ? 'h-screen rounded-none border-l-2 border-r-2 border-[#ccff00] shadow-[0_0_60px_25px_rgba(0,0,0,0.8),-30px_0_50px_rgba(8,9,12,0.95),30px_0_50px_rgba(8,9,12,0.95),0_0_40px_rgba(204,255,0,0.28)] bg-black'
+            ? 'h-screen rounded-none border-l-2 border-r-2 border-[#ccff00] shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7),-10px_0_25px_rgba(204,255,0,0.35),10px_0_25px_rgba(204,255,0,0.35)] bg-black'
             : isLandscape
             ? 'w-full md:aspect-[16/9] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
             : 'w-full md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
@@ -676,14 +676,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       <header
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
-        className={`absolute top-0 inset-x-0 z-30 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
-          showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`absolute top-0 inset-x-0 z-30 flex items-center justify-between p-4 bg-transparent transition-opacity duration-300 pointer-events-none ${
+          showControls ? 'opacity-100' : 'opacity-0'
         }`}
       >
         <span
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-full bg-black/80 text-[#ccff00] border border-[#ccff00]/30 backdrop-blur-md shadow-[0_0_10px_rgba(204,255,0,0.15)]"
+          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-full bg-black/80 text-[#ccff00] border border-[#ccff00]/30 backdrop-blur-md shadow-[0_0_10px_rgba(204,255,0,0.15)] pointer-events-auto"
         >
           {activeIndex + 1} / {shorts.length}
         </span>
@@ -758,10 +758,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                       <Play className="w-5 h-5 fill-current ml-0.5" />
                     </div>
                   </div>
-                  <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none">
-                    <p className="text-xs font-bold text-white truncate drop-shadow">
+                  <div className="absolute bottom-4 left-4 right-4 pointer-events-none flex items-center">
+                    <span className="px-2.5 py-1 rounded bg-black/80 border border-white/10 backdrop-blur-md text-[11px] font-medium text-white/90 truncate max-w-full drop-shadow">
                       {item.title || 'Short'}
-                    </p>
+                    </span>
                   </div>
                 </div>
               );

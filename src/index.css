@@ -148,11 +148,7 @@ button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
   height: 100vh;
   gap: 0;
   will-change: transform;
-  animation: shortsSeamlessScroll 85s linear infinite;
-}
-
-.shorts-stream-track:hover {
-  animation-play-state: paused;
+  animation: shortsSeamlessScroll 260s linear infinite;
 }
 
 .shorts-stream-card {
