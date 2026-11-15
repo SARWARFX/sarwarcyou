@@ -129,7 +129,7 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-xs uppercase tracking-wider font-mono text-slate-400 hover:text-white px-2 py-1 rounded border border-white/10 hover:border-white/30 shrink-0 ml-1"
+            className="reticle-chip text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 shrink-0 ml-1"
           >
             ESC
           </button>

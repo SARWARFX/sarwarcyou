@@ -768,14 +768,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         }
       }}
     >
-      {/* Floating Close Button at Top Right */}
+      {/* Floating Close Button at Top Right (Precision Sci-Fi Reticle) */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
-        className={`pointer-events-auto fixed top-6 right-6 z-50 p-3.5 rounded-full bg-black/60 hover:bg-neutral-800 active:scale-95 backdrop-blur-xl border border-white/15 text-white/90 hover:text-[#ccff00] shadow-2xl transition-all duration-300 cursor-pointer ${
+        className={`reticle-btn reticle-btn-close pointer-events-auto fixed top-6 right-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer ${
           showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Close (Esc)"
@@ -784,7 +784,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         <X className="w-5 h-5" />
       </button>
 
-      {/* Floating Left Edge Navigation Arrow */}
+      {/* Floating Left Edge Navigation Arrow (Precision Sci-Fi Reticle) */}
       {hasItemList && activeIdx > 0 && (
         <button
           type="button"
@@ -796,7 +796,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`pointer-events-auto fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 text-white/90 hover:text-[#ccff00] backdrop-blur-xl shadow-2xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+          className={`reticle-btn reticle-btn-prev pointer-events-auto fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Previous Photo (←)"
@@ -806,7 +806,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </button>
       )}
 
-      {/* Floating Right Edge Navigation Arrow */}
+      {/* Floating Right Edge Navigation Arrow (Precision Sci-Fi Reticle) */}
       {hasItemList && activeIdx < items.length - 1 && (
         <button
           type="button"
@@ -818,7 +818,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`pointer-events-auto fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 text-white/90 hover:text-[#ccff00] backdrop-blur-xl shadow-2xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+          className={`reticle-btn reticle-btn-next pointer-events-auto fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer ${
             showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Next Photo (→)"
@@ -828,13 +828,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </button>
       )}
 
-      {/* Dedicated Universal Zoom Column (All Screens: Desktop, Tablet, Mobile) */}
+      {/* Dedicated Universal Zoom Column (Precision Sci-Fi Reticle) */}
       <div
         onMouseEnter={() => {
           if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
         }}
         onMouseLeave={scheduleAutoHide}
-        className={`pointer-events-auto fixed right-3 sm:right-6 bottom-20 z-40 flex flex-col items-center gap-1.5 p-1.5 sm:p-2 rounded-2xl bg-black/70 hover:bg-black/85 backdrop-blur-xl border border-white/15 shadow-2xl transition-all duration-300 ${
+        className={`reticle-zoom-box pointer-events-auto fixed right-3 sm:right-6 bottom-20 z-40 transition-all duration-300 ${
           showControls ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
         }`}
         style={{ touchAction: 'none' }}
@@ -851,7 +851,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           type="button"
           onClick={() => setZoomLevel(scaleRef.current + 0.35)}
           disabled={scale >= 4.5}
-          className="w-8 h-8 rounded-xl bg-white/5 hover:bg-[#ccff00] hover:text-black text-white/90 flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-90"
+          className="reticle-btn w-8 h-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
           title="Zoom In (+)"
           aria-label="Zoom in"
         >
@@ -862,17 +862,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         <div
           ref={zoomTrackRef}
           onPointerDown={handleZoomTrackPointerDown}
-          className="relative w-2.5 h-24 sm:h-28 bg-white/15 hover:bg-white/25 rounded-full my-1 cursor-pointer transition-colors"
+          className="relative w-2 h-24 sm:h-28 bg-white/10 hover:bg-white/20 rounded-sm my-1 cursor-pointer transition-colors"
           title="Drag up/down to zoom"
         >
           <div
-            className="absolute bottom-0 inset-x-0 bg-[#ccff00] rounded-full shadow-[0_0_8px_rgba(204,255,0,0.6)]"
+            className="absolute bottom-0 inset-x-0 bg-[#ccff00] rounded-sm shadow-[0_0_8px_rgba(204,255,0,0.8)]"
             style={{
               height: `${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}%`,
             }}
           />
           <div
-            className="absolute -left-1.5 w-5 h-5 rounded-full bg-white text-black font-mono font-bold text-[9px] flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.8)] border-2 border-[#ccff00] -translate-y-1/2 transition-transform active:scale-125"
+            className="absolute -left-1.5 w-5 h-2.5 rounded-sm bg-[#ccff00] text-black font-mono font-bold text-[9px] flex items-center justify-center shadow-[0_0_10px_#ccff00] -translate-y-1/2 transition-transform active:scale-125"
             style={{
               bottom: `calc(${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}% - 2px)`,
             }}
@@ -884,7 +884,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           type="button"
           onClick={() => setZoomLevel(scaleRef.current - 0.35)}
           disabled={scale <= 1.02}
-          className="w-8 h-8 rounded-xl bg-white/5 hover:bg-[#ccff00] hover:text-black text-white/90 flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-90"
+          className="reticle-btn w-8 h-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
           title="Zoom Out (−)"
           aria-label="Zoom out"
         >
@@ -895,7 +895,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         <button
           type="button"
           onClick={resetZoom}
-          className="px-1.5 py-1 rounded-lg bg-white/10 hover:bg-[#ccff00] hover:text-black text-[9px] font-mono font-bold tracking-wider text-neutral-300 transition-all cursor-pointer active:scale-90 mt-0.5"
+          className="px-2 py-0.5 rounded-md bg-[#ccff00]/10 hover:bg-[#ccff00] hover:text-black border border-[#ccff00]/40 text-[9px] font-mono font-bold tracking-wider text-[#ccff00] transition-all cursor-pointer active:scale-90 mt-0.5"
           title="Reset to 100% Screen Fit"
           aria-label="Reset zoom"
         >

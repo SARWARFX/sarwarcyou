@@ -1055,9 +1055,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </span>
         </div>
 
-        {/* Avant-Garde Quick Select Keys: Consolidated Tabs */}
-        <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
-          {/* Autonomous Rolling Tour Toggle Pill (Paused by default until visitor starts it) */}
+        {/* Avant-Garde Quick Select Keys: Consolidated Tabs (Precision Sci-Fi Reticle) */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5">
+          {/* Autonomous Rolling Tour Toggle Pill */}
           <button
             type="button"
             onClick={() => {
@@ -1065,7 +1065,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               setIsAutoTourPaused((p) => {
                 const nextState = !p;
                 if (!nextState) {
-                  // Starting tour: reset activity timer and progress
                   lastUserActivityRef.current = Date.now();
                   setIdleTourProgress(0);
                 }
@@ -1073,10 +1072,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               });
             }}
             title={isAutoTourPaused ? 'Click to start 10s autonomous tour across feeds' : 'Click to pause autonomous tour'}
-            className={`flex items-center gap-1.5 px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] font-mono tracking-wider uppercase border transition-all cursor-pointer mr-1 ${
-              isAutoTourPaused
-                ? 'bg-white/[0.03] border-white/10 hover:border-[#ccff00]/50 text-neutral-400 hover:text-white'
-                : 'bg-[#ccff00]/10 border-[#ccff00]/40 text-[#ccff00] shadow-[0_0_10px_rgba(204,255,0,0.2)]'
+            className={`reticle-chip ${
+              !isAutoTourPaused ? 'active-chip' : ''
             }`}
           >
             <span
@@ -1093,10 +1090,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('SHORTS');
             }}
-            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+            className={`reticle-chip whitespace-nowrap ${
               selectedCategory === 'SHORTS' || selectedCategory === 'YOUTUBE'
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                ? 'active-chip'
+                : ''
             }`}
           >
             SHORTS
@@ -1107,10 +1104,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('CLIPS');
             }}
-            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+            className={`reticle-chip whitespace-nowrap ${
               selectedCategory === 'CLIPS' || selectedCategory === 'REALTUBE'
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                ? 'active-chip'
+                : ''
             }`}
           >
             VIDEO CLIPS
@@ -1121,10 +1118,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               hapticMedium();
               navigateTab('PHOTOGRAPHY');
             }}
-            className={`px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer whitespace-nowrap ${
+            className={`reticle-chip whitespace-nowrap ${
               selectedCategory === 'PHOTOGRAPHY'
-                ? 'bg-[#ccff00] text-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                ? 'active-chip'
+                : ''
             }`}
           >
             PHOTOGRAPHS

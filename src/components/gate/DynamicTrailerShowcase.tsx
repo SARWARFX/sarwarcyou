@@ -191,7 +191,9 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
               hapticLight();
               setIsMotionPaused((prev) => !prev);
             }}
-            className="px-3 py-1.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 border border-white/10 hover:border-[#ccff00]/40 text-xs font-mono text-neutral-300 hover:text-[#ccff00] flex items-center gap-1.5 transition-all cursor-pointer shadow-lg active:scale-95"
+            className={`reticle-chip ${
+              !isMotionPaused ? 'active-chip' : ''
+            }`}
           >
             {isMotionPaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5 fill-current" />}
             <span>{isMotionPaused ? 'RESUME MOTION' : 'PAUSE MOTION'}</span>
@@ -204,7 +206,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
               setShuffleKey((k) => k + 1);
             }}
             title="Shuffle Reel"
-            className="p-2 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 border border-white/10 text-neutral-300 hover:text-[#ccff00] transition-all cursor-pointer active:scale-95"
+            className="reticle-btn w-8 h-8 rounded-lg"
           >
             <Shuffle className="w-3.5 h-3.5" />
           </button>
@@ -247,12 +249,12 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
               </span>
             </div>
 
-            {/* Upper Right Cycle Buttons */}
+            {/* Upper Right Cycle Buttons (Precision Sci-Fi Reticle) */}
             <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2 z-20">
               <button
                 type="button"
                 onClick={handleHeroPrev}
-                className="w-9 h-9 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 flex items-center justify-center text-white/80 hover:text-[#ccff00] transition-all cursor-pointer backdrop-blur-md active:scale-95"
+                className="reticle-btn reticle-btn-prev w-9 h-9 rounded-lg"
                 title="Previous Cinematic Trailer"
               >
                 <ChevronLeft className="w-5 h-5 -ml-0.5" />
@@ -260,7 +262,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
               <button
                 type="button"
                 onClick={handleHeroNext}
-                className="w-9 h-9 rounded-full bg-black/60 hover:bg-neutral-800 border border-white/15 flex items-center justify-center text-white/80 hover:text-[#ccff00] transition-all cursor-pointer backdrop-blur-md active:scale-95"
+                className="reticle-btn reticle-btn-next w-9 h-9 rounded-lg"
                 title="Next Cinematic Trailer"
               >
                 <ChevronRight className="w-5 h-5 -mr-0.5" />
@@ -290,7 +292,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenHero}
-                  className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-2xl bg-[#ccff00] hover:bg-[#b8e600] active:scale-95 text-black font-bold text-xs sm:text-sm font-mono tracking-wider flex items-center gap-2 shadow-[0_0_25px_rgba(204,255,0,0.45)] transition-all cursor-pointer"
+                  className="reticle-btn-primary"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>WATCH IN FULL VIEWER</span>

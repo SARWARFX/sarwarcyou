@@ -51,24 +51,22 @@ export const HomeFilterChips: React.FC<HomeFilterChipsProps> = ({
               type="button"
               onClick={() => onFilterChange(chip.id)}
               aria-pressed={isActive}
-              className={`relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer backdrop-blur-xl border ${
-                isActive
-                  ? 'bg-white text-black font-semibold border-white shadow-sm scale-[1.02]'
-                  : 'bg-white/[0.04] text-zinc-300 hover:text-white hover:bg-white/[0.08] border-white/10 hover:border-white/20'
+              className={`reticle-chip ${
+                isActive ? 'active-chip' : ''
               }`}
             >
               <Icon
                 className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${
-                  isActive ? 'text-black scale-110' : 'text-zinc-400 group-hover:text-zinc-200'
+                  isActive ? 'text-[#ccff00] scale-110' : 'text-neutral-400 group-hover:text-white'
                 }`}
               />
-              <span className="tracking-wide">{chip.label}</span>
+              <span className="tracking-wide uppercase font-mono">{chip.label}</span>
               {typeof count === 'number' && count > 0 && (
                 <span
-                  className={`text-[10px] sm:text-xs font-mono px-1.5 py-0.2 rounded-full transition-colors ${
+                  className={`text-[10px] sm:text-xs font-mono px-1.5 py-0.5 rounded transition-colors ${
                     isActive
-                      ? 'bg-black/20 text-black'
-                      : 'bg-white/10 text-zinc-400'
+                      ? 'bg-[#ccff00]/20 text-[#ccff00] border border-[#ccff00]/40'
+                      : 'bg-white/10 text-neutral-400'
                   }`}
                 >
                   {count}

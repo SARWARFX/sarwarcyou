@@ -236,11 +236,11 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/15 text-neutral-300 hover:text-white border border-white/15 hover:border-white/40 transition-all duration-200 cursor-pointer text-xs font-serif font-normal hover:scale-105 active:scale-95 flex-shrink-0"
+            className="reticle-chip flex-shrink-0"
             title="Back to Archive (Esc)"
           >
-            <ArrowLeft className="w-4 h-4 text-white" />
-            <span className="hidden xs:inline">Back</span>
+            <ArrowLeft className="w-4 h-4 text-[#ccff00]" />
+            <span className="hidden xs:inline uppercase font-mono font-bold text-white">Back</span>
           </button>
 
           <div className="flex items-center gap-2.5 min-w-0">

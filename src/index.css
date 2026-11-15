@@ -1295,6 +1295,222 @@ html, body, #root {
   animation: laserPulseSweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* ==========================================================================
+   OPTION 2: PRECISION SCI-FI RETICLE BUTTON SYSTEM (GLOBAL)
+   ========================================================================== */
+
+/* Universal Reticle Button Base */
+.reticle-btn {
+  position: relative;
+  background: #0a0b0f;
+  border: 1px solid rgba(204, 255, 0, 0.3);
+  color: #ccff00;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+
+/* Corner Reticle Targeting Brackets */
+.reticle-btn::before,
+.reticle-btn::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.reticle-btn::before {
+  top: -2px;
+  left: -2px;
+  border-top: 2px solid #ccff00;
+  border-left: 2px solid #ccff00;
+}
+
+.reticle-btn::after {
+  bottom: -2px;
+  right: -2px;
+  border-bottom: 2px solid #ccff00;
+  border-right: 2px solid #ccff00;
+}
+
+.reticle-btn:hover {
+  background: rgba(204, 255, 0, 0.14);
+  border-color: #ccff00;
+  color: #ffffff;
+  transform: scale(1.08);
+  box-shadow: 0 0 20px rgba(204, 255, 0, 0.35);
+}
+
+.reticle-btn:hover::before,
+.reticle-btn:hover::after {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 8px #ccff00;
+}
+
+.reticle-btn:active {
+  transform: scale(0.93);
+  box-shadow: 0 0 12px rgba(204, 255, 0, 0.5);
+}
+
+/* Micro-kinetic Directional Glides & Snap Rotations */
+.reticle-btn-prev:hover svg {
+  transform: translateX(-3px);
+}
+
+.reticle-btn-next:hover svg {
+  transform: translateX(3px);
+}
+
+.reticle-btn-close:hover svg {
+  transform: rotate(90deg);
+}
+
+.reticle-btn svg {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s;
+}
+
+/* Primary Chamfered Action CTA */
+.reticle-btn-primary {
+  position: relative;
+  padding: 12px 24px;
+  border-radius: 10px;
+  background: rgba(10, 11, 15, 0.95);
+  border: 1.5px solid #ccff00;
+  color: #ccff00;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 0 16px rgba(204, 255, 0, 0.2);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.reticle-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid #ccff00;
+  border-left: 2px solid #ccff00;
+  transition: all 0.2s;
+}
+
+.reticle-btn-primary::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-bottom: 2px solid #ccff00;
+  border-right: 2px solid #ccff00;
+  transition: all 0.2s;
+}
+
+.reticle-btn-primary:hover {
+  background: #ccff00;
+  color: #000000;
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 30px rgba(204, 255, 0, 0.6);
+}
+
+.reticle-btn-primary:hover::before,
+.reticle-btn-primary:hover::after {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 10px #ccff00;
+}
+
+.reticle-btn-primary:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+/* Precision Sci-Fi Reticle Tabs & Chips */
+.reticle-chip {
+  position: relative;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #0c0e14;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9ca3af;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.reticle-chip:hover {
+  border-color: #ccff00;
+  color: #ccff00;
+  background: rgba(204, 255, 0, 0.08);
+  box-shadow: 0 0 12px rgba(204, 255, 0, 0.2);
+}
+
+.reticle-chip.active-chip {
+  background: rgba(204, 255, 0, 0.18);
+  border-color: #ccff00;
+  color: #ccff00;
+  box-shadow: 0 0 16px rgba(204, 255, 0, 0.3);
+}
+
+/* Reticle Zoom Column Precision Box */
+.reticle-zoom-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: #090a0e;
+  border: 1px solid rgba(204, 255, 0, 0.3);
+  border-radius: 12px;
+  padding: 10px 8px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+  position: relative;
+}
+
+.reticle-zoom-box::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-top: 2px solid #ccff00;
+  border-left: 2px solid #ccff00;
+}
+
+.reticle-zoom-box::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  border-bottom: 2px solid #ccff00;
+  border-right: 2px solid #ccff00;
+}
+
+
 
 
 

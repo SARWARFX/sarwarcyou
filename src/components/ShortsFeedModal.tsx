@@ -797,7 +797,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         >
           {activeIndex + 1} / {shorts.length}
         </span>
-        <div className="flex items-center gap-2 pointer-events-auto">
+        <div className="flex items-center gap-2.5 pointer-events-auto">
           <button
             type="button"
             onClick={(e) => {
@@ -807,7 +807,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className="w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700/80 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            className="reticle-btn w-9 h-9 rounded-lg"
             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -820,7 +820,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className="w-9 h-9 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700/80 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            className="reticle-btn reticle-btn-close w-9 h-9 rounded-lg"
             title="Close (Esc)"
           >
             <X className="w-4 h-4" />
@@ -883,7 +883,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         );
       })}
 
-      {/* ===== DESKTOP FLOATING EDGE NAVIGATION ARROWS (OUTLINE-FREE CANVAS) ===== */}
+      {/* ===== DESKTOP FLOATING EDGE NAVIGATION ARROWS (PRECISION SCI-FI RETICLE) ===== */}
       {isDesktop && activeIndex > 0 && (
         <button
           type="button"
@@ -891,8 +891,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             goToShortIndex(activeIndex - 1, 'prev');
           }}
-          className={`fixed left-3.5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/75 hover:bg-[#ccff00] hover:text-black text-white/80 border border-white/20 flex items-center justify-center transition-all duration-300 shadow-2xl backdrop-blur-md cursor-pointer active:scale-95 ${
-            showControls ? 'opacity-90 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          className={`reticle-btn reticle-btn-prev fixed left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-xl transition-all duration-300 ${
+            showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           title="Previous Short (Left Arrow)"
         >
@@ -907,8 +907,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             goToShortIndex(activeIndex + 1, 'next');
           }}
-          className={`fixed right-3.5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/75 hover:bg-[#ccff00] hover:text-black text-white/80 border border-white/20 flex items-center justify-center transition-all duration-300 shadow-2xl backdrop-blur-md cursor-pointer active:scale-95 ${
-            showControls ? 'opacity-90 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          className={`reticle-btn reticle-btn-next fixed right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-xl transition-all duration-300 ${
+            showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           title="Next Short (Right Arrow)"
         >
