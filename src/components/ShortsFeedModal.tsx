@@ -13,77 +13,91 @@ export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
 }
 
-// Living Constellation Slots Configuration for Peripheral Wings
-const WING_SLOTS = [
-  // Left Wing Slots (Outer & Upper/Lower)
-  {
-    side: 'left' as const,
-    style: {
-      right: 'calc(50% + 450px + clamp(15px, 2.5vw, 60px))',
-      top: '12%',
-      width: 'clamp(115px, 8vw, 150px)',
-      transform: 'rotate(-2deg)',
-    },
-    delay: '0ms',
-    label: 'DISCOVER',
-  },
-  {
-    side: 'left' as const,
-    style: {
-      right: 'calc(50% + 450px + clamp(130px, 9vw, 210px))',
-      top: '44%',
-      width: 'clamp(120px, 8.5vw, 155px)',
-      transform: 'rotate(1.5deg)',
-    },
-    delay: '120ms',
-    label: 'SUGGESTED',
-  },
-  {
-    side: 'left' as const,
-    style: {
-      right: 'calc(50% + 450px + clamp(30px, 3.5vw, 85px))',
-      top: '72%',
-      width: 'clamp(110px, 7.5vw, 140px)',
-      transform: 'rotate(-1.5deg)',
-    },
-    delay: '240ms',
-    label: 'RECOMMENDED',
-  },
-  // Right Wing Slots (Outer & Upper/Lower)
-  {
-    side: 'right' as const,
-    style: {
-      left: 'calc(50% + 450px + clamp(15px, 2.5vw, 60px))',
-      top: '14%',
-      width: 'clamp(115px, 8vw, 150px)',
-      transform: 'rotate(2deg)',
-    },
-    delay: '60ms',
-    label: 'DISCOVER',
-  },
-  {
-    side: 'right' as const,
-    style: {
-      left: 'calc(50% + 450px + clamp(130px, 9vw, 210px))',
-      top: '46%',
-      width: 'clamp(120px, 8.5vw, 155px)',
-      transform: 'rotate(-2deg)',
-    },
-    delay: '180ms',
-    label: 'SUGGESTED',
-  },
-  {
-    side: 'right' as const,
-    style: {
-      left: 'calc(50% + 450px + clamp(30px, 3.5vw, 85px))',
-      top: '74%',
-      width: 'clamp(110px, 7.5vw, 140px)',
-      transform: 'rotate(1deg)',
-    },
-    delay: '300ms',
-    label: 'RECOMMENDED',
-  },
-];
+// Living Constellation Configuration & Dynamic Position Generator for Recommended Shorts
+const CONSTELLATION_LABELS = ['DISCOVER', 'SUGGESTED', 'RECOMMENDED', 'FOR YOU', 'TRENDING', 'HOT PICKS'];
+
+interface ConstellationCard {
+  item: StageMediaItem;
+  originalIndex: number;
+  slot: number;
+  style: React.CSSProperties;
+  delay: string;
+  label: string;
+  visibilityClass: string;
+}
+
+function generateDynamicConstellation(
+  shorts: StageMediaItem[],
+  activeIndex: number
+): ConstellationCard[] {
+  const excluded = new Set([activeIndex, activeIndex - 1, activeIndex + 1]);
+  const pool = shorts
+    .map((item, idx) => ({ item, originalIndex: idx }))
+    .filter(({ originalIndex }) => !excluded.has(originalIndex));
+
+  if (pool.length === 0) return [];
+
+  // Randomize cards to select
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  const selected = shuffled.slice(0, Math.min(6, shuffled.length));
+
+  // 3 vertical height zones (in %) for clean vertical distribution without collisions
+  const topZones = [
+    { min: 7, max: 22 },   // Upper section
+    { min: 36, max: 51 },  // Middle section
+    { min: 65, max: 80 },  // Lower section
+  ];
+
+  // 3 depth zones (measuring inward from respective screen edge)
+  const depthZones = [
+    { minVw: 1.5, maxVw: 3.5, minPx: 16, maxPx: 45, visibility: 'hidden 2xl:flex' },  // Far outer edge
+    { minVw: 7.5, maxVw: 12.5, minPx: 100, maxPx: 180, visibility: 'hidden xl:flex' }, // Mid peripheral wing
+    { minVw: 15.5, maxVw: 21, minPx: 220, maxPx: 310, visibility: 'hidden xl:flex' }, // Near center deck
+  ];
+
+  // Randomize depth assignments for both left and right wings so positions change dynamically each cycle
+  const leftDepthOrder = [0, 1, 2].sort(() => 0.5 - Math.random());
+  const rightDepthOrder = [0, 1, 2].sort(() => 0.5 - Math.random());
+
+  return selected.map((entry, index) => {
+    const isLeft = index < 3;
+    const wingIndex = isLeft ? index : index - 3;
+    const depthIndex = isLeft ? leftDepthOrder[wingIndex] : rightDepthOrder[wingIndex];
+
+    const topZone = topZones[wingIndex];
+    const depthZone = depthZones[depthIndex];
+
+    const topPercent = (topZone.min + Math.random() * (topZone.max - topZone.min)).toFixed(1);
+    const vw = (depthZone.minVw + Math.random() * (depthZone.maxVw - depthZone.minVw)).toFixed(1);
+    const px = Math.round(depthZone.minPx + Math.random() * (depthZone.maxPx - depthZone.minPx));
+
+    const cardWidthMin = 105 + Math.round(Math.random() * 20);
+    const cardWidthVw = (7.2 + Math.random() * 1.6).toFixed(1);
+    const cardWidthMax = 140 + Math.round(Math.random() * 25);
+
+    const rotation = (Math.random() * 6 - 3).toFixed(1);
+    const delay = `${Math.round(Math.random() * 300)}ms`;
+    const label = CONSTELLATION_LABELS[Math.floor(Math.random() * CONSTELLATION_LABELS.length)];
+
+    const style: React.CSSProperties = {
+      top: `${topPercent}%`,
+      width: `clamp(${cardWidthMin}px, ${cardWidthVw}vw, ${cardWidthMax}px)`,
+      transform: `rotate(${rotation}deg)`,
+      ...(isLeft
+        ? { left: `clamp(${px}px, ${vw}vw, calc(50vw - 260px))` }
+        : { right: `clamp(${px}px, ${vw}vw, calc(50vw - 260px))` }),
+    };
+
+    return {
+      ...entry,
+      slot: index,
+      style,
+      delay,
+      label,
+      visibilityClass: depthZone.visibility,
+    };
+  });
+}
 
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   isOpen, onClose, shorts, initialIndex = 0, onIndexChange,
@@ -106,9 +120,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
 
   // Living Constellation: Recommended Shorts in Outer Flanks
-  const [recommendedDeck, setRecommendedDeck] = useState<
-    { item: StageMediaItem; originalIndex: number; slot: number }[]
-  >([]);
+  const [recommendedDeck, setRecommendedDeck] = useState<ConstellationCard[]>([]);
   const [isHoveredRecommendation, setIsHoveredRecommendation] = useState(false);
   const [deckCycleKey, setDeckCycleKey] = useState(0);
 
@@ -179,31 +191,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [activeIndex]);
 
-  // Living Constellation: Recommended Shorts Slots & Periodic Sampler (5s cycle)
+  // Living Constellation: Recommended Shorts Dynamic Positioning & Periodic Sampler (10s cycle)
   useEffect(() => {
     if (!isOpen || !isDesktop || shorts.length <= 2) return;
 
     const sampleRecommendations = () => {
       if (isHoveredRecommendation) return; // Freeze rotation while user is hovering to view/click
-      const excluded = new Set([activeIndex, activeIndex - 1, activeIndex + 1]);
-      const pool = shorts
-        .map((item, idx) => ({ item, originalIndex: idx }))
-        .filter(({ originalIndex }) => !excluded.has(originalIndex));
-
-      if (pool.length === 0) return;
-
-      const shuffled = [...pool].sort(() => 0.5 - Math.random());
-      const count = Math.min(6, shuffled.length);
-      const chosen = shuffled.slice(0, count).map((entry, slot) => ({
-        ...entry,
-        slot,
-      }));
-      setRecommendedDeck(chosen);
+      const cards = generateDynamicConstellation(shorts, activeIndex);
+      if (cards.length === 0) return;
+      setRecommendedDeck(cards);
       setDeckCycleKey((k) => k + 1);
     };
 
     sampleRecommendations();
-    const timer = setInterval(sampleRecommendations, 5000);
+    const timer = setInterval(sampleRecommendations, 10000);
     return () => clearInterval(timer);
   }, [isOpen, isDesktop, activeIndex, shorts, isHoveredRecommendation]);
 
@@ -809,9 +810,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       </header>
 
       {/* ===== LIVING CONSTELLATION: AMBIENT RECOMMENDED SHORTS (LEFT & RIGHT WINGS) ===== */}
-      {isDesktop && recommendedDeck.map(({ item, originalIndex, slot }) => {
-        const cfg = WING_SLOTS[slot];
-        if (!cfg || !item) return null;
+      {isDesktop && recommendedDeck.map(({ item, originalIndex, slot, style, delay, label, visibilityClass }) => {
+        if (!item) return null;
         const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
 
         return (
@@ -824,12 +824,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             onMouseEnter={() => setIsHoveredRecommendation(true)}
             onMouseLeave={() => setIsHoveredRecommendation(false)}
             style={{
-              ...cfg.style,
-              animationDelay: cfg.delay,
+              ...style,
+              animationDelay: delay,
             }}
-            className={`fixed z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-500 opacity-40 hover:opacity-100 hover:scale-105 hover:z-30 animate-constellation-in ${
-              slot === 1 || slot === 4 ? 'hidden 2xl:flex' : 'hidden xl:flex'
-            }`}
+            className={`fixed z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-700 opacity-40 hover:opacity-100 hover:scale-105 hover:z-30 animate-constellation-in ${visibilityClass}`}
             title={item.title || 'Recommended Short'}
           >
             <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-950/80 border border-white/10 group-hover:border-[#ccff00]/70 group-hover:shadow-[0_0_20px_rgba(204,255,0,0.3)] transition-all duration-300 backdrop-blur-sm">
@@ -844,7 +842,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 border border-[#ccff00]/30 backdrop-blur-md">
                 <Sparkles className="w-2.5 h-2.5 text-[#ccff00]" />
                 <span className="text-[8px] font-mono font-bold tracking-wider text-[#ccff00] uppercase">
-                  {cfg.label}
+                  {label}
                 </span>
               </div>
 
