@@ -37,6 +37,7 @@ import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import { trackActivityEvent } from './utils/usageTelemetry';
 import { initKeepAwake } from './utils/keepAwakeManager';
+import { addRecentMediaItem } from './utils/recentHistoryManager';
 import {
   parseUrlState,
   syncUrlState,
@@ -279,6 +280,7 @@ function App() {
           initialIndex: targetIndex,
           activeIndex: targetIndex,
         });
+        addRecentMediaItem(targetItem);
         return;
       }
 
@@ -299,6 +301,7 @@ function App() {
           playlist: playlistContext || [item],
           albumContext: albumTarget,
         });
+        addRecentMediaItem(item);
         return;
       }
 
@@ -332,6 +335,7 @@ function App() {
         initialIndex: targetIndex,
         albumContext: albumTarget,
       });
+      addRecentMediaItem(targetItem);
     },
     [rawFeed.shorts, pushModalState]
   );
@@ -790,6 +794,7 @@ function App() {
               allFolders={rawFeed.videoVaultFolders}
               onSelectItem={(item) => {
                 setTheaterState((prev) => ({ ...prev, item }));
+                addRecentMediaItem(item);
               }}
               onSelectFolder={(folder) => {
                 if (folder.items.length > 0) {
@@ -816,6 +821,9 @@ function App() {
                   ...prev,
                   initialIndex: idx,
                 }));
+                if (shortsState.shorts[idx]) {
+                  addRecentMediaItem(shortsState.shorts[idx]);
+                }
               }}
             />
           </Suspense>
@@ -844,6 +852,9 @@ function App() {
               onIndexChange={(idx) => {
                 setLightboxState((prev) => {
                   const nextItem = prev.items[idx] || prev.item;
+                  if (nextItem) {
+                    addRecentMediaItem(nextItem);
+                  }
                   return {
                     ...prev,
                     initialIndex: idx,

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Play, Pause, Shuffle, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Pause, Shuffle, Sparkles, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { sanitizeMediaTitle } from '../../utils/titleSanitizer';
 import { getMediaUrl } from '../../utils/imageUrlResolver';
+import { getThumbnailUrl } from '../../utils/thumbnailResolver';
 import { hapticMedium, hapticLight } from '../../utils/hapticsManager';
+import { getRecentHistory, clearRecentHistory, formatTimeAgo, type RecentMediaItem } from '../../utils/recentHistoryManager';
 import { FALLBACK_HF_CATALOG } from '../../data/fallbackData';
 
 export interface DynamicTrailerShowcaseProps {
@@ -159,6 +161,53 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
     }
   }, [heroIdx, activeHero, isModalOpen]);
 
+  // User-based Recently Opened Media History
+  const [recentHistory, setRecentHistory] = useState<RecentMediaItem[]>(() => getRecentHistory());
+  const recentRailRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleHistoryUpdate = () => {
+      setRecentHistory(getRecentHistory());
+    };
+    window.addEventListener('recent-history-updated', handleHistoryUpdate);
+    window.addEventListener('storage', handleHistoryUpdate);
+    return () => {
+      window.removeEventListener('recent-history-updated', handleHistoryUpdate);
+      window.removeEventListener('storage', handleHistoryUpdate);
+    };
+  }, []);
+
+  const handleOpenRecent = useCallback(
+    (item: RecentMediaItem) => {
+      hapticMedium();
+      const isShort =
+        item.mediaType === 'short' ||
+        item.category?.toLowerCase().includes('short') ||
+        item.url?.toLowerCase().includes('/shorts/');
+      const isVid = item.type === 'video' && !isShort;
+      if (isShort) {
+        onOpenShort(item, shorts && shorts.length > 0 ? shorts : [item], 0, item.category || item.parentAlbum);
+      } else if (isVid) {
+        onOpenVideo(item, clips && clips.length > 0 ? clips : [item]);
+      } else {
+        onOpenPhoto(item, images && images.length > 0 ? images : [item], 0);
+      }
+    },
+    [onOpenShort, onOpenVideo, onOpenPhoto, shorts, clips, images]
+  );
+
+  const handleClearHistory = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    hapticLight();
+    clearRecentHistory();
+  }, []);
+
+  const scrollRecentRail = useCallback((direction: 'left' | 'right') => {
+    if (!recentRailRef.current) return;
+    const delta = direction === 'left' ? -340 : 340;
+    recentRailRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+  }, []);
+
   const pausedClass = isMotionPaused || isModalOpen ? 'motion-paused' : '';
 
   return (
@@ -308,6 +357,144 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
               />
             </div>
 
+          </div>
+        </section>
+      )}
+
+      {/* ===== SECTION 1.5: RECENTLY OPENED FILES (Visitor-Specific History) ===== */}
+      {recentHistory.length > 0 && (
+        <section className="space-y-3 pt-2">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-2">
+                <span className="text-amber-400">🕒</span> RECENTLY OPENED
+              </h3>
+              <span className="text-[11px] font-mono text-neutral-400 px-2 py-0.5 rounded-full bg-neutral-900 border border-white/10">
+                {recentHistory.length} FILE{recentHistory.length > 1 ? 'S' : ''}
+              </span>
+              <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest hidden sm:inline">
+                • Visitor History
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClearHistory}
+                className="text-xs font-mono text-neutral-400 hover:text-red-400 flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900/80 border border-white/10 hover:border-red-400/40 transition-colors cursor-pointer"
+                title="Clear your recently opened history"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Clear</span>
+              </button>
+              {recentHistory.length > 3 && (
+                <div className="hidden sm:flex items-center gap-1.5 ml-1">
+                  <button
+                    type="button"
+                    onClick={() => scrollRecentRail('left')}
+                    className="reticle-btn w-7 h-7 rounded-md"
+                    title="Scroll Left"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollRecentRail('right')}
+                    className="reticle-btn w-7 h-7 rounded-md"
+                    title="Scroll Right"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Smooth Horizontal Rail */}
+          <div className="relative group/recent-rail">
+            <div
+              ref={recentRailRef}
+              className="flex items-stretch gap-3 overflow-x-auto no-scrollbar scroll-smooth py-1 px-0.5"
+            >
+              {recentHistory.map((item, idx) => {
+                const isShort =
+                  item.mediaType === 'short' ||
+                  item.category?.toLowerCase().includes('short') ||
+                  item.url?.toLowerCase().includes('/shorts/');
+                const isVideo = item.type === 'video' && !isShort;
+                const isPhoto = item.type === 'image' || (!isVideo && !isShort);
+                const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
+
+                return (
+                  <div
+                    key={`recent-${item.id || item.url}-${idx}`}
+                    onClick={() => handleOpenRecent(item)}
+                    className="group relative flex-shrink-0 w-44 sm:w-52 bg-[#0c0e14] hover:bg-neutral-900 rounded-xl border border-white/10 hover:border-[#ccff00] transition-all duration-300 cursor-pointer overflow-hidden shadow-lg hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] flex flex-col"
+                    title={`Reopen ${item.title || 'file'}`}
+                  >
+                    {/* Media Thumbnail Container */}
+                    <div className="relative w-full aspect-video bg-neutral-950 overflow-hidden">
+                      <img
+                        src={thumbUrl}
+                        alt={item.title || 'Media thumbnail'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        onError={(e) => {
+                          if (item.thumbnail && e.currentTarget.src !== item.thumbnail) {
+                            e.currentTarget.src = item.thumbnail;
+                          }
+                        }}
+                      />
+                      {/* Media Type Badge */}
+                      <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/15 text-[9px] font-mono font-bold tracking-wider text-white">
+                        {isShort ? (
+                          <>
+                            <span className="text-[#ccff00]">⚡</span>
+                            <span>SHORT</span>
+                          </>
+                        ) : isVideo ? (
+                          <>
+                            <span className="text-cyan-400">🎬</span>
+                            <span>CLIP</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-emerald-400">📸</span>
+                            <span>PHOTO</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Hover Play / View Overlay */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_15px_#ccff00] transform group-hover:scale-110 transition-transform">
+                          {isPhoto ? (
+                            <Sparkles className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Timestamp Pill */}
+                      <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[9px] font-mono text-neutral-300 border border-white/10">
+                        {formatTimeAgo(item.openedAt)}
+                      </div>
+                    </div>
+
+                    {/* Meta snippet */}
+                    <div className="p-2.5 flex-1 flex flex-col justify-between">
+                      <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#ccff00] transition-colors">
+                        {sanitizeMediaTitle(item.title || item.name, isPhoto ? 'Photo' : 'Video')}
+                      </p>
+                      <p className="text-[10px] font-mono text-neutral-400 truncate mt-0.5">
+                        {item.category || item.parentAlbum || 'Archive'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       )}
