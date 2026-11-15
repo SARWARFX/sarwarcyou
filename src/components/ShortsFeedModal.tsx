@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Volume2, VolumeX, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
@@ -13,110 +13,8 @@ export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
 }
 
-// Living Constellation Configuration & Dynamic Position Generator for Recommended Shorts
-const CONSTELLATION_LABELS = ['DISCOVER', 'SUGGESTED', 'RECOMMENDED', 'FOR YOU', 'TRENDING', 'HOT PICKS', 'RANDOM', 'FEATURED'];
-
-interface ConstellationCard {
-  item: StageMediaItem;
-  originalIndex: number;
-  slot: number;
-  style: React.CSSProperties;
-  delay: string;
-  label: string;
-  visibilityClass: string;
-}
-
-interface WingAnchor {
-  topPercent: number;
-  depthVw: number;
-  depthPx: number;
-  visibilityClass: string;
-}
-
-// 10 Staggered Anchors per Wing: natural multi-column layout filling available peripheral space
-const WING_ANCHORS: WingAnchor[] = [
-  // Column 1: Outer edge (5 cards distributed top to bottom)
-  { topPercent: 7,  depthVw: 1.8, depthPx: 20, visibilityClass: 'hidden lg:flex' },
-  { topPercent: 27, depthVw: 3.2, depthPx: 34, visibilityClass: 'hidden lg:flex' },
-  { topPercent: 48, depthVw: 1.8, depthPx: 22, visibilityClass: 'hidden lg:flex' },
-  { topPercent: 69, depthVw: 3.4, depthPx: 36, visibilityClass: 'hidden lg:flex' },
-  { topPercent: 88, depthVw: 1.8, depthPx: 22, visibilityClass: 'hidden lg:flex' },
-
-  // Column 2: Mid-wing (3 cards staggered in-between outer heights)
-  { topPercent: 17, depthVw: 8.5, depthPx: 115, visibilityClass: 'hidden xl:flex' },
-  { topPercent: 39, depthVw: 9.8, depthPx: 135, visibilityClass: 'hidden xl:flex' },
-  { topPercent: 61, depthVw: 8.8, depthPx: 120, visibilityClass: 'hidden xl:flex' },
-
-  // Column 3: Inner wing (2 cards closer to the center player)
-  { topPercent: 29, depthVw: 15.5, depthPx: 210, visibilityClass: 'hidden 2xl:flex' },
-  { topPercent: 73, depthVw: 15.0, depthPx: 205, visibilityClass: 'hidden 2xl:flex' },
-];
-
-function generateDynamicConstellation(
-  shorts: StageMediaItem[],
-  activeIndex: number
-): ConstellationCard[] {
-  const excluded = new Set([activeIndex, activeIndex - 1, activeIndex + 1]);
-  const pool = shorts
-    .map((item, idx) => ({ item, originalIndex: idx }))
-    .filter(({ originalIndex }) => !excluded.has(originalIndex));
-
-  if (pool.length === 0) return [];
-
-  // Pick up to 20 random items (10 for left wing, 10 for right wing)
-  const shuffled = [...pool].sort(() => 0.5 - Math.random());
-  const selected: { item: StageMediaItem; originalIndex: number }[] = [];
-  for (let i = 0; i < 20; i++) {
-    selected.push(shuffled[i % shuffled.length]);
-  }
-
-  // Shuffle anchor assignments for both left and right wings so positions change dynamically each cycle
-  const leftAnchorIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => 0.5 - Math.random());
-  const rightAnchorIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => 0.5 - Math.random());
-
-  return selected.map((entry, index) => {
-    const isLeft = index < 10;
-    const wingIndex = isLeft ? index : index - 10;
-    const anchorIndex = isLeft ? leftAnchorIndices[wingIndex] : rightAnchorIndices[wingIndex];
-    const anchor = WING_ANCHORS[anchorIndex];
-
-    // Organic randomized jitter to keep coordinates living and non-rigid
-    const jitterTop = (Math.random() * 5 - 2.5);
-    const topPercent = Math.max(5, Math.min(91, anchor.topPercent + jitterTop)).toFixed(1);
-
-    const jitterPx = Math.round(Math.random() * 20 - 10);
-    const px = Math.max(12, anchor.depthPx + jitterPx);
-
-    const jitterVw = (Math.random() * 1.4 - 0.7);
-    const vw = Math.max(1.0, anchor.depthVw + jitterVw).toFixed(1);
-
-    const cardWidthMin = 90 + Math.round(Math.random() * 16);
-    const cardWidthVw = (6.0 + Math.random() * 1.4).toFixed(1);
-    const cardWidthMax = 125 + Math.round(Math.random() * 20);
-
-    const rotation = (Math.random() * 6 - 3).toFixed(1);
-    const delay = `${Math.round(Math.random() * 450)}ms`;
-    const label = CONSTELLATION_LABELS[Math.floor(Math.random() * CONSTELLATION_LABELS.length)];
-
-    const style: React.CSSProperties = {
-      top: `${topPercent}%`,
-      width: `clamp(${cardWidthMin}px, ${cardWidthVw}vw, ${cardWidthMax}px)`,
-      transform: `rotate(${rotation}deg)`,
-      ...(isLeft
-        ? { left: `clamp(${px}px, ${vw}vw, calc(50vw - 230px))` }
-        : { right: `clamp(${px}px, ${vw}vw, calc(50vw - 230px))` }),
-    };
-
-    return {
-      ...entry,
-      slot: index,
-      style,
-      delay,
-      label,
-      visibilityClass: anchor.visibilityClass,
-    };
-  });
-}
+// Seamless Zero-Gap Stream Badges
+const STREAM_BADGES = ['RECOMMENDED', 'TRENDING', 'HOT PICKS', 'DISCOVER', 'SUGGESTED', 'FEATURED', 'FOR YOU'];
 
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   isOpen, onClose, shorts, initialIndex = 0, onIndexChange,
@@ -138,10 +36,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [is2XSpeed, setIs2XSpeed] = useState(false);
   const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
 
-  // Living Constellation: Recommended Shorts in Outer Flanks
-  const [recommendedDeck, setRecommendedDeck] = useState<ConstellationCard[]>([]);
-  const [isHoveredRecommendation, setIsHoveredRecommendation] = useState(false);
-  const [deckCycleKey, setDeckCycleKey] = useState(0);
+  // Seamless Zero-Gap Stream items list (infinite loop at 85s Ultra Calm speed)
+  const streamItems = useMemo(() => {
+    if (!shorts || shorts.length === 0) return [];
+    let list = shorts.map((item, idx) => ({ item, originalIndex: idx }));
+    while (list.length < 30) {
+      list = [...list, ...shorts.map((item, idx) => ({ item, originalIndex: idx }))];
+    }
+    return [...list, ...list];
+  }, [shorts]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -210,22 +113,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [activeIndex]);
 
-  // Living Constellation: Recommended Shorts Dynamic Positioning & Periodic Sampler (10s cycle)
-  useEffect(() => {
-    if (!isOpen || !isDesktop || shorts.length <= 2) return;
-
-    const sampleRecommendations = () => {
-      if (isHoveredRecommendation) return; // Freeze rotation while user is hovering to view/click
-      const cards = generateDynamicConstellation(shorts, activeIndex);
-      if (cards.length === 0) return;
-      setRecommendedDeck(cards);
-      setDeckCycleKey((k) => k + 1);
-    };
-
-    sampleRecommendations();
-    const timer = setInterval(sampleRecommendations, 10000);
-    return () => clearInterval(timer);
-  }, [isOpen, isDesktop, activeIndex, shorts, isHoveredRecommendation]);
 
   // Unified short navigation handler for cards, keys, and gestures
   const goToShortIndex = useCallback((targetIdx: number, dir: 'next' | 'prev') => {
@@ -629,11 +516,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         onPointerUp={(e) => handleVideoPointerUp(e, idx)}
         onPointerCancel={() => handleVideoPointerCancel(idx)}
         style={{
-          maxWidth: isDesktop ? (isLandscape ? 'calc(100vw - 560px)' : '420px') : '100%',
-          maxHeight: isDesktop ? '85vh' : '100%',
+          width: isDesktop ? 'calc(100vh * (9 / 16))' : '100%',
+          maxWidth: isDesktop ? 'calc(100vh * (9 / 16))' : '100%',
+          height: isDesktop ? '100vh' : '100%',
         }}
         className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
-          isLandscape
+          isDesktop
+            ? 'h-screen rounded-none border-l-2 border-r-2 border-[#ccff00] shadow-[0_0_60px_25px_rgba(0,0,0,0.8),-30px_0_50px_rgba(8,9,12,0.95),30px_0_50px_rgba(8,9,12,0.95),0_0_40px_rgba(204,255,0,0.28)] bg-black'
+            : isLandscape
             ? 'w-full md:aspect-[16/9] md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
             : 'w-full md:bg-neutral-950/80 md:backdrop-blur-xl md:border md:border-neutral-800 md:shadow-2xl md:rounded-lg'
         } ${
@@ -661,7 +551,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               loop
               muted={isMuted}
               preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-              className="w-full h-full object-contain rounded-none md:rounded-lg shadow-2xl bg-black md:bg-transparent"
+              className={`w-full h-full ${isLandscape ? 'object-contain' : 'object-cover'} rounded-none bg-black`}
               onLoadedMetadata={(e) => {
                 const v = e.currentTarget;
                 if (v.videoWidth && v.videoHeight) {
@@ -828,60 +718,57 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       </header>
 
-      {/* ===== LIVING CONSTELLATION: AMBIENT RECOMMENDED SHORTS (LEFT & RIGHT WINGS) ===== */}
-      {isDesktop && recommendedDeck.map(({ item, originalIndex, slot, style, delay, label, visibilityClass }) => {
-        if (!item) return null;
-        const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
+      {/* ===== SEAMLESS ZERO-GAP STREAM (100VH FULL HEIGHT, 0PX GAP, 85S ULTRA CALM) ===== */}
+      {isDesktop && streamItems.length > 0 && (
+        <div
+          className="fixed inset-0 z-10 overflow-hidden pointer-events-auto flex items-stretch bg-black select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
+          <div className="shorts-stream-track">
+            {streamItems.map(({ item, originalIndex }, idx) => {
+              if (!item) return null;
+              const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
 
-        return (
-          <div
-            key={`constellation-${deckCycleKey}-${item.id || originalIndex}-${slot}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              goToShortIndex(originalIndex, originalIndex > activeIndex ? 'next' : 'prev');
-            }}
-            onMouseEnter={() => setIsHoveredRecommendation(true)}
-            onMouseLeave={() => setIsHoveredRecommendation(false)}
-            style={{
-              ...style,
-              animationDelay: delay,
-            }}
-            className={`fixed z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-700 opacity-40 hover:opacity-100 hover:scale-105 hover:z-30 animate-constellation-in ${visibilityClass}`}
-            title={item.title || 'Recommended Short'}
-          >
-            <div className="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-neutral-950/80 border border-white/10 group-hover:border-[#ccff00]/70 group-hover:shadow-[0_0_20px_rgba(204,255,0,0.3)] transition-all duration-300 backdrop-blur-sm">
-              <img
-                src={thumbUrl}
-                alt={item.title || 'Recommended short'}
-                className="w-full h-full object-cover brightness-[0.5] group-hover:brightness-[0.9] transition-all duration-300"
-                loading="lazy"
-              />
-
-              {/* Ambient discovery badge */}
-              <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 border border-[#ccff00]/30 backdrop-blur-md">
-                <Sparkles className="w-2.5 h-2.5 text-[#ccff00]" />
-                <span className="text-[8px] font-mono font-bold tracking-wider text-[#ccff00] uppercase">
-                  {label}
-                </span>
-              </div>
-
-              {/* Hover play prompt */}
-              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                <div className="w-9 h-9 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.5)]">
-                  <Play className="w-4 h-4 fill-current ml-0.5" />
+              return (
+                <div
+                  key={`stream-card-${originalIndex}-${idx}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToShortIndex(originalIndex, originalIndex > activeIndex ? 'next' : 'prev');
+                  }}
+                  className="shorts-stream-card group"
+                  title={item.title || 'Play Short'}
+                >
+                  <img
+                    src={thumbUrl}
+                    alt={item.title || 'Short'}
+                    className="w-full h-full object-cover pointer-events-none select-none"
+                    loading="lazy"
+                  />
+                  <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/85 border border-[#ccff00]/40 backdrop-blur-md pointer-events-none shadow-md">
+                    <Sparkles className="w-2.5 h-2.5 text-[#ccff00]" />
+                    <span className="text-[9px] font-mono font-bold tracking-wider text-[#ccff00] uppercase">
+                      {STREAM_BADGES[idx % STREAM_BADGES.length]}
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
+                    <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.6)]">
+                      <Play className="w-5 h-5 fill-current ml-0.5" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none">
+                    <p className="text-xs font-bold text-white truncate drop-shadow">
+                      {item.title || 'Short'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Title snippet */}
-              <div className="absolute bottom-2 inset-x-0 px-2 text-center pointer-events-none">
-                <p className="text-[10px] text-neutral-300 group-hover:text-white line-clamp-1 font-sans drop-shadow-md">
-                  {item.title || 'Short'}
-                </p>
-              </div>
-            </div>
+              );
+            })}
           </div>
-        );
-      })}
+        </div>
+      )}
 
       {/* ===== DESKTOP FLOATING EDGE NAVIGATION ARROWS (PRECISION SCI-FI RETICLE) ===== */}
       {isDesktop && activeIndex > 0 && (
@@ -891,7 +778,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             goToShortIndex(activeIndex - 1, 'prev');
           }}
-          className={`reticle-btn reticle-btn-prev fixed left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-xl transition-all duration-300 ${
+          className={`reticle-btn reticle-btn-prev fixed left-6 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-xl transition-all duration-300 ${
             showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           title="Previous Short (Left Arrow)"
@@ -907,7 +794,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             goToShortIndex(activeIndex + 1, 'next');
           }}
-          className={`reticle-btn reticle-btn-next fixed right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-xl transition-all duration-300 ${
+          className={`reticle-btn reticle-btn-next fixed right-6 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-xl transition-all duration-300 ${
             showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           title="Next Short (Right Arrow)"
@@ -915,15 +802,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           <ChevronRight className="w-6 h-6 -mr-0.5" />
         </button>
       )}
-      {/* Desktop Stage (In-Place 5-Card Deck Centerpiece) vs Mobile Scroll-Snap Reels */}
+      {/* Desktop Stage (Seamless 100vh Centerpiece with Soft Aura) vs Mobile Scroll-Snap Reels */}
       {isDesktop ? (
         <div
-          className="fixed inset-0 z-20 flex items-center justify-center p-4 bg-transparent pointer-events-none select-none"
+          className="fixed inset-0 z-20 flex items-center justify-center p-0 bg-transparent pointer-events-none select-none"
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
         >
-          <div className="pointer-events-auto flex items-center justify-center">
+          <div className="pointer-events-auto h-screen aspect-[9/16] flex items-center justify-center">
             {renderVideoCard(shorts[activeIndex], activeIndex, true)}
           </div>
           {/* Preload adjacent videos for zero-latency instant transitions */}

@@ -136,6 +136,47 @@ button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
 .motion-paused .trailer-track-left,
 .motion-paused .trailer-track-right { animation-play-state: paused !important; }
 
+/* Seamless Zero-Gap Shorts Stream */
+@keyframes shortsSeamlessScroll {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.shorts-stream-track {
+  display: flex;
+  width: max-content;
+  height: 100vh;
+  gap: 0;
+  will-change: transform;
+  animation: shortsSeamlessScroll 85s linear infinite;
+}
+
+.shorts-stream-track:hover {
+  animation-play-state: paused;
+}
+
+.shorts-stream-card {
+  position: relative;
+  height: 100vh;
+  aspect-ratio: 9 / 16;
+  border-radius: 0;
+  overflow: hidden;
+  background: #000000;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  flex-shrink: 0;
+  filter: brightness(0.44);
+  opacity: 0.95;
+  transition: filter 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s;
+}
+
+.shorts-stream-card:hover {
+  filter: brightness(1.1) !important;
+  opacity: 1 !important;
+  z-index: 40;
+  box-shadow: inset 0 0 0 2px #ccff00, 0 0 35px rgba(204, 255, 0, 0.4);
+}
+
 html, body {
   margin: 0;
   padding: 0;
