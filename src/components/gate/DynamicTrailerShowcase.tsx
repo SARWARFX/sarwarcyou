@@ -4,6 +4,7 @@ import type { StageMediaItem } from '../../types';
 import { sanitizeMediaTitle } from '../../utils/titleSanitizer';
 import { getMediaUrl } from '../../utils/imageUrlResolver';
 import { hapticMedium, hapticLight } from '../../utils/hapticsManager';
+import { FALLBACK_HF_CATALOG } from '../../data/fallbackData';
 
 export interface DynamicTrailerShowcaseProps {
   shorts: StageMediaItem[];
@@ -38,23 +39,52 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
   // Curate ~50% of items for the dynamic trailer
   const [shuffleKey, setShuffleKey] = useState<number>(0);
 
+  // Robust fallback layers if props arrive empty while data hydrates
+  const effectiveShorts = useMemo(() => {
+    if (shorts && shorts.length > 0) return shorts;
+    return ((FALLBACK_HF_CATALOG?.shorts || []) as any[]).map((s) => ({
+      ...s,
+      type: 'video' as const,
+      mediaType: 'short' as const,
+      category: 'Shorts',
+    })) as StageMediaItem[];
+  }, [shorts]);
+
+  const effectiveClips = useMemo(() => {
+    if (clips && clips.length > 0) return clips;
+    return ((FALLBACK_HF_CATALOG?.clips || []) as any[]).map((c) => ({
+      ...c,
+      type: 'video' as const,
+      category: 'Video Clips',
+    })) as StageMediaItem[];
+  }, [clips]);
+
+  const effectiveImages = useMemo(() => {
+    if (images && images.length > 0) return images;
+    return ((FALLBACK_HF_CATALOG?.images || []) as any[]).map((img) => ({
+      ...img,
+      type: 'image' as const,
+      category: 'Photographs',
+    })) as StageMediaItem[];
+  }, [images]);
+
   const displayShorts = useMemo(() => {
-    const pool = [...shorts];
+    const pool = [...effectiveShorts];
     if (shuffleKey > 0) pool.sort(() => Math.random() - 0.5);
     return pool.slice(0, Math.max(24, Math.floor(pool.length * 0.55)));
-  }, [shorts, shuffleKey]);
+  }, [effectiveShorts, shuffleKey]);
 
   const displayClips = useMemo(() => {
-    const pool = [...clips];
+    const pool = [...effectiveClips];
     if (shuffleKey > 0) pool.sort(() => Math.random() - 0.5);
     return pool.slice(0, Math.max(20, Math.floor(pool.length * 0.55)));
-  }, [clips, shuffleKey]);
+  }, [effectiveClips, shuffleKey]);
 
   const displayImages = useMemo(() => {
-    const pool = [...images];
+    const pool = [...effectiveImages];
     if (shuffleKey > 0) pool.sort(() => Math.random() - 0.5);
     return pool.slice(0, Math.max(30, Math.floor(pool.length * 0.55)));
-  }, [images, shuffleKey]);
+  }, [effectiveImages, shuffleKey]);
 
   // Featured Hero Items (curated mixture across all 3 media types)
   const heroItems = useMemo(() => {

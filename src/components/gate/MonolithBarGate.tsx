@@ -19,6 +19,7 @@ import {
   type AppIdRoute,
 } from '../../utils/urlRouter';
 import { DynamicTrailerShowcase } from './DynamicTrailerShowcase';
+import { FALLBACK_HF_CATALOG } from '../../data/fallbackData';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -189,6 +190,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const rootNode = map.get(root);
       if (!rootNode) continue;
 
+      // Store in rootNode so rootNode.files holds the complete collection of this category
+      rootNode.files.push(item);
+
       let currentNode = rootNode;
       for (const sub of subfolders) {
         if (!currentNode.subfolders.has(sub)) {
@@ -238,6 +242,83 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
     return map;
   }, [items]);
+
+  // Memoized collections for DynamicTrailerShowcase with multi-layer resilience
+  const trailerShorts = useMemo(() => {
+    const fromRoot = rootMap.get('Shorts')?.files || [];
+    if (fromRoot.length > 0) return fromRoot;
+
+    const node = rootMap.get('Shorts');
+    const fromSubs: StageMediaItem[] = [];
+    if (node) {
+      for (const sub of node.subfolders.values()) {
+        fromSubs.push(...sub.files);
+      }
+    }
+    if (fromSubs.length > 0) return fromSubs;
+
+    const fromItems = (items || []).filter(
+      (i) => i.mediaType === 'short' || i.category?.toLowerCase().includes('short') || i.url?.toLowerCase().includes('short')
+    );
+    if (fromItems.length > 0) return fromItems;
+
+    return ((FALLBACK_HF_CATALOG?.shorts || []) as any[]).map((s) => ({
+      ...s,
+      type: 'video' as const,
+      mediaType: 'short' as const,
+      category: 'Shorts',
+    })) as StageMediaItem[];
+  }, [rootMap, items]);
+
+  const trailerClips = useMemo(() => {
+    const fromRoot = rootMap.get('Clips')?.files || [];
+    if (fromRoot.length > 0) return fromRoot;
+
+    const node = rootMap.get('Clips');
+    const fromSubs: StageMediaItem[] = [];
+    if (node) {
+      for (const sub of node.subfolders.values()) {
+        fromSubs.push(...sub.files);
+      }
+    }
+    if (fromSubs.length > 0) return fromSubs;
+
+    const fromItems = (items || []).filter(
+      (i) => (i.type === 'video' || !i.type) && !i.category?.toLowerCase().includes('short') && !i.url?.toLowerCase().includes('short')
+    );
+    if (fromItems.length > 0) return fromItems;
+
+    return ((FALLBACK_HF_CATALOG?.clips || []) as any[]).map((c) => ({
+      ...c,
+      type: 'video' as const,
+      category: 'Video Clips',
+    })) as StageMediaItem[];
+  }, [rootMap, items]);
+
+  const trailerImages = useMemo(() => {
+    const fromRoot = rootMap.get('Images')?.files || [];
+    if (fromRoot.length > 0) return fromRoot;
+
+    const node = rootMap.get('Images');
+    const fromSubs: StageMediaItem[] = [];
+    if (node) {
+      for (const sub of node.subfolders.values()) {
+        fromSubs.push(...sub.files);
+      }
+    }
+    if (fromSubs.length > 0) return fromSubs;
+
+    const fromItems = (items || []).filter(
+      (i) => i.type === 'image' || isPhotoExtension(i.url || i.name)
+    );
+    if (fromItems.length > 0) return fromItems;
+
+    return ((FALLBACK_HF_CATALOG?.images || []) as any[]).map((img) => ({
+      ...img,
+      type: 'image' as const,
+      category: 'Photographs',
+    })) as StageMediaItem[];
+  }, [rootMap, items]);
 
   // Initial deep link routing support
   useEffect(() => {
@@ -980,9 +1061,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           } ${activeTransitionClass}`}
         >
           <DynamicTrailerShowcase
-            shorts={rootMap.get('Shorts')?.files || []}
-            clips={rootMap.get('Clips')?.files || []}
-            images={rootMap.get('Images')?.files || []}
+            shorts={trailerShorts}
+            clips={trailerClips}
+            images={trailerImages}
             onOpenPhoto={onOpenPhoto}
             onOpenVideo={onOpenVideo}
             onOpenShort={onOpenShort}

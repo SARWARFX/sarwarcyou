@@ -802,7 +802,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           />
         )}
 
-        {/* 2. Middle Active Main Image Card (z-20 on top of any overlap) */}
+        {/* 2. Middle Active Main Image Card (z-30 on top of any overlap) */}
         <div
           ref={imageContainerRef}
           onClick={(e) => {
@@ -815,7 +815,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               onClose();
             }
           }}
-          className="relative z-20 flex items-center justify-center shrink-0 max-w-full max-h-full pointer-events-auto overflow-visible"
+          className="relative z-30 flex items-center justify-center shrink-0 min-w-0 max-w-full max-h-full pointer-events-auto overflow-visible"
         >
           <img
             key={currentItem?.id || activeUrl || activeIdx}
@@ -869,7 +869,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               WebkitTouchCallout: 'none',
               overscrollBehavior: 'none',
               maxHeight: isDesktop ? '82vh' : '100vh',
-              maxWidth: isDesktop ? '60vw' : '100vw',
+              maxWidth: isDesktop ? 'min(58vw, calc(100vw - 480px))' : '100vw',
               cursor: scale > 1.05 ? 'grab' : 'pointer',
             }}
             className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-xl drop-shadow-[0_20px_45px_rgba(0,0,0,0.9)] ${animationClass}`}
