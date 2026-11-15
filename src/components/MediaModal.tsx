@@ -46,7 +46,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [scale, setScale] = useState<number>(1);
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-  const [animationClass, setAnimationClass] = useState<string>('animate-media-open');
+  const [animationClass, setAnimationClass] = useState<string>('animate-picasa-open');
 
   const scaleRef = useRef<number>(1);
   const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -150,6 +150,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
     setPos({ x: 0, y: 0 });
+    if (isOpen) {
+      setAnimationClass('animate-picasa-open');
+    }
   }
 
   // Determine active media item

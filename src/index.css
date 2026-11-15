@@ -654,6 +654,32 @@ html, body, #root {
   -webkit-backface-visibility: hidden;
 }
 
+/* 5b. Google Picasa Signature Lightbox Opening Emergence */
+@keyframes picasaOpen {
+  0% {
+    opacity: 0;
+    transform: scale(0.84);
+    filter: brightness(0.85);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.018);
+    filter: brightness(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.animate-picasa-open {
+  animation: picasaOpen 350ms cubic-bezier(0.19, 1, 0.22, 1) both;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
 /* 6. Flanking Cards Fluid Entrance */
 @keyframes flankSlideLeftIn {
   0% {

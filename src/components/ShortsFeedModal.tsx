@@ -479,7 +479,52 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       </header>
 
-      {/* ===== DESKTOP LEFT FLANKING PREVIEW (Previous Short) ===== */}
+      {/* ===== DESKTOP FAR-LEFT FLANKING PREVIEW (Previous-to-Previous Short, PREV-2) ===== */}
+      {activeIndex > 1 && (
+        <div
+          key={`short-prev2-${activeIndex}-${slideDirection}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            hapticLight();
+            setSlideDirection('prev');
+            const targetIdx = activeIndex - 2;
+            slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+          }}
+          className={`hidden xl:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-75 hover:opacity-100 scale-95 hover:scale-100 ${
+            slideDirection === 'next'
+              ? 'animate-flank-elevate-up'
+              : slideDirection === 'prev'
+              ? 'animate-flank-dip-down'
+              : ''
+          }`}
+          style={{
+            right: 'calc(50% + 225px + clamp(165px, 11vw, 215px) + 16px)',
+            width: 'clamp(140px, 9.5vw, 185px)',
+          }}
+          title={shorts[activeIndex - 2]?.title || 'Previous Short'}
+        >
+          <div className="relative w-full aspect-[9/16] max-h-[62vh] rounded-2xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] transition-all duration-300">
+            <img
+              src={getThumbnailUrl(shorts[activeIndex - 2]) || (shorts[activeIndex - 2]?.thumbnail ? getMediaUrl(shorts[activeIndex - 2].thumbnail!) : '')}
+              alt={shorts[activeIndex - 2]?.title || 'Previous short'}
+              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.75] transition-all duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent flex items-center justify-center">
+              <div className={`w-9 h-9 rounded-full bg-black/75 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
+                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+              }`}>
+                <ChevronLeft className="w-5 h-5 -ml-0.5" />
+              </div>
+            </div>
+            <div className="absolute bottom-2.5 inset-x-0 text-center pointer-events-none px-2">
+              <p className="text-[11px] font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">PREV 2</p>
+              <p className="text-[9px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex - 2]?.title || ''}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== DESKTOP LEFT FLANKING PREVIEW (Near Previous Short, PREV-1) ===== */}
       {activeIndex > 0 && (
         <div
           key={`short-prev-${activeIndex}-${slideDirection}`}
@@ -497,7 +542,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               ? 'animate-flank-dip-down'
               : ''
           }`}
-          style={{ right: 'calc(50% + 225px)', width: 'clamp(180px, 14vw, 240px)' }}
+          style={{ right: 'calc(50% + 225px)', width: 'clamp(165px, 11vw, 215px)' }}
           title={shorts[activeIndex - 1]?.title || 'Previous Short'}
         >
           <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
@@ -521,7 +566,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       )}
 
-      {/* ===== DESKTOP RIGHT FLANKING PREVIEW (Next Short) ===== */}
+      {/* ===== DESKTOP RIGHT FLANKING PREVIEW (Near Next Short, NEXT-1) ===== */}
       {activeIndex < shorts.length - 1 && (
         <div
           key={`short-next-${activeIndex}-${slideDirection}`}
@@ -539,7 +584,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               ? 'animate-flank-elevate-up'
               : ''
           }`}
-          style={{ left: 'calc(50% + 225px)', width: 'clamp(180px, 14vw, 240px)' }}
+          style={{ left: 'calc(50% + 225px)', width: 'clamp(165px, 11vw, 215px)' }}
           title={shorts[activeIndex + 1]?.title || 'Next Short'}
         >
           <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-2xl overflow-hidden bg-black/75 border border-white/15 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300">
@@ -558,6 +603,51 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             <div className="absolute bottom-3 inset-x-0 text-center pointer-events-none px-2">
               <p className="text-xs font-mono uppercase tracking-widest text-neutral-300 group-hover:text-[#ccff00] font-bold">NEXT</p>
               <p className="text-[10px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex + 1]?.title || ''}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== DESKTOP FAR-RIGHT FLANKING PREVIEW (Next-to-Next Short, NEXT-2) ===== */}
+      {activeIndex < shorts.length - 2 && (
+        <div
+          key={`short-next2-${activeIndex}-${slideDirection}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            hapticLight();
+            setSlideDirection('next');
+            const targetIdx = activeIndex + 2;
+            slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+          }}
+          className={`hidden xl:flex fixed top-1/2 -translate-y-1/2 z-10 items-center justify-center group cursor-pointer pointer-events-auto transition-all duration-300 opacity-75 hover:opacity-100 scale-95 hover:scale-100 ${
+            slideDirection === 'next'
+              ? 'animate-flank-dip-down'
+              : slideDirection === 'prev'
+              ? 'animate-flank-elevate-up'
+              : ''
+          }`}
+          style={{
+            left: 'calc(50% + 225px + clamp(165px, 11vw, 215px) + 16px)',
+            width: 'clamp(140px, 9.5vw, 185px)',
+          }}
+          title={shorts[activeIndex + 2]?.title || 'Next Short'}
+        >
+          <div className="relative w-full aspect-[9/16] max-h-[62vh] rounded-2xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-[#ccff00]/60 group-hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] transition-all duration-300">
+            <img
+              src={getThumbnailUrl(shorts[activeIndex + 2]) || (shorts[activeIndex + 2]?.thumbnail ? getMediaUrl(shorts[activeIndex + 2].thumbnail!) : '')}
+              alt={shorts[activeIndex + 2]?.title || 'Next short'}
+              className="w-full h-full object-cover brightness-[0.35] group-hover:brightness-[0.75] transition-all duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-transparent to-transparent flex items-center justify-center">
+              <div className={`w-9 h-9 rounded-full bg-black/75 border border-white/20 group-hover:border-[#ccff00] group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center text-white/80 transition-all duration-200 shadow-2xl backdrop-blur-sm ${
+                showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+              }`}>
+                <ChevronRight className="w-5 h-5 -mr-0.5" />
+              </div>
+            </div>
+            <div className="absolute bottom-2.5 inset-x-0 text-center pointer-events-none px-2">
+              <p className="text-[11px] font-mono uppercase tracking-widest text-neutral-400 group-hover:text-[#ccff00] font-bold">NEXT 2</p>
+              <p className="text-[9px] text-neutral-400 line-clamp-1 mt-0.5">{shorts[activeIndex + 2]?.title || ''}</p>
             </div>
           </div>
         </div>
