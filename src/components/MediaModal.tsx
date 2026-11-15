@@ -46,6 +46,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [scale, setScale] = useState<number>(1);
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [slideDirection, setSlideDirection] = useState<'next' | 'prev' | null>(null);
 
   const scaleRef = useRef<number>(1);
   const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -106,6 +107,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const goToNext = useCallback(() => {
     if (items && items.length > 0 && activeIdx < items.length - 1) {
       const next = activeIdx + 1;
+      setSlideDirection('next');
       setActiveIdx(next);
       _onIndexChange?.(next);
       resetZoom();
@@ -115,6 +117,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const goToPrev = useCallback(() => {
     if (items && items.length > 0 && activeIdx > 0) {
       const prev = activeIdx - 1;
+      setSlideDirection('prev');
       setActiveIdx(prev);
       _onIndexChange?.(prev);
       resetZoom();
@@ -770,6 +773,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         }}
       >
         <img
+          key={currentItem?.id || activeUrl || activeIdx}
           ref={imgRef}
           src={getMediaUrl(secureUrl)}
           alt={cleanTitle}
@@ -810,7 +814,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             WebkitTouchCallout: 'none',
             overscrollBehavior: 'none',
           }}
-          className="pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-pointer"
+          className={`pointer-events-auto select-none touch-none object-contain max-w-full max-h-full will-change-transform rounded-xl drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] cursor-pointer ${
+            slideDirection === 'next'
+              ? 'animate-photo-slide-next'
+              : slideDirection === 'prev'
+              ? 'animate-photo-slide-prev'
+              : ''
+          }`}
           draggable={false}
         />
       </div>
