@@ -775,7 +775,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           e.stopPropagation();
           onClose();
         }}
-        className={`reticle-btn reticle-btn-close fixed top-6 right-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+        className={`reticle-btn reticle-btn-close fixed top-4 right-4 sm:top-6 sm:right-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
           showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Close (Esc)"
@@ -784,7 +784,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         <X className="w-5 h-5" />
       </button>
 
-      {/* Floating Left Edge Navigation Arrow (Precision Sci-Fi Reticle) */}
+      {/* Floating Left Edge / Mobile Bottom Left Navigation Arrow (Precision Sci-Fi Reticle) */}
       {hasItemList && activeIdx > 0 && (
         <button
           type="button"
@@ -796,7 +796,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-prev fixed left-4 sm:left-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+          className={`reticle-btn reticle-btn-prev fixed bottom-4 left-4 translate-y-0 sm:bottom-auto sm:left-6 sm:top-1/2 sm:-translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
             showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Previous Photo (←)"
@@ -806,7 +806,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </button>
       )}
 
-      {/* Floating Right Edge Navigation Arrow (Precision Sci-Fi Reticle) */}
+      {/* Floating Right Edge / Mobile Bottom Right Navigation Arrow (Precision Sci-Fi Reticle) */}
       {hasItemList && activeIdx < items.length - 1 && (
         <button
           type="button"
@@ -818,7 +818,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-next fixed right-4 sm:right-6 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+          className={`reticle-btn reticle-btn-next fixed bottom-4 right-4 translate-y-0 sm:bottom-auto sm:right-6 sm:top-1/2 sm:-translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
             showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Next Photo (→)"
@@ -828,13 +828,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </button>
       )}
 
-      {/* Dedicated Universal Zoom Column (Precision Sci-Fi Reticle) */}
+      {/* Dedicated Universal Zoom Column: Mobile Right-Middle vs Desktop Bottom-Right Corner */}
       <div
         onMouseEnter={() => {
           if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
         }}
         onMouseLeave={scheduleAutoHide}
-        className={`reticle-zoom-box fixed right-4 sm:right-6 bottom-24 z-40 transition-all duration-300 pointer-events-auto ${
+        className={`reticle-zoom-box fixed right-3 top-1/2 -translate-y-1/2 sm:right-6 sm:top-auto sm:translate-y-0 sm:bottom-6 z-40 transition-all duration-300 pointer-events-auto ${
           showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
         }`}
         style={{ touchAction: 'none' }}
@@ -976,7 +976,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         />
       </div>
 
-      {/* Floating Download Button at Bottom Left (Precision Sci-Fi Reticle) */}
+      {/* Floating Download Button: Mobile Top-Left Corner vs Desktop Bottom-Left Corner */}
       <button
         type="button"
         onClick={(e) => {
@@ -984,7 +984,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           handleDownload();
         }}
         disabled={isDownloading}
-        className={`reticle-btn fixed bottom-6 left-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer disabled:opacity-40 pointer-events-auto ${
+        className={`reticle-btn fixed top-4 left-4 sm:top-auto sm:bottom-6 sm:left-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer disabled:opacity-40 pointer-events-auto ${
           showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Download Original Photo"
