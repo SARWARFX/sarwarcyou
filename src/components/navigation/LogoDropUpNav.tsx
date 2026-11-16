@@ -399,7 +399,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
         {/* ============================================================== */}
         {/* INLINE DOCK SEARCH TEXT BOX (SEARCH OPERATES STRICTLY IN DOCK) */}
         {/* ============================================================== */}
-        <div className="w-full relative mb-2">
+        <div className="w-full relative mb-1.5">
           <div className="flex items-center bg-white/[0.06] focus-within:bg-white/[0.14] transition-colors duration-200 px-2 py-1.5 rounded-none">
             <span className="text-[10px] text-white/50 mr-1.5 select-none">⌕</span>
             <input
@@ -424,157 +424,154 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               <span className="text-[7px] text-white/40 px-1 font-mono bg-white/10 select-none">/</span>
             )}
           </div>
+
+          {/* INLINE SEARCH RESULTS (Rendered RIGHT UNDERNEATH the search box) */}
+          {searchQuery.trim() !== '' && (
+            <div className="w-full flex flex-col overflow-hidden mt-1.5">
+              <div className="flex justify-between items-center text-[7px] font-['Michroma',sans-serif] text-white/60 pb-1 mb-1 border-b border-white/10">
+                <span>{searchResults.length} FOUND</span>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-[6.5px] text-white/80 hover:text-white cursor-pointer"
+                >
+                  CLEAR
+                </button>
+              </div>
+              <div className="w-full overflow-y-auto space-scrollbar flex flex-col gap-1 pr-0.5 max-h-[220px]">
+                {searchResults.length === 0 ? (
+                  <div className="text-[7.5px] font-['Michroma',sans-serif] text-white/40 text-center py-6">
+                    NO MATCHES
+                  </div>
+                ) : (
+                  searchResults.map((item, idx) => {
+                    const isPhoto = isPhotoExtension(item.path || '');
+                    const isShort = item.mediaType === 'short';
+                    const typeLabel = isShort ? 'SHORT' : isPhoto ? 'PHOTO' : 'VIDEO';
+                    return (
+                      <button
+                        key={item.id || item.url || idx}
+                        type="button"
+                        onClick={() => {
+                          hapticLight();
+                          if (onSelectItem) onSelectItem(item);
+                        }}
+                        className="w-full text-left p-1.5 bg-white/[0.05] hover:bg-white hover:text-black transition-colors duration-150 cursor-pointer border-0 rounded-none flex items-center gap-1.5"
+                      >
+                        <span className="text-[6px] font-bold font-['Michroma',sans-serif] px-1 py-0.5 bg-white/15 text-white tracking-widest shrink-0">
+                          {typeLabel}
+                        </span>
+                        <span className="text-[7.5px] font-['Michroma',sans-serif] truncate tracking-wider text-white">
+                          {item.name || item.title || 'Untitled'}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* SECTION 3: DOCK BODY (TABS POSITIONED RIGHT ABOVE KEEP ON)     */}
+      {/* SECTION 3: DOCK TABS (POSITIONED RIGHT ABOVE KEEP ON)          */}
+      {/* Hidden during active search so search results stay right under */}
       {/* ============================================================== */}
-      <div
-        className={`relative w-full overflow-hidden flex-1 flex flex-col my-1 min-h-[210px] ${
-          searchQuery.trim() !== '' ? 'justify-start' : 'justify-end'
-        }`}
-      >
-        {/* VIEW 1: INLINE SEARCH RESULTS (When user is typing in dock search) */}
-        {searchQuery.trim() !== '' ? (
-          <div className="w-full h-full flex flex-col overflow-hidden">
-            <div className="flex justify-between items-center text-[7px] font-['Michroma',sans-serif] text-white/60 pb-1 mb-1 border-b border-white/10">
-              <span>{searchResults.length} FOUND</span>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="text-[6.5px] text-white/80 hover:text-white cursor-pointer"
-              >
-                CLEAR
-              </button>
-            </div>
-            <div className="w-full flex-1 overflow-y-auto space-scrollbar flex flex-col gap-1 pr-0.5 max-h-[230px]">
-              {searchResults.length === 0 ? (
-                <div className="text-[7.5px] font-['Michroma',sans-serif] text-white/40 text-center py-8">
-                  NO MATCHES
-                </div>
-              ) : (
-                searchResults.map((item, idx) => {
-                  const isPhoto = isPhotoExtension(item.path || '');
-                  const isShort = item.mediaType === 'short';
-                  const typeLabel = isShort ? 'SHORT' : isPhoto ? 'PHOTO' : 'VIDEO';
-                  return (
-                    <button
-                      key={item.id || item.url || idx}
-                      type="button"
-                      onClick={() => {
-                        hapticLight();
-                        if (onSelectItem) onSelectItem(item);
-                      }}
-                      className="w-full text-left p-1.5 bg-white/[0.05] hover:bg-white hover:text-black transition-colors duration-150 cursor-pointer border-0 rounded-none flex items-center gap-1.5"
-                    >
-                      <span className="text-[6px] font-bold font-['Michroma',sans-serif] px-1 py-0.5 bg-white/15 text-white tracking-widest shrink-0">
-                        {typeLabel}
-                      </span>
-                      <span className="text-[7.5px] font-['Michroma',sans-serif] truncate tracking-wider text-white">
-                        {item.name || item.title || 'Untitled'}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
+      {searchQuery.trim() === '' && (
+        <div className="relative w-full overflow-hidden flex-1 flex flex-col justify-end my-1 min-h-[180px]">
+          {/* VIEW 2A: MAJOR FOLDERS */}
+          <div
+            className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
+              viewingSubfolders
+                ? '-translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
+                : 'translate-x-0 opacity-100 pointer-events-auto relative'
+            }`}
+          >
+            {/* > HOME Button */}
+            <button
+              type="button"
+              onClick={() => {
+                hapticMedium();
+                onSelectHome();
+              }}
+              className="font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer border-0 bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black"
+            >
+              &gt; HOME
+            </button>
+
+            {/* 4 Main Folders */}
+            {mainFolders.map((folder) => {
+              const isActiveMain = activeMainTab === folder;
+              return (
+                <button
+                  key={folder}
+                  type="button"
+                  onClick={() => {
+                    hapticMedium();
+                    setActiveFolderForSub(folder);
+                    setViewingSubfolders(true);
+                  }}
+                  className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between border-0 ${
+                    isActiveMain
+                      ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
+                      : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
+                  }`}
+                >
+                  <span className="truncate">&gt; {folder.toUpperCase()}</span>
+                  <span className="text-[9px] opacity-75 shrink-0 ml-1">»</span>
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <>
-            {/* VIEW 2A: MAJOR FOLDERS */}
-            <div
-              className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
-                viewingSubfolders
-                  ? '-translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
-                  : 'translate-x-0 opacity-100 pointer-events-auto relative'
-              }`}
-            >
-              {/* > HOME Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  hapticMedium();
-                  onSelectHome();
-                }}
-                className="font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer border-0 bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black"
-              >
-                &gt; HOME
-              </button>
 
-              {/* 4 Main Folders */}
-              {mainFolders.map((folder) => {
-                const isActiveMain = activeMainTab === folder;
-                return (
-                  <button
-                    key={folder}
-                    type="button"
-                    onClick={() => {
-                      hapticMedium();
-                      setActiveFolderForSub(folder);
-                      setViewingSubfolders(true);
-                    }}
-                    className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between border-0 ${
-                      isActiveMain
-                        ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
-                        : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
-                    }`}
-                  >
-                    <span className="truncate">&gt; {folder.toUpperCase()}</span>
-                    <span className="text-[9px] opacity-75 shrink-0 ml-1">»</span>
-                  </button>
-                );
-              })}
+          {/* VIEW 2B: SUBFOLDERS */}
+          <div
+            className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
+              viewingSubfolders
+                ? 'translate-x-0 opacity-100 pointer-events-auto relative'
+                : 'translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
+            }`}
+          >
+            <div className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-wider text-white/80 pb-1 uppercase truncate">
+              {activeFolderForSub} // SUB
             </div>
 
-            {/* VIEW 2B: SUBFOLDERS */}
-            <div
-              className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
-                viewingSubfolders
-                  ? 'translate-x-0 opacity-100 pointer-events-auto relative'
-                  : 'translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
-              }`}
+            {DIRECTORY_SUBFOLDERS[activeFolderForSub]?.map((subfolder) => {
+              const isActive = activeSubfolder === subfolder && activeMainTab === activeFolderForSub;
+              return (
+                <button
+                  key={subfolder}
+                  type="button"
+                  onClick={() => {
+                    hapticLight();
+                    setViewingSubfolders(false);
+                    onSelectSubfolder(activeFolderForSub, subfolder);
+                  }}
+                  className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer truncate border-0 ${
+                    isActive
+                      ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
+                      : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
+                  }`}
+                >
+                  &gt; {subfolder.toUpperCase()}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => {
+                hapticLight();
+                setViewingSubfolders(false);
+              }}
+              className="font-['Michroma',sans-serif] text-[9.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-1 border-0"
             >
-              <div className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-wider text-white/80 pb-1 uppercase truncate">
-                {activeFolderForSub} // SUB
-              </div>
-
-              {DIRECTORY_SUBFOLDERS[activeFolderForSub]?.map((subfolder) => {
-                const isActive = activeSubfolder === subfolder && activeMainTab === activeFolderForSub;
-                return (
-                  <button
-                    key={subfolder}
-                    type="button"
-                    onClick={() => {
-                      hapticLight();
-                      setViewingSubfolders(false);
-                      onSelectSubfolder(activeFolderForSub, subfolder);
-                    }}
-                    className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer truncate border-0 ${
-                      isActive
-                        ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
-                        : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
-                    }`}
-                  >
-                    &gt; {subfolder.toUpperCase()}
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                onClick={() => {
-                  hapticLight();
-                  setViewingSubfolders(false);
-                }}
-                className="font-['Michroma',sans-serif] text-[9.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-1 border-0"
-              >
-                <span>&lt; BACK</span>
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+              <span>&lt; BACK</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================== */}
       {/* SECTION 4: METERED MOBILE DATA WARNING                         */}
