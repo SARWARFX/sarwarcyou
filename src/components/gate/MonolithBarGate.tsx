@@ -135,8 +135,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return 'Photographs';
   });
 
-  // Logo Drop-Up Navigation Menu Open State (shown by default, toggles on logo click)
-  const [isNavTrayOpen, setIsNavTrayOpen] = useState(true);
+  // Logo Drop-Up Navigation Menu Open State
+  // On wide screen devices on homepage, automatically hidden so homepage is an uninterrupted living showcase
+  const [isNavTrayOpen, setIsNavTrayOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const isWide = window.innerWidth > window.innerHeight;
+      const parsed = parseAppPathname();
+      const isHome = parsed.tab === 'TRAILER';
+      if (isWide && isHome) return false;
+    }
+    return true;
+  });
 
   // Screen Aspect Ratio Detector:
   // - Portrait screens (mobile phone): scroll strictly up-down
@@ -157,6 +166,41 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
+
+  // Homepage living showcase mouse movement detector on widescreen:
+  // On wide screen devices, for the homepage (tabIndex === 0), the dock automatically
+  // disappears, but if mouse movement is detected, the dock appears. Otherwise it disappears.
+  useEffect(() => {
+    if (!isWideScreen || tabIndex !== 0) return;
+
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        const dockEl = document.querySelector('aside[aria-label="Tactical Navigation Dock"]');
+        if (dockEl && dockEl.matches(':hover')) {
+          return;
+        }
+        setIsNavTrayOpen(false);
+      }, 2500);
+    };
+
+    const handleMouseMove = () => {
+      setIsNavTrayOpen(true);
+      resetIdleTimer();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+    // Initial countdown to hide dock if user is idle on homepage
+    resetIdleTimer();
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (idleTimer) clearTimeout(idleTimer);
+    };
+  }, [isWideScreen, tabIndex]);
 
   // Scroll detector:
   // On wide screen devices:
