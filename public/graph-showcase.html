@@ -12,9 +12,9 @@
     :root {
       --bg-black: #000000;
       --card-bg: rgba(10, 10, 10, 0.95);
-      --accent-lime: #ccff00;
-      --accent-lime-dim: rgba(204, 255, 0, 0.15);
-      --accent-lime-glow: rgba(204, 255, 0, 0.5);
+      --accent-lime: #00f0ff;
+      --accent-lime-dim: rgba(0, 240, 255, 0.15);
+      --accent-lime-glow: rgba(0, 240, 255, 0.5);
       --font-orbitron: 'Orbitron', -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
       --font-inter: 'Inter', sans-serif;
@@ -102,7 +102,7 @@
 
     .tab-btn:hover {
       color: #ffffff;
-      border-color: rgba(204, 255, 0, 0.4);
+      border-color: rgba(0, 240, 255, 0.4);
     }
 
     .tab-btn.active {
@@ -134,7 +134,7 @@
     .device-btn.active {
       color: var(--accent-lime);
       border-color: var(--accent-lime);
-      background: rgba(204, 255, 0, 0.1);
+      background: rgba(0, 240, 255, 0.1);
     }
 
     /* Main Showcase Canvas */
@@ -157,7 +157,7 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 20px;
       padding: 28px 24px 20px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(204, 255, 0, 0.12);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(0, 240, 255, 0.12);
       position: relative;
       transition: all 0.3s ease;
     }
@@ -247,7 +247,7 @@
 
     .d1-segment.lit {
       background: var(--accent-lime);
-      box-shadow: 0 0 8px rgba(204, 255, 0, 0.6);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
     }
 
     .d1-segment.lit-peak {
@@ -335,9 +335,9 @@
 
     .d3-pill-fill {
       width: 100%;
-      background: linear-gradient(to top, #77aa00, var(--accent-lime));
+      background: linear-gradient(to top, #0088aa, var(--accent-lime));
       border-radius: 12px;
-      box-shadow: 0 0 16px rgba(204, 255, 0, 0.5);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
       transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -400,9 +400,9 @@
 
     .d4-rail-fill {
       height: 100%;
-      background: linear-gradient(to right, #77aa00, var(--accent-lime));
+      background: linear-gradient(to right, #0088aa, var(--accent-lime));
       border-radius: 5px;
-      box-shadow: 0 0 10px rgba(204, 255, 0, 0.4);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
     }
 
     .d4-rail-time {
@@ -683,14 +683,14 @@
         <svg viewBox="0 0 500 160" width="100%" height="100%" preserveAspectRatio="none">
           <defs>
             <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#ccff00" stop-opacity="0.35"/>
-              <stop offset="100%" stop-color="#ccff00" stop-opacity="0.0"/>
+              <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#00f0ff" stop-opacity="0.0"/>
             </linearGradient>
           </defs>
           <path d="${areaD}" fill="url(#waveGrad)"/>
-          <path d="${pathD}" fill="none" stroke="#ccff00" stroke-width="3" stroke-linecap="round"/>
+          <path d="${pathD}" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
           ${points.map((p, idx) => `
-            <circle cx="${p.x}" cy="${p.y}" r="${p.label === 'Today' ? 5 : 3.5}" fill="${p.label === 'Today' ? '#ffffff' : '#ccff00'}" />
+            <circle cx="${p.x}" cy="${p.y}" r="${p.label === 'Today' ? 5 : 3.5}" fill="${p.label === 'Today' ? '#ffffff' : '#00f0ff'}" />
             <text x="${p.x}" y="${p.y - 10}" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="700" text-anchor="middle">${p.formatted}</text>
           `).join('')}
         </svg>

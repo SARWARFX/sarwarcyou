@@ -105,7 +105,7 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
       >
         {/* Search Input Bar */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">
-          <Search className="w-5 h-5 text-[#ccff00] shrink-0" />
+          <Search className="w-5 h-5 text-[#00f0ff] shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -158,11 +158,11 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-['Roboto_Condensed'] font-sans uppercase tracking-wider transition-all duration-150 shrink-0 cursor-pointer border ${
                   isActive
-                    ? 'bg-[#ccff00]/15 border-[#ccff00] text-[#ccff00] shadow-[0_0_12px_rgba(204,255,0,0.25)]'
+                    ? 'bg-[#00f0ff]/15 border-[#00f0ff] text-[#00f0ff] shadow-[0_0_12px_rgba(0, 240, 255,0.25)]'
                     : 'bg-white/[0.04] border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.08]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#ccff00]' : 'text-neutral-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#00f0ff]' : 'text-neutral-400'}`} />
                 <span>{filter.label}</span>
               </button>
             );
@@ -195,11 +195,11 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
                   className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-3">
-                    <div className="w-9 h-9 rounded-lg bg-black/60 border border-white/10 flex items-center justify-center shrink-0 text-neutral-400 group-hover:text-[#ccff00] group-hover:border-[#ccff00]/40 transition-colors">
+                    <div className="w-9 h-9 rounded-lg bg-black/60 border border-white/10 flex items-center justify-center shrink-0 text-neutral-400 group-hover:text-[#00f0ff] group-hover:border-[#00f0ff]/40 transition-colors">
                       {isShort ? <Flame className="w-4 h-4 text-amber-400" /> : isVid ? <Video className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
                     </div>
                     <div className="min-w-0 flex flex-col">
-                      <span className="text-sm font-semibold text-white truncate group-hover:text-[#ccff00] transition-colors">
+                      <span className="text-sm font-semibold text-white truncate group-hover:text-[#00f0ff] transition-colors">
                         {title}
                       </span>
                       <span className="text-[11px] text-neutral-400 font-mono tracking-wider truncate uppercase">

@@ -42,11 +42,11 @@ export const SpotlightCarouselRow: React.FC<SpotlightCarouselRowProps> = ({
       {/* Spotlight Row Header */}
       <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08]">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#ccff00]" />
+          <Sparkles className="w-4 h-4 text-[#00f0ff]" />
           <span className="text-xs font-mono font-bold tracking-widest uppercase text-white">
             {title}
           </span>
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/30 text-[#ccff00] text-[9px] font-mono font-bold tracking-widest uppercase">
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-[#00f0ff]/10 border border-[#00f0ff]/30 text-[#00f0ff] text-[9px] font-mono font-bold tracking-widest uppercase">
             {badge}
           </span>
         </div>
@@ -56,7 +56,7 @@ export const SpotlightCarouselRow: React.FC<SpotlightCarouselRowProps> = ({
           <button
             type="button"
             onClick={() => handleScroll('left')}
-            className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-[#ccff00]/15 hover:border-[#ccff00] border border-white/10 text-neutral-300 hover:text-[#ccff00] flex items-center justify-center transition-all cursor-pointer"
+            className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-[#00f0ff]/15 hover:border-[#00f0ff] border border-white/10 text-neutral-300 hover:text-[#00f0ff] flex items-center justify-center transition-all cursor-pointer"
             title="Scroll Left"
             aria-label="Scroll left"
           >
@@ -65,7 +65,7 @@ export const SpotlightCarouselRow: React.FC<SpotlightCarouselRowProps> = ({
           <button
             type="button"
             onClick={() => handleScroll('right')}
-            className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-[#ccff00]/15 hover:border-[#ccff00] border border-white/10 text-neutral-300 hover:text-[#ccff00] flex items-center justify-center transition-all cursor-pointer"
+            className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-[#00f0ff]/15 hover:border-[#00f0ff] border border-white/10 text-neutral-300 hover:text-[#00f0ff] flex items-center justify-center transition-all cursor-pointer"
             title="Scroll Right"
             aria-label="Scroll right"
           >

@@ -31,7 +31,7 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
         className="relative w-full max-w-md rounded-2xl bg-[#090b10] border border-white/15 p-6 shadow-[0_25px_60px_rgba(0,0,0,0.95)] overflow-hidden cursor-default animate-picasa-open"
       >
         {/* Subtle Ambient Glow */}
-        <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-[#ccff00]/10 blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-[#00f0ff]/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-red-500/10 blur-3xl pointer-events-none" />
 
         {/* Header Icon with Neon Pulse */}
@@ -51,7 +51,7 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
 
         {/* Message */}
         <p className="text-sm text-neutral-300 leading-relaxed mb-4">
-          The requested media link <code className="px-2 py-0.5 rounded bg-white/10 text-[#ccff00] font-mono text-xs">{attemptedPath}</code> does not exist, has expired, or was removed from this vault.
+          The requested media link <code className="px-2 py-0.5 rounded bg-white/10 text-[#00f0ff] font-mono text-xs">{attemptedPath}</code> does not exist, has expired, or was removed from this vault.
         </p>
 
         {/* Action Buttons */}
@@ -64,7 +64,7 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
                 onNavigateTab(suggestedTab);
                 onClose();
               }}
-              className="flex-1 py-2.5 px-4 rounded-lg bg-[#ccff00] text-black font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_18px_rgba(204,255,0,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+              className="flex-1 py-2.5 px-4 rounded-lg bg-[#00f0ff] text-black font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_18px_rgba(0, 240, 255,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer"
             >
               <Compass className="w-4 h-4" />
               <span>BROWSE {suggestedTab}</span>

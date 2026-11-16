@@ -239,7 +239,7 @@ export const FullAlbumViewModal: React.FC<FullAlbumViewModalProps> = ({
             className="reticle-chip flex-shrink-0"
             title="Back to Archive (Esc)"
           >
-            <ArrowLeft className="w-4 h-4 text-[#ccff00]" />
+            <ArrowLeft className="w-4 h-4 text-[#00f0ff]" />
             <span className="hidden xs:inline uppercase font-mono font-bold text-white">Back</span>
           </button>
 

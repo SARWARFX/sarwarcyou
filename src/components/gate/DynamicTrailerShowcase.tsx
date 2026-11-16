@@ -216,13 +216,13 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
       {/* ===== HEADER CONTROLS DECK ===== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00]">
+          <div className="w-8 h-8 rounded-lg bg-[#00f0ff]/10 border border-[#00f0ff]/30 flex items-center justify-center text-[#00f0ff]">
             <Sparkles className="w-4 h-4 animate-pulse" />
           </div>
           <div>
             <h2 className="text-sm sm:text-base font-bold text-white tracking-wider flex items-center gap-2">
               DYNAMIC ARCHIVE TRAILER
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 font-semibold uppercase tracking-widest">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#00f0ff]/15 text-[#00f0ff] border border-[#00f0ff]/30 font-semibold uppercase tracking-widest">
                 LIVING STREAM
               </span>
             </h2>
@@ -287,10 +287,10 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
             {/* Upper Badge */}
             <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2.5 z-20">
               <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ccff00] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ccff00]" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00f0ff] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00f0ff]" />
               </span>
-              <span className="text-[11px] font-mono uppercase tracking-widest text-[#ccff00] font-bold px-3 py-1 rounded-full bg-black/60 border border-[#ccff00]/30 backdrop-blur-md">
+              <span className="text-[11px] font-mono uppercase tracking-widest text-[#00f0ff] font-bold px-3 py-1 rounded-full bg-black/60 border border-[#00f0ff]/30 backdrop-blur-md">
                 CINEMATIC ARCHIVE TRAILER
               </span>
               <span className="text-[11px] font-mono text-neutral-400 px-2.5 py-1 rounded-full bg-black/50 border border-white/10 backdrop-blur-md">
@@ -322,7 +322,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
             <div className="absolute bottom-5 left-5 right-5 sm:bottom-7 sm:left-7 sm:right-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4 z-20">
               <div className="space-y-1.5 max-w-2xl">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-[#ccff00] text-black">
+                  <span className="text-xs font-mono uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-[#00f0ff] text-black">
                     CINEMATIC SCENE
                   </span>
                   <span className="text-xs font-mono text-neutral-400">
@@ -352,7 +352,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
             {/* Progress Bar Timeline */}
             <div className="absolute bottom-0 inset-x-0 h-1 bg-white/10 z-30">
               <div
-                className="h-full bg-[#ccff00] transition-all duration-100 ease-linear"
+                className="h-full bg-[#00f0ff] transition-all duration-100 ease-linear"
                 style={{ width: `${Math.min(100, heroProgress)}%` }}
               />
             </div>
@@ -429,7 +429,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                   <div
                     key={`recent-${item.id || item.url}-${idx}`}
                     onClick={() => handleOpenRecent(item)}
-                    className="group relative flex-shrink-0 w-44 sm:w-52 bg-[#0c0e14] hover:bg-neutral-900 rounded-xl border border-white/10 hover:border-[#ccff00] transition-all duration-300 cursor-pointer overflow-hidden shadow-lg hover:shadow-[0_0_20px_rgba(204,255,0,0.25)] flex flex-col"
+                    className="group relative flex-shrink-0 w-44 sm:w-52 bg-[#0c0e14] hover:bg-neutral-900 rounded-xl border border-white/10 hover:border-[#00f0ff] transition-all duration-300 cursor-pointer overflow-hidden shadow-lg hover:shadow-[0_0_20px_rgba(0, 240, 255,0.25)] flex flex-col"
                     title={`Reopen ${item.title || 'file'}`}
                   >
                     {/* Media Thumbnail Container */}
@@ -449,7 +449,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                       <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/15 text-[9px] font-mono font-bold tracking-wider text-white">
                         {isShort ? (
                           <>
-                            <span className="text-[#ccff00]">⚡</span>
+                            <span className="text-[#00f0ff]">⚡</span>
                             <span>SHORT</span>
                           </>
                         ) : isVideo ? (
@@ -467,7 +467,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
 
                       {/* Hover Play / View Overlay */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_15px_#ccff00] transform group-hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-full bg-[#00f0ff] text-black flex items-center justify-center shadow-[0_0_15px_#00f0ff] transform group-hover:scale-110 transition-transform">
                           {isPhoto ? (
                             <Sparkles className="w-4 h-4" />
                           ) : (
@@ -484,7 +484,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
 
                     {/* Meta snippet */}
                     <div className="p-2.5 flex-1 flex flex-col justify-between">
-                      <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#ccff00] transition-colors">
+                      <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#00f0ff] transition-colors">
                         {sanitizeMediaTitle(item.title || item.name, isPhoto ? 'Photo' : 'Video')}
                       </p>
                       <p className="text-[10px] font-mono text-neutral-400 truncate mt-0.5">
@@ -504,7 +504,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2.5">
             <h3 className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-2">
-              <span className="text-[#ccff00]">⚡</span> TRENDING SHORTS
+              <span className="text-[#00f0ff]">⚡</span> TRENDING SHORTS
             </h3>
             <span className="text-[11px] font-mono text-neutral-400 px-2 py-0.5 rounded-full bg-neutral-900 border border-white/10">
               {displayShorts.length} CURATED
@@ -514,7 +514,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
             <button
               type="button"
               onClick={() => onNavigateCategory('SHORTS')}
-              className="text-xs font-mono text-[#ccff00] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-xs font-mono text-[#00f0ff] hover:underline flex items-center gap-1 cursor-pointer"
             >
               <span>View All Shorts</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -537,7 +537,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                     hapticLight();
                     onOpenShort(short, displayShorts, realIdx, 'Shorts');
                   }}
-                  className="group relative w-[165px] sm:w-[195px] aspect-[9/16] shrink-0 rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#ccff00]/60 hover:shadow-[0_0_25px_rgba(204,255,0,0.3)] transition-all duration-300 cursor-pointer transform hover:-translate-y-1.5"
+                  className="group relative w-[165px] sm:w-[195px] aspect-[9/16] shrink-0 rounded-2xl overflow-hidden bg-[#090d16] border border-white/10 hover:border-[#00f0ff]/60 hover:shadow-[0_0_25px_rgba(0, 240, 255,0.3)] transition-all duration-300 cursor-pointer transform hover:-translate-y-1.5"
                 >
                   <img
                     src={short.thumbnail || getMediaUrl(short.url)}
@@ -546,11 +546,11 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                     className="w-full h-full object-cover brightness-[0.75] group-hover:brightness-100 transition-all duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20 flex flex-col justify-between p-3 pointer-events-none">
-                    <span className="self-start text-[10px] font-mono px-2 py-0.5 rounded bg-black/60 text-[#ccff00] border border-[#ccff00]/30 font-bold">
+                    <span className="self-start text-[10px] font-mono px-2 py-0.5 rounded bg-black/60 text-[#00f0ff] border border-[#00f0ff]/30 font-bold">
                       SHORT
                     </span>
                     <div className="space-y-0.5">
-                      <p className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-[#ccff00] transition-colors">
+                      <p className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-[#00f0ff] transition-colors">
                         {sanitizeMediaTitle(short.title || short.name, 'Short')}
                       </p>
                       <span className="text-[10px] font-mono text-neutral-400">Tap to play</span>
@@ -613,7 +613,7 @@ export const DynamicTrailerShowcase: React.FC<DynamicTrailerShowcaseProps> = ({
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/60 text-emerald-400 border border-emerald-400/30 font-bold">
                         SCENE
                       </span>
-                      <span className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-xs text-white group-hover:bg-[#ccff00] group-hover:text-black transition-all">
+                      <span className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-xs text-white group-hover:bg-[#00f0ff] group-hover:text-black transition-all">
                         <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                       </span>
                     </div>

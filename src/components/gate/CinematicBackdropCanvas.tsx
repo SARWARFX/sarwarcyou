@@ -75,7 +75,7 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
       ctx.stroke();
 
       // 3. Grid Crosshair Micro-Points at Intersections
-      ctx.fillStyle = 'rgba(204, 255, 0, 0.035)';
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.035)';
       for (let x = 0; x < width; x += gridSize * 2) {
         for (let y = 0; y < height; y += gridSize * 2) {
           ctx.fillRect(x - 1, y - 1, 2, 2);
@@ -86,7 +86,7 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
       const cx = width * 0.5;
       const cy = height * 0.28 + Math.sin(time * 0.4) * 15;
       const spotGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(width, height) * 0.65);
-      spotGrad.addColorStop(0, 'rgba(204, 255, 0, 0.032)');
+      spotGrad.addColorStop(0, 'rgba(0, 240, 255, 0.032)');
       spotGrad.addColorStop(0.35, 'rgba(30, 36, 10, 0.02)');
       spotGrad.addColorStop(0.75, 'rgba(8, 8, 8, 0.01)');
       spotGrad.addColorStop(1, 'rgba(5, 5, 5, 0)');
@@ -107,7 +107,7 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
         if (p.x < -10) p.x = width + 10;
 
         ctx.fillStyle = p.isLime
-          ? `rgba(204, 255, 0, ${p.opacity * 0.9})`
+          ? `rgba(0, 240, 255, ${p.opacity * 0.9})`
           : `rgba(240, 240, 245, ${p.opacity * 0.8})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);

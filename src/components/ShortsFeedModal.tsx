@@ -579,8 +579,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
           isDesktop
             ? isLandscape
-              ? 'rounded-2xl border-2 border-[#ccff00] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(204,255,0,0.35)] bg-black'
-              : 'h-screen rounded-none border-l-2 border-r-2 border-[#ccff00] shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7),-10px_0_25px_rgba(204,255,0,0.35),10px_0_25px_rgba(204,255,0,0.35)] bg-black'
+              ? 'rounded-2xl border-2 border-[#00f0ff] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(0, 240, 255,0.35)] bg-black'
+              : 'h-screen rounded-none border-l-2 border-r-2 border-[#00f0ff] shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7),-10px_0_25px_rgba(0, 240, 255,0.35),10px_0_25px_rgba(0, 240, 255,0.35)] bg-black'
             : 'w-full h-full bg-black'
         } ${
           isActive
@@ -683,7 +683,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               >
                 <div className="w-full h-1 group-hover:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-150 relative">
                   <div
-                    className="h-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.6)] rounded-full transition-[width] duration-75"
+                    className="h-full bg-[#00f0ff] shadow-[0_0_8px_rgba(0, 240, 255,0.6)] rounded-full transition-[width] duration-75"
                     style={{ width: `${Math.min(100, Math.max(0, (currentTime / (duration || 1)) * 100))}%` }}
                   />
                 </div>
@@ -751,7 +751,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         <span
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-full bg-black/80 text-[#ccff00] border border-[#ccff00]/30 backdrop-blur-md shadow-[0_0_10px_rgba(204,255,0,0.15)] pointer-events-auto"
+          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-full bg-black/80 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md shadow-[0_0_10px_rgba(0, 240, 255,0.15)] pointer-events-auto"
         >
           {activeIndex + 1} / {shorts.length}
         </span>
@@ -770,7 +770,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
             className={`reticle-btn px-2 h-9 rounded-lg font-mono text-[10px] font-bold tracking-wider transition-all cursor-pointer ${
-              landscapeMap[activeIndex] ? 'text-[#ccff00] border-[#ccff00] bg-[#ccff00]/15' : 'text-neutral-300'
+              landscapeMap[activeIndex] ? 'text-[#00f0ff] border-[#00f0ff] bg-[#00f0ff]/15' : 'text-neutral-300'
             }`}
             title={
               landscapeMap[activeIndex]
@@ -839,14 +839,14 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     className="w-full h-full object-cover pointer-events-none select-none"
                     loading="lazy"
                   />
-                  <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/85 border border-[#ccff00]/40 backdrop-blur-md pointer-events-none shadow-md">
-                    <Sparkles className="w-2.5 h-2.5 text-[#ccff00]" />
-                    <span className="text-[9px] font-mono font-bold tracking-wider text-[#ccff00] uppercase">
+                  <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/85 border border-[#00f0ff]/40 backdrop-blur-md pointer-events-none shadow-md">
+                    <Sparkles className="w-2.5 h-2.5 text-[#00f0ff]" />
+                    <span className="text-[9px] font-mono font-bold tracking-wider text-[#00f0ff] uppercase">
                       {STREAM_BADGES[idx % STREAM_BADGES.length]}
                     </span>
                   </div>
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
-                    <div className="w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.6)]">
+                    <div className="w-12 h-12 rounded-full bg-[#00f0ff] text-black flex items-center justify-center shadow-[0_0_20px_rgba(0, 240, 255,0.6)]">
                       <Play className="w-5 h-5 fill-current ml-0.5" />
                     </div>
                   </div>

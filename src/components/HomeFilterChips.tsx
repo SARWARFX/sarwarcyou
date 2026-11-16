@@ -57,7 +57,7 @@ export const HomeFilterChips: React.FC<HomeFilterChipsProps> = ({
             >
               <Icon
                 className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${
-                  isActive ? 'text-[#ccff00] scale-110' : 'text-neutral-400 group-hover:text-white'
+                  isActive ? 'text-[#00f0ff] scale-110' : 'text-neutral-400 group-hover:text-white'
                 }`}
               />
               <span className="tracking-wide uppercase font-mono">{chip.label}</span>
@@ -65,7 +65,7 @@ export const HomeFilterChips: React.FC<HomeFilterChipsProps> = ({
                 <span
                   className={`text-[10px] sm:text-xs font-mono px-1.5 py-0.5 rounded transition-colors ${
                     isActive
-                      ? 'bg-[#ccff00]/20 text-[#ccff00] border border-[#ccff00]/40'
+                      ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40'
                       : 'bg-white/10 text-neutral-400'
                   }`}
                 >

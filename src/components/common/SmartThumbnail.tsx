@@ -53,26 +53,26 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
             className="absolute inset-0 w-full h-full animate-laser-shimmer pointer-events-none"
             style={{
               background:
-                'linear-gradient(90deg, transparent 0%, rgba(204,255,0,0.03) 25%, rgba(204,255,0,0.18) 50%, rgba(255,255,255,0.12) 53%, rgba(204,255,0,0.03) 75%, transparent 100%)',
+                'linear-gradient(90deg, transparent 0%, rgba(0, 240, 255,0.03) 25%, rgba(0, 240, 255,0.18) 50%, rgba(255,255,255,0.12) 53%, rgba(0, 240, 255,0.03) 75%, transparent 100%)',
             }}
           />
 
           {/* Avant-Garde Framing Corner Reticle Ticks */}
-          <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#ccff00]/40" />
-          <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#ccff00]/40" />
-          <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-[#ccff00]/40" />
-          <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-[#ccff00]/40" />
+          <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#00f0ff]/40" />
+          <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#00f0ff]/40" />
+          <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-[#00f0ff]/40" />
+          <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-[#00f0ff]/40" />
 
           {/* Center Telemetry */}
           <div className="relative z-10 flex flex-col items-center justify-center p-2 text-center">
             {/* Pulsing Acid Lime Glyph with Neon Bloom */}
             <div className="relative flex items-center justify-center w-7 h-7">
-              <span className="absolute w-5 h-5 rounded-full border border-[#ccff00]/50 animate-ping opacity-60" />
-              <span className="w-2 h-2 rounded-full bg-[#ccff00] shadow-[0_0_10px_#ccff00]" />
+              <span className="absolute w-5 h-5 rounded-full border border-[#00f0ff]/50 animate-ping opacity-60" />
+              <span className="w-2 h-2 rounded-full bg-[#00f0ff] shadow-[0_0_10px_#00f0ff]" />
             </div>
 
             {/* Loading Telemetry Label */}
-            <span className="font-mono font-bold text-[9px] tracking-[0.26em] text-[#ccff00] uppercase mt-2.5 truncate max-w-full px-2 flex items-center gap-1.5 drop-shadow-[0_0_6px_rgba(204,255,0,0.4)]">
+            <span className="font-mono font-bold text-[9px] tracking-[0.26em] text-[#00f0ff] uppercase mt-2.5 truncate max-w-full px-2 flex items-center gap-1.5 drop-shadow-[0_0_6px_rgba(0, 240, 255,0.4)]">
               LOADING
             </span>
           </div>
@@ -82,7 +82,7 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
       {/* 2. ERROR / ARCHIVE FALLBACK */}
       {hasError || !cleanSrc ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#08080a] p-3 text-center border border-white/5">
-          <div className="w-2 h-2 rounded-full bg-[#ccff00]/40 mb-2 shadow-[0_0_6px_rgba(204,255,0,0.3)]" />
+          <div className="w-2 h-2 rounded-full bg-[#00f0ff]/40 mb-2 shadow-[0_0_6px_rgba(0, 240, 255,0.3)]" />
           <span className="font-mono font-bold text-[9px] tracking-widest text-neutral-400 uppercase">
             ARCHIVE // READY
           </span>

@@ -114,7 +114,7 @@ export const NetworkStatusHUD: React.FC<NetworkStatusHUDProps> = ({
         className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border shadow-2xl backdrop-blur-2xl text-xs font-mono transition-all duration-300 ${
           isOffline
             ? 'bg-[#050505]/95 border-[#ff0055] text-white shadow-[0_0_35px_rgba(255,0,85,0.35)]'
-            : 'bg-[#050505]/95 border-[#ccff00] text-white shadow-[0_0_35px_rgba(204,255,0,0.35)]'
+            : 'bg-[#050505]/95 border-[#00f0ff] text-white shadow-[0_0_35px_rgba(0, 240, 255,0.35)]'
         }`}
       >
         {isOffline ? (
@@ -143,18 +143,18 @@ export const NetworkStatusHUD: React.FC<NetworkStatusHUDProps> = ({
         ) : (
           <>
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ccff00] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ccff00]" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00f0ff] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00f0ff]" />
             </span>
-            <div className="w-7 h-7 rounded-full bg-[#ccff00]/15 border border-[#ccff00]/30 flex items-center justify-center shrink-0">
-              <Wifi className="w-3.5 h-3.5 text-[#ccff00]" />
+            <div className="w-7 h-7 rounded-full bg-[#00f0ff]/15 border border-[#00f0ff]/30 flex items-center justify-center shrink-0">
+              <Wifi className="w-3.5 h-3.5 text-[#00f0ff]" />
             </div>
             <div className="flex flex-col pr-1 min-w-[200px]">
               <div className="flex items-center gap-2">
-                <span className="font-extrabold tracking-widest text-[#ccff00] uppercase text-[11px]">
+                <span className="font-extrabold tracking-widest text-[#00f0ff] uppercase text-[11px]">
                   CONNECTION RESTORED
                 </span>
-                <span className="px-1.5 py-0.5 rounded bg-[#ccff00]/20 text-black font-bold tracking-wider text-[9px] bg-[#ccff00]">
+                <span className="px-1.5 py-0.5 rounded bg-[#00f0ff]/20 text-black font-bold tracking-wider text-[9px] bg-[#00f0ff]">
                   LIVE
                 </span>
               </div>

@@ -4,7 +4,7 @@
  * Palette Specifications:
  * - Base solid color: #050505 (Deep Obsidian Canvas).
  * - Architectural grid & exhibition matrix.
- * - Ambient spotlight: Subtle Electric Acid Lime volumetric glow (rgba(204, 255, 0, 0.032)).
+ * - Ambient spotlight: Subtle Electric Acid Lime volumetric glow (rgba(0, 240, 255, 0.032)).
  * - Minimalist gallery dust motes: Warm white / lime shimmer (rgba(255, 255, 255, 0.25)).
  * - Deep obsidian vignette edge falloff: #050505.
  */
@@ -25,11 +25,11 @@ export const BIENNALE_AVANT_GARDE_THEME: CinematicTheme = {
   id: 'biennale-avant-garde',
   name: 'Acid Avant-Garde Biennale',
   bgGradient: ['#050505', '#080808', '#030303'],
-  fogColor: 'rgba(20, 24, 10, ',
-  particleColor: 'rgba(204, 255, 0, ',
+  fogColor: 'rgba(4, 18, 28, ',
+  particleColor: 'rgba(0, 240, 255, ',
   particleSpeed: 0.18,
   particleCount: 35,
-  glowAccent: 'rgba(204, 255, 0, 0.035)',
+  glowAccent: 'rgba(0, 240, 255, 0.035)',
   vignetteColor: '#050505',
 };
 

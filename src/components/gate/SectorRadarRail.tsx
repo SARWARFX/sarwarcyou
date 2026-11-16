@@ -24,7 +24,7 @@ export const SectorRadarRail: React.FC<SectorRadarRailProps> = ({
       {/* Background Connecting Vertical Rail Track */}
       <div className="absolute right-[13px] top-3 bottom-3 w-[1.5px] bg-white/10 pointer-events-none">
         <div
-          className="w-full bg-[#ccff00] transition-all duration-300 ease-out shadow-[0_0_8px_#ccff00]"
+          className="w-full bg-[#00f0ff] transition-all duration-300 ease-out shadow-[0_0_8px_#00f0ff]"
           style={{
             height: '33.3%',
             transform: `translateY(${
@@ -56,7 +56,7 @@ export const SectorRadarRail: React.FC<SectorRadarRailProps> = ({
             <div
               className={`px-2 py-0.5 rounded bg-black/90 border text-[9px] font-mono font-bold tracking-widest whitespace-nowrap transition-all duration-200 shadow-xl ${
                 isActive
-                  ? 'border-[#ccff00] text-[#ccff00] opacity-100 translate-x-0'
+                  ? 'border-[#00f0ff] text-[#00f0ff] opacity-100 translate-x-0'
                   : 'border-white/15 text-neutral-400 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0'
               }`}
             >
@@ -67,8 +67,8 @@ export const SectorRadarRail: React.FC<SectorRadarRailProps> = ({
             <div
               className={`relative z-10 w-7 h-7 rounded-full flex items-center justify-center font-mono font-bold text-[10px] transition-all duration-200 ${
                 isActive
-                  ? 'bg-[#ccff00] text-black shadow-[0_0_16px_rgba(204,255,0,0.85)] scale-110'
-                  : 'bg-[#0a0d14]/90 text-neutral-400 border border-white/20 hover:border-[#ccff00] hover:text-[#ccff00] hover:scale-105'
+                  ? 'bg-[#00f0ff] text-black shadow-[0_0_16px_rgba(0, 240, 255,0.85)] scale-110'
+                  : 'bg-[#0a0d14]/90 text-neutral-400 border border-white/20 hover:border-[#00f0ff] hover:text-[#00f0ff] hover:scale-105'
               }`}
             >
               {sector.code}

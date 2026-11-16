@@ -573,9 +573,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       />
 
       {/* 1. TOP ACID LIME KINETIC MARQUEE TICKER (EXACTLY UNCHANGED) */}
-      <div className="w-full h-[28px] overflow-hidden bg-[#ccff00] text-black font-mono font-black text-[11px] uppercase tracking-widest select-none shrink-0 z-50 shadow-md flex items-center">
+      <div className="w-full h-[28px] overflow-hidden bg-[#00f0ff] text-black font-mono font-black text-[11px] uppercase tracking-widest select-none shrink-0 z-50 shadow-md flex items-center">
         <div className="animate-marquee whitespace-nowrap flex gap-8 items-center">
-          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider">INDEX NOTICE</span>
+          <span className="bg-black text-[#00f0ff] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider">INDEX NOTICE</span>
           <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
           <span>•</span>
           <span>SARWARCYOU ARCHIVE 2026</span>
@@ -588,7 +588,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <span>•</span>
           <span>BIENNALE EDITION // VOL. 2026</span>
           <span>•</span>
-          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider">INDEX NOTICE</span>
+          <span className="bg-black text-[#00f0ff] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider">INDEX NOTICE</span>
           <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
           <span>•</span>
           <span>SARWARCYOU ARCHIVE 2026</span>
@@ -611,10 +611,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         <button
           type="button"
           onClick={() => switchTab(1)}
-          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
+          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#00f0ff] cursor-pointer transition-all duration-300 p-1 ${
             tabIndex === 1
-              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
-              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
+              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#00f0ff] drop-shadow-[0_0_32px_#00f0ff]'
+              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#00f0ff]'
           }`}
           title="Shorts"
         >
@@ -623,10 +623,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         <button
           type="button"
           onClick={() => switchTab(2)}
-          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
+          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#00f0ff] cursor-pointer transition-all duration-300 p-1 ${
             tabIndex === 2
-              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
-              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
+              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#00f0ff] drop-shadow-[0_0_32px_#00f0ff]'
+              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#00f0ff]'
           }`}
           title="Video Clips"
         >
@@ -635,10 +635,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         <button
           type="button"
           onClick={() => switchTab(3)}
-          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
+          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#00f0ff] cursor-pointer transition-all duration-300 p-1 ${
             tabIndex === 3
-              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
-              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
+              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#00f0ff] drop-shadow-[0_0_32px_#00f0ff]'
+              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#00f0ff]'
           }`}
           title="Photographs"
         >
@@ -684,7 +684,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 onClick={() => handleSubfolderSelect(subName)}
                 className={`font-['Orbitron',sans-serif] text-[9.5px] sm:text-[11px] tracking-[0.14em] uppercase transition-all duration-200 cursor-pointer whitespace-nowrap p-0.5 ${
                   isActive
-                    ? 'text-[#ccff00] font-black drop-shadow-[0_0_12px_#ccff00] scale-105'
+                    ? 'text-[#00f0ff] font-black drop-shadow-[0_0_12px_#00f0ff] scale-105'
                     : 'text-white/45 hover:text-white font-bold'
                 }`}
               >
@@ -702,7 +702,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           onClick={() => setIsTelemetryModalOpen(false)}
         >
           <div
-            className="bg-[#080808]/95 border border-white/10 rounded-2xl p-6 sm:p-7 max-w-2xl w-full shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(204,255,0,0.12)] relative cursor-default"
+            className="bg-[#080808]/95 border border-white/10 rounded-2xl p-6 sm:p-7 max-w-2xl w-full shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(0, 240, 255,0.12)] relative cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Mobile View: Adaptive Horizontal Track Rails (< 640px) */}
@@ -714,14 +714,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   <div key={d.date} className="flex items-center justify-between gap-3">
                     <span
                       className={`w-14 font-['Orbitron',sans-serif] text-[10px] tracking-wider uppercase shrink-0 ${
-                        isToday ? 'text-[#ccff00] font-black' : 'text-white/50 font-bold'
+                        isToday ? 'text-[#00f0ff] font-black' : 'text-white/50 font-bold'
                       }`}
                     >
                       {d.label}
                     </span>
                     <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden flex items-center p-0.5">
                       <div
-                        className="h-full bg-gradient-to-r from-[#77aa00] to-[#ccff00] rounded-full shadow-[0_0_10px_rgba(204,255,0,0.4)] transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-[#0088aa] to-[#00f0ff] rounded-full shadow-[0_0_10px_rgba(0, 240, 255,0.4)] transition-all duration-500"
                         style={{ width: `${widthPct}%` }}
                       />
                     </div>
@@ -745,13 +745,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     </span>
                     <div className="w-full max-w-[22px] bg-white/[0.05] rounded-xl flex items-end h-[145px] p-0.5 overflow-hidden">
                       <div
-                        className="w-full bg-gradient-to-t from-[#99cc00] to-[#ccff00] rounded-lg shadow-[0_0_14px_rgba(204,255,0,0.45)] transition-all duration-500"
+                        className="w-full bg-gradient-to-t from-[#0099bb] to-[#00f0ff] rounded-lg shadow-[0_0_14px_rgba(0, 240, 255,0.45)] transition-all duration-500"
                         style={{ height: `${heightPct}%` }}
                       />
                     </div>
                     <span
                       className={`font-['Orbitron',sans-serif] text-[9.5px] tracking-wider uppercase pt-1 whitespace-nowrap ${
-                        isToday ? 'text-[#ccff00] font-black' : 'text-white/50 font-bold'
+                        isToday ? 'text-[#00f0ff] font-black' : 'text-white/50 font-bold'
                       }`}
                     >
                       {d.label}
@@ -772,7 +772,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               >
                 <div
                   className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${
-                    keepAwakeOn ? 'bg-[#ccff00]' : 'bg-white/15'
+                    keepAwakeOn ? 'bg-[#00f0ff]' : 'bg-white/15'
                   }`}
                 >
                   <div

@@ -148,7 +148,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                               : '-translate-x-2.5 opacity-0 pointer-events-none'
                           } ${
                             selectedAlbum === folder.key && (!selectedSubfolder || selectedSubfolder === 'ALL')
-                              ? 'text-[#ccff00] font-black translate-x-1'
+                              ? 'text-[#00f0ff] font-black translate-x-1'
                               : 'text-zinc-400 hover:text-white hover:translate-x-1'
                           }`
                         : `pointer-events-auto relative z-40 select-none font-['Google_Sans'] text-sm font-semibold tracking-[0.16em] uppercase py-1 pl-4 text-left transition-colors cursor-pointer outline-none bg-transparent border-0 truncate ${
@@ -157,7 +157,7 @@ export const SidebarAccordionNav: React.FC<SidebarAccordionNavProps> = ({
                               : 'opacity-0 pointer-events-none'
                           } ${
                             selectedAlbum === folder.key && (!selectedSubfolder || selectedSubfolder === 'ALL')
-                              ? 'text-[#ccff00] font-black'
+                              ? 'text-[#00f0ff] font-black'
                               : 'text-zinc-400 hover:text-white'
                           }`
                     }

@@ -878,13 +878,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           title="Drag up/down to zoom"
         >
           <div
-            className="absolute bottom-0 inset-x-0 bg-[#ccff00] rounded-sm shadow-[0_0_8px_rgba(204,255,0,0.8)]"
+            className="absolute bottom-0 inset-x-0 bg-[#00f0ff] rounded-sm shadow-[0_0_8px_rgba(0, 240, 255,0.8)]"
             style={{
               height: `${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}%`,
             }}
           />
           <div
-            className="absolute -left-1.5 w-5 h-2.5 rounded-sm bg-[#ccff00] text-black font-mono font-bold text-[9px] flex items-center justify-center shadow-[0_0_10px_#ccff00] -translate-y-1/2 transition-transform active:scale-125"
+            className="absolute -left-1.5 w-5 h-2.5 rounded-sm bg-[#00f0ff] text-black font-mono font-bold text-[9px] flex items-center justify-center shadow-[0_0_10px_#00f0ff] -translate-y-1/2 transition-transform active:scale-125"
             style={{
               bottom: `calc(${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}% - 2px)`,
             }}
@@ -907,7 +907,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         <button
           type="button"
           onClick={resetZoom}
-          className="px-2 py-0.5 rounded-md bg-[#ccff00]/10 hover:bg-[#ccff00] hover:text-black border border-[#ccff00]/40 text-[9px] font-mono font-bold tracking-wider text-[#ccff00] transition-all cursor-pointer active:scale-90 mt-0.5"
+          className="px-2 py-0.5 rounded-md bg-[#00f0ff]/10 hover:bg-[#00f0ff] hover:text-black border border-[#00f0ff]/40 text-[9px] font-mono font-bold tracking-wider text-[#00f0ff] transition-all cursor-pointer active:scale-90 mt-0.5"
           title="Reset to 100% Screen Fit"
           aria-label="Reset zoom"
         >

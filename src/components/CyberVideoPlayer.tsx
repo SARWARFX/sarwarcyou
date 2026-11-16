@@ -1079,17 +1079,17 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           className="absolute left-0 top-0 bottom-0 rounded-full transition-all"
           style={{
             width: `${progressPct}%`,
-            background: '#ccff00',
-            boxShadow: '0 0 10px rgba(204, 255, 0, 0.6)',
+            background: '#00f0ff',
+            boxShadow: '0 0 10px rgba(0, 240, 255, 0.6)',
           }}
         />
 
         {/* Distinct Scrubber Dot */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-[#ccff00] border border-black/40 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-[#00f0ff] border border-black/40 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
           style={{
             left: `${progressPct}%`,
-            boxShadow: '0 0 8px rgba(204, 255, 0, 0.8)',
+            boxShadow: '0 0 8px rgba(0, 240, 255, 0.8)',
           }}
         />
 
@@ -1190,7 +1190,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         ) : isDownloading ? (
           <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
         ) : (
-          <Download className="w-5 h-5 text-[#ccff00]" />
+          <Download className="w-5 h-5 text-[#00f0ff]" />
         )}
       </button>
 
@@ -1207,7 +1207,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         title="Close (Esc)"
         aria-label="Close"
       >
-        <X className="w-5 h-5 text-[#ccff00]" />
+        <X className="w-5 h-5 text-[#00f0ff]" />
       </button>
 
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
@@ -1322,7 +1322,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {duration > 0 && (
               <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#ccff00] shadow-[0_0_8px_rgba(204,255,0,0.6)] transition-all duration-75"
+                  className="h-full bg-[#00f0ff] shadow-[0_0_8px_rgba(0, 240, 255,0.6)] transition-all duration-75"
                   style={{ width: `${Math.max(0, Math.min(100, (gestureSeek.targetTime / duration) * 100))}%` }}
                 />
               </div>
@@ -1347,7 +1347,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         <div
           className={
             isDesktop
-              ? "pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9] rounded-2xl border-2 border-[#ccff00] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(204,255,0,0.35)] bg-black overflow-hidden flex items-center justify-center cursor-pointer select-none"
+              ? "pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9] rounded-2xl border-2 border-[#00f0ff] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(0, 240, 255,0.35)] bg-black overflow-hidden flex items-center justify-center cursor-pointer select-none"
               : "relative w-full h-full flex items-center justify-center overflow-hidden"
           }
           onPointerDown={handleStagePointerDown}
@@ -1580,7 +1580,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   resetHudTimer();
                 }}
                 className={`p-1 rounded-md text-[10px] font-mono cursor-pointer flex-shrink-0 ${
-                  repeatMode !== 'off' ? 'text-[#ccff00] bg-[#ccff00]/20' : 'text-slate-400 hover:text-white'
+                  repeatMode !== 'off' ? 'text-[#00f0ff] bg-[#00f0ff]/20' : 'text-slate-400 hover:text-white'
                 }`}
                 title={`Loop: ${repeatMode.toUpperCase()}`}
               >
@@ -1596,7 +1596,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   resetHudTimer();
                 }}
                 className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold cursor-pointer flex-shrink-0 ${
-                  loopA !== null ? 'text-[#ccff00] bg-[#ccff00]/20' : 'text-slate-400 hover:text-white'
+                  loopA !== null ? 'text-[#00f0ff] bg-[#00f0ff]/20' : 'text-slate-400 hover:text-white'
                 }`}
                 title="A-B Loop"
               >
@@ -1666,7 +1666,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         <div
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className={`fixed bottom-6 left-6 z-50 flex items-center gap-2 p-2 rounded-xl bg-[#090b10]/95 backdrop-blur-xl border border-[#ccff00]/40 shadow-[0_0_25px_rgba(0,0,0,0.8),0_0_15px_rgba(204,255,0,0.25)] pointer-events-auto transition-all duration-300 ${
+          className={`fixed bottom-6 left-6 z-50 flex items-center gap-2 p-2 rounded-xl bg-[#090b10]/95 backdrop-blur-xl border border-[#00f0ff]/40 shadow-[0_0_25px_rgba(0,0,0,0.8),0_0_15px_rgba(0, 240, 255,0.25)] pointer-events-auto transition-all duration-300 ${
             showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
           }`}
         >
@@ -1679,9 +1679,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <Pause className="w-4 h-4 fill-current text-[#ccff00]" />
+              <Pause className="w-4 h-4 fill-current text-[#00f0ff]" />
             ) : (
-              <Play className="w-4 h-4 fill-current ml-0.5 text-[#ccff00]" />
+              <Play className="w-4 h-4 fill-current ml-0.5 text-[#00f0ff]" />
             )}
           </button>
 
@@ -1701,7 +1701,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               resetHudTimer();
             }}
             className={`reticle-btn w-9 h-9 rounded-lg cursor-pointer ${
-              repeatMode !== 'off' ? 'text-[#ccff00] border-[#ccff00]' : 'text-slate-300'
+              repeatMode !== 'off' ? 'text-[#00f0ff] border-[#00f0ff]' : 'text-slate-300'
             }`}
             title={
               repeatMode === 'off'
@@ -1721,7 +1721,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             onClick={handleToggleLoop}
             className={`reticle-btn px-2.5 h-9 rounded-lg text-xs font-mono font-bold cursor-pointer ${
               loopA !== null && loopB !== null
-                ? 'text-[#ccff00] border-[#ccff00]'
+                ? 'text-[#00f0ff] border-[#00f0ff]'
                 : loopA !== null
                 ? 'text-amber-300 border-amber-400'
                 : 'text-slate-300'
@@ -1740,7 +1740,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               resetHudTimer();
             }}
             className={`reticle-btn px-2.5 h-9 rounded-lg text-xs font-mono font-bold cursor-pointer ${
-              fitMode === 'cover' ? 'text-[#ccff00] border-[#ccff00]' : 'text-slate-300'
+              fitMode === 'cover' ? 'text-[#00f0ff] border-[#00f0ff]' : 'text-slate-300'
             }`}
             title={fitMode === 'cover' ? 'Fill Screen Active (Click for Fit)' : 'Fit Screen Active (Click for Fill)'}
             aria-label={`Fit mode: ${fitMode}`}
@@ -1755,7 +1755,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               type="button"
               onClick={toggleSpeedMenu}
               className={`reticle-btn px-2.5 h-9 rounded-lg text-xs font-mono font-bold flex items-center gap-1 cursor-pointer ${
-                playbackSpeed !== 1 ? 'text-[#ccff00] border-[#ccff00]' : 'text-slate-300'
+                playbackSpeed !== 1 ? 'text-[#00f0ff] border-[#00f0ff]' : 'text-slate-300'
               }`}
               title="Playback Speed (< / >)"
               aria-haspopup="true"
@@ -1772,7 +1772,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   bottom: speedMenuPos ? `${speedMenuPos.bottom}px` : '3.5rem',
                   left: 0,
                   background: 'rgba(10, 11, 15, 0.98)',
-                  border: '1px solid rgba(204, 255, 0, 0.3)',
+                  border: '1px solid rgba(0, 240, 255, 0.3)',
                 }}
                 className="absolute py-1.5 px-1 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-0.5 z-[10000] min-w-[120px] max-h-[50vh] overflow-y-auto pointer-events-auto"
                 onClick={(e) => e.stopPropagation()}
@@ -1792,7 +1792,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                       }}
                       className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
                         isSelected
-                          ? 'bg-[#ccff00] text-black font-semibold'
+                          ? 'bg-[#00f0ff] text-black font-semibold'
                           : 'text-neutral-300 hover:text-white hover:bg-white/10'
                       }`}
                     >
@@ -1826,7 +1826,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
             aria-label={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-[#ccff00]" />}
+            {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-[#00f0ff]" />}
           </button>
 
           {/* Fullscreen Toggle */}
