@@ -130,6 +130,15 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
     };
   }, []);
 
+  // When dock disappears or closes, always reset back to main tabs and clear inline search
+  // so whenever the dock reappears, it always shows the main tabs, never subfolders
+  useEffect(() => {
+    if (!isOpen) {
+      setViewingSubfolders(false);
+      setSearchQuery('');
+    }
+  }, [isOpen]);
+
   // Proportional responsive scaling & positioning so the dock NEVER overlaps the 28px top marquee bar
   // and stays completely on-screen on rotated phones and short viewports
   const [dockLayout, setDockLayout] = useState<{ scale: number; top: number }>({
@@ -534,6 +543,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                     type="button"
                     onClick={() => {
                       hapticLight();
+                      setViewingSubfolders(false);
                       onSelectSubfolder(activeFolderForSub, subfolder);
                     }}
                     className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer truncate border-0 ${
