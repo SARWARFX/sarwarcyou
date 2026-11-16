@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Volume2, VolumeX, AlertTriangle, Loader2, Play, Pause, Heart, FastForward, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { AlertTriangle, Loader2, Play, Pause, Heart, FastForward, Sparkles } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
@@ -9,6 +9,12 @@ import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight, hapticMedium } from '../utils/hapticsManager';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
+import {
+  LaserCloseIcon,
+  LaserPrevIcon,
+  LaserNextIcon,
+  LaserVolumeIcon,
+} from './brand/LaserIcons';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -789,10 +795,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className="reticle-btn w-9 h-9 rounded-lg"
+            className="reticle-btn w-9 h-9"
             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <LaserVolumeIcon size={24} isMuted={isMuted} />
           </button>
           <button
             type="button"
@@ -802,10 +808,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className="reticle-btn reticle-btn-close w-9 h-9 rounded-lg"
+            className="reticle-btn reticle-btn-close w-9 h-9"
             title="Close (Esc)"
           >
-            <X className="w-4 h-4" />
+            <LaserCloseIcon size={30} />
           </button>
         </div>
       </header>
@@ -862,7 +868,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       )}
 
-      {/* ===== DESKTOP FLOATING EDGE NAVIGATION ARROWS (PRECISION SCI-FI RETICLE) ===== */}
+      {/* ===== DESKTOP FLOATING EDGE NAVIGATION ARROWS (PURE LASER SHIMMER OUTLINE) ===== */}
       {isDesktop && activeIndex > 0 && (
         <button
           type="button"
@@ -870,12 +876,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             goToShortIndex(activeIndex - 1, 'prev');
           }}
-          className={`reticle-btn reticle-btn-prev fixed left-6 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-xl transition-all duration-300 ${
+          className={`reticle-btn reticle-btn-prev fixed left-6 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ${
             showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           title="Previous Short (Left Arrow)"
         >
-          <ChevronLeft className="w-6 h-6 -ml-0.5" />
+          <LaserPrevIcon size={34} />
         </button>
       )}
 
@@ -886,12 +892,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             goToShortIndex(activeIndex + 1, 'next');
           }}
-          className={`reticle-btn reticle-btn-next fixed right-6 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-xl transition-all duration-300 ${
+          className={`reticle-btn reticle-btn-next fixed right-6 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ${
             showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
           title="Next Short (Right Arrow)"
         >
-          <ChevronRight className="w-6 h-6 -mr-0.5" />
+          <LaserNextIcon size={34} />
         </button>
       )}
       {/* Desktop Stage (Adaptive Landscape vs 100vh Portrait Centerpiece) vs Mobile Scroll-Snap Reels */}

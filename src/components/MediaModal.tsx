@@ -1,14 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Download,
   Loader2,
   Check,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Minus,
 } from 'lucide-react';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
@@ -21,6 +15,14 @@ import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight, hapticMedium } from '../utils/hapticsManager';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
+import {
+  LaserCloseIcon,
+  LaserPrevIcon,
+  LaserNextIcon,
+  LaserDownloadIcon,
+  LaserZoomInIcon,
+  LaserZoomOutIcon,
+} from './brand/LaserIcons';
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 
 interface MediaModalProps {
@@ -780,23 +782,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* Floating Close Button at Top Right (Precision Sci-Fi Reticle) */}
+      {/* Floating Close Button at Top Right (Pure Laser Shimmer Outline) */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
-        className={`reticle-btn reticle-btn-close fixed top-4 right-4 sm:top-6 sm:right-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+        className={`reticle-btn reticle-btn-close fixed top-4 right-4 sm:top-6 sm:right-6 z-50 transition-all duration-300 cursor-pointer pointer-events-auto ${
           showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Close (Esc)"
         aria-label="Close image viewer"
       >
-        <X className="w-5 h-5" />
+        <LaserCloseIcon size={32} />
       </button>
 
-      {/* Floating Left Edge / Mobile Bottom Left Navigation Arrow (Precision Sci-Fi Reticle) */}
+      {/* Floating Left Edge / Mobile Bottom Left Navigation Arrow (Pure Laser Shimmer Outline) */}
       {hasItemList && activeIdx > 0 && (
         <button
           type="button"
@@ -808,17 +810,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-prev fixed bottom-4 left-4 translate-y-0 sm:bottom-auto sm:left-6 sm:top-1/2 sm:-translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+          className={`reticle-btn reticle-btn-prev fixed bottom-4 left-4 translate-y-0 sm:bottom-auto sm:left-6 sm:top-1/2 sm:-translate-y-1/2 z-40 transition-all duration-300 cursor-pointer pointer-events-auto ${
             showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Previous Photo (←)"
           aria-label="Previous photo"
         >
-          <ChevronLeft className="w-6 h-6 -ml-0.5" />
+          <LaserPrevIcon size={34} />
         </button>
       )}
 
-      {/* Floating Right Edge / Mobile Bottom Right Navigation Arrow (Precision Sci-Fi Reticle) */}
+      {/* Floating Right Edge / Mobile Bottom Right Navigation Arrow (Pure Laser Shimmer Outline) */}
       {hasItemList && activeIdx < items.length - 1 && (
         <button
           type="button"
@@ -830,13 +832,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
           }}
           onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-next fixed bottom-4 right-4 translate-y-0 sm:bottom-auto sm:right-6 sm:top-1/2 sm:-translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-xl transition-all duration-300 cursor-pointer pointer-events-auto ${
+          className={`reticle-btn reticle-btn-next fixed bottom-4 right-4 translate-y-0 sm:bottom-auto sm:right-6 sm:top-1/2 sm:-translate-y-1/2 z-40 transition-all duration-300 cursor-pointer pointer-events-auto ${
             showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
           }`}
           title="Next Photo (→)"
           aria-label="Next photo"
         >
-          <ChevronRight className="w-6 h-6 -mr-0.5" />
+          <LaserNextIcon size={34} />
         </button>
       )}
 
@@ -858,56 +860,56 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           setZoomLevel(scaleRef.current + delta);
         }}
       >
-        {/* Zoom In Button */}
+        {/* Zoom In Button (Laser Shimmer Outline) */}
         <button
           type="button"
           onClick={() => setZoomLevel(scaleRef.current + 0.35)}
           disabled={scale >= 4.5}
-          className="reticle-btn w-8 h-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+          className="reticle-btn w-8 h-8 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
           title="Zoom In (+)"
           aria-label="Zoom in"
         >
-          <Plus className="w-4 h-4" />
+          <LaserZoomInIcon size={22} />
         </button>
 
         {/* Interactive Vertical Slider Track */}
         <div
           ref={zoomTrackRef}
           onPointerDown={handleZoomTrackPointerDown}
-          className="relative w-2 h-24 sm:h-28 bg-white/10 hover:bg-white/20 rounded-sm my-1 cursor-pointer transition-colors"
+          className="relative w-1.5 h-24 sm:h-28 bg-white/10 hover:bg-white/20 rounded-full my-1 cursor-pointer transition-colors"
           title="Drag up/down to zoom"
         >
           <div
-            className="absolute bottom-0 inset-x-0 bg-[#00f0ff] rounded-sm shadow-[0_0_8px_rgba(0, 240, 255,0.8)]"
+            className="absolute bottom-0 inset-x-0 bg-[#00f0ff] rounded-full shadow-[0_0_8px_rgba(0, 240, 255,0.8)]"
             style={{
               height: `${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}%`,
             }}
           />
           <div
-            className="absolute -left-1.5 w-5 h-2.5 rounded-sm bg-[#00f0ff] text-black font-mono font-bold text-[9px] flex items-center justify-center shadow-[0_0_10px_#00f0ff] -translate-y-1/2 transition-transform active:scale-125"
+            className="absolute -left-1 w-3.5 h-2 rounded-full bg-[#00f0ff] shadow-[0_0_10px_#00f0ff] -translate-y-1/2 transition-transform active:scale-125"
             style={{
               bottom: `calc(${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}% - 2px)`,
             }}
           />
         </div>
 
-        {/* Zoom Out Button */}
+        {/* Zoom Out Button (Laser Shimmer Outline) */}
         <button
           type="button"
           onClick={() => setZoomLevel(scaleRef.current - 0.35)}
           disabled={scale <= 1.02}
-          className="reticle-btn w-8 h-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+          className="reticle-btn w-8 h-8 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
           title="Zoom Out (−)"
           aria-label="Zoom out"
         >
-          <Minus className="w-4 h-4" />
+          <LaserZoomOutIcon size={22} />
         </button>
 
-        {/* 1-Click Fit / 100% Reset Button */}
+        {/* 1-Click Fit / 100% Reset Button (Pure floating text) */}
         <button
           type="button"
           onClick={resetZoom}
-          className="px-2 py-0.5 rounded-md bg-[#00f0ff]/10 hover:bg-[#00f0ff] hover:text-black border border-[#00f0ff]/40 text-[9px] font-mono font-bold tracking-wider text-[#00f0ff] transition-all cursor-pointer active:scale-90 mt-0.5"
+          className="px-1 py-0.5 bg-transparent border-0 text-[10px] font-mono font-bold tracking-wider text-[#00f0ff] hover:text-white transition-all cursor-pointer active:scale-90 mt-0.5"
           title="Reset to 100% Screen Fit"
           aria-label="Reset zoom"
         >
@@ -988,7 +990,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         />
       </div>
 
-      {/* Floating Download Button: Mobile Top-Left Corner vs Desktop Bottom-Left Corner */}
+      {/* Floating Download Button: Mobile Top-Left Corner vs Desktop Bottom-Left Corner (Pure Laser Shimmer Outline) */}
       <button
         type="button"
         onClick={(e) => {
@@ -996,18 +998,18 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           handleDownload();
         }}
         disabled={isDownloading}
-        className={`reticle-btn fixed top-4 left-4 sm:top-auto sm:bottom-6 sm:left-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer disabled:opacity-40 pointer-events-auto ${
+        className={`reticle-btn fixed top-4 left-4 sm:top-auto sm:bottom-6 sm:left-6 z-50 transition-all duration-300 cursor-pointer disabled:opacity-40 pointer-events-auto ${
           showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Download Original Photo"
         aria-label="Download photo"
       >
         {downloadSuccess ? (
-          <Check className="w-5 h-5 text-emerald-400" />
+          <Check className="w-7 h-7 text-emerald-400" />
         ) : isDownloading ? (
-          <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+          <Loader2 className="w-7 h-7 animate-spin text-neutral-300" />
         ) : (
-          <Download className="w-5 h-5" />
+          <LaserDownloadIcon size={30} />
         )}
       </button>
 

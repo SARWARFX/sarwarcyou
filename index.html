@@ -56,7 +56,23 @@
       }
     </style>
   </head>
-  <body class="bg-[#08090c] text-neutral-100 antialiased overflow-x-hidden relative max-w-full select-none selection:bg-neutral-700 selection:text-white font-sans" style="font-family: 'Roboto Condensed', sans-serif;">
+  <body class="bg-[#08090c] text-neutral-100 antialiased overflow-x-hidden relative max-w-full select-none selection:bg-neutral-700 selection:text-white font-sans" style="font-family: 'Space Grotesk', sans-serif;">
+    <!-- Global Master SVG Defs for Variation 4: Kinetic Laser Shimmer Wave -->
+    <svg width="0" height="0" style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;" aria-hidden="true">
+      <defs>
+        <linearGradient id="laserShimmerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff">
+            <animate attributeName="offset" values="-1; 1" dur="3.2s" repeatCount="indefinite"/>
+          </stop>
+          <stop offset="50%" stop-color="#00f0ff">
+            <animate attributeName="offset" values="-0.5; 1.5" dur="3.2s" repeatCount="indefinite"/>
+          </stop>
+          <stop offset="100%" stop-color="#ffffff">
+            <animate attributeName="offset" values="0; 2" dur="3.2s" repeatCount="indefinite"/>
+          </stop>
+        </linearGradient>
+      </defs>
+    </svg>
     <script>
       window.BRAND_CONFIG = {
         name: 'SARWARCYOU',

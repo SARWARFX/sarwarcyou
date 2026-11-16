@@ -1,12 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Minimize,
-  Download,
   Repeat,
   Repeat1,
   Gauge,
@@ -14,7 +7,6 @@ import {
   Loader2,
   ChevronsLeft,
   ChevronsRight,
-  X,
   AlertTriangle,
   PictureInPicture2,
 } from 'lucide-react';
@@ -27,6 +19,14 @@ import { lockToLandscape, unlockOrientation } from '../utils/orientationManager'
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight } from '../utils/hapticsManager';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
+import {
+  LaserCloseIcon,
+  LaserDownloadIcon,
+  LaserPlayIcon,
+  LaserPauseIcon,
+  LaserVolumeIcon,
+  LaserFullscreenIcon,
+} from './brand/LaserIcons';
 
 export type VideoRepeatMode = 'off' | 'all' | 'one';
 
@@ -1179,35 +1179,35 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           resetHudTimer();
         }}
         disabled={isDownloading}
-        className={`pointer-events-auto reticle-btn fixed top-4 left-4 sm:top-6 sm:left-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer disabled:opacity-40 ${
+        className={`pointer-events-auto reticle-btn fixed top-4 left-4 sm:top-6 sm:left-6 z-50 transition-all duration-300 cursor-pointer disabled:opacity-40 ${
           showHud ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Download Video"
         aria-label="Download Video"
       >
         {downloadSuccess ? (
-          <Check className="w-5 h-5 text-emerald-400" />
+          <Check className="w-7 h-7 text-emerald-400" />
         ) : isDownloading ? (
-          <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+          <Loader2 className="w-7 h-7 animate-spin text-neutral-300" />
         ) : (
-          <Download className="w-5 h-5 text-[#00f0ff]" />
+          <LaserDownloadIcon size={30} />
         )}
       </button>
 
-      {/* Top-Right Corner: Close Action (Precision Sci-Fi Reticle) */}
+      {/* Top-Right Corner: Close Action (Pure Laser Shimmer Outline) */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
-        className={`pointer-events-auto reticle-btn reticle-btn-close fixed top-4 right-4 sm:top-6 sm:right-6 z-50 w-11 h-11 rounded-xl transition-all duration-300 cursor-pointer ${
+        className={`pointer-events-auto reticle-btn reticle-btn-close fixed top-4 right-4 sm:top-6 sm:right-6 z-50 transition-all duration-300 cursor-pointer ${
           showHud ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
         }`}
         title="Close (Esc)"
         aria-label="Close"
       >
-        <X className="w-5 h-5 text-[#00f0ff]" />
+        <LaserCloseIcon size={32} />
       </button>
 
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
@@ -1555,9 +1555,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 aria-label={isPlaying ? 'Pause' : 'Play'}
               >
                 {isPlaying ? (
-                  <Pause className="w-4 h-4 fill-current" />
+                  <LaserPauseIcon size={18} />
                 ) : (
-                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                  <LaserPlayIcon size={18} />
                 )}
               </button>
 
@@ -1643,7 +1643,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
-                {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-white" />}
+                <LaserVolumeIcon size={18} isMuted={isMuted} />
               </button>
 
               {/* Fullscreen */}
@@ -1654,7 +1654,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 title="Fullscreen (F)"
                 aria-label="Toggle Fullscreen"
               >
-                {document.fullscreenElement ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                <LaserFullscreenIcon size={18} />
               </button>
             </div>
           </div>
@@ -1670,18 +1670,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
           }`}
         >
-          {/* Play / Pause Toggle */}
+          {/* Play / Pause Toggle (Laser Shimmer Outline) */}
           <button
             type="button"
             onClick={togglePlay}
-            className="reticle-btn w-9 h-9 rounded-lg cursor-pointer"
+            className="reticle-btn w-9 h-9 cursor-pointer"
             title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <Pause className="w-4 h-4 fill-current text-[#00f0ff]" />
+              <LaserPauseIcon size={24} />
             ) : (
-              <Play className="w-4 h-4 fill-current ml-0.5 text-[#00f0ff]" />
+              <LaserPlayIcon size={24} />
             )}
           </button>
 
@@ -1818,26 +1818,26 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </button>
           )}
 
-          {/* Mute / Unmute Toggle */}
+          {/* Mute / Unmute Toggle (Laser Shimmer Outline) */}
           <button
             type="button"
             onClick={handleToggleMute}
-            className="reticle-btn w-9 h-9 rounded-lg cursor-pointer text-slate-300 hover:text-white"
+            className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white"
             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
             aria-label={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-[#00f0ff]" />}
+            <LaserVolumeIcon size={24} isMuted={isMuted} />
           </button>
 
-          {/* Fullscreen Toggle */}
+          {/* Fullscreen Toggle (Laser Shimmer Outline) */}
           <button
             type="button"
             onClick={handleFullscreenToggle}
-            className="reticle-btn w-9 h-9 rounded-lg cursor-pointer text-slate-300 hover:text-white"
+            className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white"
             title="Fullscreen (F)"
             aria-label="Toggle Fullscreen"
           >
-            {document.fullscreenElement ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            <LaserFullscreenIcon size={22} />
           </button>
         </div>
       )}
