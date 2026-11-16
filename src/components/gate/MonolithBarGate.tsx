@@ -18,6 +18,7 @@ import {
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { LivingMediaCard } from './LivingMediaCard';
 import { QuickSearchModal } from '../QuickSearchModal';
+import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import {
   toggleKeepScreenOn,
   getKeepScreenOnState,
@@ -645,7 +646,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </button>
       </aside>
 
-      {/* 3. BOTTOM-LEFT CORNER: PURE TEXT SARWAR.CYOU LOGO (DUAL ACTION) */}
+      {/* 3. BOTTOM-LEFT CORNER: OPTION 2 SWEEPING LASER LOGO (DUAL ACTION) */}
       <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none pointer-events-auto">
         <button
           type="button"
@@ -657,15 +658,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               setIsTelemetryModalOpen(true);
             }
           }}
-          className="inline-flex items-baseline cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none"
+          className="inline-flex items-center cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none bg-transparent border-0 p-0"
           title={tabIndex !== 0 ? 'Return to Homepage' : 'Open 15-Day Time Log'}
         >
-          <span className="font-['Orbitron',sans-serif] font-black text-sm sm:text-lg tracking-[0.2em] uppercase text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.25)] hover:drop-shadow-[0_0_16px_rgba(255,255,255,0.6)]">
-            SARWAR
-          </span>
-          <span className="font-['Orbitron',sans-serif] font-black text-sm sm:text-lg tracking-[0.2em] uppercase text-[#ccff00] drop-shadow-[0_0_14px_rgba(204,255,0,0.6)] hover:drop-shadow-[0_0_24px_#ccff00]">
-            .CYOU
-          </span>
+          <LaserSparkLogo
+            width={210}
+            height={30}
+            interactive={false}
+          />
         </button>
       </div>
 

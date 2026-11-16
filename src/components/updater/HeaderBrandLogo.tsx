@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { hapticMedium } from '../../utils/hapticsManager';
+import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 
 export interface HeaderBrandLogoProps {
   className?: string;
@@ -10,7 +11,6 @@ export interface HeaderBrandLogoProps {
 
 export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
   className = '',
-  trackingClass = 'tracking-[0.25em]',
   onTrigger,
 }) => {
   const handleLogoClick = useCallback((e: React.MouseEvent) => {
@@ -36,11 +36,7 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
       aria-label="SARWAR.CYOU Vault Trigger"
       className={`inline-flex items-center select-none bg-transparent border-0 p-0 cursor-pointer focus:outline-none group ${className}`}
     >
-      <span
-        className={`font-['Orbitron',sans-serif] font-black ${trackingClass} text-sm sm:text-base uppercase text-white flex items-center group-hover:opacity-90 transition-opacity`}
-      >
-        SARWAR<span className="text-[#ccff00]">.CYOU</span>
-      </span>
+      <LaserSparkLogo width={150} height={22} interactive={false} />
     </div>
   );
 };
