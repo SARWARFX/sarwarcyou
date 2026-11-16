@@ -986,7 +986,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           !showControls ? 'opacity-90 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
         }`}
       >
-        <div className="px-3 py-1.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center">
+        <div className="flex items-center">
           <HeaderBrandLogo trackingClass="tracking-[0.2em]" />
         </div>
       </div>

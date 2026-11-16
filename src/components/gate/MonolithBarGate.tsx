@@ -662,8 +662,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           title={tabIndex !== 0 ? 'Return to Homepage' : 'Open 15-Day Time Log'}
         >
           <LaserSparkLogo
-            width={210}
-            height={30}
+            width={290}
+            height={42}
             interactive={false}
           />
         </button>

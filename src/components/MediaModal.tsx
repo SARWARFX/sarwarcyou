@@ -769,13 +769,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         }
       }}
     >
-      {/* Brand Logo on Desktop/Tablet: shows at top-left corner and disappears with the buttons */}
+      {/* Brand Logo on Desktop/Tablet: shows at top-left corner without box/background */}
       <div
         className={`fixed top-4 left-4 sm:top-6 sm:left-6 z-50 hidden sm:flex items-center select-none pointer-events-auto transition-all duration-300 ease-out ${
           showControls ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
         }`}
       >
-        <div className="px-3 py-1.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center">
+        <div className="flex items-center">
           <HeaderBrandLogo trackingClass="tracking-[0.2em]" />
         </div>
       </div>

@@ -36,7 +36,7 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
       aria-label="SARWAR.CYOU Vault Trigger"
       className={`inline-flex items-center select-none bg-transparent border-0 p-0 cursor-pointer focus:outline-none group ${className}`}
     >
-      <LaserSparkLogo width={150} height={22} interactive={false} />
+      <LaserSparkLogo width={240} height={34} interactive={false} />
     </div>
   );
 };
