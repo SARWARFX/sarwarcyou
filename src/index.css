@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Flex:wght@100..1000&family=Michroma&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Roboto:wght@300;400;500;700;900&family=Roboto+Flex:wght@100..1000&family=Michroma&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -24,6 +24,7 @@
   --font-brand: 'Michroma', sans-serif;
   --font-display: 'Michroma', sans-serif;
   --font-michroma: 'Michroma', sans-serif;
+  --font-archivo-black: 'Archivo Black', sans-serif;
   --font-roboto: 'Roboto', sans-serif;
   --font-roboto-flex: 'Roboto', 'Roboto Flex', sans-serif;
   --font-audiowide: 'Audiowide', cursive, sans-serif;
@@ -34,10 +35,10 @@
   --color-neutral-hover: rgba(255, 255, 255, 0.1);
 }
 
-/* EULO Acid Lime Marquee Bar: Strictly Roboto Font */
+/* EULO Acid Lime Marquee Bar: Strictly Archivo Black Font */
 .eulo-marquee-ticker,
 .eulo-marquee-ticker * {
-  font-family: 'Roboto', sans-serif !important;
+  font-family: 'Archivo Black', sans-serif !important;
 }
 
 :root {
