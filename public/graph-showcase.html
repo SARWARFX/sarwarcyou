@@ -3,796 +3,1077 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>SARWAR.CYOU — Graph Design Showcase (Desktop & Phone)</title>
+  <title>SARWAR.CYOU — Modern Telemetry Graph & Tall Transparent Dock Showcase</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --bg-black: #000000;
-      --card-bg: rgba(10, 10, 10, 0.95);
-      --accent-lime: #00f0ff;
-      --accent-lime-dim: rgba(0, 240, 255, 0.15);
-      --accent-lime-glow: rgba(0, 240, 255, 0.5);
-      --font-orbitron: 'Orbitron', -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-      --font-inter: 'Inter', sans-serif;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      border-radius: 0 !important; /* 100% SQUARE GEOMETRY */
       user-select: none;
       -webkit-user-select: none;
     }
 
     body {
-      background-color: var(--bg-black);
+      background-color: #000000;
       color: #ffffff;
-      font-family: var(--font-inter);
+      font-family: 'Michroma', sans-serif;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 24px 16px 80px;
       overflow-x: hidden;
+      position: relative;
     }
 
-    /* Top Navigation / Controls Bar */
-    .top-controls {
+    /* Background Video (Showing true transparency through the dock) */
+    .bg-video-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .bg-video {
       width: 100%;
-      max-width: 900px;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.65;
+      filter: contrast(1.15) brightness(0.9);
+      transition: opacity 0.3s ease;
+    }
+
+    /* Ambient Scanline overlay */
+    .scanline-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: linear-gradient(rgba(0,0,0,0) 50%, rgba(255, 255, 255, 0.02) 50%);
+      background-size: 100% 4px;
+      opacity: 0.7;
+    }
+
+    /* App Shell */
+    .app-shell {
+      position: relative;
+      z-index: 10;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      margin-bottom: 28px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 20px;
+      min-height: 100vh;
+      padding: 16px 20px 40px;
+      max-width: 1440px;
+      margin: 0 auto;
     }
 
-    .brand-title {
+    /* Header Bar */
+    .showcase-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
+      gap: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 14px;
+      margin-bottom: 24px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      letter-spacing: 0.15em;
+      font-weight: 900;
+      color: #ffffff;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+      display: flex;
+      align-items: center;
       gap: 12px;
     }
 
-    .brand-text {
-      font-family: var(--font-orbitron);
-      font-size: 20px;
+    .tag-badge {
+      font-size: 9px;
+      padding: 3px 8px;
+      border: 1px solid #ffffff;
+      background: #ffffff;
+      color: #000000;
       font-weight: 900;
-      letter-spacing: 0.18em;
-      color: #ffffff;
+      letter-spacing: 0.1em;
     }
 
-    .brand-text span {
-      color: var(--accent-lime);
-      text-shadow: 0 0 12px var(--accent-lime-glow);
-    }
-
-    .design-tabs {
+    .controls-row {
       display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      scrollbar-width: none;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      font-family: 'Michroma', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      padding: 7px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .ctrl-btn:hover, .ctrl-btn.active {
+      background: #ffffff;
+      color: #000000;
+      font-weight: 900;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
+      border-color: #ffffff;
+    }
+
+    /* Main Workspace Grid */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============================================================== */
+    /* THE TALL TRANSPARENT DOCK                                      */
+    /* Transparent: Background video seen directly through the glass  */
+    /* ============================================================== */
+    .dock-container {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .cyber-dock {
+      width: 270px;
+      /* CRITICAL: TRANSPARENT GLASS (Zero backdrop blur so video shines through) */
+      background: rgba(0, 0, 0, 0.38);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      padding: 14px;
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.1), inset 0 0 25px rgba(255, 255, 255, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+
+    /* White L-Brackets */
+    .corner-tl {
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: 14px;
+      height: 14px;
+      border-top: 2px solid #ffffff;
+      border-left: 2px solid #ffffff;
+      pointer-events: none;
+    }
+
+    .corner-br {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 14px;
+      height: 14px;
+      border-bottom: 2px solid #ffffff;
+      border-right: 2px solid #ffffff;
+      pointer-events: none;
+    }
+
+    /* Dock Top Status Bar (Radar + Keep Screen On) */
+    .dock-status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 8px;
+    }
+
+    .radar-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .radar-dot {
+      width: 6px;
+      height: 6px;
+      background: #ffffff;
+      box-shadow: 0 0 10px #ffffff;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .toggle-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 7.5px;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+    }
+
+    .toggle-box {
+      width: 24px;
+      height: 13px;
+      border: 1px solid #ffffff;
+      background: #ffffff;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .toggle-thumb {
+      width: 9px;
+      height: 9px;
+      background: #000000;
+      position: absolute;
+      top: 1px;
+      right: 1px;
+    }
+
+    /* Embedded Telemetry Card Area */
+    .embedded-graph-box {
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(0, 0, 0, 0.45);
+      padding: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .graph-box-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 4px;
     }
 
-    .design-tabs::-webkit-scrollbar {
-      display: none;
+    .graph-box-title {
+      color: #ffffff;
+      font-weight: 800;
     }
 
-    .tab-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      color: rgba(255, 255, 255, 0.6);
-      font-family: var(--font-orbitron);
-      font-size: 11px;
+    .graph-box-metric {
+      font-family: 'JetBrains Mono', monospace;
+      color: #ffffff;
       font-weight: 700;
-      letter-spacing: 0.08em;
-      padding: 8px 16px;
+      font-size: 9px;
+    }
+
+    /* Nav Buttons */
+    .dock-menu-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .dock-btn {
+      font-family: 'Michroma', sans-serif;
+      font-size: 8.5px;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #a0aec0;
+      text-align: left;
       cursor: pointer;
-      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dock-btn:hover {
+      border-color: #ffffff;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .dock-btn.active {
+      border-color: #ffffff;
+      background: #ffffff;
+      color: #000000;
+      font-weight: 900;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+    }
+
+    /* Subfolder Flyout Dock */
+    .subfolder-dock {
+      width: 175px;
+      background: rgba(0, 0, 0, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 10px;
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      position: relative;
+      animation: flyout 0.2s ease-out forwards;
+    }
+
+    @keyframes flyout {
+      from { opacity: 0; transform: translateX(-12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .sub-btn {
+      font-family: 'Michroma', sans-serif;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #a0aec0;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sub-btn:hover {
+      border-color: #ffffff;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .sub-btn.active {
+      border-color: #ffffff;
+      background: #ffffff;
+      color: #000000;
+      font-weight: 900;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
+    }
+
+    /* ============================================================== */
+    /* 4 MODERN GRAPH VARIATIONS                                      */
+    /* ============================================================== */
+
+    /* Variation 1: Cyber Wave SVG */
+    .wave-chart-svg {
+      width: 100%;
+      height: 90px;
+      overflow: visible;
+    }
+
+    /* Variation 2: Quantum Equalizer (Vertical Segmented Micro-Bars) */
+    .equalizer-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      height: 90px;
+      align-items: end;
+      padding-top: 6px;
+    }
+
+    .eq-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 2.5px;
+      height: 100%;
+    }
+
+    .eq-segment {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s;
+    }
+
+    .eq-segment.filled {
+      background: #ffffff;
+      border-color: #ffffff;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+    }
+
+    .eq-segment.peak {
+      background: #ffffff;
+      box-shadow: 0 0 12px #ffffff;
+    }
+
+    .eq-day-label {
+      font-size: 7.5px;
+      text-align: center;
+      margin-top: 4px;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 600;
+    }
+
+    .eq-col.today .eq-day-label {
+      color: #ffffff;
+      font-weight: 900;
+    }
+
+    /* Variation 3: Tactical 90° Orthogonal Step-Matrix */
+    .step-chart-container {
+      position: relative;
+      height: 90px;
+      width: 100%;
+    }
+
+    .step-grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+    }
+
+    /* Variation 4: Streamlined Laser Tracks */
+    .laser-tracks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      height: 90px;
+      justify-content: space-between;
+    }
+
+    .laser-track-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .track-day {
+      font-size: 7px;
+      width: 32px;
+      color: rgba(255, 255, 255, 0.65);
+      font-weight: 700;
+    }
+
+    .track-bar-rail {
+      flex: 1;
+      height: 11px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .track-fill {
+      height: 100%;
+      background: rgba(255, 255, 255, 0.4);
+      transition: width 0.3s;
+    }
+
+    .laser-track-row.today .track-fill {
+      background: #ffffff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
+
+    .laser-track-row.today .track-day {
+      color: #ffffff;
+      font-weight: 900;
+    }
+
+    .track-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px;
+      width: 44px;
+      text-align: right;
+      color: #ffffff;
+    }
+
+    /* Showcase Cards Section on the right */
+    .showcase-cards-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .option-card {
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 16px 20px;
+      position: relative;
+      cursor: pointer;
       transition: all 0.25s ease;
     }
 
-    .tab-btn:hover {
-      color: #ffffff;
-      border-color: rgba(0, 240, 255, 0.4);
+    .option-card:hover {
+      border-color: rgba(255, 255, 255, 0.7);
+      background: rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.12);
     }
 
-    .tab-btn.active {
-      color: #000000;
-      background: var(--accent-lime);
-      border-color: var(--accent-lime);
-      box-shadow: 0 0 16px var(--accent-lime-glow);
-      font-weight: 900;
+    .option-card.selected {
+      border-color: #ffffff;
+      background: rgba(0, 0, 0, 0.85);
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.25), inset 0 0 15px rgba(255, 255, 255, 0.05);
     }
 
-    .device-toggles {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .device-btn {
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px;
-      color: rgba(255, 255, 255, 0.5);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 5px 12px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .device-btn.active {
-      color: var(--accent-lime);
-      border-color: var(--accent-lime);
-      background: rgba(0, 240, 255, 0.1);
-    }
-
-    /* Main Showcase Canvas */
-    .showcase-stage {
-      width: 100%;
-      max-width: 900px;
-      display: flex;
-      justify-content: center;
-      transition: all 0.35s ease;
-    }
-
-    .showcase-stage.phone-view {
-      max-width: 380px;
-    }
-
-    /* Shared Modal Card Container */
-    .graph-card-wrapper {
-      width: 100%;
-      background: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 20px;
-      padding: 28px 24px 20px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(0, 240, 255, 0.12);
-      position: relative;
-      transition: all 0.3s ease;
-    }
-
-    .graph-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 24px;
-    }
-
-    .graph-concept-badge {
-      font-family: var(--font-orbitron);
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.14em;
-      color: var(--accent-lime);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .concept-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent-lime);
-      box-shadow: 0 0 8px var(--accent-lime);
-    }
-
-    .close-icon-btn {
-      background: transparent;
-      border: none;
-      color: rgba(255, 255, 255, 0.4);
-      font-size: 22px;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-
-    /* ========================================================================= */
-    /* DESIGN 1: CYBER MONOLITH PILLARS (SEGMENTED LED EQUALIZER)               */
-    /* ========================================================================= */
-    .d1-chart {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 8px;
-      height: 220px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 10px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .d1-column {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      height: 100%;
-      flex: 1;
-      min-width: 38px;
-      gap: 8px;
-    }
-
-    .d1-segments-track {
-      width: 100%;
-      max-width: 20px;
-      height: 140px;
-      display: flex;
-      flex-direction: column-reverse;
-      gap: 3px;
-    }
-
-    .d1-segment {
-      width: 100%;
-      height: 5px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.06);
-      transition: all 0.3s ease;
-    }
-
-    .d1-segment.lit {
-      background: var(--accent-lime);
-      box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
-    }
-
-    .d1-segment.lit-peak {
-      background: #ffffff;
-      box-shadow: 0 0 10px #ffffff;
-    }
-
-    /* ========================================================================= */
-    /* DESIGN 2: QUANTUM PULSE / NEON OSCILLOSCOPE WAVE                          */
-    /* ========================================================================= */
-    .d2-chart {
-      height: 220px;
-      position: relative;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .d2-svg-wrap {
-      width: 100%;
-      height: 160px;
-    }
-
-    .d2-labels-row {
-      display: flex;
-      justify-content: space-between;
-      padding-top: 8px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .d2-day-label {
-      font-family: var(--font-orbitron);
-      font-size: 9.5px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.5);
-      text-align: center;
-      flex: 1;
-      min-width: 36px;
-    }
-
-    .d2-day-label.is-today {
-      color: var(--accent-lime);
-      font-weight: 900;
-    }
-
-    /* ========================================================================= */
-    /* DESIGN 3: ROUNDED GLASS MICRO-PILLS (CYLINDRICAL STEMS)                   */
-    /* ========================================================================= */
-    .d3-chart {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 10px;
-      height: 220px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 10px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .d3-column {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      height: 100%;
-      flex: 1;
-      min-width: 38px;
-      gap: 8px;
-    }
-
-    .d3-pill-outer {
-      width: 100%;
-      max-width: 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 14px;
-      height: 140px;
-      display: flex;
-      align-items: flex-end;
-      padding: 2px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .d3-pill-fill {
-      width: 100%;
-      background: linear-gradient(to top, #0088aa, var(--accent-lime));
-      border-radius: 12px;
-      box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
-      transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    /* ========================================================================= */
-    /* DESIGN 4: ADAPTIVE DUAL-MODE                                              */
-    /* HORIZONTAL TRACK RAILS ON PHONE / WIDE STEMS ON DESKTOP                   */
-    /* ========================================================================= */
-    .d4-desktop-chart {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 12px;
-      height: 220px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 10px;
-    }
-
-    .d4-phone-chart {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 280px;
-      overflow-y: auto;
-      scrollbar-width: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 12px;
-    }
-
-    .d4-rail-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .d4-rail-day {
-      width: 58px;
-      font-family: var(--font-orbitron);
-      font-size: 10px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.5);
-      text-transform: uppercase;
-    }
-
-    .d4-rail-day.is-today {
-      color: var(--accent-lime);
-      font-weight: 900;
-    }
-
-    .d4-rail-bar-track {
-      flex: 1;
-      height: 10px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 6px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      padding: 1px;
-    }
-
-    .d4-rail-fill {
-      height: 100%;
-      background: linear-gradient(to right, #0088aa, var(--accent-lime));
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
-    }
-
-    .d4-rail-time {
-      width: 48px;
-      font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: #ffffff;
-      text-align: right;
-    }
-
-    /* Common Typography & Footer */
-    .chart-time-val {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.85);
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    .chart-day-label {
-      font-family: var(--font-orbitron);
-      font-size: 9.5px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.5);
-      text-align: center;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .is-today .chart-day-label {
-      color: var(--accent-lime);
-      font-weight: 900;
-    }
-
-    /* Footer: Keep Screen On */
-    .graph-footer-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 18px;
-      padding-top: 2px;
-    }
-
-    .keep-screen-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-    }
-
-    .toggle-switch {
-      position: relative;
-      width: 36px;
-      height: 20px;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
-      transition: background 0.25s ease;
-    }
-
-    .toggle-switch::after {
-      content: '';
+    .option-card.selected::before {
+      content: 'ACTIVE PREVIEW';
       position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 16px;
-      height: 16px;
+      top: -10px;
+      right: 14px;
+      font-size: 8px;
       background: #ffffff;
-      border-radius: 50%;
-      transition: transform 0.25s ease;
+      color: #000000;
+      padding: 2px 7px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
     }
 
-    .toggle-switch.active {
-      background: var(--accent-lime);
+    .option-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
     }
 
-    .toggle-switch.active::after {
-      transform: translateX(16px);
-      background: #000000;
+    .option-name {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .keep-screen-label {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.6);
-      letter-spacing: 0.05em;
+    .option-badge {
+      font-size: 8px;
+      padding: 2px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: #a0aec0;
     }
 
-    .esc-hint {
-      font-family: var(--font-mono);
+    .option-desc {
       font-size: 10px;
-      color: rgba(255, 255, 255, 0.3);
+      line-height: 1.6;
+      color: #cbd5e1;
+      margin-bottom: 12px;
+    }
+
+    .preview-box {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 12px;
+      position: relative;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Controller -->
-  <header class="top-controls">
-    <div class="brand-title">
-      <div class="brand-text">SARWAR<span>.CYOU</span> // GRAPH LAB</div>
-      <div class="device-toggles">
-        <button class="device-btn active" id="btnWide" onclick="setDeviceView('wide')">DESKTOP WIDE</button>
-        <button class="device-btn" id="btnPhone" onclick="setDeviceView('phone')">PHONE FRAME (380px)</button>
+  <!-- 1. Real Playing Video Background (Demonstrates True Transparency) -->
+  <div class="bg-video-container">
+    <video
+      id="bgVideo"
+      class="bg-video"
+      src="https://media.sarwar.cyou/Video%20Clips/Older/720p.h264.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+    ></video>
+  </div>
+
+  <!-- Ambient Scanlines -->
+  <div class="scanline-overlay"></div>
+
+  <!-- 2. Interactive App Shell -->
+  <div class="app-shell">
+
+    <!-- Top Header & Controls -->
+    <header class="showcase-header">
+      <div class="brand-title">
+        <span>SARWAR.CYOU</span>
+        <span class="tag-badge">TALL TRANSPARENT DOCK & MODERN GRAPH</span>
       </div>
-    </div>
 
-    <!-- 4 Design Concepts Selector -->
-    <div class="design-tabs">
-      <button class="tab-btn active" id="tabD1" onclick="switchConcept(1)">1. CYBER MONOLITH PILLARS</button>
-      <button class="tab-btn" id="tabD2" onclick="switchConcept(2)">2. QUANTUM PULSE WAVE</button>
-      <button class="tab-btn" id="tabD3" onclick="switchConcept(3)">3. ROUNDED GLASS MICRO-PILLS</button>
-      <button class="tab-btn" id="tabD4" onclick="switchConcept(4)">4. ADAPTIVE HORIZONTAL RAILS</button>
-    </div>
-  </header>
+      <div class="controls-row">
+        <button class="ctrl-btn" id="btnToggleVideo" onclick="toggleVideo()">VIDEO: ON</button>
+        <button class="ctrl-btn" id="btnToggleSub" onclick="toggleSubfolder()">SUBFOLDERS: ON</button>
+      </div>
+    </header>
 
-  <!-- Showcase Stage -->
-  <main class="showcase-stage" id="showcaseStage">
-    <div class="graph-card-wrapper" id="graphCard">
-      
-      <!-- Modal Header -->
-      <div class="graph-header-row">
-        <div class="graph-concept-badge">
-          <span class="concept-dot"></span>
-          <span id="conceptTitle">1. CYBER MONOLITH PILLARS (EQUALIZER TOWERS)</span>
+    <!-- Workspace Grid -->
+    <div class="workspace-grid">
+
+      <!-- LEFT COLUMN: THE TALL TRANSPARENT DOCK -->
+      <div>
+        <div style="font-size: 9px; letter-spacing: 0.15em; color: #a0aec0; margin-bottom: 8px; font-weight: 700;">
+          LIVE DOCK PREVIEW (TRANSPARENT GLASS)
+        </div>
+
+        <div class="dock-container">
+          <!-- Main Major Folders Dock (TALL) -->
+          <div class="cyber-dock">
+            <div class="corner-tl"></div>
+            <div class="corner-br"></div>
+
+            <!-- Top Row: Radar + Keep Screen On Toggle -->
+            <div class="dock-status-bar">
+              <div class="radar-indicator">
+                <div class="radar-dot"></div>
+                <span>TELEMETRY</span>
+              </div>
+              <div class="toggle-pill" onclick="toggleKeepAwake()">
+                <div class="toggle-box" id="keepAwakeBox">
+                  <div class="toggle-thumb" id="keepAwakeThumb"></div>
+                </div>
+                <span>KEEP SCREEN ON</span>
+              </div>
+            </div>
+
+            <!-- Embedded Modern Graph in Dock (Dynamic Switcher) -->
+            <div class="embedded-graph-box" id="embeddedGraphSlot">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Major Navigation Buttons -->
+            <div class="dock-menu-list">
+              <button class="dock-btn" onclick="selectMajor('HOME')">
+                <span>&gt; HOME</span>
+              </button>
+              <button class="dock-btn active" id="btnPhotographs" onclick="selectMajor('PHOTOGRAPHS')">
+                <span>&gt; PHOTOGRAPHS</span>
+                <span style="font-size: 7.5px;">»</span>
+              </button>
+              <button class="dock-btn" id="btnShorts" onclick="selectMajor('SHORTS')">
+                <span>&gt; SHORTS</span>
+                <span style="font-size: 7.5px;">»</span>
+              </button>
+              <button class="dock-btn" id="btnClips" onclick="selectMajor('VIDEO CLIPS')">
+                <span>&gt; VIDEO CLIPS</span>
+                <span style="font-size: 7.5px;">»</span>
+              </button>
+              <button class="dock-btn" id="btnBandhobi" onclick="selectMajor('BANDHOBI')">
+                <span>&gt; BANDHOBI</span>
+                <span style="font-size: 7.5px;">»</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Secondary Subfolder Flyout Dock (TALL) -->
+          <div class="subfolder-dock" id="subfolderDock">
+            <div class="corner-tl"></div>
+            <div class="corner-br"></div>
+
+            <div style="font-size: 7.5px; color: rgba(255,255,255,0.6); padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 4px;">
+              PHOTOGRAPHS // SUB
+            </div>
+
+            <button class="sub-btn active" onclick="selectSub(this)">
+              &gt; FAVORITE
+            </button>
+            <button class="sub-btn" onclick="selectSub(this)">
+              &gt; 2027
+            </button>
+            <button class="sub-btn" onclick="selectSub(this)">
+              &gt; 2026
+            </button>
+            <button class="sub-btn" onclick="selectSub(this)">
+              &gt; 2025
+            </button>
+            <button class="sub-btn" onclick="selectSub(this)">
+              &gt; OLDER
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Chart Content Injected Dynamically -->
-      <div id="chartContainer"></div>
+      <!-- RIGHT COLUMN: 4 MODERN GRAPH VARIATIONS TO CHOOSE FROM -->
+      <div class="showcase-cards-pane">
+        <div style="font-size: 11px; letter-spacing: 0.12em; color: #ffffff; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;">
+          CHOOSE YOUR MODERN GRAPH DESIGN:
+        </div>
 
-      <!-- Minimalist Footer -->
-      <div class="graph-footer-row">
-        <label class="keep-screen-wrap" onclick="toggleScreen()">
-          <span class="toggle-switch" id="screenSwitch"></span>
-          <span class="keep-screen-label">Keep Screen On</span>
-        </label>
+        <!-- OPTION 1: CYBER WAVE AREA SPLINE -->
+        <div class="option-card selected" id="card-opt1" onclick="switchGraphOption(1)">
+          <div class="option-title-row">
+            <div class="option-name">
+              <span>1. CYBER WAVE</span>
+              <span class="option-badge">NEON SPLINE HUD</span>
+            </div>
+            <span style="font-size: 8.5px; color: #a0aec0;">SMOOTH PHOSPHOR LASER</span>
+          </div>
+          <div class="option-desc">
+            Ultra-sleek curved neon waveform with pure white gradient area fill dropping to transparent. High-tech Bloomberg terminal meets cyberpunk aerospace telemetry. Includes glowing beacon on Today.
+          </div>
+          <div class="preview-box">
+            <div id="preview-opt1"></div>
+          </div>
+        </div>
+
+        <!-- OPTION 2: QUANTUM EQUALIZER -->
+        <div class="option-card" id="card-opt2" onclick="switchGraphOption(2)">
+          <div class="option-title-row">
+            <div class="option-name">
+              <span>2. QUANTUM EQUALIZER</span>
+              <span class="option-badge">VERTICAL MICRO-SEGMENTS</span>
+            </div>
+            <span style="font-size: 8.5px; color: #a0aec0;">AUDIO SPECTRUM MATRIX</span>
+          </div>
+          <div class="option-desc">
+            Vertical equalizer matrix columns (Mon–Today) constructed from stacked square micro-blocks. Filled segments illuminate with pure white neon phosphor, while empty blocks show faint 15% wireframe. Peak meter glow at the top.
+          </div>
+          <div class="preview-box">
+            <div id="preview-opt2"></div>
+          </div>
+        </div>
+
+        <!-- OPTION 3: TACTICAL STEP-MATRIX -->
+        <div class="option-card" id="card-opt3" onclick="switchGraphOption(3)">
+          <div class="option-title-row">
+            <div class="option-name">
+              <span>3. TACTICAL STEP-MATRIX</span>
+              <span class="option-badge">100% RECTANGULAR ORTHOGONAL</span>
+            </div>
+            <span style="font-size: 8.5px; color: #a0aec0;">ZERO CURVES • 90° STEPS</span>
+          </div>
+          <div class="option-desc">
+            Completely angular 90° stepped oscilloscope graph. No curves anywhere. Pure horizontal-to-vertical stepped line with subtle coordinate grid ticks (`+` markers) and stark vertical drop-lines down to the baseline.
+          </div>
+          <div class="preview-box">
+            <div id="preview-opt3"></div>
+          </div>
+        </div>
+
+        <!-- OPTION 4: STREAMLINED LASER TRACKS -->
+        <div class="option-card" id="card-opt4" onclick="switchGraphOption(4)">
+          <div class="option-title-row">
+            <div class="option-name">
+              <span>4. STREAMLINED LASER TRACKS</span>
+              <span class="option-badge">HORIZONTAL METER RAILS</span>
+            </div>
+            <span style="font-size: 8.5px; color: #a0aec0;">MILITARY HUD BARS</span>
+          </div>
+          <div class="option-desc">
+            Refined horizontal meter tracks with laser progress fills. Today's track is fully inverted in pure white with a blazing phosphor glow edge, displaying exact hours and minutes in clean Michroma.
+          </div>
+          <div class="preview-box">
+            <div id="preview-opt4"></div>
+          </div>
+        </div>
+
       </div>
-
     </div>
-  </main>
+  </div>
 
   <script>
-    // 15-day mock telemetry where zero-minute days are suppressed
-    const activeTelemetryData = [
-      { label: 'Today', minutes: 75, formatted: '1h 15m' },
-      { label: 'Yestd', minutes: 42, formatted: '42m' },
-      { label: 'Thu', minutes: 130, formatted: '2h 10m' },
-      { label: 'Wed', minutes: 95, formatted: '1h 35m' },
-      { label: 'Mon', minutes: 54, formatted: '54m' },
-      { label: 'Sat', minutes: 165, formatted: '2h 45m' },
-      { label: 'Fri', minutes: 82, formatted: '1h 22m' },
-      { label: 'Wed', minutes: 38, formatted: '38m' },
-      { label: 'Tue', minutes: 110, formatted: '1h 50m' },
-      { label: 'Sun', minutes: 64, formatted: '1h 4m' }
+    // State
+    let currentOption = 1;
+    let isSubOpen = true;
+    let isVideoOn = true;
+    let isKeepAwake = true;
+
+    // Telemetry Sample Data
+    const telemetry = [
+      { day: 'MON', mins: 42, label: '42m' },
+      { day: 'TUE', mins: 15, label: '15m' },
+      { day: 'WED', mins: 80, label: '1h 20m' },
+      { day: 'THU', mins: 55, label: '55m' },
+      { day: 'FRI', mins: 110, label: '1h 50m' },
+      { day: 'SAT', mins: 35, label: '35m' },
+      { day: 'TODAY', mins: 103, label: '1h 43m' }
     ];
 
-    const maxMinutes = 165;
-    let activeConcept = 1;
-    let currentDevice = 'wide';
-
-    function setDeviceView(mode) {
-      currentDevice = mode;
-      const stage = document.getElementById('showcaseStage');
-      const btnWide = document.getElementById('btnWide');
-      const btnPhone = document.getElementById('btnPhone');
-
-      if (mode === 'phone') {
-        stage.classList.add('phone-view');
-        btnPhone.classList.add('active');
-        btnWide.classList.remove('active');
-      } else {
-        stage.classList.remove('phone-view');
-        btnWide.classList.add('active');
-        btnPhone.classList.remove('active');
-      }
-
-      renderCurrentConcept();
-    }
-
-    function switchConcept(id) {
-      activeConcept = id;
-      for (let i = 1; i <= 4; i++) {
-        document.getElementById(`tabD${i}`).classList.toggle('active', i === id);
-      }
-      renderCurrentConcept();
-    }
-
-    function renderCurrentConcept() {
-      const container = document.getElementById('chartContainer');
-      const title = document.getElementById('conceptTitle');
-      container.innerHTML = '';
-
-      if (activeConcept === 1) {
-        title.textContent = '1. CYBER MONOLITH PILLARS (SEGMENTED EQUALIZER)';
-        renderConcept1(container);
-      } else if (activeConcept === 2) {
-        title.textContent = '2. QUANTUM PULSE (NEON WAVE OSCILLOSCOPE)';
-        renderConcept2(container);
-      } else if (activeConcept === 3) {
-        title.textContent = '3. ROUNDED GLASS MICRO-PILLS (CYLINDRICAL CAPSULES)';
-        renderConcept3(container);
-      } else if (activeConcept === 4) {
-        title.textContent = currentDevice === 'phone' 
-          ? '4. ADAPTIVE HORIZONTAL RAILS (PHONE OPTIMIZED)' 
-          : '4. ADAPTIVE DUAL-MODE (DESKTOP VIEW)';
-        renderConcept4(container);
-      }
-    }
-
-    // CONCEPT 1: Segmented Equalizer Pillars
-    function renderConcept1(parent) {
-      const chart = document.createElement('div');
-      chart.className = 'd1-chart';
-
-      activeTelemetryData.forEach(item => {
-        const col = document.createElement('div');
-        col.className = 'd1-column' + (item.label === 'Today' ? ' is-today' : '');
-
-        const timeTop = document.createElement('div');
-        timeTop.className = 'chart-time-val';
-        timeTop.textContent = item.formatted;
-
-        const track = document.createElement('div');
-        track.className = 'd1-segments-track';
-
-        const totalSegments = 16;
-        const litSegments = Math.max(2, Math.round((item.minutes / maxMinutes) * totalSegments));
-
-        for (let s = 0; s < totalSegments; s++) {
-          const seg = document.createElement('div');
-          seg.className = 'd1-segment';
-          if (s < litSegments) {
-            seg.classList.add(s === litSegments - 1 ? 'lit-peak' : 'lit');
-          }
-          track.appendChild(seg);
-        }
-
-        const dayBottom = document.createElement('div');
-        dayBottom.className = 'chart-day-label';
-        dayBottom.textContent = item.label;
-
-        col.appendChild(timeTop);
-        col.appendChild(track);
-        col.appendChild(dayBottom);
-        chart.appendChild(col);
-      });
-
-      parent.appendChild(chart);
-    }
-
-    // CONCEPT 2: Quantum Pulse Waveform
-    function renderConcept2(parent) {
-      const chart = document.createElement('div');
-      chart.className = 'd2-chart';
-
-      const svgWrap = document.createElement('div');
-      svgWrap.className = 'd2-svg-wrap';
-
-      const points = activeTelemetryData.map((d, i) => {
-        const x = (i / (activeTelemetryData.length - 1)) * 500;
-        const y = 140 - ((d.minutes / maxMinutes) * 110);
-        return { x, y, ...d };
-      });
-
-      let pathD = `M ${points[0].x} ${points[0].y}`;
-      for (let i = 0; i < points.length - 1; i++) {
-        const xc = (points[i].x + points[i + 1].x) / 2;
-        const yc = (points[i].y + points[i + 1].y) / 2;
-        pathD += ` Q ${points[i].x} ${points[i].y}, ${xc} ${yc}`;
-      }
-      pathD += ` T ${points[points.length - 1].x} ${points[points.length - 1].y}`;
-
-      const areaD = `${pathD} L ${points[points.length - 1].x} 150 L 0 150 Z`;
-
-      svgWrap.innerHTML = `
-        <svg viewBox="0 0 500 160" width="100%" height="100%" preserveAspectRatio="none">
+    // Render Option 1: Cyber Wave
+    function renderCyberWave(containerId, isCompact = false) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      const h = isCompact ? 75 : 85;
+      el.innerHTML = `
+        <div class="graph-box-header">
+          <span class="graph-box-title">7-DAY TELEMETRY</span>
+          <span class="graph-box-metric">TODAY: 1H 43M</span>
+        </div>
+        <svg class="wave-chart-svg" viewBox="0 0 250 ${h}" preserveAspectRatio="none">
           <defs>
             <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.35"/>
-              <stop offset="100%" stop-color="#00f0ff" stop-opacity="0.0"/>
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45" />
+              <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
             </linearGradient>
+            <filter id="whiteGlow">
+              <feGaussianBlur stdDeviation="2.5" result="glow"/>
+              <feMerge>
+                <feMergeNode in="glow"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
           </defs>
-          <path d="${areaD}" fill="url(#waveGrad)"/>
-          <path d="${pathD}" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
-          ${points.map((p, idx) => `
-            <circle cx="${p.x}" cy="${p.y}" r="${p.label === 'Today' ? 5 : 3.5}" fill="${p.label === 'Today' ? '#ffffff' : '#00f0ff'}" />
-            <text x="${p.x}" y="${p.y - 10}" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="700" text-anchor="middle">${p.formatted}</text>
-          `).join('')}
+
+          <!-- Grid Lines -->
+          <line x1="0" y1="${h*0.3}" x2="250" y2="${h*0.3}" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3" />
+          <line x1="0" y1="${h*0.65}" x2="250" y2="${h*0.65}" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3" />
+
+          <!-- Filled Area Under Curve -->
+          <path d="M 10 ${h-10} Q 45 ${h-38}, 80 ${h-62} T 150 ${h-40} T 215 ${h-72} L 240 ${h-75} L 240 ${h} L 10 ${h} Z" fill="url(#waveGrad)" />
+
+          <!-- High-Voltage Stroke Line -->
+          <path d="M 10 ${h-10} Q 45 ${h-38}, 80 ${h-62} T 150 ${h-40} T 215 ${h-72} L 240 ${h-75}" fill="none" stroke="#ffffff" stroke-width="2.2" filter="url(#whiteGlow)" />
+
+          <!-- Milestone Data Nodes -->
+          <rect x="78" y="${h-64}" width="4" height="4" fill="#ffffff" />
+          <rect x="148" y="${h-42}" width="4" height="4" fill="#ffffff" />
+
+          <!-- Today's Pulsing Peak Node -->
+          <rect x="237" y="${h-78}" width="6" height="6" fill="#ffffff" filter="url(#whiteGlow)" />
         </svg>
+        <div style="display: flex; justify-content: space-between; font-size: 7px; color: rgba(255,255,255,0.6); padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.1);">
+          <span>MON</span>
+          <span>WED</span>
+          <span>FRI</span>
+          <span style="color: #ffffff; font-weight: 800;">TODAY</span>
+        </div>
       `;
-
-      const labelsRow = document.createElement('div');
-      labelsRow.className = 'd2-labels-row';
-      activeTelemetryData.forEach(d => {
-        const lbl = document.createElement('div');
-        lbl.className = 'd2-day-label' + (d.label === 'Today' ? ' is-today' : '');
-        lbl.textContent = d.label;
-        labelsRow.appendChild(lbl);
-      });
-
-      chart.appendChild(svgWrap);
-      chart.appendChild(labelsRow);
-      parent.appendChild(chart);
     }
 
-    // CONCEPT 3: Rounded Glass Micro-Pills
-    function renderConcept3(parent) {
-      const chart = document.createElement('div');
-      chart.className = 'd3-chart';
+    // Render Option 2: Quantum Equalizer
+    function renderQuantumEqualizer(containerId) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
 
-      activeTelemetryData.forEach(item => {
-        const col = document.createElement('div');
-        col.className = 'd3-column' + (item.label === 'Today' ? ' is-today' : '');
+      const levels = [4, 2, 8, 5, 10, 3, 9]; // out of 10 segments
 
-        const timeTop = document.createElement('div');
-        timeTop.className = 'chart-time-val';
-        timeTop.textContent = item.formatted;
+      let colsHtml = '';
+      telemetry.forEach((t, idx) => {
+        const isToday = idx === telemetry.length - 1;
+        const filledCount = levels[idx];
+        let segmentsHtml = '';
+        for (let s = 10; s >= 1; s--) {
+          const isFilled = s <= filledCount;
+          const isPeak = s === filledCount && isFilled;
+          segmentsHtml += `
+            <div class="eq-segment ${isFilled ? 'filled' : ''} ${isPeak ? 'peak' : ''}"></div>
+          `;
+        }
 
-        const outer = document.createElement('div');
-        outer.className = 'd3-pill-outer';
-
-        const fill = document.createElement('div');
-        fill.className = 'd3-pill-fill';
-        const heightPct = Math.max(12, Math.round((item.minutes / maxMinutes) * 100));
-        fill.style.height = `${heightPct}%`;
-
-        outer.appendChild(fill);
-
-        const dayBottom = document.createElement('div');
-        dayBottom.className = 'chart-day-label';
-        dayBottom.textContent = item.label;
-
-        col.appendChild(timeTop);
-        col.appendChild(outer);
-        col.appendChild(dayBottom);
-        chart.appendChild(col);
+        colsHtml += `
+          <div class="eq-col ${isToday ? 'today' : ''}">
+            ${segmentsHtml}
+            <div class="eq-day-label">${t.day[0]}</div>
+          </div>
+        `;
       });
 
-      parent.appendChild(chart);
+      el.innerHTML = `
+        <div class="graph-box-header">
+          <span class="graph-box-title">7-DAY TELEMETRY</span>
+          <span class="graph-box-metric">TODAY: 1H 43M</span>
+        </div>
+        <div class="equalizer-grid">
+          ${colsHtml}
+        </div>
+      `;
     }
 
-    // CONCEPT 4: Adaptive Horizontal Rails (Phone) & Desktop Stems
-    function renderConcept4(parent) {
-      if (currentDevice === 'phone') {
-        const chart = document.createElement('div');
-        chart.className = 'd4-phone-chart';
+    // Render Option 3: Tactical Step-Matrix
+    function renderStepMatrix(containerId) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
 
-        activeTelemetryData.forEach(item => {
-          const row = document.createElement('div');
-          row.className = 'd4-rail-row' + (item.label === 'Today' ? ' is-today' : '');
+      el.innerHTML = `
+        <div class="graph-box-header">
+          <span class="graph-box-title">7-DAY TELEMETRY</span>
+          <span class="graph-box-metric">TODAY: 1H 43M</span>
+        </div>
+        <div class="step-chart-container">
+          <div class="step-grid-bg"></div>
+          <svg style="width:100%; height:100%; position:relative; z-index:2;" viewBox="0 0 240 75" preserveAspectRatio="none">
+            <!-- Stepped Drop Fills -->
+            <rect x="10" y="55" width="28" height="20" fill="rgba(255,255,255,0.06)" />
+            <rect x="38" y="65" width="28" height="10" fill="rgba(255,255,255,0.04)" />
+            <rect x="66" y="25" width="32" height="50" fill="rgba(255,255,255,0.12)" />
+            <rect x="98" y="42" width="32" height="33" fill="rgba(255,255,255,0.08)" />
+            <rect x="130" y="12" width="35" height="63" fill="rgba(255,255,255,0.18)" />
+            <rect x="165" y="50" width="35" height="25" fill="rgba(255,255,255,0.06)" />
+            <rect x="200" y="8" width="35" height="67" fill="rgba(255,255,255,0.28)" />
 
-          const day = document.createElement('div');
-          day.className = 'd4-rail-day' + (item.label === 'Today' ? ' is-today' : '');
-          day.textContent = item.label;
+            <!-- Stepped Line (Strict 90-degree angular joints) -->
+            <path d="M 10 55 L 38 55 L 38 65 L 66 65 L 66 25 L 98 25 L 98 42 L 130 42 L 130 12 L 165 12 L 165 50 L 200 50 L 200 8 L 235 8" fill="none" stroke="#ffffff" stroke-width="2" />
 
-          const track = document.createElement('div');
-          track.className = 'd4-rail-bar-track';
+            <!-- Peak Indicators -->
+            <rect x="128" y="10" width="4" height="4" fill="#ffffff" />
+            <rect x="198" y="6" width="6" height="6" fill="#ffffff" />
+          </svg>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 7px; color: rgba(255,255,255,0.6); padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.1);">
+          <span>MON</span>
+          <span>WED</span>
+          <span>FRI</span>
+          <span style="color: #ffffff; font-weight: 800;">TODAY</span>
+        </div>
+      `;
+    }
 
-          const fill = document.createElement('div');
-          fill.className = 'd4-rail-fill';
-          const widthPct = Math.max(12, Math.round((item.minutes / maxMinutes) * 100));
-          fill.style.width = `${widthPct}%`;
-          track.appendChild(fill);
+    // Render Option 4: Streamlined Laser Tracks
+    function renderLaserTracks(containerId) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
 
-          const time = document.createElement('div');
-          time.className = 'd4-rail-time';
-          time.textContent = item.formatted;
+      const topDays = [
+        { day: 'TODAY', mins: 103, label: '1H 43M', pct: 90, isToday: true },
+        { day: 'FRI', mins: 110, label: '1H 50M', pct: 96, isToday: false },
+        { day: 'WED', mins: 80, label: '1H 20M', pct: 70, isToday: false },
+        { day: 'THU', mins: 55, label: '55M', pct: 48, isToday: false },
+        { day: 'MON', mins: 42, label: '42M', pct: 36, isToday: false }
+      ];
 
-          row.appendChild(day);
-          row.appendChild(track);
-          row.appendChild(time);
-          chart.appendChild(row);
-        });
+      let tracksHtml = '';
+      topDays.forEach(d => {
+        tracksHtml += `
+          <div class="laser-track-row ${d.isToday ? 'today' : ''}">
+            <div class="track-day">${d.day}</div>
+            <div class="track-bar-rail">
+              <div class="track-fill" style="width: ${d.pct}%;"></div>
+            </div>
+            <div class="track-time">${d.label}</div>
+          </div>
+        `;
+      });
 
-        parent.appendChild(chart);
+      el.innerHTML = `
+        <div class="graph-box-header">
+          <span class="graph-box-title">7-DAY TELEMETRY</span>
+          <span class="graph-box-metric">ACTIVE LOG</span>
+        </div>
+        <div class="laser-tracks-list">
+          ${tracksHtml}
+        </div>
+      `;
+    }
+
+    // Render all previews
+    function renderAll() {
+      renderCyberWave('preview-opt1');
+      renderQuantumEqualizer('preview-opt2');
+      renderStepMatrix('preview-opt3');
+      renderLaserTracks('preview-opt4');
+      updateEmbedded();
+    }
+
+    function updateEmbedded() {
+      if (currentOption === 1) renderCyberWave('embeddedGraphSlot');
+      else if (currentOption === 2) renderQuantumEqualizer('embeddedGraphSlot');
+      else if (currentOption === 3) renderStepMatrix('embeddedGraphSlot');
+      else if (currentOption === 4) renderLaserTracks('embeddedGraphSlot');
+    }
+
+    // Switch Option
+    function switchGraphOption(optNum) {
+      currentOption = optNum;
+      for (let i = 1; i <= 4; i++) {
+        const card = document.getElementById('card-opt' + i);
+        if (card) {
+          if (i === optNum) card.classList.add('selected');
+          else card.classList.remove('selected');
+        }
+      }
+      updateEmbedded();
+    }
+
+    // Toggle Subfolder Flyout
+    function toggleSubfolder() {
+      isSubOpen = !isSubOpen;
+      const sub = document.getElementById('subfolderDock');
+      const btn = document.getElementById('btnToggleSub');
+      if (isSubOpen) {
+        sub.style.display = 'flex';
+        btn.innerText = 'SUBFOLDERS: ON';
+        btn.classList.add('active');
       } else {
-        renderConcept3(parent);
+        sub.style.display = 'none';
+        btn.innerText = 'SUBFOLDERS: OFF';
+        btn.classList.remove('active');
       }
     }
 
-    let screenActive = false;
-    function toggleScreen() {
-      screenActive = !screenActive;
-      document.getElementById('screenSwitch').classList.toggle('active', screenActive);
+    // Toggle Background Video
+    function toggleVideo() {
+      isVideoOn = !isVideoOn;
+      const v = document.getElementById('bgVideo');
+      const btn = document.getElementById('btnToggleVideo');
+      if (isVideoOn) {
+        v.style.opacity = '0.65';
+        btn.innerText = 'VIDEO: ON';
+        btn.classList.add('active');
+      } else {
+        v.style.opacity = '0.05';
+        btn.innerText = 'VIDEO: DIM';
+        btn.classList.remove('active');
+      }
+    }
+
+    // Toggle Keep Awake
+    function toggleKeepAwake() {
+      isKeepAwake = !isKeepAwake;
+      const box = document.getElementById('keepAwakeBox');
+      const thumb = document.getElementById('keepAwakeThumb');
+      if (isKeepAwake) {
+        box.style.background = '#ffffff';
+        box.style.borderColor = '#ffffff';
+        thumb.style.background = '#000000';
+        thumb.style.right = '1px';
+        thumb.style.left = 'auto';
+      } else {
+        box.style.background = 'rgba(255,255,255,0.1)';
+        box.style.borderColor = 'rgba(255,255,255,0.3)';
+        thumb.style.background = '#ffffff';
+        thumb.style.left = '1px';
+        thumb.style.right = 'auto';
+      }
+    }
+
+    // Major folder selection
+    function selectMajor(name) {
+      document.querySelectorAll('.dock-btn').forEach(b => b.classList.remove('active'));
+      const map = {
+        'PHOTOGRAPHS': 'btnPhotographs',
+        'SHORTS': 'btnShorts',
+        'VIDEO CLIPS': 'btnClips',
+        'BANDHOBI': 'btnBandhobi'
+      };
+      if (map[name]) {
+        document.getElementById(map[name]).classList.add('active');
+        document.getElementById('subfolderDock').style.display = 'flex';
+      } else {
+        // HOME
+        document.getElementById('subfolderDock').style.display = 'none';
+      }
+    }
+
+    function selectSub(btn) {
+      document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
     }
 
     // Initialize
-    renderCurrentConcept();
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+    });
   </script>
 </body>
 </html>
