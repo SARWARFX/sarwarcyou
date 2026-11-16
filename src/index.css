@@ -1570,7 +1570,7 @@ html, body, #root {
   position: absolute;
   top: 0;
   left: 0;
-  width: 400vw;
+  width: 500vw;
   height: 100%;
   display: flex;
   will-change: transform;

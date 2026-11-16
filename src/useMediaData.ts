@@ -21,10 +21,10 @@ export const HF_IMAGES_TREE_API_URL =
   'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Photographs?recursive=true';
 export const HF_SHORTS_TREE_API_URL =
   'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Shorts?recursive=true';
-export const HF_REALTUBE_TREE_API_URL =
-  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/REALTube?recursive=true';
-
+export const HF_BANDHOBI_TREE_API_URL =
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Bandhobi?recursive=true';
 // Backwards-compatibility alias
+export const HF_REALTUBE_TREE_API_URL = HF_BANDHOBI_TREE_API_URL;
 export const HUGGINGFACE_CATALOG_URL = HF_RAW_MEDIA_JSON_URL;
 
 export const CACHE_STORAGE_KEY = 'sarwarcyou_hf_catalog_cache_v4';
@@ -193,6 +193,7 @@ export function parseTreeToCatalog(
   const clips: HfMediaItem[] = [];
   const shorts: HfMediaItem[] = [];
   const images: HfMediaItem[] = [];
+  const bandhobi: HfMediaItem[] = [];
   const allMedia: HfMediaItem[] = [];
 
   for (const item of tree) {
@@ -236,9 +237,13 @@ export function parseTreeToCatalog(
     }
 
     const parsedPath = parseMediaPath(path);
+    const itemObj = { name, path, url, lastCommit, date: itemDate };
 
-    if (isVideoExtension(path)) {
-      const itemObj = { name, path, url, lastCommit, date: itemDate };
+    // ISOLATE BANDHOBI: Bandhobi media must NEVER be included in main Photographs, Shorts, or Video Clips
+    const isBandhobi = path.toLowerCase().startsWith('bandhobi/') || path.toLowerCase().startsWith('realtube/');
+    if (isBandhobi) {
+      bandhobi.push(itemObj);
+    } else if (isVideoExtension(path)) {
       if (parsedPath.mediaType === 'short') {
         shorts.push(itemObj);
         allMedia.push(itemObj);
@@ -249,7 +254,6 @@ export function parseTreeToCatalog(
     } else if (isPhotoExtension(path)) {
       // NEVER include thumbnail files in images
       if (!isThumbnailFile(path) && !isExcludedAlbum(path)) {
-        const itemObj = { name, path, url, lastCommit, date: itemDate };
         images.push(itemObj);
         allMedia.push(itemObj);
       }
@@ -260,9 +264,10 @@ export function parseTreeToCatalog(
   clips.sort(compareMediaItemsDescending);
   shorts.sort(compareMediaItemsDescending);
   images.sort(compareMediaItemsDescending);
+  bandhobi.sort(compareMediaItemsDescending);
   allMedia.sort(compareMediaItemsDescending);
 
-  return { clips, shorts, images, allMedia };
+  return { clips, shorts, images, bandhobi, allMedia };
 }
 
 /**
@@ -434,10 +439,12 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
         const rawClipsList = (rawData.clips || []).map(enrichItem);
         const rawShortsList = (rawData.shorts || []).map(enrichItem);
         const rawImagesList = (rawData.images || []).map(enrichItem);
-        const allEnrichedRaw = [...rawClipsList, ...rawShortsList, ...rawImagesList];
+        const rawBandhobiList = (rawData.bandhobi || []).map(enrichItem);
+        const allEnrichedRaw = [...rawClipsList, ...rawShortsList, ...rawImagesList, ...rawBandhobiList];
         const rawClips: HfMediaItem[] = [];
         const rawShorts: HfMediaItem[] = [];
         const rawImages: HfMediaItem[] = [];
+        const rawBandhobi: HfMediaItem[] = [];
         const seen = new Set<string>();
         for (const item of allEnrichedRaw) {
           const p = item.path || item.name || '';
@@ -445,7 +452,11 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
           const key = p.toLowerCase();
           if (seen.has(key)) continue;
           seen.add(key);
-          if (isVideoExtension(p)) {
+
+          // ISOLATE BANDHOBI:
+          if (p.toLowerCase().startsWith('bandhobi/') || p.toLowerCase().startsWith('realtube/')) {
+            rawBandhobi.push(item);
+          } else if (isVideoExtension(p)) {
             const parsed = parseMediaPath(p);
             if (parsed.mediaType === 'short') {
               rawShorts.push(item);
@@ -459,13 +470,14 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
         const clips = sortItems(rawClips);
         const shorts = sortItems(rawShorts);
         const images = sortItems(rawImages);
+        const bandhobi = sortItems(rawBandhobi);
         const allMedia = sortItems([...clips, ...shorts, ...images]);
-
 
         const catalog: HfMediaCatalog = {
           clips,
           shorts,
           images,
+          bandhobi,
           allMedia,
         };
         setCachedCatalog(catalog);
@@ -506,12 +518,20 @@ const getNormalizedFallbackCatalog = (): HfMediaCatalog => {
       url: getMediaUrl(x.url || x.path || x.name),
     }))
   );
+  const bandhobi = sortItems(
+    (FALLBACK_HF_CATALOG.bandhobi || []).map((x) => ({
+      ...x,
+      date: x.date || extractTimestampFromPath(x.name || (x.path ? x.path.split('/').pop() : '') || ''),
+      url: getMediaUrl(x.url || x.path || x.name),
+    }))
+  );
   const allMedia = sortItems([...clips, ...shorts, ...images]);
 
   return {
     clips,
     shorts,
     images,
+    bandhobi,
     allMedia,
   };
 };

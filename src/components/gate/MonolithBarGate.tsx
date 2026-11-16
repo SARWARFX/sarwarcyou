@@ -8,7 +8,7 @@ import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
 import { VaultDrawer } from '../VaultDrawer';
-import { hapticMedium, hapticLight } from '../../utils/hapticsManager';
+import { hapticMedium } from '../../utils/hapticsManager';
 import { trackActivityEvent, getRolling15DayUsage } from '../../utils/usageTelemetry';
 import {
   parseIdRoute,
@@ -19,6 +19,7 @@ import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { LivingMediaCard } from './LivingMediaCard';
 import { QuickSearchModal } from '../QuickSearchModal';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
+import { LogoDropUpNav, type MainDirectoryTab } from '../navigation/LogoDropUpNav';
 import {
   toggleKeepScreenOn,
   getKeepScreenOnState,
@@ -48,43 +49,51 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   let root = dirParts.length > 0 ? dirParts[0] : '';
   let sub = dirParts.slice(1);
 
-  if (/^(?:video\s*clips|clips)$/i.test(root)) {
-    root = 'Clips';
-  } else if (/^(?:photographs|images|photography)$/i.test(root)) {
-    root = 'Images';
-  } else if (/^(?:reels\/shorts|shorts|reels)$/i.test(root)) {
+  // 1. Bandhobi: Completely independent 4th main directory (never mixed with other collections)
+  if (/^(?:bandhobi|realtube)$/i.test(root)) {
+    root = 'Bandhobi';
+    let subName = sub.length > 0 ? sub[0] : '';
+    if (/image|photo/i.test(subName) || isPhotoExtension(clean)) {
+      sub = ['Photographs'];
+    } else if (/short/i.test(subName) || item.mediaType === 'short') {
+      sub = ['Shorts'];
+    } else {
+      sub = ['Video Clips'];
+    }
+    return { root, subfolders: sub };
+  }
+
+  // 2. Photographs
+  if (/^(?:photographs|images|photography)$/i.test(root) || isPhotoExtension(clean)) {
+    root = 'Photographs';
+    let subName = sub.length > 0 ? sub[0] : '';
+    if (/fav/i.test(subName)) subName = 'Favorite';
+    else if (/2027/i.test(subName)) subName = '2027';
+    else if (/2026/i.test(subName)) subName = '2026';
+    else if (/2025/i.test(subName)) subName = '2025';
+    else subName = 'Older';
+    return { root, subfolders: [subName] };
+  }
+
+  // 3. Shorts
+  if (/^(?:reels\/shorts|shorts|reels)$/i.test(root) || item.mediaType === 'short' || clean.toLowerCase().includes('/shorts/')) {
     root = 'Shorts';
-  } else if (/^realtube$/i.test(root)) {
-    if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short') || clean.toLowerCase().includes('short')) {
-      root = 'Shorts';
-      sub = dirParts.length > 1 ? [dirParts[1]] : ['REALTube Shorts'];
-    } else if (item.type === 'image' || isPhotoExtension(item.url || item.name)) {
-      root = 'Images';
-      sub = dirParts.length > 1 ? [dirParts[1]] : ['REALTube Images'];
-    } else {
-      root = 'Clips';
-      sub = dirParts.length > 1 ? [dirParts[1]] : ['REALTube Video Clips'];
-    }
-  } else {
-    if (item.mediaType === 'short' || item.category?.toLowerCase().includes('short') || item.url?.toLowerCase().includes('short')) {
-      root = 'Shorts';
-      sub = dirParts.length > 0 ? dirParts : ['Shorts 2027'];
-    } else if (item.type === 'image' || isPhotoExtension(item.url || item.name)) {
-      root = 'Images';
-      sub = dirParts.length > 0 ? dirParts : ['Images 2027'];
-    } else {
-      root = 'Clips';
-      sub = dirParts.length > 0 ? dirParts : ['Clips 2027'];
-    }
+    let subName = sub.length > 0 ? sub[0] : '';
+    if (/2027/i.test(subName)) subName = '2027';
+    else subName = 'Older';
+    return { root, subfolders: [subName] };
   }
 
-  if (sub.length === 0) {
-    if (root === 'Shorts') sub = ['Shorts 2027'];
-    else if (root === 'Images') sub = ['Images 2027'];
-    else sub = ['Clips 2027'];
-  }
+  // 4. Video Clips
+  root = 'Video Clips';
+  let subName = sub.length > 0 ? sub[0] : '';
+  if (/fav/i.test(subName)) subName = 'Favorite';
+  else if (/2027/i.test(subName)) subName = '2027';
+  else if (/2026/i.test(subName)) subName = '2026';
+  else if (/2025/i.test(subName)) subName = '2025';
+  else subName = 'Older';
 
-  return { root, subfolders: sub };
+  return { root, subfolders: [subName] };
 }
 
 export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
@@ -98,36 +107,42 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // 0. Parse initial route from short ID URL (?id=..., ?v=..., ?star=..., etc.)
   const initialRoute = useMemo(() => parseIdRoute(), []);
 
-  // 4 Panoramic Slides: 0: Home (Living Wall), 1: Shorts, 2: Videos, 3: Photographs
+  // 5 Panoramic Slides: 0: Home (Living Wall), 1: Photographs, 2: Shorts, 3: Video Clips, 4: Bandhobi
   const [tabIndex, setTabIndex] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     const parsed = parseAppPathname();
-    if (parsed.tab === 'PHOTOGRAPHY') return 3;
-    if (parsed.tab === 'CLIPS') return 2;
-    if (parsed.tab === 'SHORTS') return 1;
+    if (parsed.tab === 'PHOTOGRAPHY') return 1;
+    if (parsed.tab === 'SHORTS') return 2;
+    if (parsed.tab === 'CLIPS') return 3;
+    if (parsed.tab === 'BANDHOBI') return 4;
     return 0; // Default Home living wall
   });
 
   const [_activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
 
-  // Individual section subfolder filters
-  const [shortsSubfolder, setShortsSubfolder] = useState<string>('ALL');
-  const [clipsSubfolder, setClipsSubfolder] = useState<string>('ALL');
-  const [photosSubfolder, setPhotosSubfolder] = useState<string>('ALL');
+  // Active Main Directory Tab inside Logo Drop-Up Nav
+  const [activeMainTab, setActiveMainTab] = useState<MainDirectoryTab>('Photographs');
+
+  // Logo Drop-Up Navigation Menu Open State
+  const [isNavTrayOpen, setIsNavTrayOpen] = useState(false);
+
+  // Individual section subfolder filters (ordered per strict specs)
+  const [photosSubfolder, setPhotosSubfolder] = useState<string>('Favorite');
+  const [shortsSubfolder, setShortsSubfolder] = useState<string>('2027');
+  const [clipsSubfolder, setClipsSubfolder] = useState<string>('Favorite');
+  const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Photographs');
 
   // Progressive batch visibility for each section
+  const [visiblePhotos, setVisiblePhotos] = useState<number>(24);
   const [visibleShorts, setVisibleShorts] = useState<number>(24);
   const [visibleClips, setVisibleClips] = useState<number>(16);
-  const [visiblePhotos, setVisiblePhotos] = useState<number>(24);
+  const [visibleBandhobi, setVisibleBandhobi] = useState<number>(24);
 
-  // Dropdown open states for the 3 tabs: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null
+  // Dropdown open states for the tabs: null
   const [activeDropdown, setActiveDropdown] = useState<'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null>(null);
 
   // Keep screen on state
   const [keepAwakeOn, setKeepAwakeOn] = useState(() => getKeepScreenOnState());
-
-  // 15-Day Minimalist Telemetry Graph Modal state
-  const [isTelemetryModalOpen, setIsTelemetryModalOpen] = useState(false);
 
 
   // 404 Media / Route Not Found Dialog State
@@ -170,24 +185,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setIsSearchOpen(true);
       } else if (e.key === 'Escape') {
         setActiveDropdown(null);
-        setIsTelemetryModalOpen(false);
-      } else if (e.key === 'ArrowRight' && !isModalOpen && !isTelemetryModalOpen) {
-        setTabIndex((prev) => Math.min(3, prev + 1));
-      } else if (e.key === 'ArrowLeft' && !isModalOpen && !isTelemetryModalOpen) {
+        setIsNavTrayOpen(false);
+      } else if (e.key === 'ArrowRight' && !isModalOpen && !isNavTrayOpen) {
+        setTabIndex((prev) => Math.min(4, prev + 1));
+      } else if (e.key === 'ArrowLeft' && !isModalOpen && !isNavTrayOpen) {
         setTabIndex((prev) => Math.max(0, prev - 1));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen, isTelemetryModalOpen]);
+  }, [isModalOpen, isNavTrayOpen]);
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
   useEffect(() => {
     const handlePopState = () => {
       const parsed = parseAppPathname();
-      if (parsed.tab === 'PHOTOGRAPHY') setTabIndex(3);
-      else if (parsed.tab === 'CLIPS') setTabIndex(2);
-      else if (parsed.tab === 'SHORTS') setTabIndex(1);
+      if (parsed.tab === 'PHOTOGRAPHY') setTabIndex(1);
+      else if (parsed.tab === 'SHORTS') setTabIndex(2);
+      else if (parsed.tab === 'CLIPS') setTabIndex(3);
+      else if (parsed.tab === 'BANDHOBI') setTabIndex(4);
       else setTabIndex(0);
       setActiveVideoId(parsed.shortId);
     };
@@ -203,9 +219,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     hapticMedium();
 
     const targetPath =
-      idx === 1 ? '/shorts'
-      : idx === 2 ? '/clips'
-      : idx === 3 ? '/photographs'
+      idx === 1 ? '/photographs'
+      : idx === 2 ? '/shorts'
+      : idx === 3 ? '/clips'
+      : idx === 4 ? '/bandhobi'
       : '/';
     updateBrowserUrl(targetPath, false);
   }, []);
@@ -265,9 +282,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     };
 
-    ensureSubfolders('Clips', ['Clips 2027', 'Clips 2026', 'Clips 2025', 'Favorite Video Clips', 'Classic Video Clips', 'REALTube Video Clips']);
-    ensureSubfolders('Shorts', ['Shorts 2027', 'Shorts Classic', 'REALTube Shorts']);
-    ensureSubfolders('Images', ['Images 2027', 'Images 2026', 'Images 2025', 'Favourite Images', 'Classic Images', 'REALTube Images']);
+    ensureSubfolders('Photographs', ['Favorite', '2027', '2026', '2025', 'Older']);
+    ensureSubfolders('Shorts', ['2027', 'Older']);
+    ensureSubfolders('Video Clips', ['Favorite', '2027', '2026', '2025', 'Older']);
+    ensureSubfolders('Bandhobi', ['Photographs', 'Shorts', 'Video Clips']);
 
     for (const rootNode of map.values()) {
       rootNode.files = sortMediaItemsDescending(rootNode.files);
@@ -280,6 +298,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   }, [items]);
 
   // Deep collections for each section
+  const allPhotosFiles = useMemo(() => {
+    const node = rootMap.get('Photographs');
+    if (!node) return [];
+    const seen = new Set<string>();
+    const list: StageMediaItem[] = [];
+    for (const f of node.files) {
+      const k = f.id || f.url || f.path || f.name;
+      if (k && !seen.has(k)) { seen.add(k); list.push(f); }
+    }
+    for (const sub of node.subfolders.values()) {
+      for (const f of sub.files) {
+        const k = f.id || f.url || f.path || f.name;
+        if (k && !seen.has(k)) { seen.add(k); list.push(f); }
+      }
+    }
+    return sortMediaItemsDescending(list);
+  }, [rootMap]);
+
   const allShortsFiles = useMemo(() => {
     const node = rootMap.get('Shorts');
     if (!node) return [];
@@ -299,7 +335,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   }, [rootMap]);
 
   const allClipsFiles = useMemo(() => {
-    const node = rootMap.get('Clips');
+    const node = rootMap.get('Video Clips');
     if (!node) return [];
     const seen = new Set<string>();
     const list: StageMediaItem[] = [];
@@ -316,8 +352,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return sortMediaItemsDescending(list);
   }, [rootMap]);
 
-  const allPhotosFiles = useMemo(() => {
-    const node = rootMap.get('Images');
+  const allBandhobiFiles = useMemo(() => {
+    const node = rootMap.get('Bandhobi');
     if (!node) return [];
     const seen = new Set<string>();
     const list: StageMediaItem[] = [];
@@ -342,24 +378,30 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return allShortsFiles;
   }, [allShortsFiles]);
 
-  // Filtered active media lists
+  // Filtered active media lists (ordered per specs)
+  const activePhotosList = useMemo(() => {
+    if (photosSubfolder === 'ALL') return allPhotosFiles;
+    const node = rootMap.get('Photographs')?.subfolders.get(photosSubfolder);
+    return node && node.files.length > 0 ? node.files : allPhotosFiles;
+  }, [allPhotosFiles, rootMap, photosSubfolder]);
+
   const activeShortsList = useMemo(() => {
     if (shortsSubfolder === 'ALL') return allShortsFiles;
     const node = rootMap.get('Shorts')?.subfolders.get(shortsSubfolder);
-    return node ? node.files : allShortsFiles;
+    return node && node.files.length > 0 ? node.files : allShortsFiles;
   }, [allShortsFiles, rootMap, shortsSubfolder]);
 
   const activeClipsList = useMemo(() => {
     if (clipsSubfolder === 'ALL') return allClipsFiles;
-    const node = rootMap.get('Clips')?.subfolders.get(clipsSubfolder);
-    return node ? node.files : allClipsFiles;
+    const node = rootMap.get('Video Clips')?.subfolders.get(clipsSubfolder);
+    return node && node.files.length > 0 ? node.files : allClipsFiles;
   }, [allClipsFiles, rootMap, clipsSubfolder]);
 
-  const activePhotosList = useMemo(() => {
-    if (photosSubfolder === 'ALL') return allPhotosFiles;
-    const node = rootMap.get('Images')?.subfolders.get(photosSubfolder);
-    return node ? node.files : allPhotosFiles;
-  }, [allPhotosFiles, rootMap, photosSubfolder]);
+  const activeBandhobiList = useMemo(() => {
+    if (bandhobiSubfolder === 'ALL') return allBandhobiFiles;
+    const node = rootMap.get('Bandhobi')?.subfolders.get(bandhobiSubfolder);
+    return node && node.files.length > 0 ? node.files : allBandhobiFiles;
+  }, [allBandhobiFiles, rootMap, bandhobiSubfolder]);
 
   // Subfolder label resolver for LivingMediaCard
   const getItemSubfolderLabel = useCallback(
@@ -382,6 +424,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         item.path?.toLowerCase().includes('short') ||
         item.url?.toLowerCase().includes('short');
 
+      if (tabIndex === 4) {
+        if (isPhoto) {
+          onOpenPhoto(item, activeBandhobiList, index);
+        } else if (isShort) {
+          onOpenShort(item, activeBandhobiList, index, getItemSubfolderLabel(item));
+        } else {
+          onOpenVideo(item, activeBandhobiList);
+        }
+        return;
+      }
+
       if (isPhoto) {
         onOpenPhoto(item, activePhotosList, index);
       } else if (isShort) {
@@ -390,7 +443,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         onOpenVideo(item, activeClipsList);
       }
     },
-    [activePhotosList, activeShortsList, activeClipsList, getItemSubfolderLabel, onOpenPhoto, onOpenShort, onOpenVideo]
+    [tabIndex, activeBandhobiList, activePhotosList, activeShortsList, activeClipsList, getItemSubfolderLabel, onOpenPhoto, onOpenShort, onOpenVideo]
   );
 
   // Close dropdown on click outside
@@ -404,11 +457,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
-  // Back button closes active modal/drawer/dropdown or returns home
+  // Back button closes active modal/drawer/dropdown/nav-tray or returns home
   useBackButton(
     useCallback(() => {
-      if (isTelemetryModalOpen) {
-        setIsTelemetryModalOpen(false);
+      if (isNavTrayOpen) {
+        setIsNavTrayOpen(false);
         return true;
       }
       if (isSearchOpen) {
@@ -428,50 +481,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return true;
       }
       return false;
-    }, [isTelemetryModalOpen, isSearchOpen, activeDropdown, isVaultDrawerOpen, tabIndex, switchTab]),
-    Boolean(isTelemetryModalOpen || isSearchOpen || activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
+    }, [isNavTrayOpen, isSearchOpen, activeDropdown, isVaultDrawerOpen, tabIndex, switchTab]),
+    Boolean(isNavTrayOpen || isSearchOpen || activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
   );
 
   // 15-day rolling session telemetry metrics (zero suppression: days with 0 data are excluded)
   const telemetry15DayData = useMemo(() => {
     return getRolling15DayUsage();
-  }, [isTelemetryModalOpen]);
-
-  const max15Minutes = useMemo(() => {
-    if (telemetry15DayData.length === 0) return 60;
-    return Math.max(...telemetry15DayData.map((d) => d.minutes), 60);
-  }, [telemetry15DayData]);
-
-  // Subfolders list corresponding to the currently active tab
-  const activeSubfoldersList = useMemo(() => {
-    if (tabIndex === 1) {
-      const list = Array.from(rootMap.get('Shorts')?.subfolders.values() || []).map((s) => s.name);
-      return ['ALL', ...list];
-    }
-    if (tabIndex === 2) {
-      const list = Array.from(rootMap.get('Clips')?.subfolders.values() || []).map((s) => s.name);
-      return ['ALL', ...list];
-    }
-    if (tabIndex === 3) {
-      const list = Array.from(rootMap.get('Images')?.subfolders.values() || []).map((s) => s.name);
-      return ['ALL', ...list];
-    }
-    return [];
-  }, [tabIndex, rootMap]);
-
-  const currentActiveSubfolder = useMemo(() => {
-    if (tabIndex === 1) return shortsSubfolder;
-    if (tabIndex === 2) return clipsSubfolder;
-    if (tabIndex === 3) return photosSubfolder;
-    return 'ALL';
-  }, [tabIndex, shortsSubfolder, clipsSubfolder, photosSubfolder]);
-
-  const handleSubfolderSelect = useCallback((subName: string) => {
-    hapticLight();
-    if (tabIndex === 1) setShortsSubfolder(subName);
-    else if (tabIndex === 2) setClipsSubfolder(subName);
-    else if (tabIndex === 3) setPhotosSubfolder(subName);
-  }, [tabIndex]);
+  }, [isNavTrayOpen]);
 
   // Infinite scroll handlers for each media tab (automatic progressive loading)
   const handleShortsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -510,6 +527,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
   }, [activePhotosList.length]);
 
+  const handleBandhobiScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+      setVisibleBandhobi((prev) => {
+        if (prev < activeBandhobiList.length) {
+          return Math.min(prev + 16, activeBandhobiList.length);
+        }
+        return prev;
+      });
+    }
+  }, [activeBandhobiList.length]);
+
   // Reset pagination count when subfolders change
   useEffect(() => {
     setVisibleShorts(24);
@@ -522,6 +551,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   useEffect(() => {
     setVisiblePhotos(24);
   }, [photosSubfolder]);
+
+  useEffect(() => {
+    setVisibleBandhobi(24);
+  }, [bandhobiSubfolder]);
 
   return (
     <div
@@ -539,15 +572,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         isOpen={isVaultDrawerOpen}
         onClose={() => setVaultDrawerOpen(false)}
         onSelectFolder={(folderId, subfolderName) => {
-          if (folderId === 'shorts') {
-            if (subfolderName) setShortsSubfolder(subfolderName);
-            switchTab(1);
-          } else if (folderId === 'clips' || folderId === 'realtube') {
-            if (subfolderName) setClipsSubfolder(subfolderName);
-            switchTab(2);
-          } else if (folderId === 'photography') {
+          if (folderId === 'photography') {
             if (subfolderName) setPhotosSubfolder(subfolderName);
+            switchTab(1);
+          } else if (folderId === 'shorts') {
+            if (subfolderName) setShortsSubfolder(subfolderName);
+            switchTab(2);
+          } else if (folderId === 'clips') {
+            if (subfolderName) setClipsSubfolder(subfolderName);
             switchTab(3);
+          } else if (folderId === 'realtube') {
+            if (subfolderName) setBandhobiSubfolder(subfolderName);
+            switchTab(4);
           }
           setVaultDrawerOpen(false);
         }}
@@ -565,9 +601,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         onClose={() => setNotFoundInfo((prev) => ({ ...prev, isOpen: false }))}
         onNavigateTab={(tab) => {
           setNotFoundInfo((prev) => ({ ...prev, isOpen: false }));
-          if (tab === 'SHORTS') switchTab(1);
-          else if (tab === 'CLIPS') switchTab(2);
-          else if (tab === 'PHOTOGRAPHY') switchTab(3);
+          if (tab === 'PHOTOGRAPHY') switchTab(1);
+          else if (tab === 'SHORTS') switchTab(2);
+          else if (tab === 'CLIPS') switchTab(3);
           else switchTab(0);
         }}
       />
@@ -606,63 +642,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </div>
 
-      {/* 2. MIDDLE-RIGHT SIDE: PURE TEXT SVP DOCK (NO BACKGROUND, NO OUTLINE) */}
-      <aside
-        className="fixed right-4 sm:right-7 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-4 sm:gap-5 select-none pointer-events-auto"
-        aria-label="SVP Navigation"
-      >
-        <button
-          type="button"
-          onClick={() => switchTab(1)}
-          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
-            tabIndex === 1
-              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
-              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
-          }`}
-          title="Shorts"
-        >
-          S
-        </button>
-        <button
-          type="button"
-          onClick={() => switchTab(2)}
-          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
-            tabIndex === 2
-              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
-              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
-          }`}
-          title="Video Clips"
-        >
-          V
-        </button>
-        <button
-          type="button"
-          onClick={() => switchTab(3)}
-          className={`font-['Orbitron',sans-serif] text-xl sm:text-2xl font-black tracking-wider text-[#ccff00] cursor-pointer transition-all duration-300 p-1 ${
-            tabIndex === 3
-              ? 'opacity-100 scale-125 drop-shadow-[0_0_16px_#ccff00] drop-shadow-[0_0_32px_#ccff00]'
-              : 'opacity-40 hover:opacity-85 hover:scale-110 drop-shadow-[0_0_10px_#ccff00]'
-          }`}
-          title="Photographs"
-        >
-          P
-        </button>
-      </aside>
-
-      {/* 3. BOTTOM-LEFT CORNER: OPTION 2 SWEEPING LASER LOGO (DUAL ACTION) */}
+      {/* 2. BOTTOM-LEFT CORNER: WEBSITE LOGO & DROP-UP NAVIGATION TRAY */}
       <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none pointer-events-auto">
         <button
           type="button"
           onClick={() => {
             hapticMedium();
-            if (tabIndex !== 0) {
-              switchTab(0);
-            } else {
-              setIsTelemetryModalOpen(true);
-            }
+            setIsNavTrayOpen((prev) => !prev);
           }}
           className="inline-flex items-center cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none bg-transparent border-0 p-0"
-          title={tabIndex !== 0 ? 'Return to Homepage' : 'Open 15-Day Time Log'}
+          title="Toggle Directory Navigation Menu"
         >
           <LaserSparkLogo
             width={290}
@@ -670,130 +659,46 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             interactive={false}
           />
         </button>
+
+        {/* Custom Futuristic Glass Drop-Up Navigation Tray */}
+        <LogoDropUpNav
+          isOpen={isNavTrayOpen}
+          onClose={() => setIsNavTrayOpen(false)}
+          activeMainTab={activeMainTab}
+          onSelectMainTab={(tab) => {
+            setActiveMainTab(tab);
+          }}
+          activeSubfolder={
+            activeMainTab === 'Photographs'
+              ? photosSubfolder
+              : activeMainTab === 'Shorts'
+              ? shortsSubfolder
+              : activeMainTab === 'Video Clips'
+              ? clipsSubfolder
+              : bandhobiSubfolder
+          }
+          onSelectSubfolder={(tab, subfolder) => {
+            if (tab === 'Photographs') {
+              setPhotosSubfolder(subfolder);
+              switchTab(1);
+            } else if (tab === 'Shorts') {
+              setShortsSubfolder(subfolder);
+              switchTab(2);
+            } else if (tab === 'Video Clips') {
+              setClipsSubfolder(subfolder);
+              switchTab(3);
+            } else if (tab === 'Bandhobi') {
+              setBandhobiSubfolder(subfolder);
+              switchTab(4);
+            }
+          }}
+          telemetryData={telemetry15DayData}
+          keepAwakeOn={keepAwakeOn}
+          onToggleKeepAwake={toggleKeepScreenOn}
+        />
       </div>
 
-      {/* 4. BOTTOM-RIGHT CORNER: PURE TEXT SUBFOLDERS (HORIZONTAL DESKTOP / VERTICAL MOBILE) */}
-      {activeSubfoldersList.length > 0 && (
-        <nav
-          className="fixed bottom-4 sm:bottom-6 right-4 sm:right-7 z-40 flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-4 max-h-[45vh] sm:max-h-none overflow-y-auto sm:overflow-visible select-none pointer-events-auto"
-          aria-label="Subfolders Filter"
-        >
-          {activeSubfoldersList.map((subName) => {
-            const isActive = currentActiveSubfolder === subName;
-            return (
-              <button
-                key={subName}
-                type="button"
-                onClick={() => handleSubfolderSelect(subName)}
-                className={`font-['Orbitron',sans-serif] text-[9.5px] sm:text-[11px] tracking-[0.14em] uppercase transition-all duration-200 cursor-pointer whitespace-nowrap p-0.5 ${
-                  isActive
-                    ? 'text-[#ccff00] font-black drop-shadow-[0_0_12px_#ccff00] scale-105'
-                    : 'text-white/45 hover:text-white font-bold'
-                }`}
-              >
-                {subName}
-              </button>
-            );
-          })}
-        </nav>
-      )}
-
-      {/* 5. 15-DAY MINIMALIST TELEMETRY GRAPH MODAL (DISMISSED VIA CLICK OUTSIDE OR ESC) */}
-      {isTelemetryModalOpen && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-2xl flex items-center justify-center p-4 cursor-pointer"
-          onClick={() => setIsTelemetryModalOpen(false)}
-        >
-          <div
-            className="bg-[#080808]/95 border border-white/10 rounded-2xl p-6 sm:p-7 max-w-2xl w-full shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(204,255,0,0.12)] relative cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Mobile View: Adaptive Horizontal Track Rails (< 640px) */}
-            <div className="flex sm:hidden flex-col gap-2.5 max-h-[290px] overflow-y-auto space-scrollbar border-b border-white/10 pb-3 mt-1">
-              {telemetry15DayData.map((d) => {
-                const isToday = d.label === 'Today';
-                const widthPct = d.minutes > 0 ? Math.max(8, Math.round((d.minutes / max15Minutes) * 100)) : 0;
-                return (
-                  <div key={d.date} className="flex items-center justify-between gap-3">
-                    <span
-                      className={`w-14 font-['Orbitron',sans-serif] text-[10px] tracking-wider uppercase shrink-0 ${
-                        isToday ? 'text-[#ccff00] font-black' : 'text-white/50 font-bold'
-                      }`}
-                    >
-                      {d.label}
-                    </span>
-                    <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden flex items-center p-0.5">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#77aa00] to-[#ccff00] rounded-full shadow-[0_0_10px_rgba(204,255,0,0.4)] transition-all duration-500"
-                        style={{ width: `${widthPct}%` }}
-                      />
-                    </div>
-                    <span className="w-14 font-mono text-[10px] font-bold text-white text-right shrink-0">
-                      {d.formattedMinutes}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Desktop View: Pure Vertical Pillar Bars (>= 640px) */}
-            <div className="hidden sm:flex items-end justify-between gap-3 h-[210px] border-b border-white/10 pb-3 mt-2 overflow-x-auto">
-              {telemetry15DayData.map((d) => {
-                const isToday = d.label === 'Today';
-                const heightPct = d.minutes > 0 ? Math.max(12, Math.round((d.minutes / max15Minutes) * 100)) : 2;
-                return (
-                  <div key={d.date} className="flex-1 min-w-[42px] flex flex-col items-center justify-end h-full gap-2">
-                    <span className="font-mono text-[10.5px] font-bold text-white/85 whitespace-nowrap">
-                      {d.formattedMinutes}
-                    </span>
-                    <div className="w-full max-w-[22px] bg-white/[0.05] rounded-xl flex items-end h-[145px] p-0.5 overflow-hidden">
-                      <div
-                        className="w-full bg-gradient-to-t from-[#99cc00] to-[#ccff00] rounded-lg shadow-[0_0_14px_rgba(204,255,0,0.45)] transition-all duration-500"
-                        style={{ height: `${heightPct}%` }}
-                      />
-                    </div>
-                    <span
-                      className={`font-['Orbitron',sans-serif] text-[9.5px] tracking-wider uppercase pt-1 whitespace-nowrap ${
-                        isToday ? 'text-[#ccff00] font-black' : 'text-white/50 font-bold'
-                      }`}
-                    >
-                      {d.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Minimalist Footer with Keep Screen On Toggle */}
-            <div className="flex items-center justify-start mt-4 pt-1">
-              <label
-                className="inline-flex items-center gap-2.5 cursor-pointer select-none"
-                onClick={() => {
-                  hapticLight();
-                  toggleKeepScreenOn();
-                }}
-              >
-                <div
-                  className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${
-                    keepAwakeOn ? 'bg-[#ccff00]' : 'bg-white/15'
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full absolute top-0.5 transition-transform duration-200 ${
-                      keepAwakeOn ? 'translate-x-4 bg-black' : 'translate-x-0.5 bg-white'
-                    }`}
-                  />
-                </div>
-                <span className="font-mono text-[11px] text-white/60 tracking-wider">
-                  Keep Screen On
-                </span>
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. 4-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}
+      {/* 3. 5-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}
       <main
         className="flex-1 w-full min-h-0 relative overflow-hidden"
         style={{
@@ -836,13 +741,32 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 );
               })}
             </div>
-
-            
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 1: SHORTS TAB PAGE (SEAMLESS FULL-BLEED GRID OF SHORTS)     */}
-          {/* ZERO GAP ABOVE, BELOW, AND BETWEEN CARDS                          */}
+          {/* PANEL 1: PHOTOGRAPHS TAB PAGE (SEAMLESS FULL-BLEED GRID OF PHOTOS)*/}
+          {/* ================================================================= */}
+          <section className="panoramic-panel">
+            <div
+              onScroll={handlePhotosScroll}
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0">
+                {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
+                  <LivingMediaCard
+                    key={item.id || item.url || idx}
+                    item={item}
+                    aspectRatio="3/4"
+                    delayIdx={idx}
+                    onClick={() => handleOpenItem(item, idx)}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ================================================================= */}
+          {/* PANEL 2: SHORTS TAB PAGE (SEAMLESS FULL-BLEED GRID OF SHORTS)     */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
@@ -864,8 +788,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 2: VIDEO CLIPS TAB PAGE (SEAMLESS FULL-BLEED GRID OF CLIPS) */}
-          {/* ZERO GAP ABOVE, BELOW, AND BETWEEN CARDS                          */}
+          {/* PANEL 3: VIDEO CLIPS TAB PAGE (SEAMLESS FULL-BLEED GRID OF CLIPS) */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
@@ -887,20 +810,33 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 3: PHOTOGRAPHS TAB PAGE (SEAMLESS FULL-BLEED GRID OF PHOTOS)*/}
-          {/* ZERO GAP ABOVE, BELOW, AND BETWEEN CARDS                          */}
+          {/* PANEL 4: BANDHOBI TAB PAGE (INDEPENDENT MEDIA DIRECTORY)          */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
-              onScroll={handlePhotosScroll}
+              onScroll={handleBandhobiScroll}
               className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
             >
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0">
-                {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
+              <div
+                className={`grid gap-0 ${
+                  bandhobiSubfolder === 'Shorts'
+                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                    : bandhobiSubfolder === 'Video Clips'
+                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                    : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                }`}
+              >
+                {activeBandhobiList.slice(0, visibleBandhobi).map((item, idx) => (
                   <LivingMediaCard
                     key={item.id || item.url || idx}
                     item={item}
-                    aspectRatio="3/4"
+                    aspectRatio={
+                      bandhobiSubfolder === 'Shorts'
+                        ? '9/16'
+                        : bandhobiSubfolder === 'Video Clips'
+                        ? '16/9'
+                        : '3/4'
+                    }
                     delayIdx={idx}
                     onClick={() => handleOpenItem(item, idx)}
                   />

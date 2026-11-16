@@ -74,8 +74,8 @@ export function formatAlbumDisplayName(folderPath: string, mediaTypeHint?: 'vide
   const last = segments[segments.length - 1];
   const root = segments[0].toLowerCase();
 
-  // If root is a generic namespace folder like Photographs, Video Clips, REALTube, Images, Clips
-  if (['photographs', 'video clips', 'realtube', 'images', 'clips'].includes(root)) {
+  // If root is a generic namespace folder like Photographs, Video Clips, Bandhobi, REALTube, Images, Clips, Shorts
+  if (['photographs', 'video clips', 'bandhobi', 'realtube', 'images', 'clips', 'shorts'].includes(root)) {
     if (root === 'clips') {
       return formatFolderName(last, 'video');
     }

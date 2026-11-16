@@ -51,6 +51,7 @@ export interface HfMediaCatalog {
   clips: HfMediaItem[];
   shorts: HfMediaItem[];
   images: HfMediaItem[];
+  bandhobi?: HfMediaItem[];
   allMedia?: HfMediaItem[];
   albums?: MediaFolderEntry[];
 }

@@ -120,70 +120,71 @@ export function normalizeRepoPath(path: string): string {
   }
   if (/Tejashwini.*Lulustream/i.test(clean)) {
     return isThumbnailPath
-      ? 'Thumbnails/Video Clips/Clips 2027/webmedia-serial-427.webp'
-      : 'Video Clips/Clips 2027/webmedia-serial-427.mp4';
+      ? 'Thumbnails/Video Clips/2027/webmedia-serial-427.webp'
+      : 'Video Clips/2027/webmedia-serial-427.mp4';
   }
   if (/Nidhi.*Agarwal/i.test(clean)) {
     return isThumbnailPath
-      ? 'Thumbnails/Shorts/webmedia-serial-340.webp'
-      : 'Shorts/webmedia-serial-340.mp4';
+      ? 'Thumbnails/Shorts/Older/webmedia-serial-340.webp'
+      : 'Shorts/Older/webmedia-serial-340.mp4';
   }
-  if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean)) {
-    return 'REALTube/REALTube Video Clips/asha8.mp4';
+  if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean) || /^Bandhobi.*asha8\.mp4$/i.test(clean)) {
+    return 'Bandhobi/Video Clips/asha8.mp4';
   }
-  if (/^Thumbnails\/Images\/Bandhobis\/asha8/i.test(clean)) {
-    return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/REALTube/REALTube Video Clips/');
+  if (/^Thumbnails\/.*asha8/i.test(clean)) {
+    return 'Thumbnails/Bandhobi/Video Clips/asha8.webp';
   }
   if (/^Images\/Bandhobis\//i.test(clean)) {
-    return clean.replace(/^Images\/Bandhobis\//i, 'REALTube/REALTube Images/');
-  }
-  if (/^Thumbnails\/Images\/Bandhobis\//i.test(clean)) {
-    return clean.replace(/^Thumbnails\/Images\/Bandhobis\//i, 'Thumbnails/REALTube/REALTube Images/');
+    return clean.replace(/^Images\/Bandhobis\//i, 'Bandhobi/Photographs/');
   }
 
   // 2. Folder mappings
   clean = deduplicatePathSegments(clean);
 
   if (isThumbnailPath) {
-    clean = clean.replace(/^Thumbnails\/Clips\/H2025\//i, 'Thumbnails/Video Clips/Clips 2025/');
-    clean = clean.replace(/^Thumbnails\/Clips\/H2026\//i, 'Thumbnails/Video Clips/Clips 2026/');
-    clean = clean.replace(/^Thumbnails\/Clips\/H2027\//i, 'Thumbnails/Video Clips/Clips 2027/');
-    clean = clean.replace(/^Thumbnails\/Clips\/Favorite\//i, 'Thumbnails/Video Clips/Favorite Video Clips/');
-    clean = clean.replace(/^Thumbnails\/Clips\/Others(?:\s*)\//i, 'Thumbnails/Video Clips/Classic Video Clips/');
+    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Images\//i, 'Thumbnails/Bandhobi/Photographs/');
+    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Shorts\//i, 'Thumbnails/Bandhobi/Shorts/');
+    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Video Clips\//i, 'Thumbnails/Bandhobi/Video Clips/');
+    clean = clean.replace(/^Thumbnails\/REALTube\//i, 'Thumbnails/Bandhobi/');
+
+    clean = clean.replace(/^Thumbnails\/(?:Video Clips\/)?(?:Clips 2025|H2025)\//i, 'Thumbnails/Video Clips/2025/');
+    clean = clean.replace(/^Thumbnails\/(?:Video Clips\/)?(?:Clips 2026|H2026)\//i, 'Thumbnails/Video Clips/2026/');
+    clean = clean.replace(/^Thumbnails\/(?:Video Clips\/)?(?:Clips 2027|H2027)\//i, 'Thumbnails/Video Clips/2027/');
+    clean = clean.replace(/^Thumbnails\/(?:Video Clips\/)?(?:Favorite Video Clips|Favorite)\//i, 'Thumbnails/Video Clips/Favorite/');
+    clean = clean.replace(/^Thumbnails\/(?:Video Clips\/)?(?:Classic Video Clips|Classic|Others)\//i, 'Thumbnails/Video Clips/Older/');
     clean = clean.replace(/^Thumbnails\/Clips\//i, 'Thumbnails/Video Clips/');
 
-    clean = clean.replace(/^Thumbnails\/Images\/H2025\//i, 'Thumbnails/Photographs/Images 2025/');
-    clean = clean.replace(/^Thumbnails\/Images\/H2026\//i, 'Thumbnails/Photographs/Images 2026/');
-    clean = clean.replace(/^Thumbnails\/Images\/H2027\//i, 'Thumbnails/Photographs/Images 2027/');
-    clean = clean.replace(/^Thumbnails\/Images\/works\//i, 'Thumbnails/Photographs/Favourite Images/');
-    clean = clean.replace(/^Thumbnails\/Images\/Classic(?:\s*)\//i, 'Thumbnails/Photographs/Classic Images/');
+    clean = clean.replace(/^Thumbnails\/(?:Photographs\/)?(?:Images 2025|H2025)\//i, 'Thumbnails/Photographs/2025/');
+    clean = clean.replace(/^Thumbnails\/(?:Photographs\/)?(?:Images 2026|H2026)\//i, 'Thumbnails/Photographs/2026/');
+    clean = clean.replace(/^Thumbnails\/(?:Photographs\/)?(?:Images 2027|H2027)\//i, 'Thumbnails/Photographs/2027/');
+    clean = clean.replace(/^Thumbnails\/(?:Photographs\/)?(?:Favourite Images|favorite_images|works)\//i, 'Thumbnails/Photographs/Favorite/');
+    clean = clean.replace(/^Thumbnails\/(?:Photographs\/)?(?:Classic Images|classic_images|Classic)\//i, 'Thumbnails/Photographs/Older/');
     clean = clean.replace(/^Thumbnails\/Images\//i, 'Thumbnails/Photographs/');
 
-    clean = clean.replace(/^Thumbnails\/Shorts[-_\s%20]+Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
-    clean = clean.replace(/^Thumbnails\/Shorts\/Classic\//i, 'Thumbnails/Shorts/Shorts Classic/');
-    clean = clean.replace(/^Thumbnails\/Shorts[-_\s%20]+(\d{4})\//i, 'Thumbnails/Shorts/Shorts $1/');
-    clean = clean.replace(/^Thumbnails\/Shorts\/(\d{4})\//i, 'Thumbnails/Shorts/Shorts $1/');
-    clean = clean.replace(/^Thumbnails\/Shorts\/(?!Shorts(?:[-_\s%]|%20)|REALTube|Classic\/)(.+)$/i, 'Thumbnails/Shorts/Shorts Classic/$1');
+    clean = clean.replace(/^Thumbnails\/Shorts\/(?:Shorts 2027|2027)\//i, 'Thumbnails/Shorts/2027/');
+    clean = clean.replace(/^Thumbnails\/Shorts\/(?:Shorts Classic|Classic|Older)\//i, 'Thumbnails/Shorts/Older/');
   } else {
-    clean = clean.replace(/^Clips\/H2025\//i, 'Video Clips/Clips 2025/');
-    clean = clean.replace(/^Clips\/H2026\//i, 'Video Clips/Clips 2026/');
-    clean = clean.replace(/^Clips\/H2027\//i, 'Video Clips/Clips 2027/');
-    clean = clean.replace(/^Clips\/Favorite\//i, 'Video Clips/Favorite Video Clips/');
-    clean = clean.replace(/^Clips\/Others(?:\s*)\//i, 'Video Clips/Classic Video Clips/');
+    clean = clean.replace(/^REALTube\/REALTube Images\//i, 'Bandhobi/Photographs/');
+    clean = clean.replace(/^REALTube\/REALTube Shorts\//i, 'Bandhobi/Shorts/');
+    clean = clean.replace(/^REALTube\/REALTube Video Clips\//i, 'Bandhobi/Video Clips/');
+    clean = clean.replace(/^REALTube\//i, 'Bandhobi/');
+
+    clean = clean.replace(/^(?:Video Clips\/)?(?:Clips 2025|H2025)\//i, 'Video Clips/2025/');
+    clean = clean.replace(/^(?:Video Clips\/)?(?:Clips 2026|H2026)\//i, 'Video Clips/2026/');
+    clean = clean.replace(/^(?:Video Clips\/)?(?:Clips 2027|H2027)\//i, 'Video Clips/2027/');
+    clean = clean.replace(/^(?:Video Clips\/)?(?:Favorite Video Clips|Favorite)\//i, 'Video Clips/Favorite/');
+    clean = clean.replace(/^(?:Video Clips\/)?(?:Classic Video Clips|Classic|Others)\//i, 'Video Clips/Older/');
     clean = clean.replace(/^Clips\//i, 'Video Clips/');
 
-    clean = clean.replace(/^Images\/H2025\//i, 'Photographs/Images 2025/');
-    clean = clean.replace(/^Images\/H2026\//i, 'Photographs/Images 2026/');
-    clean = clean.replace(/^Images\/H2027\//i, 'Photographs/Images 2027/');
-    clean = clean.replace(/^Images\/works\//i, 'Photographs/Favourite Images/');
-    clean = clean.replace(/^Images\/Classic(?:\s*)\//i, 'Photographs/Classic Images/');
+    clean = clean.replace(/^(?:Photographs\/)?(?:Images 2025|H2025)\//i, 'Photographs/2025/');
+    clean = clean.replace(/^(?:Photographs\/)?(?:Images 2026|H2026)\//i, 'Photographs/2026/');
+    clean = clean.replace(/^(?:Photographs\/)?(?:Images 2027|H2027)\//i, 'Photographs/2027/');
+    clean = clean.replace(/^(?:Photographs\/)?(?:Favourite Images|favorite_images|works)\//i, 'Photographs/Favorite/');
+    clean = clean.replace(/^(?:Photographs\/)?(?:Classic Images|classic_images|Classic)\//i, 'Photographs/Older/');
     clean = clean.replace(/^Images\//i, 'Photographs/');
 
-    clean = clean.replace(/^Shorts[-_\s%20]+Classic\//i, 'Shorts/Shorts Classic/');
-    clean = clean.replace(/^Shorts\/Classic\//i, 'Shorts/Shorts Classic/');
-    clean = clean.replace(/^Shorts[-_\s%20]+(\d{4})\//i, 'Shorts/Shorts $1/');
-    clean = clean.replace(/^Shorts\/(\d{4})\//i, 'Shorts/Shorts $1/');
-    clean = clean.replace(/^Shorts\/(?!Shorts(?:[-_\s%]|%20)|REALTube|Classic\/)(.+)$/i, 'Shorts/Shorts Classic/$1');
+    clean = clean.replace(/^Shorts\/(?:Shorts 2027|2027)\//i, 'Shorts/2027/');
+    clean = clean.replace(/^Shorts\/(?:Shorts Classic|Classic|Older)\//i, 'Shorts/Older/');
   }
 
   clean = deduplicatePathSegments(clean);
