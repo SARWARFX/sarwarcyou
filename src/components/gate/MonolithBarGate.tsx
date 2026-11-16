@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -129,8 +128,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // 15-Day Minimalist Telemetry Graph Modal state
   const [isTelemetryModalOpen, setIsTelemetryModalOpen] = useState(false);
 
-  // Muted states for homepage 5 living video wall columns
-  const [mutedColumns, setMutedColumns] = useState<boolean[]>([true, true, true, true, true]);
 
   // 404 Media / Route Not Found Dialog State
   const [notFoundInfo, setNotFoundInfo] = useState<{
@@ -813,7 +810,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <section className="panoramic-panel panel-home-seamless">
             <div className="seamless-shorts-row">
               {homeWallVideos.map((short, idx) => {
-                const isMuted = mutedColumns[idx] ?? true;
                 return (
                   <div
                     key={short.id || short.url || idx}
@@ -826,42 +822,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       poster={short.thumbnail}
                       autoPlay
                       loop
-                      muted={isMuted}
+                      muted
                       playsInline
                       preload="auto"
                       ref={(el) => {
-                        if (el) el.muted = isMuted;
+                        if (el) el.muted = true;
                       }}
                     />
-
-
-
-                    {/* Sound toggle button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMutedColumns((prev) => {
-                          const next = [...prev];
-                          next[idx] = !next[idx];
-                          return next;
-                        });
-                      }}
-                      title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                      className="absolute top-4 right-4 w-7 h-7 rounded-full bg-black/75 border border-white/20 flex items-center justify-center text-white hover:border-[#ccff00] hover:text-[#ccff00] hover:scale-110 transition-all z-20 cursor-pointer"
-                    >
-                      {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                    </button>
-
-                    {/* Bottom overlay info */}
-                    <div className="absolute bottom-0 inset-x-0 pt-12 pb-6 px-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-10 flex flex-col gap-1 pointer-events-none">
-                      <span className="font-['Space_Grotesk',sans-serif] text-sm font-bold text-white truncate drop-shadow">
-                        {short.name || short.title}
-                      </span>
-                      <span className="font-mono text-[9.5px] text-neutral-400 uppercase tracking-wider">
-                        {getItemSubfolderLabel(short)} // STREAM 0{idx + 1}
-                      </span>
-                    </div>
                   </div>
                 );
               })}
