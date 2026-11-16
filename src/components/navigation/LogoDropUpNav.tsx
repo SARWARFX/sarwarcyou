@@ -329,6 +329,81 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
         </div>
 
         {/* ============================================================== */}
+        {/* INLINE DOCK SEARCH TEXT BOX (POSITIONED ABOVE THE GRAPH)       */}
+        {/* ============================================================== */}
+        <div className="w-full relative mb-2">
+          <div className="flex items-center bg-white/[0.06] focus-within:bg-white/[0.14] transition-colors duration-200 px-2 py-1.5 rounded-none">
+            <span className="text-[10px] text-white/50 mr-1.5 select-none">⌕</span>
+            <input
+              id="dockSearchInput"
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="SEARCH"
+              className="w-full bg-transparent border-0 outline-none text-white font-['Michroma',sans-serif] text-[8px] placeholder:text-white/40 tracking-wider"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-white/60 hover:text-white text-[9px] px-1 cursor-pointer"
+                title="Clear Search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* INLINE SEARCH RESULTS (Rendered RIGHT UNDERNEATH the search box) */}
+          {searchQuery.trim() !== '' && (
+            <div className="w-full flex flex-col overflow-hidden mt-1.5">
+              <div className="flex justify-between items-center text-[7px] font-['Michroma',sans-serif] text-white/60 pb-1 mb-1 border-b border-white/10">
+                <span>{searchResults.length} FOUND</span>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-[6.5px] text-white/80 hover:text-white cursor-pointer"
+                >
+                  CLEAR
+                </button>
+              </div>
+              <div className="w-full overflow-y-auto space-scrollbar flex flex-col gap-1 pr-0.5 max-h-[220px]">
+                {searchResults.length === 0 ? (
+                  <div className="text-[7.5px] font-['Michroma',sans-serif] text-white/40 text-center py-6">
+                    NO MATCHES
+                  </div>
+                ) : (
+                  searchResults.map((item, idx) => {
+                    const isPhoto = isPhotoExtension(item.path || '');
+                    const isShort = item.mediaType === 'short';
+                    const typeLabel = isShort ? 'SHORT' : isPhoto ? 'PHOTO' : 'VIDEO';
+                    return (
+                      <button
+                        key={item.id || item.url || idx}
+                        type="button"
+                        onClick={() => {
+                          hapticLight();
+                          if (onSelectItem) onSelectItem(item);
+                        }}
+                        className="w-full text-left p-1.5 bg-white/[0.05] hover:bg-white hover:text-black transition-colors duration-150 cursor-pointer border-0 rounded-none flex items-center gap-1.5"
+                      >
+                        <span className="text-[6px] font-bold font-['Michroma',sans-serif] px-1 py-0.5 bg-white/15 text-white tracking-widest shrink-0">
+                          {typeLabel}
+                        </span>
+                        <span className="text-[7.5px] font-['Michroma',sans-serif] truncate tracking-wider text-white">
+                          {item.name || item.title || 'Untitled'}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ============================================================== */}
         {/* SECTION 2: 7-DAY HORIZONTAL BAR GRAPH (STILL GRAPHIC)         */}
         {/* 7 Days: Starts on Saturday and ends on Friday (S, S, M, T, W, T, F) */}
         {/* ============================================================== */}
@@ -430,83 +505,6 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             </div>
           </div>
         )}
-
-        {/* ============================================================== */}
-        {/* INLINE DOCK SEARCH TEXT BOX (SEARCH OPERATES STRICTLY IN DOCK) */}
-        {/* ============================================================== */}
-        <div className="w-full relative mb-1.5">
-          <div className="flex items-center bg-white/[0.06] focus-within:bg-white/[0.14] transition-colors duration-200 px-2 py-1.5 rounded-none">
-            <span className="text-[10px] text-white/50 mr-1.5 select-none">⌕</span>
-            <input
-              id="dockSearchInput"
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="SEARCH VAULT [/]"
-              className="w-full bg-transparent border-0 outline-none text-white font-['Michroma',sans-serif] text-[8px] placeholder:text-white/40 tracking-wider"
-            />
-            {searchQuery ? (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="text-white/60 hover:text-white text-[9px] px-1 cursor-pointer"
-                title="Clear Search"
-              >
-                ✕
-              </button>
-            ) : (
-              <span className="text-[7px] text-white/40 px-1 font-mono bg-white/10 select-none">/</span>
-            )}
-          </div>
-
-          {/* INLINE SEARCH RESULTS (Rendered RIGHT UNDERNEATH the search box) */}
-          {searchQuery.trim() !== '' && (
-            <div className="w-full flex flex-col overflow-hidden mt-1.5">
-              <div className="flex justify-between items-center text-[7px] font-['Michroma',sans-serif] text-white/60 pb-1 mb-1 border-b border-white/10">
-                <span>{searchResults.length} FOUND</span>
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="text-[6.5px] text-white/80 hover:text-white cursor-pointer"
-                >
-                  CLEAR
-                </button>
-              </div>
-              <div className="w-full overflow-y-auto space-scrollbar flex flex-col gap-1 pr-0.5 max-h-[220px]">
-                {searchResults.length === 0 ? (
-                  <div className="text-[7.5px] font-['Michroma',sans-serif] text-white/40 text-center py-6">
-                    NO MATCHES
-                  </div>
-                ) : (
-                  searchResults.map((item, idx) => {
-                    const isPhoto = isPhotoExtension(item.path || '');
-                    const isShort = item.mediaType === 'short';
-                    const typeLabel = isShort ? 'SHORT' : isPhoto ? 'PHOTO' : 'VIDEO';
-                    return (
-                      <button
-                        key={item.id || item.url || idx}
-                        type="button"
-                        onClick={() => {
-                          hapticLight();
-                          if (onSelectItem) onSelectItem(item);
-                        }}
-                        className="w-full text-left p-1.5 bg-white/[0.05] hover:bg-white hover:text-black transition-colors duration-150 cursor-pointer border-0 rounded-none flex items-center gap-1.5"
-                      >
-                        <span className="text-[6px] font-bold font-['Michroma',sans-serif] px-1 py-0.5 bg-white/15 text-white tracking-widest shrink-0">
-                          {typeLabel}
-                        </span>
-                        <span className="text-[7.5px] font-['Michroma',sans-serif] truncate tracking-wider text-white">
-                          {item.name || item.title || 'Untitled'}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ============================================================== */}
