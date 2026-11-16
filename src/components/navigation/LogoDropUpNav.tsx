@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { hapticLight, hapticMedium } from '../../utils/hapticsManager';
-import { formatFullSpentTime, type Telemetry7DayEntry } from '../../utils/usageTelemetry';
+import { type Telemetry7DayEntry } from '../../utils/usageTelemetry';
 
 export type MainDirectoryTab = 'Photographs' | 'Shorts' | 'Video Clips' | 'Bandhobi';
 
@@ -24,17 +24,23 @@ export interface LogoDropUpNavProps {
   onToggleKeepAwake: () => void;
 }
 
+function formatShortHoursMins(minutes: number): string {
+  if (!minutes || minutes < 1) return '< 1M';
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  if (hrs > 0 && mins > 0) return `${hrs}H ${mins}M`;
+  if (hrs > 0) return `${hrs}H`;
+  return `${mins}M`;
+}
+
 /**
- * Tactical Cyber Drop-Up Navigation
+ * Tactical Cyber Tall Transparent Drop-Up Navigation
+ * - 100% Transparent Glass: underlying background video seen directly through the glass
  * - Zero Webpage Blur: crystal-sharp backdrop
- * - Graph + Keep Screen On module:
- *     - Desktop: bottom-right corner of the website
- *     - Mobile: top of the screen right under the 28px EULO marquee bar
- * - Main Navigation Dock:
- *     - Desktop: side-by-side cascading subfolder dock
- *     - Mobile: smooth animated slide transition (main dock slides left offscreen,
- *       subfolder dock slides in from the right with < BACK button)
- * - 100% square geometry with cyber L-brackets (Cyan #00f0ff & Pink #ff2bd6)
+ * - Tall Major Folders Dock with Embedded Cyber Wave Telemetry Graph & Keep Screen On toggle
+ * - Dynamic Spline Waveform rendering with glowing white stroke, gradient area fade, and Today beacon
+ * - 100% square geometry with pure white L-brackets and Michroma typography
+ * - High-contrast inverted white active buttons (bg-white text-black font-black)
  */
 export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   isOpen,
@@ -63,149 +69,200 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   }, []);
 
   // Track which folder is actively selected/hovered to display in Dock 2.
-  // Initially null so Dock 2 does NOT open by default.
-  const [expandedFolder, setExpandedFolder] = useState<MainDirectoryTab | null>(null);
+  // Initially set to activeMainTab so the subfolder dock opens seamlessly alongside
+  const [expandedFolder, setExpandedFolder] = useState<MainDirectoryTab | null>(activeMainTab);
 
-  // Reset state whenever dock closes
+  // Sync expanded folder when activeMainTab changes or dock opens
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setExpandedFolder(activeMainTab);
+    } else {
       setExpandedFolder(null);
     }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  // Filter out days with 0 data (excluding zero days as requested)
-  // Keep Today so user sees current session even if 0m
-  const filteredDays = telemetryData.filter((d, idx) => d.minutes > 0 || idx === 0);
-
-  const maxMinutes = Math.max(
-    ...filteredDays.map((d) => d.minutes),
-    30
-  );
+  }, [isOpen, activeMainTab]);
 
   const mainFolders: MainDirectoryTab[] = ['Photographs', 'Shorts', 'Video Clips', 'Bandhobi'];
   const subfoldersList = expandedFolder ? DIRECTORY_SUBFOLDERS[expandedFolder] || [] : [];
 
-  // Reusable Telemetry & Power Control Component (Graph + Keep Screen On)
-  const renderTelemetryPanel = (extraClass: string = '') => (
-    <aside
-      aria-label="Activity Telemetry & Power Control"
-      className={`relative bg-[rgba(5,7,12,0.98)] border border-white/30 p-2.5 sm:p-3 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_20px_rgba(255,255,255,0.03)] rounded-none flex flex-col gap-2 overflow-hidden ${extraClass}`}
-    >
-      {/* Top-Left White L-Bracket */}
-      <div className="cyber-dock-corner-tl" />
+  // Today's session metrics
+  const todayEntry = telemetryData.find((d) => d.label === 'Today') || telemetryData[0];
+  const todayMinutes = todayEntry?.minutes || 0;
+  const todayFormatted = formatShortHoursMins(todayMinutes);
 
-      {/* Bottom-Right White L-Bracket */}
-      <div className="cyber-dock-corner-br" />
+  // Compute 7-day spline curve coordinates for the Cyber Wave Graph
+  const waveData = useMemo(() => {
+    const ptsCount = 7;
+    const w = 240;
+    const h = 75;
 
-      {/* 1-shot laser sweep beam */}
-      <div className="absolute left-0 right-0 bg-white shadow-[0_0_14px_#ffffff] pointer-events-none z-40 animate-hacker-beam-sweep" />
+    // Build array of 7 points in chronological order (oldest to today)
+    const reversed = [...telemetryData].slice(0, ptsCount).reverse();
+    // Fill to 7 items if less
+    while (reversed.length < ptsCount) {
+      reversed.unshift({
+        date: '',
+        label: '',
+        minutes: 0,
+        formattedText: '',
+      });
+    }
 
-      {/* Top Row: Square Radar Indicator + Keep Screen On Toggle */}
-      <div className="flex items-center justify-between border-b border-white/15 pb-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-none bg-white shadow-[0_0_10px_#ffffff] animate-pulse" />
-        </div>
-        <label
-          className="inline-flex items-center gap-2 cursor-pointer select-none"
-          onClick={() => {
-            hapticLight();
-            onToggleKeepAwake();
-          }}
-        >
-          <div
-            className={`w-6 h-3.5 rounded-none relative border transition-colors duration-200 ${
-              keepAwakeOn ? 'bg-white border-white' : 'bg-white/10 border-white/20'
-            }`}
-          >
-            <div
-              className={`w-2.5 h-2.5 rounded-none absolute top-0.5 transition-transform duration-200 ${
-                keepAwakeOn ? 'translate-x-2.5 bg-black' : 'translate-x-0.5 bg-white'
-              }`}
-            />
-          </div>
-          <span className="font-['Michroma',sans-serif] text-[7.5px] text-white/80 tracking-wider uppercase">
-            KEEP SCREEN ON
-          </span>
-        </label>
+    const maxMins = Math.max(...reversed.map((d) => d.minutes), 30);
+
+    const pts = reversed.map((item, idx) => {
+      const x = Math.round(12 + idx * ((w - 24) / (ptsCount - 1)));
+      // Baseline offset so 0-minute days remain visibly anchored
+      const norm = item.minutes > 0 ? Math.min(1, item.minutes / maxMins) : 0.08;
+      const y = Math.round(h - 10 - norm * (h - 22));
+      return { x, y, minutes: item.minutes, label: item.label };
+    });
+
+    // Build smooth cubic bezier curve path
+    let strokePath = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const cx = Math.round((p0.x + p1.x) / 2);
+      strokePath += ` C ${cx} ${p0.y}, ${cx} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+
+    const last = pts[pts.length - 1];
+    const first = pts[0];
+    const areaPath = `${strokePath} L ${last.x} ${h} L ${first.x} ${h} Z`;
+
+    return { pts, strokePath, areaPath, w, h };
+  }, [telemetryData]);
+
+  if (!isOpen) return null;
+
+  // Render the Cyber Wave Graph embedded inside the tall dock
+  const renderCyberWaveGraph = () => (
+    <div className="border border-white/25 bg-black/45 p-2.5 relative overflow-hidden select-none">
+      {/* Header */}
+      <div className="flex items-center justify-between font-['Michroma',sans-serif] text-[8px] text-white/70 mb-1.5 border-b border-white/10 pb-1">
+        <span className="font-bold text-white tracking-wider">7-DAY TELEMETRY</span>
+        <span className="font-['Michroma',sans-serif] text-[8px] font-bold text-white tracking-tight">
+          TODAY: {todayFormatted}
+        </span>
       </div>
 
-      {/* 7-Day Time Spent Graph (Compact Horizontal Bars) */}
-      <div className="space-y-1 max-h-[130px] sm:max-h-[140px] overflow-y-auto space-scrollbar pr-0.5">
-        {filteredDays.map((d) => {
-          const isToday = d.label === 'Today';
-          const widthPct = d.minutes > 0 ? Math.max(20, Math.round((d.minutes / maxMinutes) * 100)) : 14;
-          const displayTime = formatFullSpentTime(d.minutes);
+      {/* SVG Cyber Waveform */}
+      <svg
+        className="w-full h-[75px] overflow-visible"
+        viewBox={`0 0 ${waveData.w} ${waveData.h}`}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="cyberWaveGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.0" />
+          </linearGradient>
+          <filter id="whiteLaserGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2.2" result="glow" />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
 
-          return (
-            <div
-              key={d.date}
-              className="w-full h-[18px] bg-white/5 border border-white/15 rounded-none relative overflow-hidden flex items-center"
-            >
-              <div
-                className={`h-full rounded-none transition-all duration-300 ${
-                  isToday
-                    ? 'bg-gradient-to-r from-white to-[#cbd5e1] shadow-[0_0_12px_rgba(255,255,255,0.5)]'
-                    : 'bg-white/25'
-                }`}
-                style={{ width: `${widthPct}%` }}
+        {/* Faint Horizontal Metric Grid Ticks */}
+        <line
+          x1="0"
+          y1={waveData.h * 0.3}
+          x2={waveData.w}
+          y2={waveData.h * 0.3}
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth="1"
+          strokeDasharray="3,3"
+        />
+        <line
+          x1="0"
+          y1={waveData.h * 0.65}
+          x2={waveData.w}
+          y2={waveData.h * 0.65}
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth="1"
+          strokeDasharray="3,3"
+        />
+
+        {/* Gradient Area Under Curve */}
+        <path d={waveData.areaPath} fill="url(#cyberWaveGradient)" />
+
+        {/* High-Voltage Stroke Line */}
+        <path
+          d={waveData.strokePath}
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="2.2"
+          filter="url(#whiteLaserGlow)"
+        />
+
+        {/* Milestone Data Nodes */}
+        {waveData.pts.map((pt, idx) => {
+          if (idx === waveData.pts.length - 1) {
+            // Today's Glowing Peak Beacon
+            return (
+              <rect
+                key={idx}
+                x={pt.x - 3}
+                y={pt.y - 3}
+                width="6"
+                height="6"
+                fill="#ffffff"
+                filter="url(#whiteLaserGlow)"
+                className="animate-pulse"
               />
-              <span
-                className={`absolute left-1.5 text-[7.5px] font-['Michroma',sans-serif] font-bold tracking-tight truncate z-10 ${
-                  isToday ? 'text-black font-black' : 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]'
-                }`}
-              >
-                {d.label}: {displayTime}
-              </span>
-            </div>
-          );
+            );
+          }
+          if (idx === 2 || idx === 4) {
+            return (
+              <rect
+                key={idx}
+                x={pt.x - 2}
+                y={pt.y - 2}
+                width="4"
+                height="4"
+                fill="#ffffff"
+              />
+            );
+          }
+          return null;
         })}
+      </svg>
+
+      {/* Axis Days Labels */}
+      <div className="flex justify-between font-['Michroma',sans-serif] text-[7px] text-white/60 pt-1 border-t border-white/10 mt-0.5">
+        <span>MON</span>
+        <span>WED</span>
+        <span>FRI</span>
+        <span className="text-white font-bold">TODAY</span>
       </div>
-    </aside>
+    </div>
   );
 
   return (
     <>
-      {/* 1. Backdrop overlay: STRICTLY ZERO BLUR to keep the background webpage crystal sharp */}
+      {/* 1. Backdrop overlay: STRICTLY ZERO BLUR to keep the background video crystal sharp */}
       <div
         className="fixed inset-0 z-45 bg-black/40 transition-opacity duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* 2. ACTIVITY GRAPH & KEEP SCREEN ON PANEL */}
-      {/* MOBILE: At the top of the page, right under the 28px EULO marquee bar */}
-      {isMobile ? (
-        <div
-          className="fixed top-[28px] left-2 right-2 max-w-[420px] mx-auto z-50 animate-hacker-mobile-top-deploy pointer-events-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {renderTelemetryPanel('w-full')}
-        </div>
-      ) : (
-        /* DESKTOP: Bottom-right corner of the website */
-        <div
-          className="fixed bottom-[68px] sm:bottom-[76px] right-3 sm:right-6 z-50 animate-hacker-dock-deploy pointer-events-auto select-none"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {renderTelemetryPanel('w-[220px] sm:w-[245px]')}
-        </div>
-      )}
-
-      {/* 3. DOCK NAVIGATION SYSTEM */}
+      {/* 2. DOCK NAVIGATION SYSTEM */}
       {isMobile ? (
         /* ============================================================== */
-        /* MOBILE VIEW: SINGLE DOCK WITH SMOOTH HORIZONTAL SLIDE TRANSITION */
+        /* MOBILE VIEW: TALL TRANSPARENT DOCK WITH SLIDE-TO-SUBFOLDER     */
         /* ============================================================== */
         <div
           className="fixed bottom-[68px] left-3 z-50 pointer-events-auto select-none"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Main Directory Dock (Slides left out of screen when folder is active) */}
+          {/* Main Directory Tall Dock (Slides left when folder selected) */}
           <aside
             aria-label="Tactical Navigation Dock"
-            className={`w-[205px] bg-[rgba(5,7,12,0.98)] border border-white/30 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.1)] rounded-none flex flex-col gap-1.5 overflow-hidden transition-all duration-300 ease-out ${
+            className={`w-[260px] bg-[rgba(0,0,0,0.4)] border border-white/35 p-3 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_25px_rgba(255,255,255,0.02)] rounded-none flex flex-col gap-2.5 overflow-hidden transition-all duration-300 ease-out ${
               expandedFolder !== null
                 ? '-translate-x-[140%] opacity-0 pointer-events-none'
                 : 'translate-x-0 opacity-100 pointer-events-auto animate-hacker-dock-deploy'
@@ -214,42 +271,79 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             <div className="cyber-dock-corner-tl" />
             <div className="cyber-dock-corner-br" />
 
-            {/* > HOME Button */}
-            <button
-              type="button"
-              onClick={() => {
-                hapticMedium();
-                setExpandedFolder(null);
-                onSelectHome();
-                onClose();
-              }}
-              className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/15 bg-white/5 text-white/90 active:bg-white active:text-black active:border-white"
-            >
-              &gt; HOME
-            </button>
-
-            {/* 4 Main Folders */}
-            {mainFolders.map((folder) => {
-              const isActiveMain = activeMainTab === folder;
-              return (
-                <button
-                  key={folder}
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setExpandedFolder(folder);
-                    onSelectMainTab(folder);
-                  }}
-                  className={`font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer ${
-                    isActiveMain
-                      ? 'border-white bg-white text-black font-black shadow-[0_0_15px_rgba(255,255,255,0.4)]'
-                      : 'border-white/15 bg-white/2 text-[#a0aec0] active:border-white active:text-white active:bg-white/10'
+            {/* Top Row: Square Radar Indicator + Keep Screen On Toggle */}
+            <div className="flex items-center justify-between border-b border-white/20 pb-2">
+              <div className="flex items-center gap-1.5 font-['Michroma',sans-serif] text-[7.5px] text-white/80 tracking-wider">
+                <span className="w-2 h-2 rounded-none bg-white shadow-[0_0_10px_#ffffff] animate-pulse" />
+                <span>TELEMETRY</span>
+              </div>
+              <label
+                className="inline-flex items-center gap-2 cursor-pointer select-none"
+                onClick={() => {
+                  hapticLight();
+                  onToggleKeepAwake();
+                }}
+              >
+                <div
+                  className={`w-6 h-3.5 rounded-none relative border transition-colors duration-200 ${
+                    keepAwakeOn ? 'bg-white border-white' : 'bg-white/10 border-white/30'
                   }`}
                 >
-                  &gt; {folder.toUpperCase()}
-                </button>
-              );
-            })}
+                  <div
+                    className={`w-2.5 h-2.5 rounded-none absolute top-0.5 transition-transform duration-200 ${
+                      keepAwakeOn ? 'translate-x-2.5 bg-black' : 'translate-x-0.5 bg-white'
+                    }`}
+                  />
+                </div>
+                <span className="font-['Michroma',sans-serif] text-[7.5px] text-white/80 tracking-wider uppercase">
+                  KEEP SCREEN ON
+                </span>
+              </label>
+            </div>
+
+            {/* Embedded Cyber Wave Graph */}
+            {renderCyberWaveGraph()}
+
+            {/* Major Folder Slots */}
+            <div className="flex flex-col gap-1.5 pt-1">
+              {/* > HOME Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  hapticMedium();
+                  setExpandedFolder(null);
+                  onSelectHome();
+                  onClose();
+                }}
+                className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-3 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/18 bg-white/4 text-[#a0aec0] active:bg-white active:text-black active:border-white"
+              >
+                &gt; HOME
+              </button>
+
+              {/* 4 Main Folders */}
+              {mainFolders.map((folder) => {
+                const isActiveMain = activeMainTab === folder;
+                return (
+                  <button
+                    key={folder}
+                    type="button"
+                    onClick={() => {
+                      hapticMedium();
+                      setExpandedFolder(folder);
+                      onSelectMainTab(folder);
+                    }}
+                    className={`font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-3 py-2 border rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between ${
+                      isActiveMain
+                        ? 'border-white bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.6)]'
+                        : 'border-white/18 bg-white/4 text-[#a0aec0] active:border-white active:text-white active:bg-white/12'
+                    }`}
+                  >
+                    <span>&gt; {folder.toUpperCase()}</span>
+                    <span className="text-[7.5px] opacity-75">»</span>
+                  </button>
+                );
+              })}
+            </div>
           </aside>
 
           {/* Subfolder Dock (Slides in from the right when folder is active) */}
@@ -257,7 +351,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             <aside
               key={expandedFolder}
               aria-label="Subfolder Matrix Dock"
-              className="absolute bottom-0 left-0 w-[205px] bg-[rgba(5,7,12,0.98)] border border-white/40 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.15)] rounded-none flex flex-col gap-1.5 animate-mobile-subdock-enter-right"
+              className="absolute bottom-0 left-0 w-[240px] bg-[rgba(0,0,0,0.42)] border border-white/40 p-3 shadow-[0_0_35px_rgba(255,255,255,0.15)] rounded-none flex flex-col gap-2 animate-mobile-subdock-enter-right"
             >
               <div className="cyber-dock-corner-tl" />
               <div className="cyber-dock-corner-br" />
@@ -274,123 +368,173 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 <span>&lt; BACK</span>
               </button>
 
+              <div className="font-['Michroma',sans-serif] text-[7.5px] tracking-wider text-white/60 pb-1.5 border-b border-white/15 uppercase truncate">
+                {expandedFolder} // SUB
+              </div>
+
               {/* Subfolder List */}
-              {subfoldersList.map((subfolder) => {
-                const isActive = activeSubfolder === subfolder && activeMainTab === expandedFolder;
-                return (
-                  <button
-                    key={subfolder}
-                    type="button"
-                    onClick={() => {
-                      hapticLight();
-                      onSelectSubfolder(expandedFolder, subfolder);
-                      onClose();
-                    }}
-                    className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
-                      isActive
-                        ? 'border-white bg-white text-black font-black shadow-[0_0_18px_rgba(255,255,255,0.5)]'
-                        : 'border-white/15 bg-white/2 text-[#a0aec0] active:border-white active:text-white active:bg-white/10'
-                    }`}
-                  >
-                    &gt; {subfolder.toUpperCase()}
-                  </button>
-                );
-              })}
+              <div className="flex flex-col gap-1.5">
+                {subfoldersList.map((subfolder) => {
+                  const isActive = activeSubfolder === subfolder && activeMainTab === expandedFolder;
+                  return (
+                    <button
+                      key={subfolder}
+                      type="button"
+                      onClick={() => {
+                        hapticLight();
+                        onSelectSubfolder(expandedFolder, subfolder);
+                        onClose();
+                      }}
+                      className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
+                        isActive
+                          ? 'border-white bg-white text-black font-black shadow-[0_0_18px_rgba(255,255,255,0.5)]'
+                          : 'border-white/18 bg-white/4 text-[#a0aec0] active:border-white active:text-white active:bg-white/12'
+                      }`}
+                    >
+                      &gt; {subfolder.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
             </aside>
           )}
         </div>
       ) : (
         /* ============================================================== */
-        /* DESKTOP VIEW: DUAL DOCK SIDE-BY-SIDE ON BOTTOM-LEFT            */
+        /* DESKTOP VIEW: TALL TRANSPARENT DUAL DOCKS SIDE-BY-SIDE         */
         /* ============================================================== */
         <div
-          className="fixed bottom-[68px] sm:bottom-[76px] left-3 sm:left-6 z-50 flex items-end gap-2 pointer-events-auto select-none"
+          className="fixed bottom-[68px] sm:bottom-[76px] left-3 sm:left-6 z-50 flex items-end gap-2.5 pointer-events-auto select-none"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Main Directory Dock (Dock 1) */}
+          {/* Main Directory Tall Transparent Dock (Dock 1) */}
           <aside
             aria-label="Tactical Navigation Dock"
-            className="relative w-[210px] sm:w-[225px] bg-[rgba(5,7,12,0.98)] border border-white/30 p-3 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_20px_rgba(255,255,255,0.03)] rounded-none flex flex-col gap-1.5 animate-hacker-dock-deploy overflow-hidden"
+            className="relative w-[265px] bg-[rgba(0,0,0,0.38)] border border-white/35 p-3.5 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_25px_rgba(255,255,255,0.02)] rounded-none flex flex-col gap-2.5 animate-hacker-dock-deploy overflow-hidden"
           >
             <div className="cyber-dock-corner-tl" />
             <div className="cyber-dock-corner-br" />
             <div className="absolute left-0 right-0 bg-white shadow-[0_0_14px_#ffffff] pointer-events-none z-40 animate-hacker-beam-sweep" />
 
-            {/* > HOME Button */}
-            <button
-              type="button"
-              onMouseEnter={() => setExpandedFolder(null)}
-              onClick={() => {
-                hapticMedium();
-                setExpandedFolder(null);
-                onSelectHome();
-                onClose();
-              }}
-              className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/15 bg-white/5 text-white/90 hover:border-white hover:text-white hover:bg-white/10"
-            >
-              &gt; HOME
-            </button>
-
-            {/* 4 Main Folders */}
-            {mainFolders.map((folder) => {
-              const isExpanded = expandedFolder === folder;
-              const isActiveMain = activeMainTab === folder;
-              return (
-                <button
-                  key={folder}
-                  type="button"
-                  onMouseEnter={() => setExpandedFolder(folder)}
-                  onClick={() => {
-                    hapticMedium();
-                    setExpandedFolder(folder);
-                    onSelectMainTab(folder);
-                  }}
-                  className={`font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer ${
-                    isExpanded
-                      ? 'border-white bg-white/15 text-white shadow-[0_0_14px_rgba(255,255,255,0.25)] font-black'
-                      : isActiveMain
-                      ? 'border-white/60 text-white bg-white/10'
-                      : 'border-white/15 bg-white/2 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/5'
+            {/* Top Row: Square Radar Indicator + Keep Screen On Toggle */}
+            <div className="flex items-center justify-between border-b border-white/20 pb-2">
+              <div className="flex items-center gap-1.5 font-['Michroma',sans-serif] text-[7.5px] text-white/80 tracking-wider">
+                <span className="w-2 h-2 rounded-none bg-white shadow-[0_0_10px_#ffffff] animate-pulse" />
+                <span>TELEMETRY</span>
+              </div>
+              <label
+                className="inline-flex items-center gap-2 cursor-pointer select-none"
+                onClick={() => {
+                  hapticLight();
+                  onToggleKeepAwake();
+                }}
+              >
+                <div
+                  className={`w-6 h-3.5 rounded-none relative border transition-colors duration-200 ${
+                    keepAwakeOn ? 'bg-white border-white' : 'bg-white/10 border-white/30'
                   }`}
                 >
-                  &gt; {folder.toUpperCase()}
-                </button>
-              );
-            })}
+                  <div
+                    className={`w-2.5 h-2.5 rounded-none absolute top-0.5 transition-transform duration-200 ${
+                      keepAwakeOn ? 'translate-x-2.5 bg-black' : 'translate-x-0.5 bg-white'
+                    }`}
+                  />
+                </div>
+                <span className="font-['Michroma',sans-serif] text-[7.5px] text-white/80 tracking-wider uppercase">
+                  KEEP SCREEN ON
+                </span>
+              </label>
+            </div>
+
+            {/* Embedded Cyber Wave Graph */}
+            {renderCyberWaveGraph()}
+
+            {/* Navigation Buttons */}
+            <div className="flex flex-col gap-1.5 pt-1">
+              {/* > HOME Button */}
+              <button
+                type="button"
+                onMouseEnter={() => setExpandedFolder(null)}
+                onClick={() => {
+                  hapticMedium();
+                  setExpandedFolder(null);
+                  onSelectHome();
+                  onClose();
+                }}
+                className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-3 py-2.5 border rounded-none transition-all duration-200 cursor-pointer border-white/18 bg-white/4 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/12"
+              >
+                &gt; HOME
+              </button>
+
+              {/* 4 Main Folders */}
+              {mainFolders.map((folder) => {
+                const isExpanded = expandedFolder === folder;
+                const isActiveMain = activeMainTab === folder;
+                return (
+                  <button
+                    key={folder}
+                    type="button"
+                    onMouseEnter={() => setExpandedFolder(folder)}
+                    onClick={() => {
+                      hapticMedium();
+                      setExpandedFolder(folder);
+                      onSelectMainTab(folder);
+                    }}
+                    className={`font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-3 py-2.5 border rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between ${
+                      isActiveMain
+                        ? 'border-white bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.6)]'
+                        : isExpanded
+                        ? 'border-white/80 bg-white/15 text-white shadow-[0_0_12px_rgba(255,255,255,0.2)]'
+                        : 'border-white/18 bg-white/4 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/12'
+                    }`}
+                  >
+                    <span>&gt; {folder.toUpperCase()}</span>
+                    <span className="text-[7.5px] opacity-75">»</span>
+                  </button>
+                );
+              })}
+            </div>
           </aside>
 
-          {/* Subfolder Dock (Dock 2: Opens alongside to the right on hover or click) */}
+          {/* Subfolder Dock (Dock 2: Opens alongside to the right) */}
           {expandedFolder && subfoldersList.length > 0 && (
             <aside
               key={expandedFolder}
               aria-label="Subfolder Matrix Dock"
-              className="relative w-[165px] sm:w-[185px] bg-[rgba(5,7,12,0.98)] border border-white/40 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.15),inset_0_0_20px_rgba(255,255,255,0.03)] rounded-none flex flex-col gap-1.5 animate-hacker-subdock-slide"
+              className="relative w-[175px] sm:w-[190px] bg-[rgba(0,0,0,0.42)] border border-white/40 p-3 shadow-[0_0_35px_rgba(255,255,255,0.15),inset_0_0_25px_rgba(255,255,255,0.02)] rounded-none flex flex-col gap-2 animate-hacker-subdock-slide"
             >
               <div className="cyber-dock-corner-tl" />
               <div className="cyber-dock-corner-br" />
 
+              {/* Section Header */}
+              <div className="font-['Michroma',sans-serif] text-[7.5px] tracking-wider text-white/60 pb-1.5 border-b border-white/15 uppercase truncate">
+                {expandedFolder} // SUB
+              </div>
+
               {/* Subfolder Slots */}
-              {subfoldersList.map((subfolder) => {
-                const isActive = activeSubfolder === subfolder && activeMainTab === expandedFolder;
-                return (
-                  <button
-                    key={subfolder}
-                    type="button"
-                    onClick={() => {
-                      hapticLight();
-                      onSelectSubfolder(expandedFolder, subfolder);
-                      onClose();
-                    }}
-                    className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
-                      isActive
-                        ? 'border-white bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.6)]'
-                        : 'border-white/15 bg-white/2 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    &gt; {subfolder.toUpperCase()}
-                  </button>
-                );
-              })}
+              <div className="flex flex-col gap-1.5">
+                {subfoldersList.map((subfolder) => {
+                  const isActive = activeSubfolder === subfolder && activeMainTab === expandedFolder;
+                  return (
+                    <button
+                      key={subfolder}
+                      type="button"
+                      onClick={() => {
+                        hapticLight();
+                        onSelectSubfolder(expandedFolder, subfolder);
+                        onClose();
+                      }}
+                      className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
+                        isActive
+                          ? 'border-white bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.6)]'
+                          : 'border-white/18 bg-white/4 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/12'
+                      }`}
+                    >
+                      &gt; {subfolder.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
             </aside>
           )}
         </div>
