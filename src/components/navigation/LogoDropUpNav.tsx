@@ -4,6 +4,7 @@ import { type Telemetry7DayEntry } from '../../utils/usageTelemetry';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 import type { StageMediaItem } from '../../types';
+import { subscribeDockNotification, type DockNotification } from '../../utils/dockNotificationManager';
 
 export type MainDirectoryTab = 'Photographs' | 'Shorts' | 'Video Clips' | 'Bandhobi';
 
@@ -73,6 +74,21 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   // Inline Search inside Dock
   const [searchQuery, setSearchQuery] = useState<string>('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Centralized Dock Notification & 10s Offline Strobe State
+  const [activeNotification, setActiveNotification] = useState<DockNotification | null>(null);
+  const [isOfflineFlashing, setIsOfflineFlashing] = useState<boolean>(false);
+
+  useEffect(() => {
+    return subscribeDockNotification((notif) => {
+      setActiveNotification(notif);
+      if (notif?.type === 'offline') {
+        setIsOfflineFlashing(true);
+      } else {
+        setIsOfflineFlashing(false);
+      }
+    });
+  }, []);
 
   // Network Connection Type Detection (Unmetered Wi-Fi vs Metered Cellular vs Offline)
   const [networkState, setNetworkState] = useState<{
@@ -276,7 +292,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           : `translate3d(-160%, 0, 0) scale(${dockLayout.scale})`,
         transformOrigin: 'left top',
       }}
-      className={`fixed left-2 sm:left-4 z-50 w-[210px] sm:w-[220px] min-h-[560px] sm:min-h-[580px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-y-auto space-scrollbar border-0 transition-transform duration-300 ease-out select-none ${
+      className={`fixed left-2 sm:left-4 z-[20000] w-[210px] sm:w-[220px] min-h-[560px] sm:min-h-[580px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-y-auto space-scrollbar border-0 transition-transform duration-300 ease-out select-none ${
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
@@ -363,6 +379,54 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             </div>
           ))}
         </div>
+
+        {/* ============================================================== */}
+        {/* DOCK NOTIFICATION BANNER (10-SECOND AUTO-DISMISS BANNER)       */}
+        {/* ============================================================== */}
+        {activeNotification && (
+          <div
+            className={`w-full p-2 mb-2 rounded-none border-l-2 select-none transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${
+              activeNotification.type === 'offline'
+                ? 'bg-red-950/80 border-red-500 text-red-200 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
+                : activeNotification.type === 'metered'
+                ? 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.25)]'
+                : 'bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-1 mb-1 border-b border-white/10">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`w-1.5 h-1.5 rounded-none shrink-0 ${
+                    activeNotification.type === 'offline'
+                      ? 'bg-red-500 animate-ping'
+                      : activeNotification.type === 'metered'
+                      ? 'bg-amber-400'
+                      : 'bg-white'
+                  }`}
+                />
+                <span className="font-['Michroma',sans-serif] text-[7px] font-extrabold tracking-widest uppercase">
+                  {activeNotification.title}
+                </span>
+              </div>
+              <span className="font-mono text-[6px] tracking-wider opacity-60 shrink-0">10s</span>
+            </div>
+            <div className="font-['Michroma',sans-serif] text-[6.5px] leading-relaxed tracking-wide opacity-90">
+              {activeNotification.message}
+            </div>
+            {/* 10-Second Auto-Dismiss Countdown Bar */}
+            <div className="w-full h-[2px] bg-white/10 mt-1.5 overflow-hidden">
+              <div
+                className={`h-full ${
+                  activeNotification.type === 'offline'
+                    ? 'bg-red-500'
+                    : activeNotification.type === 'metered'
+                    ? 'bg-amber-400'
+                    : 'bg-white'
+                } animate-dock-countdown`}
+              />
+            </div>
+          </div>
+        )}
 
         {/* ============================================================== */}
         {/* INLINE DOCK SEARCH TEXT BOX (SEARCH OPERATES STRICTLY IN DOCK) */}
@@ -592,13 +656,24 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           </div>
 
           {!networkState.isOnline ? (
-            /* Offline State: Red Color OFFLINE Text */
-            <span className="font-['Michroma',sans-serif] text-[7.5px] font-black tracking-widest text-red-500 animate-pulse drop-shadow-[0_0_6px_#ef4444]">
+            /* Offline State: Red Color OFFLINE Text (Flashes intensely for 10s on sudden disconnection) */
+            <span
+              className={`font-['Michroma',sans-serif] text-[7.5px] font-black tracking-widest text-red-500 transition-all duration-200 ${
+                isOfflineFlashing
+                  ? 'animate-offline-strobe text-red-400 scale-110 drop-shadow-[0_0_16px_#ef4444]'
+                  : 'animate-pulse drop-shadow-[0_0_6px_#ef4444]'
+              }`}
+            >
               OFFLINE
             </span>
           ) : networkState.isMetered ? (
             /* Metered State: Four-Pillar Mobile Network Icon */
-            <div className="flex items-end gap-[1.5px] p-0.5 h-3.5" title={networkState.tooltip}>
+            <div
+              className={`flex items-end gap-[1.5px] p-0.5 h-3.5 transition-all ${
+                activeNotification?.type === 'metered' ? 'scale-110 drop-shadow-[0_0_10px_#fbbf24]' : ''
+              }`}
+              title={networkState.tooltip}
+            >
               <div className="w-[2.2px] h-[3.5px] bg-amber-400 rounded-none shadow-[0_0_4px_#fbbf24]" />
               <div className="w-[2.2px] h-[6px] bg-amber-400 rounded-none shadow-[0_0_4px_#fbbf24]" />
               <div className="w-[2.2px] h-[9px] bg-amber-400 rounded-none shadow-[0_0_4px_#fbbf24]" />

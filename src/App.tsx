@@ -8,7 +8,6 @@ const MediaModal = lazy(() => import('./components/MediaModal'));
 const FullAlbumViewModal = lazy(() => import('./components/FullAlbumViewModal'));
 import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
-import { NetworkStatusHUD } from './components/NetworkStatusHUD';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { CyberSplash } from './components/CyberSplash';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
@@ -889,9 +888,6 @@ function App() {
           </Suspense>
         </PlayerErrorBoundary>
       )}
-
-      {/* Global Top-Level Internet Connectivity Notification HUD (Acid Avant-Garde Theme) */}
-      <NetworkStatusHUD />
     </div>
   );
 }

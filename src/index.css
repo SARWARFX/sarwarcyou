@@ -2071,6 +2071,39 @@ html.theme-white aside[aria-label="Tactical Navigation Dock"] button.bg-white {
   border: none !important;
 }
 
+/* Dock Notification Auto-Dismiss 10s Countdown Bar */
+@keyframes dockCountdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-dock-countdown {
+  animation: dockCountdown 10s linear forwards;
+}
+
+/* Sudden Offline 10s Flashing Badge Animation */
+@keyframes offlineStrobe {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 12px #ef4444);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 2px #ef4444);
+  }
+}
+
+.animate-offline-strobe {
+  animation: offlineStrobe 0.8s ease-in-out infinite;
+}
+
+
 
 
 

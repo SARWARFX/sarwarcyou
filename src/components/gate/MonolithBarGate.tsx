@@ -21,6 +21,7 @@ import { LivingMediaCard } from './LivingMediaCard';
 import { QuickSearchModal } from '../QuickSearchModal';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { LogoDropUpNav, type MainDirectoryTab } from '../navigation/LogoDropUpNav';
+import { subscribeDockNotification, triggerDockNotification } from '../../utils/dockNotificationManager';
 import {
   toggleKeepScreenOn,
   getKeepScreenOnState,
@@ -147,6 +148,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return true;
   });
 
+  // Track whether a 10s dock notification is active so idle timers don't dismiss the dock prematurely
+  const isNotificationActiveRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    return subscribeDockNotification((notif) => {
+      if (notif) {
+        isNotificationActiveRef.current = true;
+        setIsNavTrayOpen(true);
+      } else {
+        isNotificationActiveRef.current = false;
+        // When notification expires after 10 seconds, smoothly dismiss the dock
+        setIsNavTrayOpen(false);
+      }
+    });
+  }, []);
+
   // Screen Aspect Ratio Detector:
   // - Portrait screens (mobile phone): scroll strictly up-down
   // - Wide screen devices (desktop, tablet, mobile landscape): scroll strictly left-right, not up-down
@@ -178,6 +195,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     const resetIdleTimer = () => {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
+        // If dock notification is currently active, DO NOT auto-close the dock early!
+        if (isNotificationActiveRef.current) return;
         const dockEl = document.querySelector('aside[aria-label="Tactical Navigation Dock"]');
         if (dockEl && dockEl.matches(':hover')) {
           return;
@@ -344,10 +363,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
     const parsed = parseAppPathname();
 
-    // 1. If path is an unrecognized root path (e.g. /unknown-page) -> Show 404 error screen
+    // 1. If path is an unrecognized root path (e.g. /unknown-page) -> Open homepage & display dock notification
     if (parsed.isNotFound) {
       hasAutoLaunchedRef.current = true;
-      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+      switchTab(0);
+      window.history.replaceState(null, '', '/');
+      triggerDockNotification({
+        type: 'broken_link',
+        title: 'RESOURCE NOT FOUND',
+        message: 'The requested link does not exist. Redirected to vault homepage.',
+        attemptedPath: '/' + parsed.rawPath,
+        durationMs: 10000,
+      });
       return;
     }
 
@@ -375,8 +402,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           onOpenVideo(item, [item]);
         }
       } else {
-        // Short ID not found in library -> Show 404 error screen
-        setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+        // Short ID not found in library -> Open homepage & display dock notification
+        switchTab(0);
+        window.history.replaceState(null, '', '/');
+        triggerDockNotification({
+          type: 'broken_link',
+          title: 'MEDIA NOT FOUND',
+          message: 'The requested media item does not exist. Redirected to vault homepage.',
+          attemptedPath: '/' + parsed.rawPath,
+          durationMs: 10000,
+        });
       }
     }
   }, [items, onOpenPhoto, onOpenShort, onOpenVideo]);
