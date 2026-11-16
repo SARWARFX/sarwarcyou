@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SARWAR.CYOU — SPARK Font Architecture & Zero-Text Ecosystem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030408;
+      --card-bg: #060911;
+      --card-border: #131c2d;
+      --white: #ffffff;
+      --blue: #00d2ff;
+      --deep-blue: #0066ff;
+      --violet: #a855f7;
+      --electric-purple: #c084fc;
+      --text: #e2e8f0;
+      --muted: #8391a6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 40px 24px 100px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1420px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 45px;
+    }
+
+    .badge-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(0, 210, 255, 0.12), rgba(168, 85, 247, 0.15));
+      border: 1px solid rgba(0, 210, 255, 0.35);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    .badge-spark {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 10px #ffffff, 0 0 20px #00d2ff, 0 0 30px #a855f7;
+      animation: pulseSpark 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseSpark {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.7); opacity: 0.5; }
+    }
+
+    h1 {
+      font-size: clamp(26px, 4vw, 42px);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #ffffff 20%, #00d2ff 60%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 840px;
+      margin: 0 auto 30px;
+      line-height: 1.6;
+    }
+
+    /* Source Reference Card */
+    .source-card {
+      background: linear-gradient(180deg, rgba(8, 14, 25, 0.9) 0%, rgba(4, 7, 14, 0.98) 100%);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      border-radius: 20px;
+      padding: 24px 32px;
+      margin-bottom: 45px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 210, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .source-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .source-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .source-img-wrap {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-height: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+
+    .source-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Zero-Text First Principle Callout */
+    .principle-banner {
+      background: linear-gradient(90deg, rgba(0, 210, 255, 0.08) 0%, rgba(168, 85, 247, 0.12) 100%);
+      border-left: 4px solid var(--blue);
+      border-right: 4px solid var(--violet);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 45px;
+    }
+
+    .principle-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .principle-body {
+      font-size: 13.5px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    /* =================================================================== */
+    /* 4 EXPLORING SPARK VARIATIONS (WHITE + BLUE + VIOLET)                */
+    /* =================================================================== */
+    .variations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(640px, 1fr));
+      gap: 32px;
+      margin-bottom: 50px;
+    }
+
+    @media (max-width: 680px) {
+      .variations-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .var-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .var-card:hover {
+      border-color: rgba(0, 210, 255, 0.5);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 35px rgba(168, 85, 247, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .var-card.active-var {
+      border-color: var(--blue);
+      box-shadow: 0 0 40px rgba(0, 210, 255, 0.35), 0 0 20px rgba(168, 85, 247, 0.25);
+    }
+
+    .var-head {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .var-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .num-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--blue);
+      background: rgba(0, 210, 255, 0.14);
+      border: 1px solid rgba(0, 210, 255, 0.35);
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+
+    .tag-palette {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--electric-purple);
+      text-transform: uppercase;
+    }
+
+    /* Showcase Canvas inside Card */
+    .var-stage {
+      padding: 36px 28px;
+      background: #010204;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .logo-slot {
+      position: relative;
+      display: inline-block;
+      padding-bottom: 14px;
+    }
+
+    .icons-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-pure {
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .icon-pure:hover {
+      transform: scale(1.2);
+    }
+
+    .graph-day-preview {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 18px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .var-desc {
+      padding: 18px 24px;
+      font-size: 13.5px;
+      color: #94a3b8;
+      line-height: 1.55;
+      flex: 1;
+    }
+
+    .var-foot {
+      padding: 16px 24px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .btn-apply {
+      background: linear-gradient(135deg, rgba(0, 210, 255, 0.2), rgba(168, 85, 247, 0.25));
+      border: 1px solid rgba(0, 210, 255, 0.5);
+      color: #ffffff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-apply:hover {
+      background: linear-gradient(135deg, #00d2ff, #a855f7);
+      color: #000;
+      box-shadow: 0 0 25px rgba(0, 210, 255, 0.6);
+    }
+
+    /* =================================================================== */
+    /* KEYFRAME ANIMATIONS FOR THE 4 EXPLORING SPARK VARIATIONS            */
+    /* =================================================================== */
+
+    /* VARIATION 1: Prismatic Laser Nebula Flare */
+    @keyframes sweepNebula1 {
+      0% { left: 8%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { left: 92%; opacity: 0; }
+    }
+
+    .v1-spark-track {
+      position: absolute;
+      bottom: 2px;
+      left: 6%;
+      right: 6%;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 210, 255, 0.3) 25%, rgba(168, 85, 247, 0.9) 50%, rgba(0, 210, 255, 0.3) 75%, transparent 100%);
+    }
+
+    .v1-spark-trail {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 90px;
+      height: 8px;
+      background: radial-gradient(ellipse at center, rgba(0, 210, 255, 0.9) 0%, rgba(168, 85, 247, 0.8) 45%, transparent 75%);
+      filter: blur(2px);
+      animation: sweepNebula1 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .v1-spark-node {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 5px;
+      height: 5px;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #ffffff, 0 0 20px #00d2ff, 0 0 35px #a855f7;
+      animation: sweepNebula1 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    /* VARIATION 2: Chromatic Plasma Surge */
+    @keyframes plasmaSurgeGlow {
+      0% {
+        filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.6)) drop-shadow(0 0 2px #ffffff);
+      }
+      50% {
+        filter: drop-shadow(0 0 18px rgba(168, 85, 247, 0.9)) drop-shadow(0 0 5px #00d2ff);
+      }
+      100% {
+        filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.6)) drop-shadow(0 0 2px #ffffff);
+      }
+    }
+
+    .v2-plasma-svg {
+      animation: plasmaSurgeGlow 3s ease-in-out infinite;
+    }
+
+    /* VARIATION 3: Quantum Particle Wave */
+    @keyframes quantumShimmer {
+      0% {
+        stop-color: #ffffff;
+        offset: 0%;
+      }
+      35% {
+        stop-color: #00d2ff;
+        offset: 50%;
+      }
+      70% {
+        stop-color: #a855f7;
+        offset: 80%;
+      }
+      100% {
+        stop-color: #ffffff;
+        offset: 100%;
+      }
+    }
+
+    /* VARIATION 4: Cosmic Horizon Supernova */
+    @keyframes pulseSupernova {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 0.6;
+        box-shadow: 0 0 12px #ffffff, 0 0 25px #00d2ff, 0 0 40px #a855f7;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.25);
+        opacity: 1;
+        box-shadow: 0 0 20px #ffffff, 0 0 45px #00d2ff, 0 0 70px #c084fc;
+      }
+    }
+
+    .v4-supernova-flare {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      background: #ffffff;
+      border-radius: 50%;
+      animation: pulseSupernova 2.8s ease-in-out infinite;
+    }
+
+    /* =================================================================== */
+    /* FULL-SCREEN LIVE SIMULATION: ZERO-TEXT FIRST PRINCIPLE              */
+    /* =================================================================== */
+    .sim-section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 50px;
+      box-shadow: 0 25px 65px rgba(0, 0, 0, 0.9);
+    }
+
+    .sim-header {
+      padding: 18px 28px;
+      background: #04070d;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .sim-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sim-stage {
+      position: relative;
+      height: 680px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .sim-photo-bg {
+      max-height: 90%;
+      max-width: 86%;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.95);
+    }
+
+    /* Corner Placements */
+    .sim-corner-logo {
+      position: absolute;
+      bottom: 28px;
+      left: 28px;
+      z-index: 30;
+      cursor: pointer;
+    }
+
+    .sim-corner-close {
+      position: absolute;
+      top: 28px;
+      right: 28px;
+      z-index: 30;
+    }
+
+    .sim-nav-prev {
+      position: absolute;
+      left: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 30;
+    }
+
+    .sim-nav-next {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 30;
+    }
+
+    .sim-corner-download {
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      z-index: 30;
+    }
+
+    /* Telemetry Graph Popup Demonstration */
+    .sim-telemetry-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(6, 9, 16, 0.95);
+      border: 1px solid rgba(0, 210, 255, 0.4);
+      border-radius: 20px;
+      padding: 24px 32px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(168, 85, 247, 0.25);
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 480px;
+    }
+
+    .graph-bars-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      height: 120px;
+      padding: 0 10px;
+      gap: 16px;
+    }
+
+    .graph-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .graph-bar-pillar {
+      width: 14px;
+      background: linear-gradient(to top, rgba(0, 102, 255, 0.4) 0%, rgba(0, 210, 255, 0.85) 60%, rgba(255, 255, 255, 0.95) 100%);
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+
+    .graph-bar-pillar.today {
+      background: linear-gradient(to top, rgba(168, 85, 247, 0.6) 0%, rgba(0, 210, 255, 0.95) 60%, #ffffff 100%);
+      box-shadow: 0 0 18px rgba(0, 210, 255, 0.9), 0 0 25px rgba(168, 85, 247, 0.7);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Global Master SVG Gradients for White + Blue + Violet Spark -->
+  <svg width="0" height="0" style="position: absolute; pointer-events: none;">
+    <defs>
+      <!-- Moving Spark Gradient -->
+      <linearGradient id="sparkExplorationGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#ffffff">
+          <animate attributeName="offset" values="-1; 1" dur="3s" repeatCount="indefinite"/>
+        </stop>
+        <stop offset="35%" stop-color="#00d2ff">
+          <animate attributeName="offset" values="-0.65; 1.35" dur="3s" repeatCount="indefinite"/>
+        </stop>
+        <stop offset="70%" stop-color="#a855f7">
+          <animate attributeName="offset" values="-0.3; 1.7" dur="3s" repeatCount="indefinite"/>
+        </stop>
+        <stop offset="100%" stop-color="#ffffff">
+          <animate attributeName="offset" values="0; 2" dur="3s" repeatCount="indefinite"/>
+        </stop>
+      </linearGradient>
+
+      <!-- Plasma Glow Shimmer -->
+      <linearGradient id="plasmaGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#00d2ff"/>
+        <stop offset="45%" stop-color="#ffffff"/>
+        <stop offset="75%" stop-color="#c084fc"/>
+        <stop offset="100%" stop-color="#00d2ff"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="container">
+
+    <header>
+      <div class="badge-top">
+        <span class="badge-spark"></span>
+        <span>The First Principle // Zero-Text Architecture</span>
+      </div>
+      <h1>SPARK Vector Typography & Exploring Color Ecosystem</h1>
+      <p class="subtitle">
+        Strictly <strong>Zero Text</strong> on the website. Only the <strong>Logo</strong>, the <strong>Icons</strong>, and the <strong>15-Day Graph Days Name</strong>. All icons and the logo feature a non-monochromatic, dynamic exploring spark in <strong>White (#FFFFFF)</strong>, <strong>Electric Blue (#00D2FF)</strong>, and <strong>Cosmic Violet (#A855F7)</strong>.
+      </p>
+    </header>
+
+    <!-- Source Reference & Vector Font Breakdown -->
+    <div class="source-card">
+      <div class="source-head">
+        <div class="source-title">
+          <span>Source Reference Image // Authentic Vector Font Architecture</span>
+        </div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--electric-purple);">WIDE CYBERNETIC GEOMETRY</span>
+      </div>
+      <div class="source-img-wrap">
+        <img src="/mock-font.jpg" onerror="this.src='file:///C:/Users/sarwa/.gemini/antigravity/brain/dd37e6a8-6763-42cb-839c-2e4dea496750/.user_uploaded/media_1794834557952_3104ed1c.jpg'" alt="SPARK Vector Font Uploaded Source">
+      </div>
+    </div>
+
+    <!-- Zero-Text Principle Overview -->
+    <div class="principle-banner">
+      <div class="principle-title">THE FIRST PRINCIPLE OF SARWAR.CYOU</div>
+      <div class="principle-body">
+        <strong>1. No Text Globally:</strong> No titles, descriptions, categories, or navigation wordmarks. Only pure visual media.<br>
+        <strong>2. Only 3 Elements on the entire website:</strong> The Master Logo, the Floating Outline Icons, and the 15-Day Graph Day Labels (TODAY, YESTD, SAT, SUN, MON, TUE, WED, THU, FRI).<br>
+        <strong>3. Non-Monochromatic Exploring Spark:</strong> White (#ffffff), Electric Blue (#00d2ff), and Cosmic Violet (#a855f7) exploring like live plasma across the contours.
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 4 EXPLORING SPARK VARIATIONS (WHITE + BLUE + VIOLET)                -->
+    <!-- =================================================================== -->
+    <div class="variations-grid">
+
+      <!-- VARIATION 1: Prismatic Laser Nebula Flare -->
+      <div class="var-card" id="card-v1">
+        <div class="var-head">
+          <div class="var-title">
+            <span class="num-pill">01</span>
+            <span>Prismatic Laser Nebula Flare</span>
+          </div>
+          <span class="tag-palette">WHITE • BLUE • VIOLET</span>
+        </div>
+        <div class="var-stage">
+          <!-- Logo in SPARK font with V1 Nebula Flare -->
+          <div class="logo-slot">
+            <div class="v1-spark-track">
+              <div class="v1-spark-trail"></div>
+              <div class="v1-spark-node"></div>
+            </div>
+            <!-- SPARK Font Rendered Logo -->
+            <svg viewBox="0 0 680 80" width="360" height="46" style="filter: drop-shadow(0 0 14px rgba(0, 210, 255, 0.45));">
+              <!-- S -->
+              <path d="M 60 16 L 24 16 C 14 16, 14 36, 24 36 L 52 36 C 62 36, 62 56, 52 56 L 16 56" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <!-- A -->
+              <path d="M 80 56 L 105 16 L 130 56" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <line x1="88" y1="42" x2="122" y2="42" stroke="#00d2ff" stroke-width="3" stroke-linecap="round"/>
+              <!-- R -->
+              <path d="M 148 56 L 148 16 L 174 16 C 188 16, 188 36, 174 36 L 148 36" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M 170 36 C 178 36, 186 46, 192 56" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <!-- W -->
+              <path d="M 210 16 L 222 56 L 236 30 L 250 56 L 262 16" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- A -->
+              <path d="M 280 56 L 305 16 L 330 56" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <line x1="288" y1="42" x2="322" y2="42" stroke="#00d2ff" stroke-width="3" stroke-linecap="round"/>
+              <!-- R -->
+              <path d="M 348 56 L 348 16 L 374 16 C 388 16, 388 36, 374 36 L 348 36" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M 370 36 C 378 36, 386 46, 392 56" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <!-- Dot -->
+              <polygon points="414,48 420,38 428,38 422,48" fill="#a855f7"/>
+              <!-- C -->
+              <path d="M 474 20 L 452 20 C 438 20, 438 52, 452 52 L 474 52" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <!-- Y -->
+              <path d="M 494 16 L 508 36 L 522 16" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <line x1="508" y1="36" x2="508" y2="56" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <!-- O -->
+              <path d="M 542 20 C 532 28, 532 44, 542 52" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M 552 20 C 562 28, 562 44, 552 52" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+              <!-- U -->
+              <path d="M 580 16 L 580 42 C 580 56, 608 56, 608 42 L 608 16" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Icons Row -->
+          <div class="icons-row">
+            <!-- Close -->
+            <button class="icon-pure" title="Close">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <line x1="7" y1="7" x2="25" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.5" stroke-linecap="square"/>
+                <line x1="25" y1="7" x2="7" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.5" stroke-linecap="square"/>
+              </svg>
+            </button>
+            <!-- Prev -->
+            <button class="icon-pure" title="Prev">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <path d="M 21 7 L 11 16 L 21 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8" stroke-linecap="square"/>
+              </svg>
+            </button>
+            <!-- Next -->
+            <button class="icon-pure" title="Next">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <path d="M 11 7 L 21 16 L 11 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8" stroke-linecap="square"/>
+              </svg>
+            </button>
+            <!-- Download -->
+            <button class="icon-pure" title="Download">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <line x1="16" y1="5" x2="16" y2="19" stroke="url(#sparkExplorationGrad)" stroke-width="2.5" stroke-linecap="square"/>
+                <path d="M 10 13 L 16 19 L 22 13" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.5" stroke-linecap="square"/>
+                <line x1="6" y1="26" x2="26" y2="26" stroke="url(#sparkExplorationGrad)" stroke-width="2.5" stroke-linecap="square"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Graph Days Typography Preview -->
+          <div class="graph-day-preview">
+            <!-- Vector Day Labels rendered in SPARK font architecture -->
+            <svg viewBox="0 0 420 30" width="380" height="24">
+              <!-- TODAY -->
+              <text x="10" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">TODAY</text>
+              <!-- YESTD -->
+              <text x="100" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">YESTD</text>
+              <!-- SAT -->
+              <text x="190" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">SAT</text>
+              <!-- SUN -->
+              <text x="270" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">SUN</text>
+              <!-- MON -->
+              <text x="350" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">MON</text>
+            </svg>
+          </div>
+        </div>
+        <div class="var-desc">
+          Continuous sweeping spark beam along the baseline with real-time chromatic modulation across the letterforms. The laser particle explores from Stark White into Electric Cyan-Blue and flares into Cosmic Radiant Violet.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">White • Cyan • Violet</span>
+          <button class="btn-apply" onclick="previewSimulation(1)">Simulate Zero-Text Site</button>
+        </div>
+      </div>
+
+      <!-- VARIATION 2: Chromatic Plasma Surge -->
+      <div class="var-card" id="card-v2">
+        <div class="var-head">
+          <div class="var-title">
+            <span class="num-pill">02</span>
+            <span>Chromatic Plasma Surge</span>
+          </div>
+          <span class="tag-palette">ELECTRO-PLASMA FLOW</span>
+        </div>
+        <div class="var-stage">
+          <div class="logo-slot v2-plasma-svg">
+            <svg viewBox="0 0 680 80" width="360" height="46">
+              <!-- S -->
+              <path d="M 60 16 L 24 16 C 14 16, 14 36, 24 36 L 52 36 C 62 36, 62 56, 52 56 L 16 56" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <!-- A -->
+              <path d="M 80 56 L 105 16 L 130 56" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <line x1="88" y1="42" x2="122" y2="42" stroke="#ffffff" stroke-width="3"/>
+              <!-- R -->
+              <path d="M 148 56 L 148 16 L 174 16 C 188 16, 188 36, 174 36 L 148 36" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <path d="M 170 36 C 178 36, 186 46, 192 56" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <!-- W -->
+              <path d="M 210 16 L 222 56 L 236 30 L 250 56 L 262 16" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <!-- A -->
+              <path d="M 280 56 L 305 16 L 330 56" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <line x1="288" y1="42" x2="322" y2="42" stroke="#ffffff" stroke-width="3"/>
+              <!-- R -->
+              <path d="M 348 56 L 348 16 L 374 16 C 388 16, 388 36, 374 36 L 348 36" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <path d="M 370 36 C 378 36, 386 46, 392 56" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <!-- Dot -->
+              <circle cx="420" cy="42" r="5" fill="#00d2ff"/>
+              <!-- C -->
+              <path d="M 474 20 L 452 20 C 438 20, 438 52, 452 52 L 474 52" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <!-- Y -->
+              <path d="M 494 16 L 508 36 L 522 16" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2" stroke-linecap="round"/>
+              <line x1="508" y1="36" x2="508" y2="56" stroke="url(#plasmaGrad)" stroke-width="4.2"/>
+              <!-- O -->
+              <path d="M 542 20 C 532 28, 532 44, 542 52" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2"/>
+              <path d="M 552 20 C 562 28, 562 44, 552 52" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2"/>
+              <!-- U -->
+              <path d="M 580 16 L 580 42 C 580 56, 608 56, 608 42 L 608 16" fill="none" stroke="url(#plasmaGrad)" stroke-width="4.2"/>
+            </svg>
+          </div>
+
+          <div class="icons-row">
+            <button class="icon-pure" title="Close">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="v2-plasma-svg">
+                <line x1="7" y1="7" x2="25" y2="25" stroke="url(#plasmaGrad)" stroke-width="2.6"/>
+                <line x1="25" y1="7" x2="7" y2="25" stroke="url(#plasmaGrad)" stroke-width="2.6"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Prev">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="v2-plasma-svg">
+                <path d="M 21 7 L 11 16 L 21 25" fill="none" stroke="url(#plasmaGrad)" stroke-width="2.8"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Next">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="v2-plasma-svg">
+                <path d="M 11 7 L 21 16 L 11 25" fill="none" stroke="url(#plasmaGrad)" stroke-width="2.8"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Download">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="v2-plasma-svg">
+                <line x1="16" y1="5" x2="16" y2="19" stroke="url(#plasmaGrad)" stroke-width="2.6"/>
+                <path d="M 10 13 L 16 19 L 22 13" fill="none" stroke="url(#plasmaGrad)" stroke-width="2.6"/>
+                <line x1="6" y1="26" x2="26" y2="26" stroke="url(#plasmaGrad)" stroke-width="2.6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="graph-day-preview">
+            <svg viewBox="0 0 420 30" width="380" height="24">
+              <text x="10" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#plasmaGrad)" letter-spacing="0.2em">TODAY</text>
+              <text x="100" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#plasmaGrad)" letter-spacing="0.2em">YESTD</text>
+              <text x="190" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#plasmaGrad)" letter-spacing="0.2em">SAT</text>
+              <text x="270" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#plasmaGrad)" letter-spacing="0.2em">SUN</text>
+              <text x="350" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#plasmaGrad)" letter-spacing="0.2em">MON</text>
+            </svg>
+          </div>
+        </div>
+        <div class="var-desc">
+          High-energy plasma luminescence. The electric contours breathe in harmonic resonance, oscillating between Stark White core brilliance, deep electric cyan voltage, and ultraviolet corona fields.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">Harmonic Oscillation</span>
+          <button class="btn-apply" onclick="previewSimulation(2)">Simulate Zero-Text Site</button>
+        </div>
+      </div>
+
+      <!-- VARIATION 3: Quantum Spectrum Scan -->
+      <div class="var-card" id="card-v3">
+        <div class="var-head">
+          <div class="var-title">
+            <span class="num-pill">03</span>
+            <span>Quantum Spectrum Scan</span>
+          </div>
+          <span class="tag-palette">TRAVELING LASER WAVE</span>
+        </div>
+        <div class="var-stage">
+          <div class="logo-slot">
+            <svg viewBox="0 0 680 80" width="360" height="46" style="filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.45));">
+              <g stroke="url(#sparkExplorationGrad)" stroke-width="4.2" stroke-linecap="round" fill="none">
+                <path d="M 60 16 L 24 16 C 14 16, 14 36, 24 36 L 52 36 C 62 36, 62 56, 52 56 L 16 56"/>
+                <path d="M 80 56 L 105 16 L 130 56"/>
+                <line x1="88" y1="42" x2="122" y2="42" stroke="#a855f7" stroke-width="3"/>
+                <path d="M 148 56 L 148 16 L 174 16 C 188 16, 188 36, 174 36 L 148 36"/>
+                <path d="M 170 36 C 178 36, 186 46, 192 56"/>
+                <path d="M 210 16 L 222 56 L 236 30 L 250 56 L 262 16"/>
+                <path d="M 280 56 L 305 16 L 330 56"/>
+                <line x1="288" y1="42" x2="322" y2="42" stroke="#a855f7" stroke-width="3"/>
+                <path d="M 348 56 L 348 16 L 374 16 C 388 16, 388 36, 374 36 L 348 36"/>
+                <path d="M 370 36 C 378 36, 386 46, 392 56"/>
+                <polygon points="414,48 420,38 428,38 422,48" fill="#00d2ff" stroke="none"/>
+                <path d="M 474 20 L 452 20 C 438 20, 438 52, 452 52 L 474 52"/>
+                <path d="M 494 16 L 508 36 L 522 16"/>
+                <line x1="508" y1="36" x2="508" y2="56"/>
+                <path d="M 542 20 C 532 28, 532 44, 542 52"/>
+                <path d="M 552 20 C 562 28, 562 44, 552 52"/>
+                <path d="M 580 16 L 580 42 C 580 56, 608 56, 608 42 L 608 16"/>
+              </g>
+            </svg>
+          </div>
+
+          <div class="icons-row">
+            <button class="icon-pure" title="Close">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <line x1="7" y1="7" x2="25" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+                <line x1="25" y1="7" x2="7" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Prev">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <path d="M 21 7 L 11 16 L 21 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Next">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <path d="M 11 7 L 21 16 L 11 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Download">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <line x1="16" y1="5" x2="16" y2="19" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+                <path d="M 10 13 L 16 19 L 22 13" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+                <line x1="6" y1="26" x2="26" y2="26" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="graph-day-preview">
+            <svg viewBox="0 0 420 30" width="380" height="24">
+              <text x="10" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">TODAY</text>
+              <text x="100" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">YESTD</text>
+              <text x="190" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">SAT</text>
+              <text x="270" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">SUN</text>
+              <text x="350" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">MON</text>
+            </svg>
+          </div>
+        </div>
+        <div class="var-desc">
+          Tri-chromatic optical scanner. The wave velocity accelerates across letter intersections, flaring into electric white sparks at the vertices while leaving a neon violet trail across the horizontal stems.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">Velocity Traversal</span>
+          <button class="btn-apply" onclick="previewSimulation(3)">Simulate Zero-Text Site</button>
+        </div>
+      </div>
+
+      <!-- VARIATION 4: Cosmic Horizon Supernova -->
+      <div class="var-card" id="card-v4">
+        <div class="var-head">
+          <div class="var-title">
+            <span class="num-pill">04</span>
+            <span>Cosmic Horizon Supernova</span>
+          </div>
+          <span class="tag-palette">RADIAL SPARK CONVERGENCE</span>
+        </div>
+        <div class="var-stage">
+          <div class="logo-slot">
+            <div style="position: absolute; bottom: 0; left: 10%; right: 10%; height: 1.5px; background: linear-gradient(90deg, transparent, #00d2ff, #ffffff, #a855f7, transparent);">
+              <div class="v4-supernova-flare"></div>
+            </div>
+            <svg viewBox="0 0 680 80" width="360" height="46">
+              <g stroke="url(#sparkExplorationGrad)" stroke-width="4.2" stroke-linecap="round" fill="none">
+                <path d="M 60 16 L 24 16 C 14 16, 14 36, 24 36 L 52 36 C 62 36, 62 56, 52 56 L 16 56"/>
+                <path d="M 80 56 L 105 16 L 130 56"/>
+                <line x1="88" y1="42" x2="122" y2="42" stroke="#ffffff" stroke-width="3"/>
+                <path d="M 148 56 L 148 16 L 174 16 C 188 16, 188 36, 174 36 L 148 36"/>
+                <path d="M 170 36 C 178 36, 186 46, 192 56"/>
+                <path d="M 210 16 L 222 56 L 236 30 L 250 56 L 262 16"/>
+                <path d="M 280 56 L 305 16 L 330 56"/>
+                <line x1="288" y1="42" x2="322" y2="42" stroke="#ffffff" stroke-width="3"/>
+                <path d="M 348 56 L 348 16 L 374 16 C 388 16, 388 36, 374 36 L 348 36"/>
+                <path d="M 370 36 C 378 36, 386 46, 392 56"/>
+                <polygon points="414,48 420,38 428,38 422,48" fill="#a855f7" stroke="none"/>
+                <path d="M 474 20 L 452 20 C 438 20, 438 52, 452 52 L 474 52"/>
+                <path d="M 494 16 L 508 36 L 522 16"/>
+                <line x1="508" y1="36" x2="508" y2="56"/>
+                <path d="M 542 20 C 532 28, 532 44, 542 52"/>
+                <path d="M 552 20 C 562 28, 562 44, 552 52"/>
+                <path d="M 580 16 L 580 42 C 580 56, 608 56, 608 42 L 608 16"/>
+              </g>
+            </svg>
+          </div>
+
+          <div class="icons-row">
+            <button class="icon-pure" title="Close">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <line x1="7" y1="7" x2="25" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+                <line x1="25" y1="7" x2="7" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Prev">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <path d="M 21 7 L 11 16 L 21 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Next">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <path d="M 11 7 L 21 16 L 11 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8"/>
+              </svg>
+            </button>
+            <button class="icon-pure" title="Download">
+              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <line x1="16" y1="5" x2="16" y2="19" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+                <path d="M 10 13 L 16 19 L 22 13" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+                <line x1="6" y1="26" x2="26" y2="26" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="graph-day-preview">
+            <svg viewBox="0 0 420 30" width="380" height="24">
+              <text x="10" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">TODAY</text>
+              <text x="100" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">YESTD</text>
+              <text x="190" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">SAT</text>
+              <text x="270" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">SUN</text>
+              <text x="350" y="22" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="url(#sparkExplorationGrad)" letter-spacing="0.2em">MON</text>
+            </svg>
+          </div>
+        </div>
+        <div class="var-desc">
+          Centrally focused supernova burst. An intense white laser spark sits at the center of the baseline horizon, continuously breathing volumetric cyan and violet corona halos across the perimeter.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">Central Supernova</span>
+          <button class="btn-apply" onclick="previewSimulation(4)">Simulate Zero-Text Site</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- FULL-SCREEN ZERO-TEXT SIMULATION STAGE                              -->
+    <!-- =================================================================== -->
+    <div class="sim-section">
+      <div class="sim-header">
+        <div class="sim-title">
+          <span class="badge-spark"></span>
+          <span id="activeSimLabel">Interactive Zero-Text Simulation: Variation 1 (Prismatic Laser Nebula Flare)</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-apply" onclick="previewSimulation(1)">Var 1</button>
+          <button class="btn-apply" onclick="previewSimulation(2)">Var 2</button>
+          <button class="btn-apply" onclick="previewSimulation(3)">Var 3</button>
+          <button class="btn-apply" onclick="previewSimulation(4)">Var 4</button>
+          <button class="btn-apply" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3);" onclick="toggleTelemetryModal()">Toggle Graph</button>
+        </div>
+      </div>
+      <div class="sim-stage">
+
+        <!-- User Photo Context -->
+        <img src="/mock-photo.jpg" onerror="this.src='file:///C:/Users/sarwa/.gemini/antigravity/brain/dd37e6a8-6763-42cb-839c-2e4dea496750/.user_uploaded/media_1794833165930_3d096849.jpg'" class="sim-photo-bg" alt="Photo Media Canvas">
+
+        <!-- ZERO-TEXT TOP-LEFT CORNER: NO TEXT, ONLY LOGO (CLICK TO OPEN GRAPH) -->
+        <div class="sim-corner-logo" onclick="toggleTelemetryModal()" title="Open 15-Day Graph">
+          <div class="logo-slot" id="simLogoSlot">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- ZERO-TEXT TOP-RIGHT CORNER: ONLY CLOSE ICON -->
+        <div class="sim-corner-close" id="simCloseSlot">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- ZERO-TEXT LEFT NAV: ONLY PREV ICON -->
+        <div class="sim-nav-prev" id="simPrevSlot">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- ZERO-TEXT RIGHT NAV: ONLY NEXT ICON -->
+        <div class="sim-nav-next" id="simNextSlot">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- ZERO-TEXT BOTTOM-RIGHT CORNER: ONLY DOWNLOAD ICON -->
+        <div class="sim-corner-download" id="simDownloadSlot">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- THE ONLY PLACE WITH TEXT: 15-DAY GRAPH TELEMETRY MODAL -->
+        <div class="sim-telemetry-modal" id="simGraphModal" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+            <!-- Brand Mark rendered in SPARK font -->
+            <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.18em; color: var(--blue);">SARWAR.CYOU</span>
+            <button class="icon-pure" onclick="toggleTelemetryModal()" style="color: #fff;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="6" y1="6" x2="18" y2="18" stroke="#fff" stroke-width="2"/><line x1="18" y1="6" x2="6" y2="18" stroke="#fff" stroke-width="2"/></svg>
+            </button>
+          </div>
+
+          <!-- Vertical Graph Bars with Day Names in SPARK Font -->
+          <div class="graph-bars-row">
+            <!-- MON -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 40px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">MON</span>
+            </div>
+            <!-- TUE -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 65px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">TUE</span>
+            </div>
+            <!-- WED -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 50px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">WED</span>
+            </div>
+            <!-- THU -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 80px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">THU</span>
+            </div>
+            <!-- FRI -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 55px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">FRI</span>
+            </div>
+            <!-- SAT -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 90px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">SAT</span>
+            </div>
+            <!-- SUN -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 70px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">SUN</span>
+            </div>
+            <!-- YESTD -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar" style="height: 85px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #8391a6; letter-spacing: 0.1em;">YESTD</span>
+            </div>
+            <!-- TODAY (High Energy Flare) -->
+            <div class="graph-col">
+              <div class="graph-bar-pillar today" style="height: 105px;"></div>
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 800; color: #00d2ff; letter-spacing: 0.1em; text-shadow: 0 0 10px #00d2ff;">TODAY</span>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #64748b; text-align: center; font-family: 'JetBrains Mono', monospace;">
+            * THE ONLY PERMITTED TEXT ON ENTIRE WEBSITE *
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function toggleTelemetryModal() {
+      const modal = document.getElementById('simGraphModal');
+      modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    const LOGO_SVG_MARKUP = `
+      <div class="v1-spark-track" style="bottom: 2px;">
+        <div class="v1-spark-trail"></div>
+        <div class="v1-spark-node"></div>
+      </div>
+      <svg viewBox="0 0 680 80" width="300" height="38" style="filter: drop-shadow(0 0 16px rgba(0, 210, 255, 0.6));">
+        <g stroke="url(#sparkExplorationGrad)" stroke-width="4.2" stroke-linecap="round" fill="none">
+          <path d="M 60 16 L 24 16 C 14 16, 14 36, 24 36 L 52 36 C 62 36, 62 56, 52 56 L 16 56"/>
+          <path d="M 80 56 L 105 16 L 130 56"/>
+          <line x1="88" y1="42" x2="122" y2="42" stroke="#00d2ff" stroke-width="3"/>
+          <path d="M 148 56 L 148 16 L 174 16 C 188 16, 188 36, 174 36 L 148 36"/>
+          <path d="M 170 36 C 178 36, 186 46, 192 56"/>
+          <path d="M 210 16 L 222 56 L 236 30 L 250 56 L 262 16"/>
+          <path d="M 280 56 L 305 16 L 330 56"/>
+          <line x1="288" y1="42" x2="322" y2="42" stroke="#00d2ff" stroke-width="3"/>
+          <path d="M 348 56 L 348 16 L 374 16 C 388 16, 388 36, 374 36 L 348 36"/>
+          <path d="M 370 36 C 378 36, 386 46, 392 56"/>
+          <polygon points="414,48 420,38 428,38 422,48" fill="#a855f7" stroke="none"/>
+          <path d="M 474 20 L 452 20 C 438 20, 438 52, 452 52 L 474 52"/>
+          <path d="M 494 16 L 508 36 L 522 16"/>
+          <line x1="508" y1="36" x2="508" y2="56"/>
+          <path d="M 542 20 C 532 28, 532 44, 542 52"/>
+          <path d="M 552 20 C 562 28, 562 44, 552 52"/>
+          <path d="M 580 16 L 580 42 C 580 56, 608 56, 608 42 L 608 16"/>
+        </g>
+      </svg>
+    `;
+
+    function previewSimulation(v) {
+      document.getElementById('simLogoSlot').innerHTML = LOGO_SVG_MARKUP;
+      document.getElementById('simCloseSlot').innerHTML = `
+        <button class="icon-pure" title="Close" style="filter: drop-shadow(0 0 12px rgba(0,210,255,0.7));">
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+            <line x1="7" y1="7" x2="25" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+            <line x1="25" y1="7" x2="7" y2="25" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+          </svg>
+        </button>
+      `;
+      document.getElementById('simPrevSlot').innerHTML = `
+        <button class="icon-pure" title="Previous" style="filter: drop-shadow(0 0 12px rgba(0,210,255,0.7));">
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+            <path d="M 21 7 L 11 16 L 21 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8"/>
+          </svg>
+        </button>
+      `;
+      document.getElementById('simNextSlot').innerHTML = `
+        <button class="icon-pure" title="Next" style="filter: drop-shadow(0 0 12px rgba(0,210,255,0.7));">
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+            <path d="M 11 7 L 21 16 L 11 25" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.8"/>
+          </svg>
+        </button>
+      `;
+      document.getElementById('simDownloadSlot').innerHTML = `
+        <button class="icon-pure" title="Download" style="filter: drop-shadow(0 0 12px rgba(0,210,255,0.7));">
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+            <line x1="16" y1="5" x2="16" y2="19" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+            <path d="M 10 13 L 16 19 L 22 13" fill="none" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+            <line x1="6" y1="26" x2="26" y2="26" stroke="url(#sparkExplorationGrad)" stroke-width="2.6"/>
+          </svg>
+        </button>
+      `;
+
+      document.querySelectorAll('.var-card').forEach(c => c.classList.remove('active-var'));
+      const activeCard = document.getElementById('card-v' + v);
+      if (activeCard) activeCard.classList.add('active-var');
+    }
+
+    // Default to Variation 1
+    previewSimulation(1);
+  </script>
+</body>
+</html>
