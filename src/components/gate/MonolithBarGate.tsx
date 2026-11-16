@@ -19,6 +19,7 @@ import {
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { LivingMediaCard } from './LivingMediaCard';
 import { QuickSearchModal } from '../QuickSearchModal';
+import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { LogoDropUpNav, type MainDirectoryTab } from '../navigation/LogoDropUpNav';
 import {
   toggleKeepScreenOn,
@@ -136,6 +137,26 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   // Logo Drop-Up Navigation Menu Open State (shown by default, toggles on logo click)
   const [isNavTrayOpen, setIsNavTrayOpen] = useState(true);
+
+  // Scroll detector: when visitor scrolls, the dock disappears and the bottom-left logo appears!
+  useEffect(() => {
+    const handleScrollOrGesture = () => {
+      setIsNavTrayOpen((prev) => {
+        if (prev) return false;
+        return prev;
+      });
+    };
+
+    window.addEventListener('scroll', handleScrollOrGesture, { passive: true, capture: true });
+    window.addEventListener('wheel', handleScrollOrGesture, { passive: true, capture: true });
+    window.addEventListener('touchmove', handleScrollOrGesture, { passive: true, capture: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrGesture, { capture: true });
+      window.removeEventListener('wheel', handleScrollOrGesture, { capture: true });
+      window.removeEventListener('touchmove', handleScrollOrGesture, { capture: true });
+    };
+  }, []);
 
   // Individual section subfolder filters (ordered per strict specs)
   const [photosSubfolder, setPhotosSubfolder] = useState<string>('Favorite');
@@ -702,7 +723,28 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </div>
 
-      {/* 2. UNIFIED TALL NAVIGATION DOCK (AT MIDDLE-LEFT WITH TOP LOGO & SLIDING SUBFOLDERS) */}
+      {/* 2. BOTTOM-LEFT CORNER: WEBSITE LOGO (Shown ONLY when dock is closed) */}
+      {!isNavTrayOpen && (
+        <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none pointer-events-auto animate-hacker-dock-deploy">
+          <button
+            type="button"
+            onClick={() => {
+              hapticMedium();
+              setIsNavTrayOpen(true);
+            }}
+            className="inline-flex items-center cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none bg-transparent border-0 p-0"
+            title="Open Directory Navigation Menu"
+          >
+            <LaserSparkLogo
+              width={270}
+              height={38}
+              interactive={false}
+            />
+          </button>
+        </div>
+      )}
+
+      {/* 3. MIDDLE-LEFT: UNIFIED TALL NAVIGATION DOCK (Shown ONLY when dock is open) */}
       <LogoDropUpNav
         isOpen={isNavTrayOpen}
         onClose={() => setIsNavTrayOpen(false)}

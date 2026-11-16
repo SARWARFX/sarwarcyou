@@ -148,35 +148,14 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
     return { pts, strokePath, areaPath, w, h };
   }, [telemetryData]);
 
-  // If dock is closed, show compact floating logo button at middle-left to re-open
-  if (!isOpen) {
-    return (
-      <div
-        className="fixed left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 pointer-events-auto select-none animate-hacker-dock-deploy"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            hapticMedium();
-            if (onToggleOpen) onToggleOpen();
-          }}
-          className="relative bg-[rgba(0,0,0,0.55)] border border-white/40 px-3 py-2.5 shadow-[0_0_25px_rgba(255,255,255,0.15)] rounded-none flex items-center justify-center cursor-pointer hover:bg-white hover:text-black group transition-all duration-200"
-          title="Open SARWAR.CYOU Navigation Dock"
-        >
-          <div className="cyber-dock-corner-tl" />
-          <div className="cyber-dock-corner-br" />
-          <LaserSparkLogo width={140} height={20} interactive={false} />
-        </button>
-      </div>
-    );
-  }
+  // If dock is closed, do not render dock (the website logo appears at bottom-left corner)
+  if (!isOpen) return null;
 
   return (
     <aside
       aria-label="Tactical Navigation Dock"
       onClick={(e) => e.stopPropagation()}
-      className="fixed left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 w-[185px] sm:w-[195px] min-h-[520px] sm:min-h-[560px] bg-[rgba(0,0,0,0.38)] border border-white/35 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_25px_rgba(255,255,255,0.02)] rounded-none flex flex-col justify-between animate-hacker-dock-deploy overflow-hidden pointer-events-auto select-none"
+      className="fixed left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 w-[185px] sm:w-[195px] min-h-[520px] sm:min-h-[560px] bg-[rgba(5,7,12,0.72)] border border-white/35 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.08),inset_0_0_25px_rgba(255,255,255,0.03)] rounded-none flex flex-col justify-between animate-hacker-dock-deploy overflow-hidden pointer-events-auto select-none"
     >
       {/* Corner White L-Brackets */}
       <div className="cyber-dock-corner-tl" />
