@@ -301,7 +301,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           : `translate3d(-160%, 0, 0) scale(${dockLayout.scale})`,
         transformOrigin: 'left top',
       }}
-      className={`fixed left-2 sm:left-4 z-[20000] w-[210px] sm:w-[220px] min-h-[560px] sm:min-h-[580px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-y-auto space-scrollbar border-0 transition-transform duration-300 ease-out select-none ${
+      className={`fixed left-2 sm:left-4 z-[20000] w-[210px] sm:w-[220px] min-h-[560px] sm:min-h-[580px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-y-auto space-scrollbar border-0 transition-transform duration-300 ease-out select-none font-['Roboto',sans-serif] ${
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
@@ -311,7 +311,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       )}
 
       {/* ============================================================== */}
-      {/* SECTION 1: WEBSITE LOGO + RETENTION TIME SPENT TEXT            */}
+      {/* SECTION 1: WEBSITE LOGO                                        */}
       {/* ============================================================== */}
       <div>
         {/* Top Logo - Clicking takes visitor back to homepage */}
@@ -341,7 +341,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="SEARCH"
-              className="w-full bg-transparent border-0 outline-none text-white font-['Michroma',sans-serif] text-[8px] placeholder:text-white/40 tracking-wider"
+              className="w-full bg-transparent border-0 outline-none text-white font-['Roboto',sans-serif] text-[9px] font-medium placeholder:text-white/40 tracking-wider"
             />
             {searchQuery && (
               <button
@@ -358,19 +358,19 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           {/* INLINE SEARCH RESULTS (Rendered RIGHT UNDERNEATH the search box) */}
           {searchQuery.trim() !== '' && (
             <div className="w-full flex flex-col overflow-hidden mt-1.5">
-              <div className="flex justify-between items-center text-[7px] font-['Michroma',sans-serif] text-white/60 pb-1 mb-1 border-b border-white/10">
+              <div className="flex justify-between items-center text-[7.5px] font-['Roboto',sans-serif] font-medium text-white/60 pb-1 mb-1 border-b border-white/10">
                 <span>{searchResults.length} FOUND</span>
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="text-[6.5px] text-white/80 hover:text-white cursor-pointer"
+                  className="text-[7px] text-white/80 hover:text-white cursor-pointer"
                 >
                   CLEAR
                 </button>
               </div>
               <div className="w-full overflow-y-auto space-scrollbar flex flex-col gap-1 pr-0.5 max-h-[220px]">
                 {searchResults.length === 0 ? (
-                  <div className="text-[7.5px] font-['Michroma',sans-serif] text-white/40 text-center py-6">
+                  <div className="text-[8px] font-['Roboto',sans-serif] text-white/40 text-center py-6">
                     NO MATCHES
                   </div>
                 ) : (
@@ -388,10 +388,10 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                         }}
                         className="w-full text-left p-1.5 bg-white/[0.05] hover:bg-white hover:text-black transition-colors duration-150 cursor-pointer border-0 rounded-none flex items-center gap-1.5"
                       >
-                        <span className="text-[6px] font-bold font-['Michroma',sans-serif] px-1 py-0.5 bg-white/15 text-white tracking-widest shrink-0">
+                        <span className="text-[6.5px] font-bold font-['Roboto',sans-serif] px-1 py-0.5 bg-white/15 text-white tracking-widest shrink-0">
                           {typeLabel}
                         </span>
-                        <span className="text-[7.5px] font-['Michroma',sans-serif] truncate tracking-wider text-white">
+                        <span className="text-[8px] font-['Roboto',sans-serif] font-medium truncate tracking-wider text-white">
                           {item.name || item.title || 'Untitled'}
                         </span>
                       </button>
@@ -411,7 +411,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           {horizontalDays.map((day) => (
             <div
               key={day.index}
-              className={`flex items-center justify-between text-[7.5px] font-['Michroma',sans-serif] px-1 py-0.5 rounded-none transition-colors ${
+              className={`flex items-center justify-between text-[8px] font-['Roboto',sans-serif] px-1 py-0.5 rounded-none transition-colors ${
                 day.isToday ? 'bg-white/[0.08]' : 'hover:bg-white/[0.03]'
               }`}
               title={`${day.fullName}${day.isToday ? ' (Today)' : ''}: ${day.formattedTime}`}
@@ -419,7 +419,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               {/* Left: Day Letter (S, M, T, W, T, F, S) */}
               <div className="w-4 shrink-0 flex items-center justify-between">
                 <span
-                  className={`font-['Michroma',sans-serif] text-[7.5px] ${
+                  className={`font-['Roboto',sans-serif] text-[8px] ${
                     day.isToday
                       ? 'text-white font-black drop-shadow-[0_0_6px_#ffffff]'
                       : 'text-white/50 font-bold'
@@ -446,7 +446,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
 
               {/* Right: Time Spent (e.g. 1h 52m) */}
               <span
-                className={`w-12 shrink-0 text-right font-mono text-[7px] tracking-wider ${
+                className={`w-12 shrink-0 text-right font-['Roboto',sans-serif] text-[7.5px] font-medium tracking-wider ${
                   day.isToday
                     ? 'text-white font-bold drop-shadow-[0_0_6px_#ffffff]'
                     : 'text-white/50'
@@ -482,13 +482,13 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                       : 'bg-white'
                   }`}
                 />
-                <span className="font-['Michroma',sans-serif] text-[7px] font-extrabold tracking-widest uppercase">
+                <span className="font-['Roboto',sans-serif] text-[7.5px] font-extrabold tracking-widest uppercase">
                   {activeNotification.title}
                 </span>
               </div>
-              <span className="font-mono text-[6px] tracking-wider opacity-60 shrink-0">10s</span>
+              <span className="font-['Roboto',sans-serif] text-[6.5px] tracking-wider opacity-60 shrink-0">10s</span>
             </div>
-            <div className="font-['Michroma',sans-serif] text-[6.5px] leading-relaxed tracking-wide opacity-90">
+            <div className="font-['Roboto',sans-serif] text-[7px] leading-relaxed tracking-wide opacity-90">
               {activeNotification.message}
             </div>
             {/* 10-Second Auto-Dismiss Countdown Bar */}
@@ -528,7 +528,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 hapticMedium();
                 onSelectHome();
               }}
-              className="font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer border-0 bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black"
+              className="font-['Roboto',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer border-0 bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black"
             >
               &gt; HOME
             </button>
@@ -545,7 +545,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                     setActiveFolderForSub(folder);
                     setViewingSubfolders(true);
                   }}
-                  className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between border-0 ${
+                  className={`font-['Roboto',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between border-0 ${
                     isActiveMain
                       ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
                       : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
@@ -566,7 +566,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 : 'translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
             }`}
           >
-            <div className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-wider text-white/80 pb-1 uppercase truncate">
+            <div className="font-['Roboto',sans-serif] text-[8.5px] font-bold tracking-wider text-white/80 pb-1 uppercase truncate">
               {activeFolderForSub} // SUB
             </div>
 
@@ -581,7 +581,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                     setViewingSubfolders(false);
                     onSelectSubfolder(activeFolderForSub, subfolder);
                   }}
-                  className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer truncate border-0 ${
+                  className={`font-['Roboto',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer truncate border-0 ${
                     isActive
                       ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
                       : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
@@ -598,7 +598,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 hapticLight();
                 setViewingSubfolders(false);
               }}
-              className="font-['Michroma',sans-serif] text-[9.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-1 border-0"
+              className="font-['Roboto',sans-serif] text-[9.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-1 border-0"
             >
               <span>&lt; BACK</span>
             </button>
@@ -610,7 +610,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       {/* SECTION 4: METERED MOBILE DATA WARNING                         */}
       {/* ============================================================== */}
       {networkState.isMetered && (
-        <div className="w-full mb-1.5 p-1.5 bg-amber-500/10 text-[6.5px] font-['Michroma',sans-serif] text-amber-300 tracking-wide leading-tight select-none border-0">
+        <div className="w-full mb-1.5 p-1.5 bg-amber-500/10 text-[7px] font-['Roboto',sans-serif] text-amber-300 tracking-wide leading-tight select-none border-0">
           ⚠ CAUTION: Connected to a metered mobile network. High-resolution video and shorts streaming may incur substantial data usage charges.
         </div>
       )}
@@ -639,7 +639,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               }`}
             />
           </div>
-          <span className="font-['Michroma',sans-serif] text-[7px] text-white/80 tracking-wider uppercase">
+          <span className="font-['Roboto',sans-serif] text-[7.5px] text-white/80 tracking-wider uppercase font-medium">
             KEEP ON
           </span>
         </div>
@@ -651,7 +651,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
         >
           {/* Floating Hover Tooltip Card (Desktop & Touch) */}
           <div className="absolute bottom-full right-0 mb-2 hidden group-hover/net:flex flex-col w-48 p-1.5 bg-black/95 border border-white/20 shadow-[0_8px_24px_rgba(0,0,0,0.95)] z-50 pointer-events-none rounded-none backdrop-blur-md">
-            <span className="font-['Michroma',sans-serif] text-[6.5px] text-white/90 leading-tight tracking-wider">
+            <span className="font-['Roboto',sans-serif] text-[7px] text-white/90 leading-tight tracking-wider">
               {networkState.tooltip}
             </span>
           </div>
@@ -659,7 +659,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           {!networkState.isOnline ? (
             /* Offline State: Red Color OFFLINE Text (Flashes intensely for 10s on sudden disconnection) */
             <span
-              className={`font-['Michroma',sans-serif] text-[7.5px] font-black tracking-widest text-red-500 transition-all duration-200 ${
+              className={`font-['Roboto',sans-serif] text-[8px] font-black tracking-widest text-red-500 transition-all duration-200 ${
                 isOfflineFlashing
                   ? 'animate-offline-strobe text-red-400 scale-110 drop-shadow-[0_0_16px_#ef4444]'
                   : 'animate-pulse drop-shadow-[0_0_6px_#ef4444]'
