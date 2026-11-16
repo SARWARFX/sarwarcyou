@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { hapticLight, hapticMedium } from '../../utils/hapticsManager';
 import { type Telemetry7DayEntry } from '../../utils/usageTelemetry';
+import { LaserSparkLogo } from '../brand/LaserSparkLogo';
+import {
+  getStoredThemeMode,
+  saveThemeMode,
+  getNextThemeMode,
+  type ThemeMode,
+  applyThemeMode,
+} from '../../utils/themeModeManager';
 
 export type MainDirectoryTab = 'Photographs' | 'Shorts' | 'Video Clips' | 'Bandhobi';
 
@@ -14,6 +22,7 @@ export const DIRECTORY_SUBFOLDERS: Record<MainDirectoryTab, string[]> = {
 export interface LogoDropUpNavProps {
   isOpen: boolean;
   onClose: () => void;
+  onToggleOpen?: () => void;
   activeMainTab: MainDirectoryTab;
   onSelectMainTab: (tab: MainDirectoryTab) => void;
   activeSubfolder: string;
@@ -36,21 +45,24 @@ function formatShortHoursMins(minutes: number): string {
 /**
  * Tactical Cyber Unified Tall Transparent Dock
  * - Positioned at Middle-Left of screen (top-1/2 -translate-y-1/2)
- * - Taller, less wider proportions (w-[215px] sm:w-[225px])
- * - 100% Transparent Glass: underlying background video seen directly through the dock (zero blur)
- * - Embedded Cyber Wave Graph at top + KEEP SCREEN ON toggle
- * - Single Dock Architecture (No second dock):
- *     - Clicking major folder slides major tabs to the left
- *     - Subfolder list slides in from the right
- *     - Has a '< BACK' button directly under the subfolder names to return
- * - Default open on homepage, toggles on logo click
- * - 100% square geometry with pure white L-brackets and Michroma typography
+ * - Taller, less wider proportions (w-[185px] sm:w-[195px], min-h-[520px])
+ * - Website Logo at the TOP of the dock (clicking logo toggles/collapses dock)
+ * - 100% Transparent Glass: underlying background video seen directly through the dock
+ * - Embedded Cyber Wave Graph (7-Day Telemetry)
+ * - Single Dock Sliding Navigation:
+ *     - Clicking major tabs does NOT navigate page; slides in subfolders from right
+ *     - ONLY clicking subfolders navigates the webpage to show media cards
+ *     - Subfolder names have '< BACK' directly underneath to return to major tabs
+ * - Dock Footer:
+ *     - Bottom-Left: KEEP SCREEN ON toggle
+ *     - Bottom-Right: Interactive 3-option theme button (Dark, White, Device Default)
  */
 export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   isOpen,
-  onClose: _onClose,
+  onClose,
+  onToggleOpen,
   activeMainTab,
-  onSelectMainTab,
+  onSelectMainTab: _onSelectMainTab,
   activeSubfolder,
   onSelectSubfolder,
   onSelectHome,
@@ -61,6 +73,26 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   // Navigation mode: false = major tabs list, true = subfolder list
   const [viewingSubfolders, setViewingSubfolders] = useState<boolean>(false);
   const [activeFolderForSub, setActiveFolderForSub] = useState<MainDirectoryTab>(activeMainTab);
+
+  // Theme mode: 'dark' | 'white' | 'default'
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredThemeMode());
+
+  // Apply initial theme on mount & listen to system changes
+  useEffect(() => {
+    applyThemeMode(themeMode);
+    if (themeMode === 'default' && typeof window !== 'undefined' && window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = () => applyThemeMode('default');
+      mq.addEventListener('change', listener);
+      return () => mq.removeEventListener('change', listener);
+    }
+  }, [themeMode]);
+
+  const handleCycleTheme = () => {
+    const next = getNextThemeMode(themeMode);
+    setThemeMode(next);
+    saveThemeMode(next);
+  };
 
   // Sync activeFolderForSub when activeMainTab changes
   useEffect(() => {
@@ -74,11 +106,11 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   const todayMinutes = todayEntry?.minutes || 0;
   const todayFormatted = formatShortHoursMins(todayMinutes);
 
-  // Compute 7-day spline curve coordinates for the Cyber Wave Graph (tailored for w=190, h=72)
+  // Compute 7-day spline curve coordinates tailored for compact width w=160, h=56
   const waveData = useMemo(() => {
     const ptsCount = 7;
-    const w = 190;
-    const h = 72;
+    const w = 160;
+    const h = 56;
 
     // Build array of 7 points in chronological order (oldest to today)
     const reversed = [...telemetryData].slice(0, ptsCount).reverse();
@@ -94,10 +126,9 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
     const maxMins = Math.max(...reversed.map((d) => d.minutes), 30);
 
     const pts = reversed.map((item, idx) => {
-      const x = Math.round(10 + idx * ((w - 20) / (ptsCount - 1)));
-      // Baseline offset so 0-minute days remain visibly anchored
+      const x = Math.round(8 + idx * ((w - 16) / (ptsCount - 1)));
       const norm = item.minutes > 0 ? Math.min(1, item.minutes / maxMins) : 0.08;
-      const y = Math.round(h - 10 - norm * (h - 22));
+      const y = Math.round(h - 8 - norm * (h - 18));
       return { x, y, minutes: item.minutes, label: item.label };
     });
 
@@ -117,13 +148,35 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
     return { pts, strokePath, areaPath, w, h };
   }, [telemetryData]);
 
-  if (!isOpen) return null;
+  // If dock is closed, show compact floating logo button at middle-left to re-open
+  if (!isOpen) {
+    return (
+      <div
+        className="fixed left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 pointer-events-auto select-none animate-hacker-dock-deploy"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            hapticMedium();
+            if (onToggleOpen) onToggleOpen();
+          }}
+          className="relative bg-[rgba(0,0,0,0.55)] border border-white/40 px-3 py-2.5 shadow-[0_0_25px_rgba(255,255,255,0.15)] rounded-none flex items-center justify-center cursor-pointer hover:bg-white hover:text-black group transition-all duration-200"
+          title="Open SARWAR.CYOU Navigation Dock"
+        >
+          <div className="cyber-dock-corner-tl" />
+          <div className="cyber-dock-corner-br" />
+          <LaserSparkLogo width={140} height={20} interactive={false} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <aside
       aria-label="Tactical Navigation Dock"
       onClick={(e) => e.stopPropagation()}
-      className="fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 w-[215px] sm:w-[225px] min-h-[460px] sm:min-h-[490px] bg-[rgba(0,0,0,0.38)] border border-white/35 p-3 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_25px_rgba(255,255,255,0.02)] rounded-none flex flex-col justify-between animate-hacker-dock-deploy overflow-hidden pointer-events-auto select-none"
+      className="fixed left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 w-[185px] sm:w-[195px] min-h-[520px] sm:min-h-[560px] bg-[rgba(0,0,0,0.38)] border border-white/35 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_25px_rgba(255,255,255,0.02)] rounded-none flex flex-col justify-between animate-hacker-dock-deploy overflow-hidden pointer-events-auto select-none"
     >
       {/* Corner White L-Brackets */}
       <div className="cyber-dock-corner-tl" />
@@ -133,63 +186,50 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       <div className="absolute left-0 right-0 bg-white shadow-[0_0_14px_#ffffff] pointer-events-none z-40 animate-hacker-beam-sweep" />
 
       {/* ============================================================== */}
-      {/* SECTION 1: TOP STATUS BAR (RADAR + KEEP SCREEN ON TOGGLE)      */}
+      {/* SECTION 1: WEBSITE LOGO AT TOP OF DOCK + TELEMETRY HEADER      */}
       {/* ============================================================== */}
       <div>
-        <div className="flex items-center justify-between border-b border-white/20 pb-2 mb-2">
-          <div className="flex items-center gap-1.5 font-['Michroma',sans-serif] text-[7.5px] text-white/80 tracking-wider">
-            <span className="w-2 h-2 rounded-none bg-white shadow-[0_0_10px_#ffffff] animate-pulse" />
+        {/* Website Logo at the Top */}
+        <div
+          className="flex items-center justify-center cursor-pointer hover:brightness-125 transition-all pb-2 mb-1.5 border-b border-white/20 pt-0.5"
+          onClick={() => {
+            hapticMedium();
+            if (onToggleOpen) onToggleOpen();
+            else onClose();
+          }}
+          title="SARWAR.CYOU (Click to toggle dock)"
+        >
+          <LaserSparkLogo width={160} height={23} interactive={false} />
+        </div>
+
+        {/* Telemetry Status Line */}
+        <div className="flex items-center justify-between font-['Michroma',sans-serif] text-[6.5px] text-white/70 tracking-wider pb-1.5 mb-1.5 border-b border-white/10">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-none bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
             <span>TELEMETRY</span>
           </div>
-          <label
-            className="inline-flex items-center gap-2 cursor-pointer select-none"
-            onClick={() => {
-              hapticLight();
-              onToggleKeepAwake();
-            }}
-          >
-            <div
-              className={`w-6 h-3.5 rounded-none relative border transition-colors duration-200 ${
-                keepAwakeOn ? 'bg-white border-white' : 'bg-white/10 border-white/30'
-              }`}
-            >
-              <div
-                className={`w-2.5 h-2.5 rounded-none absolute top-0.5 transition-transform duration-200 ${
-                  keepAwakeOn ? 'translate-x-2.5 bg-black' : 'translate-x-0.5 bg-white'
-                }`}
-              />
-            </div>
-            <span className="font-['Michroma',sans-serif] text-[7px] text-white/80 tracking-wider uppercase">
-              KEEP SCREEN ON
-            </span>
-          </label>
+          <span className="text-[6.5px] font-bold text-white tracking-tight">
+            TODAY: {todayFormatted}
+          </span>
         </div>
 
         {/* ============================================================== */}
         {/* SECTION 2: EMBEDDED CYBER WAVE GRAPH (7-DAY TELEMETRY)         */}
         {/* ============================================================== */}
-        <div className="border border-white/25 bg-black/45 p-2 relative overflow-hidden select-none mb-3">
-          {/* Header */}
-          <div className="flex items-center justify-between font-['Michroma',sans-serif] text-[7.5px] text-white/70 mb-1 border-b border-white/10 pb-1">
-            <span className="font-bold text-white tracking-wider">7-DAY TELEMETRY</span>
-            <span className="font-['Michroma',sans-serif] text-[7.5px] font-bold text-white tracking-tight">
-              TODAY: {todayFormatted}
-            </span>
-          </div>
-
+        <div className="border border-white/25 bg-black/45 p-1.5 relative overflow-hidden select-none mb-2">
           {/* SVG Cyber Waveform */}
           <svg
-            className="w-full h-[68px] overflow-visible"
+            className="w-full h-[58px] overflow-visible"
             viewBox={`0 0 ${waveData.w} ${waveData.h}`}
             preserveAspectRatio="none"
           >
             <defs>
-              <linearGradient id="cyberWaveGradMiddle" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="cyberWaveGradMiddleNarrow" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0.0" />
               </linearGradient>
-              <filter id="whiteLaserGlowMiddle" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2" result="glow" />
+              <filter id="whiteLaserGlowMiddleNarrow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="1.8" result="glow" />
                 <feMerge>
                   <feMergeNode in="glow" />
                   <feMergeNode in="SourceGraphic" />
@@ -218,15 +258,15 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             />
 
             {/* Gradient Area Fill */}
-            <path d={waveData.areaPath} fill="url(#cyberWaveGradMiddle)" />
+            <path d={waveData.areaPath} fill="url(#cyberWaveGradMiddleNarrow)" />
 
             {/* High-Voltage Stroke Line */}
             <path
               d={waveData.strokePath}
               fill="none"
               stroke="#ffffff"
-              strokeWidth="2.2"
-              filter="url(#whiteLaserGlowMiddle)"
+              strokeWidth="2"
+              filter="url(#whiteLaserGlowMiddleNarrow)"
             />
 
             {/* Milestone Nodes */}
@@ -236,12 +276,12 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 return (
                   <rect
                     key={idx}
-                    x={pt.x - 3}
-                    y={pt.y - 3}
-                    width="6"
-                    height="6"
+                    x={pt.x - 2.5}
+                    y={pt.y - 2.5}
+                    width="5"
+                    height="5"
                     fill="#ffffff"
-                    filter="url(#whiteLaserGlowMiddle)"
+                    filter="url(#whiteLaserGlowMiddleNarrow)"
                     className="animate-pulse"
                   />
                 );
@@ -250,10 +290,10 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 return (
                   <rect
                     key={idx}
-                    x={pt.x - 2}
-                    y={pt.y - 2}
-                    width="4"
-                    height="4"
+                    x={pt.x - 1.5}
+                    y={pt.y - 1.5}
+                    width="3"
+                    height="3"
                     fill="#ffffff"
                   />
                 );
@@ -263,7 +303,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           </svg>
 
           {/* Axis Labels */}
-          <div className="flex justify-between font-['Michroma',sans-serif] text-[7px] text-white/60 pt-1 border-t border-white/10 mt-0.5">
+          <div className="flex justify-between font-['Michroma',sans-serif] text-[6.5px] text-white/60 pt-1 border-t border-white/10 mt-0.5">
             <span>MON</span>
             <span>WED</span>
             <span>FRI</span>
@@ -276,12 +316,12 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       {/* SECTION 3: DYNAMIC SINGLE-DOCK SLIDING VIEW                     */}
       {/* View A (Major Folders) <---> View B (Subfolders with < BACK)   */}
       {/* ============================================================== */}
-      <div className="relative w-full overflow-hidden flex-1 flex flex-col justify-end">
-        {/* VIEW A: MAJOR FOLDERS */}
+      <div className="relative w-full overflow-hidden flex-1 flex flex-col justify-center my-1 min-h-[210px]">
+        {/* VIEW A: MAJOR FOLDERS (Clicking does NOT navigate page) */}
         <div
           className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
             viewingSubfolders
-              ? '-translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0 bottom-0'
+              ? '-translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
               : 'translate-x-0 opacity-100 pointer-events-auto relative'
           }`}
         >
@@ -292,7 +332,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               hapticMedium();
               onSelectHome();
             }}
-            className="font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/18 bg-white/4 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/12 active:bg-white active:text-black"
+            className="font-['Michroma',sans-serif] text-[7.5px] font-bold tracking-widest text-left px-2 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/18 bg-white/4 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/12 active:bg-white active:text-black"
           >
             &gt; HOME
           </button>
@@ -307,32 +347,32 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 onClick={() => {
                   hapticMedium();
                   setActiveFolderForSub(folder);
-                  onSelectMainTab(folder);
+                  // ONLY opens subfolders view; does NOT navigate page
                   setViewingSubfolders(true);
                 }}
-                className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between ${
+                className={`font-['Michroma',sans-serif] text-[7.5px] font-bold tracking-widest text-left px-2 py-2 border rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between ${
                   isActiveMain
                     ? 'border-white bg-white text-black font-black shadow-[0_0_18px_rgba(255,255,255,0.5)]'
                     : 'border-white/18 bg-white/4 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/12 active:border-white active:text-white'
                 }`}
               >
-                <span>&gt; {folder.toUpperCase()}</span>
-                <span className="text-[7.5px] opacity-75">»</span>
+                <span className="truncate">&gt; {folder.toUpperCase()}</span>
+                <span className="text-[7px] opacity-75 shrink-0">»</span>
               </button>
             );
           })}
         </div>
 
-        {/* VIEW B: SUBFOLDER NAMES (WITH < BACK UNDER THE LIST) */}
+        {/* VIEW B: SUBFOLDER NAMES (Clicking subfolder navigates & shows media) */}
         <div
           className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
             viewingSubfolders
               ? 'translate-x-0 opacity-100 pointer-events-auto relative'
-              : 'translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0 bottom-0'
+              : 'translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
           }`}
         >
           {/* Subfolder Category Header */}
-          <div className="font-['Michroma',sans-serif] text-[7.5px] tracking-wider text-white/70 pb-1 border-b border-white/15 uppercase truncate">
+          <div className="font-['Michroma',sans-serif] text-[7px] tracking-wider text-white/70 pb-1 border-b border-white/15 uppercase truncate">
             {activeFolderForSub} // SUB
           </div>
 
@@ -345,9 +385,10 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 type="button"
                 onClick={() => {
                   hapticLight();
+                  // ONLY here does clicking show the media cards!
                   onSelectSubfolder(activeFolderForSub, subfolder);
                 }}
-                className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
+                className={`font-['Michroma',sans-serif] text-[7.5px] font-bold tracking-widest text-left px-2 py-1.5 border rounded-none transition-all duration-200 cursor-pointer truncate ${
                   isActive
                     ? 'border-white bg-white text-black font-black shadow-[0_0_18px_rgba(255,255,255,0.5)]'
                     : 'border-white/18 bg-white/4 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/12 active:border-white active:text-white'
@@ -365,11 +406,57 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               hapticLight();
               setViewingSubfolders(false);
             }}
-            className="font-['Michroma',sans-serif] text-[7.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/30 bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-0.5"
+            className="font-['Michroma',sans-serif] text-[7px] font-bold tracking-widest text-left px-2 py-1.5 border rounded-none transition-all duration-200 cursor-pointer border-white/30 bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-0.5"
           >
             <span>&lt; BACK</span>
           </button>
         </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* SECTION 4: DOCK FOOTER (BOTTOM-LEFT & BOTTOM-RIGHT CONTROLS)   */}
+      {/* Bottom-Left: KEEP SCREEN ON toggle                             */}
+      {/* Bottom-Right: 3-Option Theme Button (Dark / White / Default)   */}
+      {/* ============================================================== */}
+      <div className="flex items-center justify-between border-t border-white/15 pt-2 mt-1">
+        {/* Bottom-Left: KEEP SCREEN ON */}
+        <div
+          className="flex items-center gap-1.5 cursor-pointer select-none"
+          onClick={() => {
+            hapticLight();
+            onToggleKeepAwake();
+          }}
+          title="Keep Screen Awake"
+        >
+          <div
+            className={`w-4 h-2.5 rounded-none relative border transition-colors duration-200 ${
+              keepAwakeOn ? 'bg-white border-white' : 'bg-white/10 border-white/30'
+            }`}
+          >
+            <div
+              className={`w-1.5 h-1.5 rounded-none absolute top-0.5 transition-transform duration-200 ${
+                keepAwakeOn ? 'translate-x-1.5 bg-black' : 'translate-x-0.5 bg-white'
+              }`}
+            />
+          </div>
+          <span className="font-['Michroma',sans-serif] text-[6.5px] text-white/80 tracking-wider uppercase">
+            KEEP ON
+          </span>
+        </div>
+
+        {/* Bottom-Right: Interactive 3-Option Theme Button (Dark / White / Default) */}
+        <button
+          type="button"
+          onClick={() => {
+            hapticLight();
+            handleCycleTheme();
+          }}
+          className="font-['Michroma',sans-serif] text-[6.5px] font-bold tracking-wider px-1.5 py-1 border border-white/25 bg-white/8 hover:border-white hover:bg-white/20 text-white active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+          title={`Theme Mode: ${themeMode.toUpperCase()} (Click to cycle Dark -> White -> Device Default)`}
+        >
+          <span className="w-1.5 h-1.5 rounded-none bg-white shadow-[0_0_6px_#ffffff]" />
+          <span>{themeMode === 'dark' ? 'DARK' : themeMode === 'white' ? 'WHITE' : 'AUTO'}</span>
+        </button>
       </div>
     </aside>
   );

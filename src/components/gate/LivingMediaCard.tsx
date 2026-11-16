@@ -31,6 +31,7 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isThumbnailLoaded, setIsThumbnailLoaded] = useState(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -104,14 +105,18 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
           aria-hidden="true"
         />
 
-        {/* Live Animated Scanning Laser Line */}
-        <div className="animate-cyber-scan group-hover:opacity-100 opacity-60 transition-opacity" />
+        {/* Live Animated Scanning Laser Line - Shows ONLY while thumbnail is loading */}
+        {!isThumbnailLoaded && (
+          <div className="animate-cyber-scan pointer-events-none opacity-80" />
+        )}
 
         {/* Static High-Res Poster Thumbnail */}
         <img
           src={imageSrc}
           alt={item.title || item.name}
           loading="lazy"
+          onLoad={() => setIsThumbnailLoaded(true)}
+          onError={() => setIsThumbnailLoaded(true)}
           className={`w-full h-full object-cover filter saturate-[0.92] contrast-[1.05] transition-transform duration-500 group-hover:scale-[1.035] ${
             isVideoReady ? 'opacity-0' : 'opacity-100'
           }`}

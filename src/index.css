@@ -1999,6 +1999,48 @@ html, body, #root {
   border-right: 2px solid #00f0ff;
 }
 
+/* 3-Mode Theme Support: White Mode Inversion */
+html.theme-white body {
+  background-color: #f4f5f7 !important;
+  color: #05070c !important;
+}
+
+html.theme-white aside[aria-label="Tactical Navigation Dock"] {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border-color: rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.1), inset 0 0 25px rgba(255, 255, 255, 0.4) !important;
+  color: #000000 !important;
+}
+
+html.theme-white aside[aria-label="Tactical Navigation Dock"] .cyber-dock-corner-tl {
+  border-top-color: #000000 !important;
+  border-left-color: #000000 !important;
+}
+
+html.theme-white aside[aria-label="Tactical Navigation Dock"] .cyber-dock-corner-br {
+  border-bottom-color: #000000 !important;
+  border-right-color: #000000 !important;
+}
+
+html.theme-white aside[aria-label="Tactical Navigation Dock"] button {
+  color: #111827 !important;
+  border-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+html.theme-white aside[aria-label="Tactical Navigation Dock"] button:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  border-color: #000000 !important;
+  color: #000000 !important;
+}
+
+html.theme-white aside[aria-label="Tactical Navigation Dock"] button.active,
+html.theme-white aside[aria-label="Tactical Navigation Dock"] button.bg-white {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+
 
 
 

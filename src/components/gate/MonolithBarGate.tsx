@@ -19,7 +19,6 @@ import {
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { LivingMediaCard } from './LivingMediaCard';
 import { QuickSearchModal } from '../QuickSearchModal';
-import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { LogoDropUpNav, type MainDirectoryTab } from '../navigation/LogoDropUpNav';
 import {
   toggleKeepScreenOn,
@@ -703,66 +702,47 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </div>
 
-      {/* 2. BOTTOM-LEFT CORNER: WEBSITE LOGO & DROP-UP NAVIGATION TRAY */}
-      <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none pointer-events-auto">
-        <button
-          type="button"
-          onClick={() => {
-            hapticMedium();
-            setIsNavTrayOpen((prev) => !prev);
-          }}
-          className="inline-flex items-center cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none bg-transparent border-0 p-0"
-          title="Toggle Directory Navigation Menu"
-        >
-          <LaserSparkLogo
-            width={290}
-            height={42}
-            interactive={false}
-          />
-        </button>
-
-        {/* Custom Futuristic Glass Drop-Up Navigation Tray */}
-        <LogoDropUpNav
-          isOpen={isNavTrayOpen}
-          onClose={() => setIsNavTrayOpen(false)}
-          activeMainTab={activeMainTab}
-          onSelectMainTab={(tab) => {
-            setActiveMainTab(tab);
-            if (tab === 'Photographs') switchTab(1);
-            else if (tab === 'Shorts') switchTab(2);
-            else if (tab === 'Video Clips') switchTab(3);
-            else if (tab === 'Bandhobi') switchTab(4);
-          }}
-          activeSubfolder={
-            activeMainTab === 'Photographs'
-              ? photosSubfolder
-              : activeMainTab === 'Shorts'
-              ? shortsSubfolder
-              : activeMainTab === 'Video Clips'
-              ? clipsSubfolder
-              : bandhobiSubfolder
+      {/* 2. UNIFIED TALL NAVIGATION DOCK (AT MIDDLE-LEFT WITH TOP LOGO & SLIDING SUBFOLDERS) */}
+      <LogoDropUpNav
+        isOpen={isNavTrayOpen}
+        onClose={() => setIsNavTrayOpen(false)}
+        onToggleOpen={() => setIsNavTrayOpen((prev) => !prev)}
+        activeMainTab={activeMainTab}
+        onSelectMainTab={(tab) => {
+          setActiveMainTab(tab);
+          // DO NOT switch tab or show media cards when clicking major tab!
+        }}
+        activeSubfolder={
+          activeMainTab === 'Photographs'
+            ? photosSubfolder
+            : activeMainTab === 'Shorts'
+            ? shortsSubfolder
+            : activeMainTab === 'Video Clips'
+            ? clipsSubfolder
+            : bandhobiSubfolder
+        }
+        onSelectSubfolder={(tab, subfolder) => {
+          setActiveMainTab(tab);
+          // ONLY clicking a subfolder switches the page and shows media cards
+          if (tab === 'Photographs') {
+            setPhotosSubfolder(subfolder);
+            switchTab(1);
+          } else if (tab === 'Shorts') {
+            setShortsSubfolder(subfolder);
+            switchTab(2);
+          } else if (tab === 'Video Clips') {
+            setClipsSubfolder(subfolder);
+            switchTab(3);
+          } else if (tab === 'Bandhobi') {
+            setBandhobiSubfolder(subfolder);
+            switchTab(4);
           }
-          onSelectSubfolder={(tab, subfolder) => {
-            if (tab === 'Photographs') {
-              setPhotosSubfolder(subfolder);
-              switchTab(1);
-            } else if (tab === 'Shorts') {
-              setShortsSubfolder(subfolder);
-              switchTab(2);
-            } else if (tab === 'Video Clips') {
-              setClipsSubfolder(subfolder);
-              switchTab(3);
-            } else if (tab === 'Bandhobi') {
-              setBandhobiSubfolder(subfolder);
-              switchTab(4);
-            }
-          }}
-          onSelectHome={() => switchTab(0)}
-          telemetryData={telemetry7DayData}
-          keepAwakeOn={keepAwakeOn}
-          onToggleKeepAwake={toggleKeepScreenOn}
-        />
-      </div>
+        }}
+        onSelectHome={() => switchTab(0)}
+        telemetryData={telemetry7DayData}
+        keepAwakeOn={keepAwakeOn}
+        onToggleKeepAwake={toggleKeepScreenOn}
+      />
 
       {/* 3. 5-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}
       <main
