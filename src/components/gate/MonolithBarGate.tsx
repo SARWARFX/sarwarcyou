@@ -395,19 +395,21 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return unsub;
   }, []);
 
-  // Keyboard shortcut listener for Ctrl+K, Cmd+K, /, or Escape
+  // Keyboard shortcut listener: '/' focuses inline search in dock, Escape dismisses
+  // User explicitly requested Ctrl+K must not work; only '/' focuses dock search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setIsSearchOpen((prev) => !prev);
-      } else if (
+      if (
         e.key === '/' &&
         document.activeElement?.tagName !== 'INPUT' &&
         document.activeElement?.tagName !== 'TEXTAREA'
       ) {
         e.preventDefault();
-        setIsSearchOpen(true);
+        setIsNavTrayOpen(true);
+        setTimeout(() => {
+          const el = document.getElementById('dockSearchInput') as HTMLInputElement | null;
+          if (el) el.focus();
+        }, 60);
       } else if (e.key === 'Escape') {
         setActiveDropdown(null);
         setIsNavTrayOpen(false);
@@ -673,6 +675,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     },
     [tabIndex, activeBandhobiList, activePhotosList, activeShortsList, activeClipsList, getItemSubfolderLabel, onOpenPhoto, onOpenShort, onOpenVideo]
+  );
+
+  // Handler for opening media selected directly from the dock's inline search
+  const handleSelectMediaItem = useCallback(
+    (item: StageMediaItem) => {
+      const isPhoto = isPhotoExtension(item.path || item.url || item.name || '');
+      const isShort = item.mediaType === 'short';
+      if (isShort) {
+        onOpenShort(item, items, 0, getItemSubfolderLabel(item));
+      } else if (isPhoto) {
+        onOpenPhoto(item, [item], 0);
+      } else {
+        onOpenVideo(item, [item]);
+      }
+    },
+    [items, getItemSubfolderLabel, onOpenPhoto, onOpenShort, onOpenVideo]
   );
 
   // Close dropdown on click outside
@@ -953,7 +971,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         telemetryData={telemetry7DayData}
         keepAwakeOn={keepAwakeOn}
         onToggleKeepAwake={toggleKeepScreenOn}
-        onOpenSearch={() => setIsSearchOpen(true)}
+        items={items}
+        onSelectItem={handleSelectMediaItem}
       />
 
       {/* 3. 5-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}
@@ -1019,14 +1038,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <div
                 className={
                   isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
                     : 'grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 max-w-[1200px] mx-auto'
                 }
               >
                 {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
                   <div
                     key={item.id || item.url || idx}
-                    className={isWideScreen ? 'h-full aspect-[3/4] shrink-0' : 'w-full'}
+                    className={isWideScreen ? 'h-full min-h-0 aspect-[3/4] shrink-0' : 'w-full'}
                   >
                     <LivingMediaCard
                       item={item}
@@ -1058,14 +1077,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <div
                 className={
                   isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
                     : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 max-w-[1400px] mx-auto'
                 }
               >
                 {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
                   <div
                     key={item.id || item.url || idx}
-                    className={isWideScreen ? 'h-full aspect-[9/16] shrink-0' : 'w-full'}
+                    className={isWideScreen ? 'h-full min-h-0 aspect-[9/16] shrink-0' : 'w-full'}
                   >
                     <LivingMediaCard
                       item={item}
@@ -1097,14 +1116,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <div
                 className={
                   isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
                     : 'grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 max-w-[1200px] mx-auto'
                 }
               >
                 {activeClipsList.slice(0, visibleClips).map((item, idx) => (
                   <div
                     key={item.id || item.url || idx}
-                    className={isWideScreen ? 'h-full aspect-video shrink-0' : 'w-full'}
+                    className={isWideScreen ? 'h-full min-h-0 aspect-video shrink-0' : 'w-full'}
                   >
                     <LivingMediaCard
                       item={item}
@@ -1136,7 +1155,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <div
                 className={
                   isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
                     : `grid gap-3 p-3 max-w-[1400px] mx-auto ${
                         bandhobiSubfolder === 'Video Clips'
                           ? 'grid-cols-1 sm:grid-cols-2'
@@ -1160,7 +1179,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   return (
                     <div
                       key={item.id || item.url || idx}
-                      className={isWideScreen ? `h-full ${aspectClass} shrink-0` : 'w-full'}
+                      className={isWideScreen ? `h-full min-h-0 ${aspectClass} shrink-0` : 'w-full'}
                     >
                       <LivingMediaCard
                         item={item}

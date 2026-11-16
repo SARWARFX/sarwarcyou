@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { hapticLight, hapticMedium } from '../../utils/hapticsManager';
 import { type Telemetry7DayEntry } from '../../utils/usageTelemetry';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
-import {
-  getGlobalAudioMuted,
-  toggleGlobalAudioMuted,
-  subscribeGlobalAudioMuted,
-} from '../../utils/audioMuteManager';
+import { isPhotoExtension } from '../../utils/mediaTypeDetector';
+import type { StageMediaItem } from '../../types';
 
 export type MainDirectoryTab = 'Photographs' | 'Shorts' | 'Video Clips' | 'Bandhobi';
 
@@ -29,24 +26,30 @@ export interface LogoDropUpNavProps {
   telemetryData: Telemetry7DayEntry[];
   keepAwakeOn: boolean;
   onToggleKeepAwake: () => void;
-  onOpenSearch?: () => void;
+  items?: StageMediaItem[];
+  onSelectItem?: (item: StageMediaItem) => void;
+}
+
+function formatRetentionTime(minutes: number): string {
+  if (!minutes || minutes < 1) return '< 1m';
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  if (hrs > 0 && mins > 0) return `${hrs}h ${mins}m`;
+  if (hrs > 0) return `${hrs}h`;
+  return `${mins}m`;
 }
 
 /**
  * Tactical Cyber Unified Tall Transparent Dock (ZERO OUTLINES)
- * - Animated Left-Right sliding appearance synchronized with bottom-left logo
- * - Middle-Left screen alignment (top-1/2 -translate-y-1/2)
- * - Taller, less wider proportions (w-[205px] sm:w-[215px], min-h-[500px])
- * - Website Logo at TOP (toggles/closes dock on click)
- * - Reverse 7-Day Spline Graph:
- *     - TODAY starts on the LEFT, earlier days proceed to the RIGHT
- *     - Single-letter day indicators (S, S, M, T, W, T, F)
- *     - Graceful, slow-moving sparking laser animation (12s cycle)
- * - Quick Search trigger button ([ ⌕ QUICK SEARCH  / ])
- * - Interactive Audio Live / Muted button (controls site-wide default mute)
- * - High-legibility larger typography for tab buttons (> HOME, > PHOTOGRAPHS, etc.)
- * - Subfolder drilldown with < BACK
- * - Footer: KEEP ON (screen awake) + ONLINE / OFFLINE network status
+ * - Restored Majestic Tall Height (min-h-[560px] sm:min-h-[600px])
+ * - Time Spent written text right beneath website logo inside the dock (e.g. 1h 52m)
+ * - Inline Dock Search Textbox (search works strictly inside the dock; press '/' to focus)
+ * - Reverse 7-Day Spline Graph: Today on Left, slow 12s sparking laser
+ * - Wi-Fi vs Mobile Data Detection:
+ *     - If Wi-Fi: "CONNECTED TO WI-FI"
+ *     - If Mobile Data: "MOBILE DATA" + warning that streaming videos/shorts consumes significant data
+ * - Larger typography for tab buttons (> HOME, > PHOTOGRAPHS, etc.)
+ * - Zero outlines, pure high-contrast black & white styling
  */
 export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   isOpen,
@@ -60,67 +63,104 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   telemetryData,
   keepAwakeOn,
   onToggleKeepAwake,
-  onOpenSearch,
+  items = [],
+  onSelectItem,
 }) => {
   // Navigation mode: false = major tabs list, true = subfolder list
   const [viewingSubfolders, setViewingSubfolders] = useState<boolean>(false);
   const [activeFolderForSub, setActiveFolderForSub] = useState<MainDirectoryTab>(activeMainTab);
 
-  // Audio mute state synced with global audio manager
-  const [isAudioMuted, setIsAudioMuted] = useState<boolean>(() => getGlobalAudioMuted());
+  // Inline Search inside Dock
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    return subscribeGlobalAudioMuted((muted) => setIsAudioMuted(muted));
-  }, []);
-
-  const handleToggleAudio = () => {
-    hapticLight();
-    toggleGlobalAudioMuted();
-  };
-
-  // Device online / offline status indicator
-  const [isOnline, setIsOnline] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && 'onLine' in navigator) {
-      return navigator.onLine;
+  // Network Connection Type Detection (Wi-Fi vs Mobile Data)
+  const [networkType, setNetworkType] = useState<{
+    isOnline: boolean;
+    isCellular: boolean;
+    label: string;
+  }>(() => {
+    if (typeof window === 'undefined') {
+      return { isOnline: true, isCellular: false, label: 'CONNECTED TO WI-FI' };
     }
-    return true;
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    const isOnline = navigator.onLine;
+    const isCellular = conn?.type === 'cellular';
+    return {
+      isOnline,
+      isCellular,
+      label: !isOnline ? 'OFFLINE' : isCellular ? 'MOBILE DATA' : 'CONNECTED TO WI-FI',
+    };
   });
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    const checkNetwork = () => {
+      const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+      const isOnline = navigator.onLine;
+      const isCellular = conn?.type === 'cellular';
+      setNetworkType({
+        isOnline,
+        isCellular,
+        label: !isOnline ? 'OFFLINE' : isCellular ? 'MOBILE DATA' : 'CONNECTED TO WI-FI',
+      });
+    };
+
+    window.addEventListener('online', checkNetwork);
+    window.addEventListener('offline', checkNetwork);
+
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (conn && conn.addEventListener) {
+      conn.addEventListener('change', checkNetwork);
+    }
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', checkNetwork);
+      window.removeEventListener('offline', checkNetwork);
+      if (conn && conn.removeEventListener) {
+        conn.removeEventListener('change', checkNetwork);
+      }
     };
   }, []);
 
-  // Proportional responsive scaling to fit short landscape/rotated mobile screens
-  const [dockScale, setDockScale] = useState<number>(1);
+  // Proportional responsive scaling & positioning so the dock NEVER overlaps the 28px top marquee bar
+  // and stays completely on-screen on rotated phones and short viewports
+  const [dockLayout, setDockLayout] = useState<{ scale: number; top: number }>({
+    scale: 1,
+    top: 34,
+  });
 
   useEffect(() => {
-    const computeDockScale = () => {
+    const computeDockLayout = () => {
       const vh = window.innerHeight;
-      const topBarOffset = 34; // 28px marquee bar + 6px breathing room
-      const availableH = vh - topBarOffset;
-      const naturalDockHeight = 525;
+      const naturalDockHeight = 580; // restored tall dock natural height
+      const marqueeHeight = 28;
+      const topOffset = 34; // strictly >= 34px to completely clear the 28px top marquee bar
+      const bottomOffset = 10;
+      const availableH = vh - topOffset - bottomOffset;
+
       if (availableH < naturalDockHeight) {
-        // Proportionally scale down while maintaining exact aspect ratio
-        const s = Math.max(0.55, availableH / naturalDockHeight);
-        setDockScale(Number(s.toFixed(3)));
+        // Scaled proportionally to fit the available screen height
+        const s = Math.max(0.48, availableH / naturalDockHeight);
+        setDockLayout({
+          scale: Number(s.toFixed(3)),
+          top: topOffset, // strictly 34px from top
+        });
       } else {
-        setDockScale(1);
+        // Full size, vertically centered in the space below the 28px marquee bar
+        const centeredTop = Math.round(marqueeHeight + (vh - marqueeHeight - naturalDockHeight) / 2);
+        setDockLayout({
+          scale: 1,
+          top: Math.max(topOffset, centeredTop),
+        });
       }
     };
 
-    computeDockScale();
-    window.addEventListener('resize', computeDockScale);
-    window.addEventListener('orientationchange', computeDockScale);
+    computeDockLayout();
+    window.addEventListener('resize', computeDockLayout);
+    window.addEventListener('orientationchange', computeDockLayout);
     return () => {
-      window.removeEventListener('resize', computeDockScale);
-      window.removeEventListener('orientationchange', computeDockScale);
+      window.removeEventListener('resize', computeDockLayout);
+      window.removeEventListener('orientationchange', computeDockLayout);
     };
   }, []);
 
@@ -130,6 +170,28 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   }, [activeMainTab]);
 
   const mainFolders: MainDirectoryTab[] = ['Photographs', 'Shorts', 'Video Clips', 'Bandhobi'];
+
+  // Today's Retention / Time Spent
+  const todayEntry = telemetryData.find(
+    (t) => t.label === 'Today' || t.label === 'today' || t.date === new Date().toISOString().split('T')[0]
+  );
+  const todayMinutes = todayEntry?.minutes || 0;
+  const todayRetentionText = formatRetentionTime(todayMinutes);
+
+  /**
+   * Filter media items in real-time when user types in the inline dock search box
+   */
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return items
+      .filter((item) => {
+        const name = (item.name || item.title || '').toLowerCase();
+        const path = (item.path || '').toLowerCase();
+        return name.includes(q) || path.includes(q);
+      })
+      .slice(0, 16);
+  }, [items, searchQuery]);
 
   /**
    * Compute 7-day spline curve coordinates tailored for compact width w=170, h=48
@@ -145,7 +207,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
     const now = new Date();
 
     // Map 7 days starting from Today (offset 0 on left) to 6 days ago (offset 6 on right)
-    const items = [];
+    const dayItems = [];
     for (let offset = 0; offset < ptsCount; offset++) {
       const d = new Date();
       d.setDate(now.getDate() - offset);
@@ -155,7 +217,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       );
       const mins = match ? match.minutes : 0;
       const char = DAY_CHARS[d.getDay()];
-      items.push({
+      dayItems.push({
         offset,
         char,
         minutes: mins,
@@ -163,13 +225,12 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       });
     }
 
-    const rawMax = Math.max(...items.map((i) => i.minutes));
+    const rawMax = Math.max(...dayItems.map((i) => i.minutes));
     const maxMins = Math.max(rawMax, 45);
 
-    // Harmonic telemetry contour so graph is always alive and aesthetic
     const organicHarmonics = [0.78, 0.46, 0.68, 0.38, 0.82, 0.52, 0.32];
 
-    const pts = items.map((item, idx) => {
+    const pts = dayItems.map((item, idx) => {
       const x = Math.round(8 + idx * ((w - 16) / (ptsCount - 1)));
       let norm = item.minutes > 0 ? Math.min(1, item.minutes / maxMins) : 0;
       if (rawMax <= 1) {
@@ -181,7 +242,6 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       return { x, y, char: item.char, isToday: item.isToday, minutes: item.minutes };
     });
 
-    // Build smooth cubic bezier curve path starting from Today on left:
     let strokePath = `M ${pts[0].x} ${pts[0].y}`;
     for (let i = 0; i < pts.length - 1; i++) {
       const p0 = pts[i];
@@ -202,17 +262,14 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       aria-label="Tactical Navigation Dock"
       onClick={(e) => e.stopPropagation()}
       style={{
-        top: 'calc(50% + 14px)',
+        top: `${dockLayout.top}px`,
         transform: isOpen
-          ? `translate3d(0, -50%, 0) scale(${dockScale})`
-          : `translate3d(-150%, -50%, 0) scale(${dockScale})`,
-        transformOrigin: 'left center',
-        maxHeight: 'calc(100dvh - 34px)',
+          ? `translate3d(0, 0, 0) scale(${dockLayout.scale})`
+          : `translate3d(-160%, 0, 0) scale(${dockLayout.scale})`,
+        transformOrigin: 'left top',
       }}
-      className={`fixed left-2 sm:left-4 z-50 w-[205px] sm:w-[215px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-y-auto space-scrollbar border-0 transition-all duration-300 ease-out select-none ${
-        isOpen
-          ? 'opacity-100 pointer-events-auto'
-          : 'opacity-0 pointer-events-none'
+      className={`fixed left-2 sm:left-4 z-50 w-[210px] sm:w-[220px] min-h-[560px] sm:min-h-[580px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-y-auto space-scrollbar border-0 transition-transform duration-300 ease-out select-none ${
+        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
       {/* 1-shot laser sweep beam on dock reveal */}
@@ -221,11 +278,12 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       )}
 
       {/* ============================================================== */}
-      {/* SECTION 1: WEBSITE LOGO AT TOP OF DOCK (ZERO BORDERS)          */}
+      {/* SECTION 1: WEBSITE LOGO + RETENTION TIME SPENT TEXT            */}
       {/* ============================================================== */}
       <div>
+        {/* Top Logo */}
         <div
-          className="flex items-center justify-center cursor-pointer hover:brightness-125 transition-all pb-2 pt-0.5"
+          className="flex items-center justify-center cursor-pointer hover:brightness-125 transition-all pb-1.5 pt-0.5"
           onClick={() => {
             hapticMedium();
             if (onToggleOpen) onToggleOpen();
@@ -233,7 +291,13 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           }}
           title="SARWAR.CYOU (Click to close dock)"
         >
-          <LaserSparkLogo width={170} height={24} interactive={false} />
+          <LaserSparkLogo width={175} height={24} interactive={false} />
+        </div>
+
+        {/* Time Spent Retention Text right beneath the website logo */}
+        <div className="flex items-center justify-between px-1 pb-1 mb-1 font-['Michroma',sans-serif] text-[7.5px] tracking-wider select-none">
+          <span className="text-white/50 text-[7px] uppercase">TIME SPENT:</span>
+          <span className="font-bold text-white tracking-widest">{todayRetentionText}</span>
         </div>
 
         {/* ============================================================== */}
@@ -241,7 +305,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
         {/* ============================================================== */}
         <div className="bg-white/[0.04] p-1.5 relative overflow-hidden select-none rounded-none border-0 mb-2">
           <svg
-            className="w-full h-[52px] overflow-visible"
+            className="w-full h-[50px] overflow-visible"
             viewBox={`0 0 ${waveData.w} ${waveData.h}`}
             preserveAspectRatio="none"
           >
@@ -292,7 +356,6 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               />
               <circle r="3.2" fill="#ffffff" filter="url(#whiteLaserGlowMiddleNarrow)" />
               <circle r="1.4" fill="#ffffff" />
-              {/* Electric 4-Point Star Spark Rays */}
               <line x1="-5" y1="0" x2="5" y2="0" stroke="#ffffff" strokeWidth="1.2" opacity="0.9" />
               <line x1="0" y1="-5" x2="0" y2="5" stroke="#ffffff" strokeWidth="1.2" opacity="0.9" />
               <line x1="-2.8" y1="-2.8" x2="2.8" y2="2.8" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
@@ -320,7 +383,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               </g>
             )}
 
-            {/* Subtle Milestone Nodes for Past Days */}
+            {/* Milestone Nodes */}
             {waveData.pts.slice(1).map((pt, idx) => (
               <rect
                 key={idx}
@@ -349,159 +412,191 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
         </div>
 
         {/* ============================================================== */}
-        {/* QUICK SEARCH BUTTON + INTERACTIVE AUDIO MUTE CONTROLLER        */}
+        {/* INLINE DOCK SEARCH TEXT BOX (SEARCH OPERATES STRICTLY IN DOCK) */}
         {/* ============================================================== */}
-        <div className="w-full flex flex-col gap-1.5 mb-2">
-          {/* Quick Search Button (Opens Fast-Find Palette) */}
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              if (onOpenSearch) onOpenSearch();
-            }}
-            className="w-full flex items-center justify-between font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-wider px-2 py-2 bg-white/[0.06] hover:bg-white hover:text-black text-white/80 transition-all duration-200 cursor-pointer rounded-none border-0"
-            title="Quick Search (Press / to search)"
-          >
-            <span className="flex items-center gap-1.5">
-              <span className="text-[10px]">⌕</span>
-              <span>QUICK SEARCH</span>
-            </span>
-            <span className="text-[7.5px] px-1 py-0.2 bg-white/15 text-white/90 font-mono">/</span>
-          </button>
-
-          {/* Interactive Audio Mute / Live Button */}
-          <button
-            type="button"
-            onClick={handleToggleAudio}
-            className="w-full flex items-center justify-between px-2 py-1.5 text-[8px] font-['Michroma',sans-serif] tracking-wider rounded-none border-0 transition-all cursor-pointer bg-white/[0.05] hover:bg-white hover:text-black text-white/80"
-            title={isAudioMuted ? 'Website Audio Muted (Click to Unmute)' : 'Website Audio Live (Click to Mute)'}
-          >
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`w-1.5 h-1.5 rounded-none ${
-                  isAudioMuted
-                    ? 'bg-red-400 shadow-[0_0_6px_#f87171]'
-                    : 'bg-white shadow-[0_0_6px_#ffffff] animate-pulse'
-                }`}
-              />
-              <span className="font-bold">{isAudioMuted ? 'AUDIO: MUTED' : 'AUDIO: LIVE'}</span>
-            </span>
-            <div className="flex items-end gap-0.5 h-2.5">
-              {isAudioMuted ? (
-                <span className="text-[9px] leading-none opacity-60">✕</span>
-              ) : (
-                <>
-                  <span className="w-0.5 h-1.5 bg-current animate-pulse" />
-                  <span className="w-0.5 h-2.5 bg-current animate-pulse delay-75" />
-                  <span className="w-0.5 h-2 bg-current animate-pulse delay-150" />
-                </>
-              )}
-            </div>
-          </button>
+        <div className="w-full relative mb-2">
+          <div className="flex items-center bg-white/[0.06] focus-within:bg-white/[0.14] transition-colors duration-200 px-2 py-1.5 rounded-none">
+            <span className="text-[10px] text-white/50 mr-1.5 select-none">⌕</span>
+            <input
+              id="dockSearchInput"
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="SEARCH VAULT [/]"
+              className="w-full bg-transparent border-0 outline-none text-white font-['Michroma',sans-serif] text-[8px] placeholder:text-white/40 tracking-wider"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-white/60 hover:text-white text-[9px] px-1 cursor-pointer"
+                title="Clear Search"
+              >
+                ✕
+              </button>
+            ) : (
+              <span className="text-[7px] text-white/40 px-1 font-mono bg-white/10 select-none">/</span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* SECTION 3: DYNAMIC SINGLE-DOCK SLIDING VIEW (LARGER TEXT)      */}
-      {/* View A (Major Folders) <---> View B (Subfolders with < BACK)   */}
+      {/* SECTION 3: DOCK BODY (SEARCH RESULTS OR FOLDERS VIEW)          */}
       {/* ============================================================== */}
-      <div className="relative w-full overflow-hidden flex-1 flex flex-col justify-center my-1 min-h-[200px]">
-        {/* VIEW A: MAJOR FOLDERS (Clicking opens subfolders; no page change) */}
-        <div
-          className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
-            viewingSubfolders
-              ? '-translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
-              : 'translate-x-0 opacity-100 pointer-events-auto relative'
-          }`}
-        >
-          {/* > HOME Button */}
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              onSelectHome();
-            }}
-            className="font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer border-0 bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black"
-          >
-            &gt; HOME
-          </button>
-
-          {/* 4 Main Folders */}
-          {mainFolders.map((folder) => {
-            const isActiveMain = activeMainTab === folder;
-            return (
+      <div className="relative w-full overflow-hidden flex-1 flex flex-col justify-center my-1 min-h-[220px]">
+        {/* VIEW 1: INLINE SEARCH RESULTS (When user is typing in dock search) */}
+        {searchQuery.trim() !== '' ? (
+          <div className="w-full h-full flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center text-[7px] font-['Michroma',sans-serif] text-white/60 pb-1 mb-1 border-b border-white/10">
+              <span>{searchResults.length} FOUND</span>
               <button
-                key={folder}
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-[6.5px] text-white/80 hover:text-white cursor-pointer"
+              >
+                CLEAR
+              </button>
+            </div>
+            <div className="w-full flex-1 overflow-y-auto space-scrollbar flex flex-col gap-1 pr-0.5 max-h-[230px]">
+              {searchResults.length === 0 ? (
+                <div className="text-[7.5px] font-['Michroma',sans-serif] text-white/40 text-center py-8">
+                  NO MATCHES
+                </div>
+              ) : (
+                searchResults.map((item, idx) => {
+                  const isPhoto = isPhotoExtension(item.path || '');
+                  const isShort = item.mediaType === 'short';
+                  const typeLabel = isShort ? 'SHORT' : isPhoto ? 'PHOTO' : 'VIDEO';
+                  return (
+                    <button
+                      key={item.id || item.url || idx}
+                      type="button"
+                      onClick={() => {
+                        hapticLight();
+                        if (onSelectItem) onSelectItem(item);
+                      }}
+                      className="w-full text-left p-1.5 bg-white/[0.05] hover:bg-white hover:text-black transition-colors duration-150 cursor-pointer border-0 rounded-none flex items-center gap-1.5"
+                    >
+                      <span className="text-[6px] font-bold font-['Michroma',sans-serif] px-1 py-0.5 bg-white/15 text-white tracking-widest shrink-0">
+                        {typeLabel}
+                      </span>
+                      <span className="text-[7.5px] font-['Michroma',sans-serif] truncate tracking-wider text-white">
+                        {item.name || item.title || 'Untitled'}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* VIEW 2A: MAJOR FOLDERS */}
+            <div
+              className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
+                viewingSubfolders
+                  ? '-translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
+                  : 'translate-x-0 opacity-100 pointer-events-auto relative'
+              }`}
+            >
+              {/* > HOME Button */}
+              <button
                 type="button"
                 onClick={() => {
                   hapticMedium();
-                  setActiveFolderForSub(folder);
-                  setViewingSubfolders(true);
+                  onSelectHome();
                 }}
-                className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between border-0 ${
-                  isActiveMain
-                    ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
-                    : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
-                }`}
+                className="font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer border-0 bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black"
               >
-                <span className="truncate">&gt; {folder.toUpperCase()}</span>
-                <span className="text-[9px] opacity-75 shrink-0 ml-1">»</span>
+                &gt; HOME
               </button>
-            );
-          })}
-        </div>
 
-        {/* VIEW B: SUBFOLDERS (Clicking subfolder shows media cards) */}
-        <div
-          className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
-            viewingSubfolders
-              ? 'translate-x-0 opacity-100 pointer-events-auto relative'
-              : 'translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
-          }`}
-        >
-          {/* Subfolder Category Header */}
-          <div className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-wider text-white/80 pb-1 uppercase truncate">
-            {activeFolderForSub} // SUB
-          </div>
+              {/* 4 Main Folders */}
+              {mainFolders.map((folder) => {
+                const isActiveMain = activeMainTab === folder;
+                return (
+                  <button
+                    key={folder}
+                    type="button"
+                    onClick={() => {
+                      hapticMedium();
+                      setActiveFolderForSub(folder);
+                      setViewingSubfolders(true);
+                    }}
+                    className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2.5 rounded-none transition-all duration-200 cursor-pointer flex items-center justify-between border-0 ${
+                      isActiveMain
+                        ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
+                        : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
+                    }`}
+                  >
+                    <span className="truncate">&gt; {folder.toUpperCase()}</span>
+                    <span className="text-[9px] opacity-75 shrink-0 ml-1">»</span>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Subfolder List */}
-          {DIRECTORY_SUBFOLDERS[activeFolderForSub]?.map((subfolder) => {
-            const isActive = activeSubfolder === subfolder && activeMainTab === activeFolderForSub;
-            return (
+            {/* VIEW 2B: SUBFOLDERS */}
+            <div
+              className={`w-full flex flex-col gap-1.5 transition-all duration-300 ease-out ${
+                viewingSubfolders
+                  ? 'translate-x-0 opacity-100 pointer-events-auto relative'
+                  : 'translate-x-[115%] opacity-0 pointer-events-none absolute inset-x-0'
+              }`}
+            >
+              <div className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-wider text-white/80 pb-1 uppercase truncate">
+                {activeFolderForSub} // SUB
+              </div>
+
+              {DIRECTORY_SUBFOLDERS[activeFolderForSub]?.map((subfolder) => {
+                const isActive = activeSubfolder === subfolder && activeMainTab === activeFolderForSub;
+                return (
+                  <button
+                    key={subfolder}
+                    type="button"
+                    onClick={() => {
+                      hapticLight();
+                      onSelectSubfolder(activeFolderForSub, subfolder);
+                    }}
+                    className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer truncate border-0 ${
+                      isActive
+                        ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
+                        : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
+                    }`}
+                  >
+                    &gt; {subfolder.toUpperCase()}
+                  </button>
+                );
+              })}
+
               <button
-                key={subfolder}
                 type="button"
                 onClick={() => {
                   hapticLight();
-                  onSelectSubfolder(activeFolderForSub, subfolder);
+                  setViewingSubfolders(false);
                 }}
-                className={`font-['Michroma',sans-serif] text-[10px] sm:text-[10.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer truncate border-0 ${
-                  isActive
-                    ? 'bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.45)]'
-                    : 'bg-white/[0.05] text-[#c0cad6] hover:bg-white/[0.14] hover:text-white active:bg-white active:text-black'
-                }`}
+                className="font-['Michroma',sans-serif] text-[9.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-1 border-0"
               >
-                &gt; {subfolder.toUpperCase()}
+                <span>&lt; BACK</span>
               </button>
-            );
-          })}
-
-          {/* < BACK Button directly underneath subfolder names */}
-          <button
-            type="button"
-            onClick={() => {
-              hapticLight();
-              setViewingSubfolders(false);
-            }}
-            className="font-['Michroma',sans-serif] text-[9.5px] font-bold tracking-widest text-left px-2.5 py-2 rounded-none transition-all duration-200 cursor-pointer bg-white/10 text-white hover:bg-white hover:text-black active:bg-white active:text-black flex items-center gap-1.5 mt-1 border-0"
-          >
-            <span>&lt; BACK</span>
-          </button>
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ============================================================== */}
-      {/* SECTION 4: DOCK FOOTER (KEEP ON + ONLINE/OFFLINE STATUS)       */}
+      {/* SECTION 4: MOBILE DATA WARNING (IF ON CELLULAR)                */}
+      {/* ============================================================== */}
+      {networkType.isCellular && (
+        <div className="w-full mb-1.5 p-1.5 bg-amber-500/10 text-[6.5px] font-['Michroma',sans-serif] text-amber-300 tracking-wide leading-tight select-none border-0">
+          ⚠ CAUTION: Connected to mobile data. Streaming high-resolution videos or shorts may consume substantial cellular data.
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* SECTION 5: DOCK FOOTER (KEEP ON + WI-FI / MOBILE DATA STATUS)  */}
       {/* ============================================================== */}
       <div className="flex items-center justify-between pt-2 border-0">
         {/* Bottom-Left: KEEP SCREEN ON */}
@@ -529,24 +624,36 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           </span>
         </div>
 
-        {/* Bottom-Right: ONLINE / OFFLINE Status Indicator */}
+        {/* Bottom-Right: WI-FI or MOBILE DATA Status Indicator */}
         <div
           className="flex items-center gap-1.5 select-none"
-          title={isOnline ? 'Network Connection: Online' : 'Network Connection: Offline'}
+          title={
+            !networkType.isOnline
+              ? 'Network Connection: Offline'
+              : networkType.isCellular
+              ? 'Warning: Connected to Mobile Data. Streaming media may incur high data usage.'
+              : 'Network Connection: Connected to Wi-Fi'
+          }
         >
           <span
             className={`w-1.5 h-1.5 rounded-none ${
-              isOnline
-                ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]'
-                : 'bg-red-500 shadow-[0_0_6px_#ef4444] animate-pulse'
+              !networkType.isOnline
+                ? 'bg-red-500 shadow-[0_0_6px_#ef4444] animate-pulse'
+                : networkType.isCellular
+                ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24] animate-pulse'
+                : 'bg-emerald-400 shadow-[0_0_6px_#34d399]'
             }`}
           />
           <span
             className={`font-['Michroma',sans-serif] text-[7px] font-bold tracking-wider uppercase ${
-              isOnline ? 'text-white/80' : 'text-red-400 animate-pulse'
+              !networkType.isOnline
+                ? 'text-red-400 animate-pulse'
+                : networkType.isCellular
+                ? 'text-amber-300'
+                : 'text-white/80'
             }`}
           >
-            {isOnline ? 'ONLINE' : 'OFFLINE'}
+            {networkType.label}
           </span>
         </div>
       </div>
