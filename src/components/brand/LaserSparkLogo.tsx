@@ -10,16 +10,20 @@ export interface LaserSparkLogoProps {
 }
 
 /**
- * Option 2: Sweeping Laser Particle Scan Logo (Strictly Stark White & Pure Electric Cyan)
- * Features scattered monoline letterforms with detached crossbars and a real-time sweeping
- * laser particle spark on the optical horizon line.
+ * Variation 1: Aerodynamic Horizon Wordmark (Harmonized Ribbon + Clean Cyber Apex)
+ * Custom-architected SPARK typography with Symmetrical Keystone symmetry:
+ * S -> [A R] -> W (Center Crown) -> [A R] . C Y O U
+ * Features:
+ * - Full-Span Traveling Spark Wave (S -> U) through Stark White (#FFFFFF), Electric Cyan (#00D2FF), and Cosmic Violet (#A855F7)
+ * - Synchronized Baseline Optical Horizon Flare
+ * - Ambient Base Underlay for 100% Geometric Presence
  */
 export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
   className = '',
   onClick,
   title = 'SARWAR.CYOU',
-  width = 240,
-  height = 36,
+  width = 280,
+  height = 38,
   interactive = true,
 }) => {
   return (
@@ -32,131 +36,114 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
     >
       <style>{`
         @keyframes sweepLaserTrack {
-          0% { left: 8%; opacity: 0; }
+          0% { left: 5%; opacity: 0; }
           15% { opacity: 1; }
           85% { opacity: 1; }
-          100% { left: 92%; opacity: 0; }
+          100% { left: 95%; opacity: 0; }
         }
         .anim-sweep-track {
-          animation: sweepLaserTrack 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          animation: sweepLaserTrack 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
       `}</style>
 
       {/* Baseline Optical Laser Horizon */}
-      <div className="absolute bottom-[2px] left-[6%] right-[6%] h-[1px] bg-gradient-to-r from-transparent via-[#00f0ff]/85 to-transparent pointer-events-none z-10">
-        {/* Sweeping Cyan Comet Trail */}
+      <div className="absolute bottom-[3px] left-[6%] right-[6%] h-[1.5px] bg-gradient-to-r from-transparent via-[#00d2ff]/40 to-transparent pointer-events-none z-10">
+        {/* Sweeping Cyan / Violet Flare Trail */}
         <div
-          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[85px] h-[8px] bg-[radial-gradient(ellipse_at_center,rgba(0,240,255,0.95)_0%,transparent_75%)] blur-[2px] pointer-events-none"
+          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[110px] h-[7px] bg-[radial-gradient(ellipse_at_center,rgba(0,210,255,0.95)_0%,rgba(168,85,247,0.7)_50%,transparent_80%)] blur-[2px] pointer-events-none"
         />
         {/* Sweeping White Laser Core Node */}
         <div
-          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[4.5px] h-[4.5px] bg-white rounded-full shadow-[0_0_8px_#ffffff,0_0_18px_#00f0ff] pointer-events-none"
+          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[4px] h-[4px] bg-white rounded-full shadow-[0_0_8px_#ffffff,0_0_16px_#00d2ff,0_0_24px_#a855f7] pointer-events-none"
         />
       </div>
 
-      {/* Scattered Monoline SVG Wordmark (Strictly White & Electric Cyan) */}
+      {/* SVG Wordmark with Full-Span Traveling Spark */}
       <svg
-        viewBox="0 0 740 90"
+        viewBox="0 0 820 68"
         width={width}
         height={height}
-        className="relative z-20 filter drop-shadow-[0_0_12px_rgba(0,0,0,0.95)]"
+        className="relative z-20 filter drop-shadow-[0_0_18px_rgba(0,210,255,0.45)]"
       >
-        <g transform="translate(10, 15)">
-          {/* S: Floating top bar, continuous middle loop, floating bottom bar */}
-          <line x1="16" y1="6" x2="48" y2="6" stroke="#ffffff" strokeWidth="3" strokeLinecap="square" />
-          <path
-            d="M 48 14 L 16 14 C 8 14, 8 26, 16 26 L 38 26 C 46 26, 46 38, 38 38 L 8 38"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="3"
-            strokeLinecap="square"
-          />
-          <line x1="8" y1="46" x2="40" y2="46" stroke="#ffffff" strokeWidth="3" strokeLinecap="square" />
+        <defs>
+          {/* Continuous Full-Span Traveling Spark Wave (S -> U) */}
+          <linearGradient id="logoTravelingSpark" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="-0.3" stopColor="#050811" />
+            <stop offset="-0.15" stopColor="#0066ff" />
+            <stop offset="0.0" stopColor="#a855f7" />
+            <stop offset="0.1" stopColor="#00d2ff" />
+            <stop offset="0.15" stopColor="#ffffff" />
+            <stop offset="0.2" stopColor="#00d2ff" />
+            <stop offset="0.3" stopColor="#a855f7" />
+            <stop offset="0.45" stopColor="#0066ff" />
+            <stop offset="0.6" stopColor="#050811" />
 
-          {/* A: Inverted chevron with a floating cyan crossbar */}
-          <path d="M 68 46 L 90 6 L 112 46" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="square" />
-          <line x1="74" y1="30" x2="106" y2="30" stroke="#00f0ff" strokeWidth="2.2" strokeLinecap="round" />
+            <animate attributeName="x1" values="-60%; 100%" dur="3.2s" repeatCount="indefinite" />
+            <animate attributeName="x2" values="40%; 200%" dur="3.2s" repeatCount="indefinite" />
+          </linearGradient>
 
-          {/* R: High loop + detached floating angled leg */}
-          <path
-            d="M 132 46 L 132 6 L 158 6 C 170 6, 170 24, 158 24 L 132 24"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="3"
-            strokeLinecap="square"
-          />
-          <line x1="152" y1="24" x2="168" y2="46" stroke="#ffffff" strokeWidth="3" strokeLinecap="square" />
+          {/* Ambient Base Underlay */}
+          <linearGradient id="logoAmbientBase" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(0, 210, 255, 0.35)" />
+            <stop offset="50%" stopColor="rgba(255, 255, 255, 0.45)" />
+            <stop offset="100%" stopColor="rgba(168, 85, 247, 0.35)" />
+          </linearGradient>
+        </defs>
 
-          {/* W: Precise sharp scattered double chevron */}
-          <path
-            d="M 188 6 L 198 46 L 212 20 L 226 46 L 236 6"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="3"
-            strokeLinecap="square"
-            strokeLinejoin="miter"
-          />
+        {/* Layer 1: Ambient Base Track (Ensures complete glyph visibility at all times) */}
+        <g stroke="url(#logoAmbientBase)" strokeWidth="8" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+          {/* S (x: 10 to 74) */}
+          <path d="M 74 12 L 28 12 A 10 10 0 0 0 28 32 L 56 32 A 10 10 0 0 1 56 52 L 10 52" />
+          {/* A1 (x: 90 to 152) */}
+          <path d="M 90 52 L 121 12 L 152 52 M 104 38 L 138 38" />
+          {/* R1 (x: 166 to 226) */}
+          <path d="M 188 12 L 208 12 A 10 10 0 0 1 208 32 L 178 32 A 10 10 0 0 0 166 42 L 166 52" />
+          <path d="M 198 32 L 226 52" />
+          {/* W (Center Keystone, x: 240 to 316) */}
+          <path d="M 240 12 L 256 52 L 278 20 L 300 52 L 316 12" />
+          {/* A2 (x: 330 to 392) */}
+          <path d="M 330 52 L 361 12 L 392 52 M 344 38 L 378 38" />
+          {/* R2 (x: 406 to 466) */}
+          <path d="M 428 12 L 448 12 A 10 10 0 0 1 448 32 L 418 32 A 10 10 0 0 0 406 42 L 406 52" />
+          <path d="M 438 32 L 466 52" />
+          {/* Separator Dot */}
+          <rect x="478" y="44" width="8" height="8" fill="rgba(255, 255, 255, 0.45)" stroke="none" />
+          {/* C (x: 504 to 560) */}
+          <path d="M 560 12 L 524 12 A 10 10 0 0 0 514 22 L 514 42 A 10 10 0 0 0 524 52 L 560 52" />
+          {/* Y (x: 574 to 630) */}
+          <path d="M 574 12 L 602 32 L 602 52 M 630 12 L 602 32" />
+          {/* O (x: 644 to 704) */}
+          <path d="M 664 12 L 684 12 A 10 10 0 0 1 684 52 L 664 52 A 10 10 0 0 1 664 12 Z" />
+          {/* U (x: 718 to 774) */}
+          <path d="M 718 12 L 718 42 A 10 10 0 0 0 728 52 L 764 52 A 10 10 0 0 0 774 42 L 774 12" />
+        </g>
 
-          {/* A: Inverted chevron with floating cyan crossbar */}
-          <path d="M 256 46 L 278 6 L 300 46" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="square" />
-          <line x1="262" y1="30" x2="294" y2="30" stroke="#00f0ff" strokeWidth="2.2" strokeLinecap="round" />
-
-          {/* R: Detached leg */}
-          <path
-            d="M 320 46 L 320 6 L 346 6 C 358 6, 358 24, 346 24 L 320 24"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="3"
-            strokeLinecap="square"
-          />
-          <line x1="340" y1="24" x2="356" y2="46" stroke="#ffffff" strokeWidth="3" strokeLinecap="square" />
-
-          {/* Separator Dot: Rhombus in Electric Cyan */}
-          <polygon points="380,44 386,34 394,34 388,44" fill="#00f0ff" />
-
-          {/* CYOU in Pure Electric Cyan */}
+        {/* Layer 2: Live Full-Span Active Traveling Spark Wave (S -> U) */}
+        <g stroke="url(#logoTravelingSpark)" strokeWidth="8" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+          {/* S */}
+          <path d="M 74 12 L 28 12 A 10 10 0 0 0 28 32 L 56 32 A 10 10 0 0 1 56 52 L 10 52" />
+          {/* A1 */}
+          <path d="M 90 52 L 121 12 L 152 52 M 104 38 L 138 38" />
+          {/* R1 */}
+          <path d="M 188 12 L 208 12 A 10 10 0 0 1 208 32 L 178 32 A 10 10 0 0 0 166 42 L 166 52" />
+          <path d="M 198 32 L 226 52" />
+          {/* W (Center Keystone) */}
+          <path d="M 240 12 L 256 52 L 278 20 L 300 52 L 316 12" />
+          {/* A2 */}
+          <path d="M 330 52 L 361 12 L 392 52 M 344 38 L 378 38" />
+          {/* R2 */}
+          <path d="M 428 12 L 448 12 A 10 10 0 0 1 448 32 L 418 32 A 10 10 0 0 0 406 42 L 406 52" />
+          <path d="M 438 32 L 466 52" />
+          {/* Separator Dot */}
+          <rect x="478" y="44" width="8" height="8" fill="#00d2ff" stroke="none" />
           {/* C */}
-          <path
-            d="M 444 14 L 420 14 C 408 14, 408 38, 420 38 L 444 38"
-            fill="none"
-            stroke="#00f0ff"
-            strokeWidth="3"
-            strokeLinecap="square"
-          />
+          <path d="M 560 12 L 524 12 A 10 10 0 0 0 514 22 L 514 42 A 10 10 0 0 0 524 52 L 560 52" />
           {/* Y */}
-          <path
-            d="M 462 6 L 476 24 L 490 6"
-            fill="none"
-            stroke="#00f0ff"
-            strokeWidth="3"
-            strokeLinecap="square"
-            strokeLinejoin="miter"
-          />
-          <line x1="476" y1="28" x2="476" y2="46" stroke="#00f0ff" strokeWidth="3" strokeLinecap="square" />
+          <path d="M 574 12 L 602 32 L 602 52 M 630 12 L 602 32" />
           {/* O */}
-          <path
-            d="M 520 8 C 508 16, 508 36, 520 44"
-            fill="none"
-            stroke="#00f0ff"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 528 8 C 540 16, 540 36, 528 44"
-            fill="none"
-            stroke="#00f0ff"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
+          <path d="M 664 12 L 684 12 A 10 10 0 0 1 684 52 L 664 52 A 10 10 0 0 1 664 12 Z" />
           {/* U */}
-          <line x1="560" y1="6" x2="560" y2="20" stroke="#00f0ff" strokeWidth="3" strokeLinecap="square" />
-          <path
-            d="M 560 26 L 560 36 C 560 46, 588 46, 588 36 L 588 6"
-            fill="none"
-            stroke="#00f0ff"
-            strokeWidth="3"
-            strokeLinecap="square"
-          />
+          <path d="M 718 12 L 718 42 A 10 10 0 0 0 728 52 L 764 52 A 10 10 0 0 0 774 42 L 774 12" />
         </g>
       </svg>
     </div>

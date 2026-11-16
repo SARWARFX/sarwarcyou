@@ -285,11 +285,12 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                         className="flex-1 flex flex-col items-center max-w-[48px]"
                       >
                         <span
-                          className={`text-[10px] font-mono leading-none tracking-wider ${
+                          className={`text-[10px] uppercase font-bold leading-none tracking-widest ${
                             isToday
-                              ? 'text-[#00f0ff] font-black'
+                              ? 'text-[#00d2ff] font-extrabold drop-shadow-[0_0_8px_#00d2ff]'
                               : 'text-neutral-400 group-hover:text-white'
                           }`}
+                          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                         >
                           {day.label}
                         </span>

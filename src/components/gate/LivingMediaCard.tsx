@@ -19,7 +19,6 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
   aspectRatio,
   onClick,
   delayIdx = 0,
-  featuredBadge,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
@@ -116,36 +115,11 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       <div className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 border-b-2 border-l-2 border-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20" />
       <div className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 border-b-2 border-r-2 border-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20" />
 
-      {/* Live Preview Indicator Beacon when Video is Actively Micro-Playing */}
-      {isVideo && isVideoReady && (
-        <div className="absolute top-2.5 right-2.5 z-20 px-2 py-0.5 rounded bg-black/85 backdrop-blur-md border border-[#00f0ff]/60 text-[9px] font-mono font-bold text-[#00f0ff] flex items-center gap-1.5 shadow-lg pointer-events-none animate-fade-in">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff] animate-pulse shadow-[0_0_6px_#00f0ff]" />
-          <span>PREVIEW</span>
-        </div>
-      )}
-
-      {/* Featured / Spotlight Badge if provided */}
-      {featuredBadge && !isVideoReady && (
-        <div className="absolute top-2.5 left-2.5 z-20 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-[#00f0ff]/40 text-[9px] font-mono font-bold text-[#00f0ff] shadow-md pointer-events-none">
-          {featuredBadge}
-        </div>
-      )}
-
-      {/* Dark Ambient Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none z-10" />
-
       {/* Center Play Button Overlay on Hover */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-        <div className="w-11 h-11 rounded-full bg-[#00f0ff] text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+        <div className="w-11 h-11 rounded-full bg-[#00d2ff] text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
           <Play className="w-5 h-5 fill-current ml-0.5" />
         </div>
-      </div>
-
-      {/* Bottom Title on Hover */}
-      <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-        <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#00f0ff] transition-colors drop-shadow">
-          {item.title || item.name}
-        </p>
       </div>
     </div>
   );

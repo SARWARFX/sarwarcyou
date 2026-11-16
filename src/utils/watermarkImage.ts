@@ -13,74 +13,62 @@
 import { getMediaUrl } from './imageUrlResolver';
 import { safeEncodeUrl } from './mediaTypeDetector';
 
-const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 90" width="740" height="90">
+const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 68" width="820" height="68">
   <defs>
     <filter id="wmShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.95"/>
     </filter>
+    <linearGradient id="wmGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="45%" stop-color="#00d2ff"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
     <linearGradient id="wmLaserGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#00f0ff" stop-opacity="0.3"/>
-      <stop offset="50%" stop-color="#00f0ff" stop-opacity="0.95"/>
-      <stop offset="80%" stop-color="#00f0ff" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#00d2ff" stop-opacity="0"/>
+      <stop offset="25%" stop-color="#00d2ff" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="75%" stop-color="#a855f7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
     </linearGradient>
     <radialGradient id="wmSparkFlare" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-      <stop offset="35%" stop-color="#00f0ff" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+      <stop offset="35%" stop-color="#00d2ff" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#a855f7" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
   <!-- Baseline Optical Laser Horizon -->
-  <line x1="44" y1="88" x2="696" y2="88" stroke="url(#wmLaserGrad)" stroke-width="2.5"/>
-  <!-- Laser Spark Node & Flare on Horizon -->
-  <ellipse cx="370" cy="88" rx="55" ry="6" fill="url(#wmSparkFlare)"/>
-  <circle cx="370" cy="88" r="4" fill="#ffffff"/>
+  <line x1="30" y1="65" x2="790" y2="65" stroke="url(#wmLaserGrad)" stroke-width="2"/>
+  <ellipse cx="410" cy="65" rx="65" ry="5" fill="url(#wmSparkFlare)"/>
+  <circle cx="410" cy="65" r="3.5" fill="#ffffff"/>
 
-  <!-- Scattered Monoline Glyphs -->
-  <g transform="translate(10, 15)" filter="url(#wmShadow)">
+  <!-- Variation 1: Aerodynamic Horizon Brand Glyphs -->
+  <g stroke="url(#wmGradient)" stroke-width="8" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#wmShadow)">
     <!-- S -->
-    <line x1="16" y1="6" x2="48" y2="6" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-    <path d="M 48 14 L 16 14 C 8 14, 8 26, 16 26 L 38 26 C 46 26, 46 38, 38 38 L 8 38" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-    <line x1="8" y1="46" x2="40" y2="46" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-
-    <!-- A -->
-    <path d="M 68 46 L 90 6 L 112 46" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-    <line x1="74" y1="30" x2="106" y2="30" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="round"/>
-
-    <!-- R -->
-    <path d="M 132 46 L 132 6 L 158 6 C 170 6, 170 24, 158 24 L 132 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-    <line x1="152" y1="24" x2="168" y2="46" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-
+    <path d="M 74 12 L 28 12 A 10 10 0 0 0 28 32 L 56 32 A 10 10 0 0 1 56 52 L 10 52"/>
+    <!-- A1 -->
+    <path d="M 90 52 L 121 12 L 152 52 M 104 38 L 138 38"/>
+    <!-- R1 -->
+    <path d="M 188 12 L 208 12 A 10 10 0 0 1 208 32 L 178 32 A 10 10 0 0 0 166 42 L 166 52"/>
+    <path d="M 198 32 L 226 52"/>
     <!-- W -->
-    <path d="M 188 6 L 198 46 L 212 20 L 226 46 L 236 6" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
-
-    <!-- A -->
-    <path d="M 256 46 L 278 6 L 300 46" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-    <line x1="262" y1="30" x2="294" y2="30" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="round"/>
-
-    <!-- R -->
-    <path d="M 320 46 L 320 6 L 346 6 C 358 6, 358 24, 346 24 L 320 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-    <line x1="340" y1="24" x2="356" y2="46" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
-
-    <!-- Dot Separator -->
-    <polygon points="380,44 386,34 394,34 388,44" fill="#00f0ff"/>
-
+    <path d="M 240 12 L 256 52 L 278 20 L 300 52 L 316 12"/>
+    <!-- A2 -->
+    <path d="M 330 52 L 361 12 L 392 52 M 344 38 L 378 38"/>
+    <!-- R2 -->
+    <path d="M 428 12 L 448 12 A 10 10 0 0 1 448 32 L 418 32 A 10 10 0 0 0 406 42 L 406 52"/>
+    <path d="M 438 32 L 466 52"/>
+    <!-- Dot -->
+    <rect x="478" y="44" width="8" height="8" fill="#00d2ff" stroke="none"/>
     <!-- C -->
-    <path d="M 444 14 L 420 14 C 408 14, 408 38, 420 38 L 444 38" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
-
+    <path d="M 560 12 L 524 12 A 10 10 0 0 0 514 22 L 514 42 A 10 10 0 0 0 524 52 L 560 52"/>
     <!-- Y -->
-    <path d="M 462 6 L 476 24 L 490 6" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
-    <line x1="476" y1="28" x2="476" y2="46" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
-
+    <path d="M 574 12 L 602 32 L 602 52 M 630 12 L 602 32"/>
     <!-- O -->
-    <path d="M 520 8 C 508 16, 508 36, 520 44" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
-    <path d="M 528 8 C 540 16, 540 36, 528 44" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
-
+    <path d="M 664 12 L 684 12 A 10 10 0 0 1 684 52 L 664 52 A 10 10 0 0 1 664 12 Z"/>
     <!-- U -->
-    <line x1="560" y1="6" x2="560" y2="20" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
-    <path d="M 560 26 L 560 36 C 560 46, 588 46, 588 36 L 588 6" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
+    <path d="M 718 12 L 718 42 A 10 10 0 0 0 728 52 L 764 52 A 10 10 0 0 0 774 42 L 774 12"/>
   </g>
 </svg>`;
 
