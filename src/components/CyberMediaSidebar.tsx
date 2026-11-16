@@ -238,14 +238,14 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   key={it.id || idx}
                   ref={isActive ? activeItemRef : undefined}
                   onClick={() => onSelectItem(it, idx)}
-                  className={`group flex items-center gap-3 p-2 rounded-xl transition-all duration-200 cursor-pointer ${
+                  className={`group flex items-center gap-3 p-2 rounded-none transition-all duration-200 cursor-pointer ${
                     isActive
                       ? 'bg-white/15 border border-white/40 shadow-sm'
                       : 'bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/20'
                   }`}
                 >
                   {/* Thumbnail Badge */}
-                  <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
+                  <div className="relative w-14 h-10 rounded-none overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
                     <QueueCardThumbnail
                       item={it}
                       mediaType={mediaType}
@@ -275,7 +275,7 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   </div>
 
                   {isActive && (
-                    <span className="text-[9px] font-serif font-bold text-white bg-white/20 px-1.5 py-0.5 rounded border border-white/30 flex-shrink-0">
+                    <span className="text-[9px] font-serif font-bold text-white bg-white/20 px-1.5 py-0.5 rounded-none border border-white/30 flex-shrink-0">
                       PLAYING
                     </span>
                   )}
@@ -304,9 +304,9 @@ export const CyberMediaSidebar: React.FC<CyberMediaSidebarProps> = ({
                   <div
                     key={folder.id}
                     onClick={() => onSelectFolder?.(folder)}
-                    className="group flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/30 transition-all duration-200 cursor-pointer shadow-sm"
+                    className="group flex items-center gap-3 p-2.5 rounded-none bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/30 transition-all duration-200 cursor-pointer shadow-sm"
                   >
-                    <div className="relative w-16 h-12 rounded-xl overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
+                    <div className="relative w-16 h-12 rounded-none overflow-hidden bg-black flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform duration-200">
                       <FolderCoverThumbnail folder={folder} mediaType={mediaType} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-1 pointer-events-none">
                         <Folder className="w-3 h-3 text-white/80" />

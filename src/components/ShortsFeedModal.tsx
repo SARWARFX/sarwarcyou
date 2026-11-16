@@ -585,7 +585,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
           isDesktop
             ? isLandscape
-              ? 'rounded-2xl border-2 border-[#00f0ff] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(0, 240, 255,0.35)] bg-black'
+              ? 'rounded-none border-2 border-[#00f0ff] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(0, 240, 255,0.35)] bg-black'
               : 'h-screen rounded-none border-l-2 border-r-2 border-[#00f0ff] shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7),-10px_0_25px_rgba(0, 240, 255,0.35),10px_0_25px_rgba(0, 240, 255,0.35)] bg-black'
             : 'w-full h-full bg-black'
         } ${
@@ -616,7 +616,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               className={`w-full h-full ${
                 isDesktop
                   ? isLandscape
-                    ? 'object-cover rounded-2xl'
+                    ? 'object-cover rounded-none'
                     : 'object-cover'
                   : isLandscape
                   ? isScreenLandscape
@@ -709,8 +709,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             )}
           </>
         ) : (
-          <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-neutral-950/95 rounded-lg p-6 text-center border border-neutral-800">
-            <div className="w-12 h-12 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center text-neutral-300 mb-3 shadow">
+          <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-neutral-950/95 rounded-none p-6 text-center border border-neutral-800">
+            <div className="w-12 h-12 rounded-none bg-neutral-900 border border-neutral-700 flex items-center justify-center text-neutral-300 mb-3 shadow">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <h3 className="text-base font-normal text-neutral-200 mb-1 font-serif">Video Unavailable</h3>
@@ -726,7 +726,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md text-white p-6 select-none font-serif">
         <Loader2 className="w-10 h-10 animate-spin text-neutral-400 mb-4" />
         <p className="text-sm text-neutral-400 mb-6">No shorts available in this archive.</p>
-        <button type="button" onClick={onClose} className="px-5 py-2 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 text-xs font-serif transition-all cursor-pointer active:scale-95">
+        <button type="button" onClick={onClose} className="px-5 py-2 rounded-none bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 text-xs font-serif transition-all cursor-pointer active:scale-95">
           Return to Explorer
         </button>
       </div>
@@ -757,7 +757,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         <span
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-full bg-black/80 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md shadow-[0_0_10px_rgba(0, 240, 255,0.15)] pointer-events-auto"
+          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-none bg-black/80 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md shadow-[0_0_10px_rgba(0, 240, 255,0.15)] pointer-events-auto"
         >
           {activeIndex + 1} / {shorts.length}
         </span>
@@ -775,7 +775,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
-            className={`reticle-btn px-2 h-9 rounded-lg font-mono text-[10px] font-bold tracking-wider transition-all cursor-pointer ${
+            className={`reticle-btn px-2 h-9 rounded-none font-mono text-[10px] font-bold tracking-wider transition-all cursor-pointer ${
               landscapeMap[activeIndex] ? 'text-[#00f0ff] border-[#00f0ff] bg-[#00f0ff]/15' : 'text-neutral-300'
             }`}
             title={
@@ -845,19 +845,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     className="w-full h-full object-cover pointer-events-none select-none"
                     loading="lazy"
                   />
-                  <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/85 border border-[#00f0ff]/40 backdrop-blur-md pointer-events-none shadow-md">
+                  <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-black/85 border border-[#00f0ff]/40 backdrop-blur-md pointer-events-none shadow-md">
                     <Sparkles className="w-2.5 h-2.5 text-[#00f0ff]" />
                     <span className="text-[9px] font-mono font-bold tracking-wider text-[#00f0ff] uppercase">
                       {STREAM_BADGES[idx % STREAM_BADGES.length]}
                     </span>
                   </div>
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
-                    <div className="w-12 h-12 rounded-full bg-[#00f0ff] text-black flex items-center justify-center shadow-[0_0_20px_rgba(0, 240, 255,0.6)]">
+                    <div className="w-12 h-12 rounded-none bg-[#00f0ff] text-black flex items-center justify-center shadow-[0_0_20px_rgba(0, 240, 255,0.6)]">
                       <Play className="w-5 h-5 fill-current ml-0.5" />
                     </div>
                   </div>
                   <div className="absolute bottom-4 left-4 right-4 pointer-events-none flex items-center">
-                    <span className="px-2.5 py-1 rounded bg-black/80 border border-white/10 backdrop-blur-md text-[11px] font-medium text-white/90 truncate max-w-full drop-shadow">
+                    <span className="px-2.5 py-1 rounded-none bg-black/80 border border-white/10 backdrop-blur-md text-[11px] font-medium text-white/90 truncate max-w-full drop-shadow">
                       {item.title || 'Short'}
                     </span>
                   </div>

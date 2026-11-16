@@ -1033,7 +1033,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         }`}
         style={{ left: `${clampedX}px` }}
       >
-        <div className="w-40 sm:w-48 aspect-video rounded-xl overflow-hidden border border-white/20 bg-black/95 shadow-[0_12px_40px_rgba(0,0,0,0.95),0_0_20px_rgba(56,189,248,0.3)] flex flex-col items-center relative">
+        <div className="w-40 sm:w-48 aspect-video rounded-none overflow-hidden border border-white/20 bg-black/95 shadow-[0_12px_40px_rgba(0,0,0,0.95),0_0_20px_rgba(56,189,248,0.3)] flex flex-col items-center relative">
           {/* Live Video Frame Preview */}
           <video
             ref={sliderPreviewVideoRef}
@@ -1046,7 +1046,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           />
 
           {/* Bottom Timestamp Badge Overlay */}
-          <div className="absolute bottom-1.5 px-2 py-0.5 rounded-md bg-black/85 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold text-white shadow flex items-center gap-1.5">
+          <div className="absolute bottom-1.5 px-2 py-0.5 rounded-none bg-black/85 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold text-white shadow flex items-center gap-1.5">
             <span className="text-white">{formatTime(seekHover.hoverTime)}</span>
             <span className="text-zinc-400 text-[10px]">
               ({formatDelta(seekHover.hoverTime - currentTime)})
@@ -1283,9 +1283,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             gestureSeek.isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
           }`}
         >
-          <div className="flex flex-col items-center gap-3 p-3 sm:p-4 rounded-3xl bg-black/90 backdrop-blur-2xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(0,229,255,0.3)] w-[240px] sm:w-[280px]">
+          <div className="flex flex-col items-center gap-3 p-3 sm:p-4 rounded-none bg-black/90 backdrop-blur-2xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(0,229,255,0.3)] w-[240px] sm:w-[280px]">
             {/* Video Frame Preview Box */}
-            <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/15 bg-black relative shadow-lg">
+            <div className="w-full aspect-video rounded-none overflow-hidden border border-white/15 bg-black relative shadow-lg">
               <video
                 ref={gesturePreviewVideoRef}
                 src={gestureSeek.isActive ? streamUrl : undefined}
@@ -1297,7 +1297,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               />
 
               {/* Direction Pulse Badge */}
-              <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[11px] font-mono text-white">
+              <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-none bg-black/75 backdrop-blur-md border border-white/10 text-[11px] font-mono text-white">
                 {gestureSeek.icon === 'forward' ? (
                   <ChevronsRight className="w-3.5 h-3.5 text-white animate-pulse" />
                 ) : (
@@ -1307,7 +1307,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               </div>
 
               {/* Live Delta Pill */}
-              <div className="absolute bottom-2 right-2 z-10 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/10 text-xs font-mono font-bold text-white shadow">
+              <div className="absolute bottom-2 right-2 z-10 px-2.5 py-1 rounded-none bg-black/80 backdrop-blur-md border border-white/10 text-xs font-mono font-bold text-white shadow">
                 <span className="text-white">{formatDelta(gestureSeek.deltaSeconds)}</span>
               </div>
             </div>
@@ -1347,7 +1347,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         <div
           className={
             isDesktop
-              ? "pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9] rounded-2xl border-2 border-[#00f0ff] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(0, 240, 255,0.35)] bg-black overflow-hidden flex items-center justify-center cursor-pointer select-none"
+              ? "pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9] rounded-none border-2 border-[#00f0ff] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(0, 240, 255,0.35)] bg-black overflow-hidden flex items-center justify-center cursor-pointer select-none"
               : "relative w-full h-full flex items-center justify-center overflow-hidden"
           }
           onPointerDown={handleStagePointerDown}
@@ -1368,7 +1368,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             crossOrigin="anonymous"
             muted={isMuted}
             className={`w-full h-full pointer-events-none transition-all duration-300 ${
-              isDesktop ? 'rounded-2xl' : ''
+              isDesktop ? 'rounded-none' : ''
             } ${fitMode === 'cover' ? 'object-cover' : 'object-contain'}`}
             onCanPlay={(e) => {
               const v = e.currentTarget;
@@ -1666,7 +1666,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         <div
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className={`fixed bottom-6 left-6 z-50 flex items-center gap-2 p-2 rounded-xl bg-[#090b10]/95 backdrop-blur-xl border border-[#00f0ff]/40 shadow-[0_0_25px_rgba(0,0,0,0.8),0_0_15px_rgba(0, 240, 255,0.25)] pointer-events-auto transition-all duration-300 ${
+          className={`fixed bottom-6 left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[#090b10]/95 backdrop-blur-xl border border-[#00f0ff]/40 shadow-[0_0_25px_rgba(0,0,0,0.8),0_0_15px_rgba(0, 240, 255,0.25)] pointer-events-auto transition-all duration-300 ${
             showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
           }`}
         >
@@ -1700,7 +1700,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
               resetHudTimer();
             }}
-            className={`reticle-btn w-9 h-9 rounded-lg cursor-pointer ${
+            className={`reticle-btn w-9 h-9 rounded-none cursor-pointer ${
               repeatMode !== 'off' ? 'text-[#00f0ff] border-[#00f0ff]' : 'text-slate-300'
             }`}
             title={
@@ -1719,7 +1719,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           <button
             type="button"
             onClick={handleToggleLoop}
-            className={`reticle-btn px-2.5 h-9 rounded-lg text-xs font-mono font-bold cursor-pointer ${
+            className={`reticle-btn px-2.5 h-9 rounded-none text-xs font-mono font-bold cursor-pointer ${
               loopA !== null && loopB !== null
                 ? 'text-[#00f0ff] border-[#00f0ff]'
                 : loopA !== null
@@ -1739,7 +1739,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
               resetHudTimer();
             }}
-            className={`reticle-btn px-2.5 h-9 rounded-lg text-xs font-mono font-bold cursor-pointer ${
+            className={`reticle-btn px-2.5 h-9 rounded-none text-xs font-mono font-bold cursor-pointer ${
               fitMode === 'cover' ? 'text-[#00f0ff] border-[#00f0ff]' : 'text-slate-300'
             }`}
             title={fitMode === 'cover' ? 'Fill Screen Active (Click for Fit)' : 'Fit Screen Active (Click for Fill)'}
@@ -1754,7 +1754,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               ref={speedBtnRef}
               type="button"
               onClick={toggleSpeedMenu}
-              className={`reticle-btn px-2.5 h-9 rounded-lg text-xs font-mono font-bold flex items-center gap-1 cursor-pointer ${
+              className={`reticle-btn px-2.5 h-9 rounded-none text-xs font-mono font-bold flex items-center gap-1 cursor-pointer ${
                 playbackSpeed !== 1 ? 'text-[#00f0ff] border-[#00f0ff]' : 'text-slate-300'
               }`}
               title="Playback Speed (< / >)"
@@ -1774,7 +1774,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                   background: 'rgba(10, 11, 15, 0.98)',
                   border: '1px solid rgba(0, 240, 255, 0.3)',
                 }}
-                className="absolute py-1.5 px-1 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-0.5 z-[10000] min-w-[120px] max-h-[50vh] overflow-y-auto pointer-events-auto"
+                className="absolute py-1.5 px-1 rounded-none shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-0.5 z-[10000] min-w-[120px] max-h-[50vh] overflow-y-auto pointer-events-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-semibold border-b border-white/10 mb-0.5">
@@ -1790,7 +1790,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                         e.stopPropagation();
                         handleSelectSpeed(speed);
                       }}
-                      className={`px-2 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
+                      className={`px-2 py-1.5 rounded-none text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 ${
                         isSelected
                           ? 'bg-[#00f0ff] text-black font-semibold'
                           : 'text-neutral-300 hover:text-white hover:bg-white/10'
@@ -1810,7 +1810,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <button
               type="button"
               onClick={handleTogglePiP}
-              className="reticle-btn w-9 h-9 rounded-lg cursor-pointer text-slate-300 hover:text-white"
+              className="reticle-btn w-9 h-9 rounded-none cursor-pointer text-slate-300 hover:text-white"
               title="Picture-in-Picture (P)"
               aria-label="Toggle Picture-in-Picture"
             >
@@ -1871,7 +1871,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           }}
         >
           <div
-            className="w-full md:w-auto h-[62vh] md:h-full max-h-[85vh] md:max-h-screen flex flex-col shadow-2xl pointer-events-auto overflow-hidden rounded-t-3xl md:rounded-t-none animate-slide-up md:animate-slide-left"
+            className="w-full md:w-auto h-[62vh] md:h-full max-h-[85vh] md:max-h-screen flex flex-col shadow-2xl pointer-events-auto overflow-hidden rounded-none animate-slide-up md:animate-slide-left"
             onClick={(e) => e.stopPropagation()}
           >
             <CyberMediaSidebar

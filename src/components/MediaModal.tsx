@@ -985,7 +985,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             maxWidth: '94vw',
             cursor: 'grab',
           }}
-          className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-xl drop-shadow-[0_20px_45px_rgba(0,0,0,0.9)] active:cursor-grabbing ${animationClass}`}
+          className={`pointer-events-auto select-none touch-none object-contain will-change-transform rounded-none drop-shadow-[0_20px_45px_rgba(0,0,0,0.9)] active:cursor-grabbing ${animationClass}`}
           draggable={false}
         />
       </div>
