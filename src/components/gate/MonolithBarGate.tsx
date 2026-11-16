@@ -176,6 +176,35 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Keep screen on state
   const [keepAwakeOn, setKeepAwakeOn] = useState(() => getKeepScreenOnState());
 
+  // Screen Aspect Ratio Detector:
+  // - Portrait screens (mobile phone): scroll strictly up-down
+  // - Wide screen devices (desktop, tablet, mobile landscape): scroll strictly left-right, not up-down
+  const [isWideScreen, setIsWideScreen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth > window.innerHeight;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsWideScreen(window.innerWidth > window.innerHeight);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  const handleHorizontalWheel = useCallback(
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      if (isWideScreen && e.deltaY !== 0) {
+        e.currentTarget.scrollLeft += e.deltaY;
+      }
+    },
+    [isWideScreen]
+  );
+
 
   // 404 Media / Route Not Found Dialog State
   const [notFoundInfo, setNotFoundInfo] = useState<{
@@ -573,7 +602,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Infinite scroll handlers for each media tab (automatic progressive loading)
   const handleShortsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+    const isNearEnd = isWideScreen
+      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
+      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
+
+    if (isNearEnd) {
       setVisibleShorts((prev) => {
         if (prev < activeShortsList.length) {
           return Math.min(prev + 18, activeShortsList.length);
@@ -581,11 +614,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return prev;
       });
     }
-  }, [activeShortsList.length]);
+  }, [activeShortsList.length, isWideScreen]);
 
   const handleClipsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+    const isNearEnd = isWideScreen
+      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
+      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
+
+    if (isNearEnd) {
       setVisibleClips((prev) => {
         if (prev < activeClipsList.length) {
           return Math.min(prev + 12, activeClipsList.length);
@@ -593,11 +630,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return prev;
       });
     }
-  }, [activeClipsList.length]);
+  }, [activeClipsList.length, isWideScreen]);
 
   const handlePhotosScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+    const isNearEnd = isWideScreen
+      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
+      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
+
+    if (isNearEnd) {
       setVisiblePhotos((prev) => {
         if (prev < activePhotosList.length) {
           return Math.min(prev + 16, activePhotosList.length);
@@ -605,11 +646,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return prev;
       });
     }
-  }, [activePhotosList.length]);
+  }, [activePhotosList.length, isWideScreen]);
 
   const handleBandhobiScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    if (target.scrollHeight - target.scrollTop - target.clientHeight < 600) {
+    const isNearEnd = isWideScreen
+      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
+      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
+
+    if (isNearEnd) {
       setVisibleBandhobi((prev) => {
         if (prev < activeBandhobiList.length) {
           return Math.min(prev + 16, activeBandhobiList.length);
@@ -617,7 +662,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return prev;
       });
     }
-  }, [activeBandhobiList.length]);
+  }, [activeBandhobiList.length, isWideScreen]);
 
   // Reset pagination count when subfolders change
   useEffect(() => {
@@ -832,103 +877,175 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 1: PHOTOGRAPHS TAB PAGE (HACKER RETICLE GRID WITH GAPS)     */}
+          {/* PANEL 1: PHOTOGRAPHS TAB PAGE                                     */}
+          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
               onScroll={handlePhotosScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
+              onWheel={handleHorizontalWheel}
+              className={`w-full h-full space-scrollbar p-0 m-0 ${
+                isWideScreen
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  : 'overflow-y-auto overflow-x-hidden pb-28'
+              }`}
             >
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto">
+              <div
+                className={
+                  isWideScreen
+                    ? 'flex flex-row items-center gap-6 sm:gap-8 h-[calc(100dvh-75px)] py-3 shrink-0'
+                    : 'grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 p-4 max-w-[1200px] mx-auto'
+                }
+              >
                 {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
-                  <LivingMediaCard
+                  <div
                     key={item.id || item.url || idx}
-                    item={item}
-                    aspectRatio="3/4"
-                    delayIdx={idx}
-                    onClick={() => handleOpenItem(item, idx)}
-                  />
+                    className={isWideScreen ? 'h-full aspect-[3/4] shrink-0' : 'w-full'}
+                  >
+                    <LivingMediaCard
+                      item={item}
+                      aspectRatio="3/4"
+                      delayIdx={idx}
+                      onClick={() => handleOpenItem(item, idx)}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 2: SHORTS TAB PAGE (HACKER RETICLE GRID WITH GAPS)          */}
+          {/* PANEL 2: SHORTS TAB PAGE                                          */}
+          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
               onScroll={handleShortsScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
+              onWheel={handleHorizontalWheel}
+              className={`w-full h-full space-scrollbar p-0 m-0 ${
+                isWideScreen
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  : 'overflow-y-auto overflow-x-hidden pb-28'
+              }`}
             >
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-7 md:gap-8 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto">
+              <div
+                className={
+                  isWideScreen
+                    ? 'flex flex-row items-center gap-6 sm:gap-8 h-[calc(100dvh-75px)] py-3 shrink-0'
+                    : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6 p-4 max-w-[1400px] mx-auto'
+                }
+              >
                 {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
-                  <LivingMediaCard
+                  <div
                     key={item.id || item.url || idx}
-                    item={item}
-                    aspectRatio="9/16"
-                    delayIdx={idx}
-                    onClick={() => handleOpenItem(item, idx)}
-                  />
+                    className={isWideScreen ? 'h-full aspect-[9/16] shrink-0' : 'w-full'}
+                  >
+                    <LivingMediaCard
+                      item={item}
+                      aspectRatio="9/16"
+                      delayIdx={idx}
+                      onClick={() => handleOpenItem(item, idx)}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 3: VIDEO CLIPS TAB PAGE (HACKER RETICLE GRID WITH GAPS)     */}
+          {/* PANEL 3: VIDEO CLIPS TAB PAGE                                     */}
+          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
               onScroll={handleClipsScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
+              onWheel={handleHorizontalWheel}
+              className={`w-full h-full space-scrollbar p-0 m-0 ${
+                isWideScreen
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  : 'overflow-y-auto overflow-x-hidden pb-28'
+              }`}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 md:gap-10 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto">
+              <div
+                className={
+                  isWideScreen
+                    ? 'flex flex-row items-center gap-6 sm:gap-8 h-[calc(100dvh-120px)] max-h-[620px] py-3 shrink-0'
+                    : 'grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 p-4 max-w-[1200px] mx-auto'
+                }
+              >
                 {activeClipsList.slice(0, visibleClips).map((item, idx) => (
-                  <LivingMediaCard
+                  <div
                     key={item.id || item.url || idx}
-                    item={item}
-                    aspectRatio="16/9"
-                    delayIdx={idx}
-                    onClick={() => handleOpenItem(item, idx)}
-                  />
+                    className={isWideScreen ? 'h-full aspect-video shrink-0' : 'w-full'}
+                  >
+                    <LivingMediaCard
+                      item={item}
+                      aspectRatio="16/9"
+                      delayIdx={idx}
+                      onClick={() => handleOpenItem(item, idx)}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 4: BANDHOBI TAB PAGE (INDEPENDENT MEDIA DIRECTORY)          */}
+          {/* PANEL 4: BANDHOBI TAB PAGE                                        */}
+          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
               onScroll={handleBandhobiScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
+              onWheel={handleHorizontalWheel}
+              className={`w-full h-full space-scrollbar p-0 m-0 ${
+                isWideScreen
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  : 'overflow-y-auto overflow-x-hidden pb-28'
+              }`}
             >
               <div
-                className={`grid gap-6 sm:gap-8 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto ${
-                  bandhobiSubfolder === 'Shorts'
-                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-                    : bandhobiSubfolder === 'Video Clips'
-                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                    : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                }`}
+                className={
+                  isWideScreen
+                    ? `flex flex-row items-center gap-6 sm:gap-8 ${
+                        bandhobiSubfolder === 'Video Clips'
+                          ? 'h-[calc(100dvh-120px)] max-h-[620px]'
+                          : 'h-[calc(100dvh-75px)]'
+                      } py-3 shrink-0`
+                    : `grid gap-4 sm:gap-6 p-4 max-w-[1400px] mx-auto ${
+                        bandhobiSubfolder === 'Video Clips'
+                          ? 'grid-cols-1 sm:grid-cols-2'
+                          : 'grid-cols-2 sm:grid-cols-3'
+                      }`
+                }
               >
-                {activeBandhobiList.slice(0, visibleBandhobi).map((item, idx) => (
-                  <LivingMediaCard
-                    key={item.id || item.url || idx}
-                    item={item}
-                    aspectRatio={
-                      bandhobiSubfolder === 'Shorts'
-                        ? '9/16'
-                        : bandhobiSubfolder === 'Video Clips'
-                        ? '16/9'
-                        : '3/4'
-                    }
-                    delayIdx={idx}
-                    onClick={() => handleOpenItem(item, idx)}
-                  />
-                ))}
+                {activeBandhobiList.slice(0, visibleBandhobi).map((item, idx) => {
+                  const aspect =
+                    bandhobiSubfolder === 'Shorts'
+                      ? '9/16'
+                      : bandhobiSubfolder === 'Video Clips'
+                      ? '16/9'
+                      : '3/4';
+                  const aspectClass =
+                    aspect === '9/16'
+                      ? 'aspect-[9/16]'
+                      : aspect === '16/9'
+                      ? 'aspect-video'
+                      : 'aspect-[3/4]';
+                  return (
+                    <div
+                      key={item.id || item.url || idx}
+                      className={isWideScreen ? `h-full ${aspectClass} shrink-0` : 'w-full'}
+                    >
+                      <LivingMediaCard
+                        item={item}
+                        aspectRatio={aspect}
+                        delayIdx={idx}
+                        onClick={() => handleOpenItem(item, idx)}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>
