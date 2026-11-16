@@ -1,4 +1,4 @@
-import type { HfMediaCatalog, StageMediaItem, MediaFolderEntry, SortOrder } from '../types';
+import type { HfMediaCatalog, HfMediaItem, StageMediaItem, MediaFolderEntry, SortOrder } from '../types';
 import { getMediaUrl } from './imageUrlResolver';
 import {
   isHiddenOrSystemPath,
@@ -113,10 +113,24 @@ export function organizeVaultFeed(
     };
   }
 
-  // 1. Gather all raw items across catalog (prefer allMedia if present)
-  const pool = catalog.allMedia && catalog.allMedia.length > 0
-    ? catalog.allMedia
-    : [...(catalog.clips || []), ...(catalog.shorts || []), ...(catalog.images || [])];
+  // 1. Gather all raw items across catalog including Bandhobi
+  const rawPool: HfMediaItem[] = [
+    ...(catalog.allMedia || []),
+    ...(catalog.bandhobi || []),
+    ...(catalog.clips || []),
+    ...(catalog.shorts || []),
+    ...(catalog.images || []),
+  ];
+
+  const poolSeen = new Set<string>();
+  const pool: HfMediaItem[] = [];
+  for (const it of rawPool) {
+    const k = it.path || it.url || it.name;
+    if (k && !poolSeen.has(k)) {
+      poolSeen.add(k);
+      pool.push(it);
+    }
+  }
 
   // 2. Group all valid media items strictly by relative folder hierarchy
   const folderMap = new Map<string, StageMediaItem[]>();
@@ -149,7 +163,7 @@ export function organizeVaultFeed(
     if (!isVid && !isPhoto) continue;
 
     const hasShortsIndicator =
-      segments.some((s) => /^shorts?$/i.test(s.trim())) ||
+      segments.some((s: string) => /^shorts?$/i.test(s.trim())) ||
       clean.toLowerCase().includes('/shorts/') ||
       folderPath.toLowerCase().includes('short');
     const isShort = isVid && hasShortsIndicator;

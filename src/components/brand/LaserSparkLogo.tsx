@@ -10,12 +10,11 @@ export interface LaserSparkLogoProps {
 }
 
 /**
- * Option 3: Solid Cyber Neon (Static / Zero Flashing)
- * High-impact branding:
- * - SARWAR in wide, expansive, high-presence SPARK letterforms
- * - .CYOU inside an integrated glowing cyber-capsule badge
+ * Option 3: Solid Cyber Neon — Global White & Electric Cyan (#00F0FF) Palette
+ * Matches the start screen brand identity:
+ * - SARWAR in wide, expansive SPARK letterforms in Stark White (#FFFFFF)
+ * - .CYOU inside an integrated cyber-capsule badge in Electric Cyan (#00F0FF)
  * - PURE FLOATING LOGO (No baseline laser track/flare underneath)
- * - Rock-solid, unwavering Neon Acid Lime (#CCFF00) with soft atmospheric neon glow
  * - 100% Static: Zero flashing, zero color alternating, zero black dips
  */
 export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
@@ -36,16 +35,16 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           : ''
       } ${className}`}
     >
-      {/* SVG Wordmark (Option 3: Solid Cyber Neon) */}
+      {/* SVG Wordmark (Global White + Electric Cyan Palette) */}
       <svg
         viewBox="0 0 820 70"
         width={width}
         height={height}
-        className="relative z-20 filter drop-shadow-[0_0_16px_rgba(204,255,0,0.6)] group-hover:drop-shadow-[0_0_22px_rgba(204,255,0,0.85)] transition-all duration-200"
+        className="relative z-20 filter drop-shadow-[0_0_16px_rgba(0,240,255,0.55)] group-hover:drop-shadow-[0_0_24px_rgba(0,240,255,0.85)] transition-all duration-200"
       >
         <defs>
-          <filter id="solidNeonGlow">
-            <feGaussianBlur stdDeviation="3.0" result="glow" />
+          <filter id="solidWhiteCyanGlow">
+            <feGaussianBlur stdDeviation="2.8" result="glow" />
             <feMerge>
               <feMergeNode in="glow" />
               <feMergeNode in="SourceGraphic" />
@@ -53,13 +52,14 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           </filter>
         </defs>
 
+        {/* 1. SARWAR Hero Wordmark — Stark White (#FFFFFF) */}
         <g
-          stroke="#ccff00"
+          stroke="#ffffff"
           strokeWidth="8.5"
           strokeLinecap="butt"
           strokeLinejoin="round"
           fill="none"
-          filter="url(#solidNeonGlow)"
+          filter="url(#solidWhiteCyanGlow)"
         >
           {/* S (x: 10 to 86) */}
           <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
@@ -75,20 +75,29 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           {/* R2 (x: 468 to 536) */}
           <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
           <path d="M 504 33 L 536 54" />
+        </g>
 
-          {/* .CYOU Cyber Tag Pill (x: 560 to 770) */}
+        {/* 2. .CYOU Cyber Tag Pill — Electric Cyan (#00F0FF) */}
+        <g
+          stroke="#00f0ff"
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+          fill="none"
+          filter="url(#solidWhiteCyanGlow)"
+        >
+          {/* Cyber Pill Capsule */}
           <rect
             x="560"
             y="16"
             width="210"
             height="34"
             rx="8"
-            stroke="#ccff00"
+            stroke="#00f0ff"
             strokeWidth="2.2"
-            fill="rgba(204, 255, 0, 0.08)"
+            fill="rgba(0, 240, 255, 0.08)"
           />
           {/* Dot */}
-          <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none" />
+          <circle cx="582" cy="33" r="3.5" fill="#00f0ff" stroke="none" />
           {/* C */}
           <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
           {/* Y */}

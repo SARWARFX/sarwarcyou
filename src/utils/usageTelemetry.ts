@@ -25,6 +25,20 @@ const TIME_STORAGE_KEY = 'sarwarcyou_time_telemetry_v1';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const FULL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export function formatFullSpentTime(minutes: number): string {
+  if (!minutes || minutes < 1) return '< 1 minute';
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  if (hrs > 0 && mins > 0) {
+    return `${hrs} hour${hrs > 1 ? 's' : ''} ${mins} minute${mins > 1 ? 's' : ''}`;
+  }
+  if (hrs > 0) {
+    return `${hrs} hour${hrs > 1 ? 's' : ''}`;
+  }
+  return `${mins} minute${mins > 1 ? 's' : ''}`;
+}
 
 export function formatDuration(minutes: number): string {
   if (!minutes || minutes < 1) return '<1m today';
@@ -147,6 +161,56 @@ export const getRolling7DayUsage = (): TelemetrySummary => {
     };
   }
 };
+
+export interface Telemetry7DayEntry {
+  date: string;
+  label: string;
+  minutes: number;
+  formattedText: string;
+}
+
+export function getRolling7DayDisplayData(): Telemetry7DayEntry[] {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(TIME_STORAGE_KEY) : null;
+    const history: Record<string, number> = raw ? JSON.parse(raw) : {};
+
+    const list: Telemetry7DayEntry[] = [];
+    const now = new Date();
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const iso = d.toISOString().split('T')[0];
+      const mins = history[iso] || 0;
+
+      // Exclude days with no data (zero days)
+      if (mins === 0 && i !== 0) continue;
+
+      let label = FULL_DAY_NAMES[d.getDay()];
+      if (i === 0) label = 'Today';
+      else if (i === 1) label = 'Yesterday';
+
+      list.push({
+        date: iso,
+        label,
+        minutes: mins,
+        formattedText: formatFullSpentTime(mins),
+      });
+    }
+
+    return list;
+  } catch (e) {
+    console.warn('Telemetry 7-day read failed', e);
+    return [
+      {
+        date: new Date().toISOString().split('T')[0],
+        label: 'Today',
+        minutes: 0,
+        formattedText: '< 1 minute',
+      },
+    ];
+  }
+}
 
 /**
  * Lightweight active session heartbeat (records minutes while tab is active)

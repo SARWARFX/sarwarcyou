@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 70" width="820" height="70">
   <defs>
-    <filter id="solidNeonGlowSvg">
-      <feGaussianBlur stdDeviation="3.0" result="glow" />
+    <filter id="solidWhiteCyanGlowSvg">
+      <feGaussianBlur stdDeviation="2.8" result="glow" />
       <feMerge>
         <feMergeNode in="glow" />
         <feMergeNode in="SourceGraphic" />
@@ -9,8 +9,8 @@
     </filter>
   </defs>
 
-  <!-- Option 3: Solid Cyber Neon (Static / Zero Flashing) -->
-  <g stroke="#ccff00" stroke-width="8.5" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#solidNeonGlowSvg)">
+  <!-- SARWAR in Stark White (#FFFFFF) -->
+  <g stroke="#ffffff" stroke-width="8.5" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#solidWhiteCyanGlowSvg)">
     <!-- S -->
     <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54"/>
     <!-- A1 -->
@@ -25,11 +25,14 @@
     <!-- R2 -->
     <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54"/>
     <path d="M 504 33 L 536 54"/>
+  </g>
 
+  <!-- .CYOU in Electric Cyan (#00F0FF) -->
+  <g stroke="#00f0ff" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#solidWhiteCyanGlowSvg)">
     <!-- .CYOU Cyber Tag Pill -->
-    <rect x="560" y="16" width="210" height="34" rx="8" stroke="#ccff00" stroke-width="2.2" fill="rgba(204, 255, 0, 0.08)"/>
+    <rect x="560" y="16" width="210" height="34" rx="8" stroke="#00f0ff" stroke-width="2.2" fill="rgba(0, 240, 255, 0.08)"/>
     <!-- Dot -->
-    <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none"/>
+    <circle cx="582" cy="33" r="3.5" fill="#00f0ff" stroke="none"/>
     <!-- C -->
     <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" stroke-width="3.2"/>
     <!-- Y -->

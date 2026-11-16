@@ -9,7 +9,7 @@ import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
 import { useBackButton } from '../../utils/backButtonManager';
 import { VaultDrawer } from '../VaultDrawer';
 import { hapticMedium } from '../../utils/hapticsManager';
-import { trackActivityEvent, getRolling15DayUsage } from '../../utils/usageTelemetry';
+import { trackActivityEvent, getRolling7DayDisplayData } from '../../utils/usageTelemetry';
 import {
   parseIdRoute,
   parseAppPathname,
@@ -50,9 +50,13 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   let sub = dirParts.slice(1);
 
   // 1. Bandhobi: Completely independent 4th main directory (never mixed with other collections)
-  if (/^(?:bandhobi|realtube)$/i.test(root)) {
+  if (/^(?:bandhobi|realtube)$/i.test(root) || clean.toLowerCase().startsWith('bandhobi/') || clean.toLowerCase().startsWith('realtube/')) {
     root = 'Bandhobi';
     let subName = sub.length > 0 ? sub[0] : '';
+    if (!subName && clean.toLowerCase().includes('/photographs/')) subName = 'Photographs';
+    if (!subName && clean.toLowerCase().includes('/shorts/')) subName = 'Shorts';
+    if (!subName && clean.toLowerCase().includes('/video clips/')) subName = 'Video Clips';
+
     if (/image|photo/i.test(subName) || isPhotoExtension(clean)) {
       sub = ['Photographs'];
     } else if (/short/i.test(subName) || item.mediaType === 'short') {
@@ -120,8 +124,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const [_activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
 
-  // Active Main Directory Tab inside Logo Drop-Up Nav
-  const [activeMainTab, setActiveMainTab] = useState<MainDirectoryTab>('Photographs');
+  // Active Main Directory Tab inside Logo Drop-Up Nav (initialized from route)
+  const [activeMainTab, setActiveMainTab] = useState<MainDirectoryTab>(() => {
+    if (typeof window === 'undefined') return 'Photographs';
+    const parsed = parseAppPathname();
+    if (parsed.tab === 'BANDHOBI') return 'Bandhobi';
+    if (parsed.tab === 'SHORTS') return 'Shorts';
+    if (parsed.tab === 'CLIPS') return 'Video Clips';
+    return 'Photographs';
+  });
 
   // Logo Drop-Up Navigation Menu Open State
   const [isNavTrayOpen, setIsNavTrayOpen] = useState(false);
@@ -485,9 +496,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     Boolean(isNavTrayOpen || isSearchOpen || activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
   );
 
-  // 15-day rolling session telemetry metrics (zero suppression: days with 0 data are excluded)
-  const telemetry15DayData = useMemo(() => {
-    return getRolling15DayUsage();
+  // 7-day rolling session telemetry metrics (zero suppression: days with 0 data are excluded)
+  const telemetry7DayData = useMemo(() => {
+    return getRolling7DayDisplayData();
   }, [isNavTrayOpen]);
 
   // Infinite scroll handlers for each media tab (automatic progressive loading)
@@ -667,6 +678,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           activeMainTab={activeMainTab}
           onSelectMainTab={(tab) => {
             setActiveMainTab(tab);
+            if (tab === 'Photographs') switchTab(1);
+            else if (tab === 'Shorts') switchTab(2);
+            else if (tab === 'Video Clips') switchTab(3);
+            else if (tab === 'Bandhobi') switchTab(4);
           }}
           activeSubfolder={
             activeMainTab === 'Photographs'
@@ -692,7 +707,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               switchTab(4);
             }
           }}
-          telemetryData={telemetry15DayData}
+          telemetryData={telemetry7DayData}
           keepAwakeOn={keepAwakeOn}
           onToggleKeepAwake={toggleKeepScreenOn}
         />

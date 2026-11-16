@@ -243,6 +243,7 @@ export function parseTreeToCatalog(
     const isBandhobi = path.toLowerCase().startsWith('bandhobi/') || path.toLowerCase().startsWith('realtube/');
     if (isBandhobi) {
       bandhobi.push(itemObj);
+      allMedia.push(itemObj);
     } else if (isVideoExtension(path)) {
       if (parsedPath.mediaType === 'short') {
         shorts.push(itemObj);

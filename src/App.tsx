@@ -72,6 +72,7 @@ function buildMediaUrl(item: StageMediaItem, albumContext?: string): string {
 function buildAlbumUrl(albumNameOrSlug: string): string {
   if (typeof window === 'undefined') return '/';
   const clean = albumNameOrSlug.toLowerCase();
+  if (clean.includes('bandhobi')) return '/bandhobi';
   if (clean.includes('short')) return '/shorts';
   if (clean.includes('clip') || clean.includes('video')) return '/clips';
   if (clean.includes('photo') || clean.includes('image')) return '/photographs';
