@@ -13,7 +13,7 @@
 import { getMediaUrl } from './imageUrlResolver';
 import { safeEncodeUrl } from './mediaTypeDetector';
 
-const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 68" width="820" height="68">
+const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 70" width="820" height="70">
   <defs>
     <filter id="wmShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.95"/>
@@ -23,51 +23,37 @@ const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0
       <stop offset="50%" stop-color="#ccff00"/>
       <stop offset="100%" stop-color="#ffffff"/>
     </linearGradient>
-    <linearGradient id="wmLaserGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ccff00" stop-opacity="0"/>
-      <stop offset="25%" stop-color="#ccff00" stop-opacity="0.3"/>
-      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.95"/>
-      <stop offset="75%" stop-color="#ccff00" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#ccff00" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="wmSparkFlare" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-      <stop offset="40%" stop-color="#ccff00" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#ccff00" stop-opacity="0"/>
-    </radialGradient>
   </defs>
 
-  <!-- Baseline Optical Laser Horizon -->
-  <line x1="30" y1="65" x2="790" y2="65" stroke="url(#wmLaserGrad)" stroke-width="2"/>
-  <ellipse cx="410" cy="65" rx="65" ry="5" fill="url(#wmSparkFlare)"/>
-  <circle cx="410" cy="65" r="3.5" fill="#ffffff"/>
-
-  <!-- Variation 1: Aerodynamic Horizon Brand Glyphs -->
-  <g stroke="url(#wmGradient)" stroke-width="8" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#wmShadow)">
+  <!-- Variation 2: Hierarchical Cyber-Block (Pure Floating - No Baseline Graphic) -->
+  <g stroke="url(#wmGradient)" stroke-width="8.5" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#wmShadow)">
     <!-- S -->
-    <path d="M 74 12 L 28 12 A 10 10 0 0 0 28 32 L 56 32 A 10 10 0 0 1 56 52 L 10 52"/>
+    <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54"/>
     <!-- A1 -->
-    <path d="M 90 52 L 121 12 L 152 52 M 104 38 L 138 38"/>
+    <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40"/>
     <!-- R1 -->
-    <path d="M 188 12 L 208 12 A 10 10 0 0 1 208 32 L 178 32 A 10 10 0 0 0 166 42 L 166 52"/>
-    <path d="M 198 32 L 226 52"/>
+    <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54"/>
+    <path d="M 228 33 L 260 54"/>
     <!-- W -->
-    <path d="M 240 12 L 256 52 L 278 20 L 300 52 L 316 12"/>
+    <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12"/>
     <!-- A2 -->
-    <path d="M 330 52 L 361 12 L 392 52 M 344 38 L 378 38"/>
+    <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40"/>
     <!-- R2 -->
-    <path d="M 428 12 L 448 12 A 10 10 0 0 1 448 32 L 418 32 A 10 10 0 0 0 406 42 L 406 52"/>
-    <path d="M 438 32 L 466 52"/>
+    <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54"/>
+    <path d="M 504 33 L 536 54"/>
+
+    <!-- .CYOU Cyber Tag Pill -->
+    <rect x="560" y="16" width="210" height="34" rx="8" stroke="rgba(204, 255, 0, 0.6)" stroke-width="1.8" fill="rgba(204, 255, 0, 0.08)"/>
     <!-- Dot -->
-    <rect x="478" y="44" width="8" height="8" fill="#ccff00" stroke="none"/>
+    <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none"/>
     <!-- C -->
-    <path d="M 560 12 L 524 12 A 10 10 0 0 0 514 22 L 514 42 A 10 10 0 0 0 524 52 L 560 52"/>
+    <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" stroke-width="3"/>
     <!-- Y -->
-    <path d="M 574 12 L 602 32 L 602 52 M 630 12 L 602 32"/>
+    <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" stroke-width="3"/>
     <!-- O -->
-    <path d="M 664 12 L 684 12 A 10 10 0 0 1 684 52 L 664 52 A 10 10 0 0 1 664 12 Z"/>
+    <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" stroke-width="3"/>
     <!-- U -->
-    <path d="M 718 12 L 718 42 A 10 10 0 0 0 728 52 L 764 52 A 10 10 0 0 0 774 42 L 774 12"/>
+    <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" stroke-width="3"/>
   </g>
 </svg>`;
 
