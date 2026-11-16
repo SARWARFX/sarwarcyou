@@ -204,14 +204,6 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
 
   const mainFolders: MainDirectoryTab[] = ['Photographs', 'Shorts', 'Video Clips', 'Bandhobi'];
 
-  // Today's Retention / Time Spent
-  const todayEntry = telemetryData.find(
-    (t) => t.label === 'Today' || t.label === 'today' || t.date === new Date().toISOString().split('T')[0]
-  );
-  const todayMinutes = todayEntry?.minutes || 0;
-  const displayTodayMinutes = todayMinutes > 0 ? todayMinutes : 112; // 112m = 1h 52m
-  const todayRetentionText = formatRetentionTime(displayTodayMinutes);
-
   /**
    * Filter media items in real-time when user types in the inline dock search box
    */
@@ -229,25 +221,42 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
 
   /**
    * 7-Day Horizontal Bar Graph Breakdown (Still Graphic, Zero Running Animations)
-   * Stacks days vertically: S, M, T, W, T, F, S
+   * Week starts on Saturday and ends on Friday: S, S, M, T, W, T, F
    * Horizontal bar in center, time spent formatted (e.g. 1h 52m) on the right
    */
   const horizontalDays = useMemo(() => {
-    const DAY_CHARS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const WEEK_DAYS = [
+      { char: 'S', fullName: 'Saturday', jsDay: 6 },
+      { char: 'S', fullName: 'Sunday', jsDay: 0 },
+      { char: 'M', fullName: 'Monday', jsDay: 1 },
+      { char: 'T', fullName: 'Tuesday', jsDay: 2 },
+      { char: 'W', fullName: 'Wednesday', jsDay: 3 },
+      { char: 'T', fullName: 'Thursday', jsDay: 4 },
+      { char: 'F', fullName: 'Friday', jsDay: 5 },
+    ];
+
     const now = new Date();
     const currentDayOfWeek = now.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+    const daysSinceSaturday = (currentDayOfWeek + 1) % 7;
 
-    // Baseline realistic values [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
-    const baseDemoMinutes = [74, 45, 112, 68, 25, 82, 35];
+    // Baseline realistic values keyed by jsDay [Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6]
+    const baseDemoByJsDay: Record<number, number> = {
+      6: 35, // Saturday
+      0: 74, // Sunday
+      1: 45, // Monday
+      2: 112, // Tuesday (1h 52m)
+      3: 68, // Wednesday
+      4: 25, // Thursday
+      5: 82, // Friday
+    };
 
-    const days = DAY_CHARS.map((char, dayIndex) => {
-      const isToday = dayIndex === currentDayOfWeek;
+    const days = WEEK_DAYS.map((item, index) => {
+      const isToday = item.jsDay === currentDayOfWeek;
 
-      // Calculate calendar date for this day of the current week
+      // Calculate calendar date for this day relative to the current week's Saturday
       const d = new Date();
-      const diff = dayIndex - currentDayOfWeek;
-      d.setDate(now.getDate() + diff);
+      const offsetFromToday = index - daysSinceSaturday;
+      d.setDate(now.getDate() + offsetFromToday);
       const iso = d.toISOString().split('T')[0];
 
       // Match actual telemetry data if present
@@ -259,13 +268,13 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       if (isToday) {
         minutes = minutes > 0 ? minutes : 112; // 112m = 1h 52m
       } else if (minutes === 0) {
-        minutes = baseDemoMinutes[dayIndex];
+        minutes = baseDemoByJsDay[item.jsDay] || 30;
       }
 
       return {
-        dayIndex,
-        char,
-        fullName: FULL_DAYS[dayIndex],
+        index,
+        char: item.char,
+        fullName: item.fullName,
         dateIso: iso,
         isToday,
         minutes,
@@ -319,20 +328,14 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           <LaserSparkLogo width={175} height={24} interactive={false} />
         </div>
 
-        {/* Time Spent Retention Text right beneath the website logo */}
-        <div className="flex items-center justify-between px-1 pb-1 mb-1 font-['Michroma',sans-serif] text-[7.5px] tracking-wider select-none">
-          <span className="text-white/50 text-[7px] uppercase">TIME SPENT:</span>
-          <span className="font-bold text-white tracking-widest">{todayRetentionText}</span>
-        </div>
-
         {/* ============================================================== */}
         {/* SECTION 2: 7-DAY HORIZONTAL BAR GRAPH (STILL GRAPHIC)         */}
-        {/* Day names S, M, T, W, T, F, S vertical, bar middle, time right*/}
+        {/* 7 Days: Starts on Saturday and ends on Friday (S, S, M, T, W, T, F) */}
         {/* ============================================================== */}
         <div className="bg-white/[0.04] p-2 flex flex-col gap-1.5 select-none rounded-none border-0 mb-2">
           {horizontalDays.map((day) => (
             <div
-              key={day.dayIndex}
+              key={day.index}
               className={`flex items-center justify-between text-[7.5px] font-['Michroma',sans-serif] px-1 py-0.5 rounded-none transition-colors ${
                 day.isToday ? 'bg-white/[0.08]' : 'hover:bg-white/[0.03]'
               }`}
