@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 65" width="950" height="65" style="background: #050811;">
+  <defs>
+    <linearGradient id="testSpark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00d2ff"/>
+      <stop offset="50%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- SPARK Letters based on exact geometry -->
+  <g stroke="url(#testSpark)" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none">
+    <!-- S -->
+    <path d="M 85 8 L 24 8 A 9.5 9.5 0 0 0 24 27 L 65 27 A 9.5 9.5 0 0 1 65 46 L 5 46"/>
+    
+    <!-- P -->
+    <path d="M 130 8 L 165 8 A 9.5 9.5 0 0 1 165 27 L 120 27 A 9.5 9.5 0 0 0 110.5 36.5 L 110.5 46"/>
+    
+    <!-- A -->
+    <path d="M 195 46 L 222 8 L 252 8 L 282 46 L 245 46" stroke-linejoin="round" stroke-linecap="round"/>
+    
+    <!-- R -->
+    <path d="M 320 8 L 355 8 A 9.5 9.5 0 0 1 355 27 L 310 27 A 9.5 9.5 0 0 0 300.5 36.5 L 300.5 46"/>
+    <path d="M 345 27 L 375 46"/>
+    
+    <!-- K -->
+    <line x1="400" y1="8" x2="400" y2="46"/>
+    <path d="M 416 27 L 436 27 L 465 8 M 436 27 L 465 46" stroke-linecap="round"/>
+  </g>
+</svg>
