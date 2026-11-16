@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { getVideoStreamUrl, getMediaUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
@@ -108,19 +107,6 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
           }`}
         />
       )}
-
-      {/* Cyber Corner Reticles on Hover */}
-      <div className="absolute top-1.5 left-1.5 w-2.5 h-2.5 border-t-2 border-l-2 border-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20" />
-      <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 border-t-2 border-r-2 border-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20" />
-      <div className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 border-b-2 border-l-2 border-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20" />
-      <div className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 border-b-2 border-r-2 border-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20" />
-
-      {/* Center Play Button Overlay on Hover */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-        <div className="w-11 h-11 rounded-full bg-[#00d2ff] text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-          <Play className="w-5 h-5 fill-current ml-0.5" />
-        </div>
-      </div>
     </div>
   );
 };

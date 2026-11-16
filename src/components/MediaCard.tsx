@@ -354,15 +354,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       {/* Specular gloss highlight on hover */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/[0.18] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />
 
-      {/* Video Play Glyph indicator */}
-      {isVideo && !isHovered && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/25 backdrop-blur-[1px] pointer-events-none z-20">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-xl">
-            <Play className="w-4 h-4 fill-current ml-0.5" />
-          </div>
-        </div>
-      )}
-
       {/* Razor-thin border sheen on hover */}
       <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl border border-transparent group-hover:border-white/15 transition-colors duration-300 z-20" />
     </div>
