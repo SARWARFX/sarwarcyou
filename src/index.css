@@ -260,7 +260,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
 }
 
 .animate-laser-spark-dash {
-  animation: laserSparkDash 2.4s linear infinite;
+  animation: laserSparkDash 10s linear infinite;
 }
 
 /* Attractive Graph Line Reveal */

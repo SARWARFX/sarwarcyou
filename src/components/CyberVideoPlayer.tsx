@@ -18,6 +18,7 @@ import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight } from '../utils/hapticsManager';
+import { getGlobalAudioMuted } from '../utils/audioMuteManager';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
 import {
   LaserCloseIcon,
@@ -72,7 +73,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(() => getGlobalAudioMuted());
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [speedMenuPos, setSpeedMenuPos] = useState<{ bottom: number; right: number } | null>(null);

@@ -15,6 +15,7 @@ import {
   LaserNextIcon,
   LaserVolumeIcon,
 } from './brand/LaserIcons';
+import { getGlobalAudioMuted } from '../utils/audioMuteManager';
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -28,7 +29,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 }) => {
   useLockBodyScroll(isOpen);
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => getGlobalAudioMuted());
   const [overrides, setOverrides] = useState<Record<number, string>>({});
   const [failedPermanently, setFailedPermanently] = useState<Record<number, boolean>>({});
   const [landscapeMap, setLandscapeMap] = useState<Record<number, boolean>>({});

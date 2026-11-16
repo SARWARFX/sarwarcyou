@@ -138,44 +138,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Logo Drop-Up Navigation Menu Open State (shown by default, toggles on logo click)
   const [isNavTrayOpen, setIsNavTrayOpen] = useState(true);
 
-  // Scroll detector: when visitor scrolls, the dock disappears and the bottom-left logo appears!
-  useEffect(() => {
-    const handleScrollOrGesture = () => {
-      setIsNavTrayOpen((prev) => {
-        if (prev) return false;
-        return prev;
-      });
-    };
-
-    window.addEventListener('scroll', handleScrollOrGesture, { passive: true, capture: true });
-    window.addEventListener('wheel', handleScrollOrGesture, { passive: true, capture: true });
-    window.addEventListener('touchmove', handleScrollOrGesture, { passive: true, capture: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScrollOrGesture, { capture: true });
-      window.removeEventListener('wheel', handleScrollOrGesture, { capture: true });
-      window.removeEventListener('touchmove', handleScrollOrGesture, { capture: true });
-    };
-  }, []);
-
-  // Individual section subfolder filters (ordered per strict specs)
-  const [photosSubfolder, setPhotosSubfolder] = useState<string>('Favorite');
-  const [shortsSubfolder, setShortsSubfolder] = useState<string>('2027');
-  const [clipsSubfolder, setClipsSubfolder] = useState<string>('Favorite');
-  const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Photographs');
-
-  // Progressive batch visibility for each section
-  const [visiblePhotos, setVisiblePhotos] = useState<number>(24);
-  const [visibleShorts, setVisibleShorts] = useState<number>(24);
-  const [visibleClips, setVisibleClips] = useState<number>(16);
-  const [visibleBandhobi, setVisibleBandhobi] = useState<number>(24);
-
-  // Dropdown open states for the tabs: null
-  const [activeDropdown, setActiveDropdown] = useState<'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null>(null);
-
-  // Keep screen on state
-  const [keepAwakeOn, setKeepAwakeOn] = useState(() => getKeepScreenOnState());
-
   // Screen Aspect Ratio Detector:
   // - Portrait screens (mobile phone): scroll strictly up-down
   // - Wide screen devices (desktop, tablet, mobile landscape): scroll strictly left-right, not up-down
@@ -196,10 +158,112 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     };
   }, []);
 
+  // Scroll detector:
+  // On wide screen devices:
+  //   Scrolling rightwards (content moves right-to-left) -> dock disappears
+  //   Scrolling leftwards (content moves left-to-right) -> dock appears
+  // On portrait:
+  //   Scrolling downwards -> dock disappears
+  //   Scrolling upwards -> dock appears
+  useEffect(() => {
+    let lastWheelTime = 0;
+    const handleGlobalWheel = (e: WheelEvent) => {
+      const now = Date.now();
+      if (now - lastWheelTime < 60) return;
+      lastWheelTime = now;
+
+      if (isWideScreen) {
+        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        if (delta > 8) {
+          setIsNavTrayOpen(false);
+        } else if (delta < -8) {
+          setIsNavTrayOpen(true);
+        }
+      } else {
+        if (e.deltaY > 8) {
+          setIsNavTrayOpen(false);
+        } else if (e.deltaY < -8) {
+          setIsNavTrayOpen(true);
+        }
+      }
+    };
+
+    let startX = 0;
+    let startY = 0;
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      const curX = e.touches[0].clientX;
+      const curY = e.touches[0].clientY;
+      const diffX = startX - curX; // positive when swiping left (scrolling rightwards)
+      const diffY = startY - curY; // positive when swiping up (scrolling downwards)
+
+      if (isWideScreen && Math.abs(diffX) > 20) {
+        if (diffX > 20) {
+          setIsNavTrayOpen(false);
+        } else if (diffX < -20) {
+          setIsNavTrayOpen(true);
+        }
+        startX = curX;
+      } else if (!isWideScreen && Math.abs(diffY) > 20) {
+        if (diffY > 20) {
+          setIsNavTrayOpen(false);
+        } else if (diffY < -20) {
+          setIsNavTrayOpen(true);
+        }
+        startY = curY;
+      }
+    };
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true, capture: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleGlobalWheel, { capture: true });
+      window.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      window.removeEventListener('touchmove', handleTouchMove, { capture: true });
+    };
+  }, [isWideScreen]);
+
+  // Individual section subfolder filters (ordered per strict specs)
+  const [photosSubfolder, setPhotosSubfolder] = useState<string>('Favorite');
+  const [shortsSubfolder, setShortsSubfolder] = useState<string>('2027');
+  const [clipsSubfolder, setClipsSubfolder] = useState<string>('Favorite');
+  const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Photographs');
+
+  // Progressive batch visibility for each section
+  const [visiblePhotos, setVisiblePhotos] = useState<number>(24);
+  const [visibleShorts, setVisibleShorts] = useState<number>(24);
+  const [visibleClips, setVisibleClips] = useState<number>(16);
+  const [visibleBandhobi, setVisibleBandhobi] = useState<number>(24);
+
+  // Dropdown open states for the tabs: null
+  const [activeDropdown, setActiveDropdown] = useState<'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null>(null);
+
+  // Keep screen on state
+  const [keepAwakeOn, setKeepAwakeOn] = useState(() => getKeepScreenOnState());
+
   const handleHorizontalWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
-      if (isWideScreen && e.deltaY !== 0) {
-        e.currentTarget.scrollLeft += e.deltaY;
+      if (isWideScreen) {
+        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        if (delta !== 0) {
+          if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) && e.deltaY !== 0) {
+            e.currentTarget.scrollLeft += e.deltaY;
+          }
+          if (delta > 8) {
+            setIsNavTrayOpen(false);
+          } else if (delta < -8) {
+            setIsNavTrayOpen(true);
+          }
+        }
       }
     },
     [isWideScreen]
@@ -594,20 +658,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     Boolean(isNavTrayOpen || isSearchOpen || activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
   );
 
-  // Random Vault Shuffle Discovery Handler
-  const handleShuffleVault = useCallback(() => {
-    if (!items || items.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * items.length);
-    const item = items[randomIndex];
-    if (item.mediaType === 'short') {
-      onOpenShort(item, items, randomIndex);
-    } else if (isPhotoExtension(item.path || '')) {
-      onOpenPhoto(item, items, randomIndex);
-    } else {
-      onOpenVideo(item, items);
-    }
-  }, [items, onOpenPhoto, onOpenShort, onOpenVideo]);
-
   // 7-day rolling session telemetry metrics (zero suppression: days with 0 data are excluded)
   const telemetry7DayData = useMemo(() => {
     return getRolling7DayDisplayData();
@@ -782,26 +832,30 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         </div>
       </div>
 
-      {/* 2. BOTTOM-LEFT CORNER: WEBSITE LOGO (Shown ONLY when dock is closed) */}
-      {!isNavTrayOpen && (
-        <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none pointer-events-auto animate-hacker-dock-deploy">
-          <button
-            type="button"
-            onClick={() => {
-              hapticMedium();
-              setIsNavTrayOpen(true);
-            }}
-            className="inline-flex items-center cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none bg-transparent border-0 p-0"
-            title="Open Directory Navigation Menu"
-          >
-            <LaserSparkLogo
-              width={270}
-              height={38}
-              interactive={false}
-            />
-          </button>
-        </div>
-      )}
+      {/* 2. BOTTOM-LEFT CORNER: WEBSITE LOGO (Slides left outside when dock opens, slides back in from left when dock closes) */}
+      <div
+        className={`fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none transition-all duration-300 ease-out ${
+          !isNavTrayOpen
+            ? 'translate-x-0 opacity-100 pointer-events-auto'
+            : '-translate-x-[180%] opacity-0 pointer-events-none'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            hapticMedium();
+            setIsNavTrayOpen(true);
+          }}
+          className="inline-flex items-center cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none bg-transparent border-0 p-0"
+          title="Open Directory Navigation Menu"
+        >
+          <LaserSparkLogo
+            width={270}
+            height={38}
+            interactive={false}
+          />
+        </button>
+      </div>
 
       {/* 3. MIDDLE-LEFT: UNIFIED TALL NAVIGATION DOCK (Shown ONLY when dock is open) */}
       <LogoDropUpNav
@@ -844,7 +898,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         keepAwakeOn={keepAwakeOn}
         onToggleKeepAwake={toggleKeepScreenOn}
         onOpenSearch={() => setIsSearchOpen(true)}
-        onShuffle={handleShuffleVault}
       />
 
       {/* 3. 5-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}
@@ -988,7 +1041,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <div
                 className={
                   isWideScreen
-                    ? 'flex flex-row items-center gap-4 h-[calc(100dvh-50px)] py-1.5 shrink-0'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
                     : 'grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 max-w-[1200px] mx-auto'
                 }
               >
@@ -1027,9 +1080,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <div
                 className={
                   isWideScreen
-                    ? bandhobiSubfolder === 'Video Clips'
-                      ? 'flex flex-row items-center gap-4 h-[calc(100dvh-50px)] py-1.5 shrink-0'
-                      : 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
                     : `grid gap-3 p-3 max-w-[1400px] mx-auto ${
                         bandhobiSubfolder === 'Video Clips'
                           ? 'grid-cols-1 sm:grid-cols-2'
