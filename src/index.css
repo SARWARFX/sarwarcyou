@@ -98,6 +98,55 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
   100% { transform: translateX(-50%); }
 }
 
+/* Hacker Cyber Dock & HUD Reticle Keyframes */
+@keyframes cyberScan {
+  0% { top: 0; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes dockPingPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.animate-cyber-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 245, 255, 0.65);
+  box-shadow: 0 0 14px #00f0ff;
+  z-index: 20;
+  animation: cyberScan 3.5s linear infinite;
+  pointer-events: none;
+}
+
+.cyber-dock-corner-tl {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 14px;
+  height: 14px;
+  border-top: 2px solid #00f0ff;
+  border-left: 2px solid #00f0ff;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.cyber-dock-corner-br {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-bottom: 2px solid #ff2bd6;
+  border-right: 2px solid #ff2bd6;
+  pointer-events: none;
+  z-index: 30;
+}
+
 .animate-marquee {
   display: flex;
   width: max-content;

@@ -13,6 +13,16 @@ export interface LivingMediaCardProps {
   featuredBadge?: string;
 }
 
+/**
+ * Tactical Cyberpunk Media Card
+ * Inspired by portfolio photo frame:
+ * - Corner L-brackets on top-left (#00f0ff) and bottom-right (#00f0ff / #ff2bd6)
+ * - Inner photo box with border border-[#00f0ff]/35, deep space obsidian background
+ * - 6px scanline texture overlay
+ * - Live animated scanning laser line
+ * - Scale on hover with zero rounded corners (pure square)
+ * - Zero-text design
+ */
 export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
   item,
   aspectRatio,
@@ -38,13 +48,11 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
   const videoStreamUrl = isVideo ? getVideoStreamUrl(item.url || item.path || '') : '';
 
   const handleMouseEnter = useCallback(() => {
-    // Only trigger video preview on desktop/devices with pointer:fine
     if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-      // 240ms hover delay prevents accidental trigger during rapid cursor sweeps
       hoverTimerRef.current = setTimeout(() => {
         setIsHovered(true);
-      }, 240);
+      }, 200);
     }
   }, []);
 
@@ -80,33 +88,51 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{ animationDelay: `${Math.min(delayIdx, 15) * 25}ms` }}
-      className={`animate-card-enter group relative rounded-none overflow-hidden bg-[#090d16] border-0 cursor-pointer ${aspectClass} transition-all duration-300 ease-out hover:scale-[1.08] hover:z-30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.95),0_0_30px_rgba(0, 240, 255,0.4)] active:scale-[0.98] select-none`}
+      className={`relative p-2.5 sm:p-3.5 group cursor-pointer ${aspectClass} select-none rounded-none transition-all duration-300 hover:scale-[1.025] hover:z-30`}
     >
-      {/* Static High-Res Poster Thumbnail */}
-      <img
-        src={imageSrc}
-        alt={item.title || item.name}
-        loading="lazy"
-        className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-          isVideoReady ? 'opacity-0' : 'opacity-100'
-        }`}
-      />
+      {/* 1. Tactical Top-Left Cyan L-Bracket */}
+      <div className="absolute top-0 left-0 w-6 sm:w-8 h-6 sm:h-8 border-t-2 border-l-2 border-[#00f0ff] pointer-events-none z-20 group-hover:shadow-[0_0_12px_#00f0ff] transition-all" />
 
-      {/* Living Video Micro-Loop Preview (Desktop/Tablet on sustained hover) */}
-      {isVideo && isHovered && videoStreamUrl && (
-        <video
-          ref={videoRef}
-          src={videoStreamUrl}
-          muted
-          loop
-          autoPlay
-          playsInline
-          onCanPlay={() => setIsVideoReady(true)}
-          className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300 pointer-events-none ${
-            isVideoReady ? 'opacity-100' : 'opacity-0'
+      {/* 2. Tactical Bottom-Right Pink/Cyan L-Bracket */}
+      <div className="absolute bottom-0 right-0 w-6 sm:w-8 h-6 sm:h-8 border-b-2 border-r-2 border-[#ff2bd6] sm:border-[#00f0ff] pointer-events-none z-20 group-hover:shadow-[0_0_12px_#ff2bd6] transition-all" />
+
+      {/* 3. Inner Cyber Photo Box */}
+      <div className="relative w-full h-full overflow-hidden border border-[#00f0ff]/35 bg-[#0a101c] shadow-[0_0_35px_rgba(0,240,255,0.08),inset_0_0_35px_rgba(0,240,255,0.04)] group-hover:border-[#00f0ff] group-hover:shadow-[0_0_45px_rgba(0,240,255,0.22)] rounded-none">
+        {/* Scanline Grid Texture Overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none z-15 opacity-40 bg-[linear-gradient(transparent_50%,rgba(0,245,255,0.04)_50%)] bg-[length:100%_6px]"
+          aria-hidden="true"
+        />
+
+        {/* Live Animated Scanning Laser Line */}
+        <div className="animate-cyber-scan group-hover:opacity-100 opacity-60 transition-opacity" />
+
+        {/* Static High-Res Poster Thumbnail */}
+        <img
+          src={imageSrc}
+          alt={item.title || item.name}
+          loading="lazy"
+          className={`w-full h-full object-cover filter saturate-[0.92] contrast-[1.05] transition-transform duration-500 group-hover:scale-[1.035] ${
+            isVideoReady ? 'opacity-0' : 'opacity-100'
           }`}
         />
-      )}
+
+        {/* Living Video Micro-Loop Preview (Desktop sustained hover) */}
+        {isVideo && isHovered && videoStreamUrl && (
+          <video
+            ref={videoRef}
+            src={videoStreamUrl}
+            muted
+            loop
+            autoPlay
+            playsInline
+            onCanPlay={() => setIsVideoReady(true)}
+            className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300 pointer-events-none ${
+              isVideoReady ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        )}
+      </div>
     </div>
   );
 };

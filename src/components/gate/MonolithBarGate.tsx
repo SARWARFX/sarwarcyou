@@ -707,6 +707,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               switchTab(4);
             }
           }}
+          onSelectHome={() => switchTab(0)}
           telemetryData={telemetry7DayData}
           keepAwakeOn={keepAwakeOn}
           onToggleKeepAwake={toggleKeepScreenOn}
@@ -759,14 +760,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 1: PHOTOGRAPHS TAB PAGE (SEAMLESS FULL-BLEED GRID OF PHOTOS)*/}
+          {/* PANEL 1: PHOTOGRAPHS TAB PAGE (HACKER RETICLE GRID WITH GAPS)     */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
               onScroll={handlePhotosScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
             >
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto">
                 {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
                   <LivingMediaCard
                     key={item.id || item.url || idx}
@@ -781,14 +782,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 2: SHORTS TAB PAGE (SEAMLESS FULL-BLEED GRID OF SHORTS)     */}
+          {/* PANEL 2: SHORTS TAB PAGE (HACKER RETICLE GRID WITH GAPS)          */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
               onScroll={handleShortsScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
             >
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-7 md:gap-8 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto">
                 {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
                   <LivingMediaCard
                     key={item.id || item.url || idx}
@@ -803,14 +804,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </section>
 
           {/* ================================================================= */}
-          {/* PANEL 3: VIDEO CLIPS TAB PAGE (SEAMLESS FULL-BLEED GRID OF CLIPS) */}
+          {/* PANEL 3: VIDEO CLIPS TAB PAGE (HACKER RETICLE GRID WITH GAPS)     */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
               onScroll={handleClipsScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 md:gap-10 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto">
                 {activeClipsList.slice(0, visibleClips).map((item, idx) => (
                   <LivingMediaCard
                     key={item.id || item.url || idx}
@@ -830,10 +831,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <section className="panoramic-panel">
             <div
               onScroll={handleBandhobiScroll}
-              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-24"
+              className="w-full h-full overflow-y-auto overflow-x-hidden space-scrollbar p-0 m-0 pb-28"
             >
               <div
-                className={`grid gap-0 ${
+                className={`grid gap-6 sm:gap-8 p-4 sm:p-6 md:p-8 max-w-[2000px] mx-auto ${
                   bandhobiSubfolder === 'Shorts'
                     ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
                     : bandhobiSubfolder === 'Video Clips'
