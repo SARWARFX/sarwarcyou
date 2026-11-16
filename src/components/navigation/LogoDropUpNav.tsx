@@ -218,7 +218,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   const waveData = useMemo(() => {
     const ptsCount = 7;
     const w = 170;
-    const h = 48;
+    const h = 88; // Taller majestic graph
 
     const DAY_CHARS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const now = new Date();
@@ -255,7 +255,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       } else if (norm === 0) {
         norm = 0.12;
       }
-      const y = Math.round(h - 6 - norm * (h - 14));
+      const y = Math.round(h - 8 - norm * (h - 20));
       return { x, y, char: item.char, isToday: item.isToday, minutes: item.minutes };
     });
 
@@ -319,11 +319,11 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
         </div>
 
         {/* ============================================================== */}
-        {/* SECTION 2: 7-DAY SPLINE GRAPH (TODAY ON LEFT + SLOW SPARK)     */}
+        {/* SECTION 2: 7-DAY SPLINE GRAPH (TODAY ON LEFT - TALLER PROFILE) */}
         {/* ============================================================== */}
         <div className="bg-white/[0.04] p-1.5 relative overflow-hidden select-none rounded-none border-0 mb-2">
           <svg
-            className="w-full h-[50px] overflow-visible"
+            className="w-full h-[88px] overflow-visible"
             viewBox={`0 0 ${waveData.w} ${waveData.h}`}
             preserveAspectRatio="none"
           >
@@ -428,9 +428,13 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* SECTION 3: DOCK BODY (SEARCH RESULTS OR FOLDERS VIEW)          */}
+      {/* SECTION 3: DOCK BODY (TABS POSITIONED RIGHT ABOVE KEEP ON)     */}
       {/* ============================================================== */}
-      <div className="relative w-full overflow-hidden flex-1 flex flex-col justify-center my-1 min-h-[220px]">
+      <div
+        className={`relative w-full overflow-hidden flex-1 flex flex-col my-1 min-h-[210px] ${
+          searchQuery.trim() !== '' ? 'justify-start' : 'justify-end'
+        }`}
+      >
         {/* VIEW 1: INLINE SEARCH RESULTS (When user is typing in dock search) */}
         {searchQuery.trim() !== '' ? (
           <div className="w-full h-full flex flex-col overflow-hidden">
