@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SARWAR.CYOU — Laser Spark Icon System Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030508;
+      --card-bg: #070a10;
+      --card-border: #141c2b;
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.45);
+      --white: #ffffff;
+      --text: #e2e8f0;
+      --muted: #8391a6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding: 40px 24px 100px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 45px;
+    }
+
+    .badge-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 16px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.8); }
+    }
+
+    h1 {
+      font-size: clamp(26px, 3.8vw, 40px);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      background: linear-gradient(180deg, #ffffff 40%, #8ea5c8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 780px;
+      margin: 0 auto 30px;
+      line-height: 1.6;
+    }
+
+    /* Logo Anchor Reference Bar */
+    .logo-ref-banner {
+      background: linear-gradient(180deg, rgba(10, 16, 26, 0.8) 0%, rgba(5, 8, 14, 0.95) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin-bottom: 45px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 240, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-ref-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Logo Spark CSS */
+    .logo-container {
+      position: relative;
+      display: inline-block;
+      padding-bottom: 12px;
+    }
+
+    .spark-line-base {
+      position: absolute;
+      bottom: 2px;
+      left: 6%;
+      right: 6%;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.3) 20%, rgba(0, 240, 255, 0.95) 50%, rgba(0, 240, 255, 0.3) 80%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .sweep-trail {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      transform: translate(-50%, -50%);
+      width: 90px;
+      height: 8px;
+      background: radial-gradient(ellipse at center, rgba(0, 240, 255, 0.95) 0%, transparent 75%);
+      filter: blur(2px);
+      animation: sweepTrack 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .sweep-node {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      transform: translate(-50%, -50%);
+      width: 5px;
+      height: 5px;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #ffffff, 0 0 20px #00f0ff;
+      animation: sweepTrack 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes sweepTrack {
+      0% { left: 8%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { left: 92%; opacity: 0; }
+    }
+
+    /* Grid of 4 Variations */
+    .variations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(640px, 1fr));
+      gap: 32px;
+      margin-bottom: 50px;
+    }
+
+    @media (max-width: 700px) {
+      .variations-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .var-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .var-card:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 240, 255, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .var-card.selected {
+      border-color: var(--cyan);
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.28);
+    }
+
+    .var-head {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .var-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .num-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+
+    .var-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .tag-dna {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+
+    /* Icon Stage within Card */
+    .icon-stage {
+      padding: 34px 28px;
+      background: #020306;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .icon-row {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .icon-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .icon-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* Floating Icon Outline Button (Zero background, zero box outline) */
+    .icon-btn-pure {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      cursor: pointer;
+      padding: 6px;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .icon-btn-pure:hover {
+      transform: scale(1.18);
+    }
+
+    /* =================================================================== */
+    /* ICON ANIMATIONS (4 VARIATIONS)                                      */
+    /* =================================================================== */
+
+    /* VARIATION 1: Sub-Horizon Laser Baseline (Micro-spark beneath each glyph) */
+    .var1-spark-base {
+      position: absolute;
+      bottom: 0px;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.4) 20%, rgba(0, 240, 255, 0.95) 50%, rgba(0, 240, 255, 0.4) 80%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .var1-trail {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 4px;
+      background: radial-gradient(ellipse at center, rgba(0, 240, 255, 0.95) 0%, transparent 75%);
+      filter: blur(1.5px);
+      animation: var1Sweep 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .var1-node {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      transform: translate(-50%, -50%);
+      width: 3.5px;
+      height: 3.5px;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #ffffff, 0 0 12px #00f0ff;
+      animation: var1Sweep 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes var1Sweep {
+      0% { left: 10%; opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { left: 90%; opacity: 0; }
+    }
+
+    /* VARIATION 2: Traveling Contour Laser Spark (Particle glides directly along glyph outline) */
+    @keyframes strokeLaserTravel {
+      0% { stroke-dashoffset: 120; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { stroke-dashoffset: 0; opacity: 0; }
+    }
+
+    .var2-laser-stroke {
+      stroke-dasharray: 20 100;
+      animation: strokeLaserTravel 3s linear infinite;
+    }
+
+    /* VARIATION 3: Dual-Color Monoline Scattered Glyphs (Detached high-tech strokes with sweeping line) */
+    .var3-spark-base {
+      position: absolute;
+      bottom: -1px;
+      left: 5%;
+      right: 5%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.9) 50%, transparent 100%);
+    }
+
+    .var3-pulse-flare {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px;
+      height: 8px;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #ffffff, 0 0 20px #00f0ff;
+      animation: pulseVar3 2.5s infinite ease-in-out;
+    }
+
+    @keyframes pulseVar3 {
+      0%, 100% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.4; }
+      50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    }
+
+    /* VARIATION 4: Diagonal Laser Scanning Beam (Gradient wave sweeping through the icon strokes) */
+    @keyframes laserSweepBeam {
+      0% {
+        stop-color: #ffffff;
+        stop-opacity: 1;
+        offset: 0%;
+      }
+      50% {
+        stop-color: #00f0ff;
+        stop-opacity: 1;
+        offset: 50%;
+      }
+      100% {
+        stop-color: #ffffff;
+        stop-opacity: 1;
+        offset: 100%;
+      }
+    }
+
+    .var4-shimmer-svg {
+      filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));
+      animation: var4Glow 3.2s ease-in-out infinite;
+    }
+
+    @keyframes var4Glow {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(0, 240, 255, 0.25)); }
+      50% { filter: drop-shadow(0 0 14px rgba(0, 240, 255, 0.9)) drop-shadow(0 0 6px #ffffff); }
+    }
+
+    /* Card Description & Select */
+    .var-desc {
+      padding: 18px 24px;
+      font-size: 13.5px;
+      color: #94a3b8;
+      line-height: 1.55;
+      flex: 1;
+    }
+
+    .var-foot {
+      padding: 16px 24px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .btn-action {
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: var(--cyan);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--cyan);
+      color: #000000;
+      box-shadow: 0 0 16px var(--cyan);
+    }
+
+    /* Full-Screen Live Simulation Viewer */
+    .mock-section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 50px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+    }
+
+    .mock-head {
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #05080e;
+    }
+
+    .mock-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mock-stage {
+      position: relative;
+      height: 640px;
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .mock-bg-img {
+      max-height: 92%;
+      max-width: 85%;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.95);
+      object-fit: contain;
+    }
+
+    /* Simulated Player Overlays */
+    .mock-corner-top-left {
+      position: absolute;
+      top: 28px;
+      left: 28px;
+      z-index: 30;
+      cursor: pointer;
+    }
+
+    .mock-corner-top-right {
+      position: absolute;
+      top: 28px;
+      right: 28px;
+      z-index: 30;
+    }
+
+    .mock-nav-left {
+      position: absolute;
+      left: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 30;
+    }
+
+    .mock-nav-right {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 30;
+    }
+
+    .mock-corner-bottom-left {
+      position: absolute;
+      bottom: 28px;
+      left: 28px;
+      z-index: 30;
+    }
+
+    .mock-corner-bottom-right {
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mock-zoom-track {
+      width: 3px;
+      height: 90px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mock-zoom-thumb {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <header>
+      <div class="badge-top">
+        <span class="badge-dot"></span>
+        <span>Laser Spark Brand Identity // Icon Ecosystem</span>
+      </div>
+      <h1>Animated Laser-Spark Icon System</h1>
+      <p class="subtitle">
+        Zero background, zero button borders. Only pure floating vector outlines in <strong>Stark White (#FFFFFF)</strong> and <strong>Pure Electric Cyan (#00F0FF)</strong>, empowered by real-time laser spark scanning matching the Option 2 logo architecture.
+      </p>
+    </header>
+
+    <!-- Logo Anchor Reference -->
+    <div class="logo-ref-banner">
+      <div class="logo-ref-title">
+        <span>Option 2 Sweeping Laser Particle Scan (Brand Master)</span>
+      </div>
+      <div class="logo-container">
+        <!-- Laser Horizon Baseline -->
+        <div class="spark-line-base">
+          <div class="sweep-trail"></div>
+          <div class="sweep-node"></div>
+        </div>
+        <!-- SVG Master Logo -->
+        <svg viewBox="0 0 740 90" width="360" height="50" style="filter: drop-shadow(0 0 14px rgba(0,0,0,0.95));">
+          <g transform="translate(10, 15)">
+            <!-- S -->
+            <line x1="16" y1="6" x2="48" y2="6" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <path d="M 48 14 L 16 14 C 8 14, 8 26, 16 26 L 38 26 C 46 26, 46 38, 38 38 L 8 38" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <line x1="8" y1="46" x2="40" y2="46" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <!-- A -->
+            <path d="M 68 46 L 90 6 L 112 46" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <line x1="74" y1="30" x2="106" y2="30" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="round"/>
+            <!-- R -->
+            <path d="M 132 46 L 132 6 L 158 6 C 170 6, 170 24, 158 24 L 132 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <line x1="152" y1="24" x2="168" y2="46" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <!-- W -->
+            <path d="M 188 6 L 198 46 L 212 20 L 226 46 L 236 6" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
+            <!-- A -->
+            <path d="M 256 46 L 278 6 L 300 46" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <line x1="262" y1="30" x2="294" y2="30" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="round"/>
+            <!-- R -->
+            <path d="M 320 46 L 320 6 L 346 6 C 358 6, 358 24, 346 24 L 320 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <line x1="340" y1="24" x2="356" y2="46" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+            <!-- Dot -->
+            <polygon points="380,44 386,34 394,34 388,44" fill="#00f0ff"/>
+            <!-- C -->
+            <path d="M 444 14 L 420 14 C 408 14, 408 38, 420 38 L 444 38" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
+            <!-- Y -->
+            <path d="M 462 6 L 476 24 L 490 6" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
+            <line x1="476" y1="28" x2="476" y2="46" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
+            <!-- O -->
+            <path d="M 520 8 C 508 16, 508 36, 520 44" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 528 8 C 540 16, 540 36, 528 44" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+            <!-- U -->
+            <line x1="560" y1="6" x2="560" y2="20" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
+            <path d="M 560 26 L 560 36 C 560 46, 588 46, 588 36 L 588 6" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="square"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 4 VARIATIONS GRID                                                   -->
+    <!-- =================================================================== -->
+    <div class="variations-grid">
+
+      <!-- VARIATION 1: Sub-Horizon Laser Scan -->
+      <div class="var-card" id="card-v1">
+        <div class="var-head">
+          <div class="var-title-wrap">
+            <span class="num-pill">01</span>
+            <span class="var-title">Sub-Horizon Laser Scan</span>
+          </div>
+          <span class="tag-dna">DIRECT LOGO COMPANION</span>
+        </div>
+        <div class="icon-stage">
+          <div class="icon-row">
+
+            <!-- Close Button -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Close">
+                <div class="var1-spark-base">
+                  <div class="var1-trail"></div>
+                  <div class="var1-node"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line x1="8" y1="8" x2="24" y2="24" stroke="#ffffff" stroke-width="2.2" stroke-linecap="square"/>
+                  <line x1="24" y1="8" x2="8" y2="24" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="square"/>
+                </svg>
+              </button>
+              <span class="icon-label">Close (X)</span>
+            </div>
+
+            <!-- Download Button -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Download">
+                <div class="var1-spark-base">
+                  <div class="var1-trail"></div>
+                  <div class="var1-node"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <!-- Down Arrow -->
+                  <line x1="16" y1="6" x2="16" y2="20" stroke="#ffffff" stroke-width="2.2" stroke-linecap="square"/>
+                  <path d="M 10 15 L 16 21 L 22 15" fill="none" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/>
+                  <!-- Base Tray -->
+                  <line x1="7" y1="26" x2="25" y2="26" stroke="#ffffff" stroke-width="2.2" stroke-linecap="square"/>
+                </svg>
+              </button>
+              <span class="icon-label">Download</span>
+            </div>
+
+            <!-- Navigation Chevron -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Next">
+                <div class="var1-spark-base">
+                  <div class="var1-trail"></div>
+                  <div class="var1-node"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M 12 7 L 21 16 L 12 25" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="square" stroke-linejoin="miter"/>
+                </svg>
+              </button>
+              <span class="icon-label">Next (&gt;)</span>
+            </div>
+
+            <!-- Zoom Controls -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Zoom In">
+                <div class="var1-spark-base">
+                  <div class="var1-trail"></div>
+                  <div class="var1-node"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line x1="16" y1="8" x2="16" y2="24" stroke="#ffffff" stroke-width="2.2" stroke-linecap="square"/>
+                  <line x1="8" y1="16" x2="24" y2="16" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="square"/>
+                </svg>
+              </button>
+              <span class="icon-label">Zoom (+)</span>
+            </div>
+
+          </div>
+        </div>
+        <div class="var-desc">
+          Exact miniature duplicate of the logo's optical horizon line. Each floating icon carries its own active white laser core and cyan comet trail sweeping back and forth at the base. Pure Stark White and Electric Cyan dual strokes.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">0 background • 0 box</span>
+          <button class="btn-action" onclick="previewVariation(1)">Simulate in Player</button>
+        </div>
+      </div>
+
+      <!-- VARIATION 2: Traveling Contour Laser Spark -->
+      <div class="var-card" id="card-v2">
+        <div class="var-head">
+          <div class="var-title-wrap">
+            <span class="num-pill">02</span>
+            <span class="var-title">Contour Laser Runner</span>
+          </div>
+          <span class="tag-dna">IN-PATH KINETIC SCAN</span>
+        </div>
+        <div class="icon-stage">
+          <div class="icon-row">
+
+            <!-- Close Button -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Close">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line x1="8" y1="8" x2="24" y2="24" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="8" y1="8" x2="24" y2="24" stroke="#00f0ff" stroke-width="2.6" stroke-linecap="round" class="var2-laser-stroke" style="animation-delay: 0s;"/>
+                  <line x1="24" y1="8" x2="8" y2="24" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="24" y1="8" x2="8" y2="24" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" class="var2-laser-stroke" style="animation-delay: 1.5s;"/>
+                </svg>
+              </button>
+              <span class="icon-label">Close (X)</span>
+            </div>
+
+            <!-- Download Button -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Download">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <!-- Stem Base -->
+                  <line x1="16" y1="6" x2="16" y2="20" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+                  <line x1="16" y1="6" x2="16" y2="20" stroke="#00f0ff" stroke-width="2.6" class="var2-laser-stroke"/>
+                  <!-- Arrowhead -->
+                  <path d="M 10 15 L 16 21 L 22 15" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+                  <!-- Tray -->
+                  <line x1="7" y1="26" x2="25" y2="26" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <span class="icon-label">Download</span>
+            </div>
+
+            <!-- Next Arrow -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Next">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M 12 7 L 21 16 L 12 25" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2"/>
+                  <path d="M 12 7 L 21 16 L 12 25" fill="none" stroke="#00f0ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" class="var2-laser-stroke"/>
+                </svg>
+              </button>
+              <span class="icon-label">Next (&gt;)</span>
+            </div>
+
+            <!-- Zoom Plus -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Zoom">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line x1="16" y1="8" x2="16" y2="24" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+                  <line x1="16" y1="8" x2="16" y2="24" stroke="#00f0ff" stroke-width="2.6" class="var2-laser-stroke"/>
+                  <line x1="8" y1="16" x2="24" y2="16" stroke="#ffffff" stroke-width="2"/>
+                </svg>
+              </button>
+              <span class="icon-label">Zoom (+)</span>
+            </div>
+
+          </div>
+        </div>
+        <div class="var-desc">
+          The laser spark particle travels along the vector paths of the icon outline itself. As the spark glides across the strokes, it illuminates the line from soft white into high-intensity pure electric cyan.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">Contour Traversal</span>
+          <button class="btn-action" onclick="previewVariation(2)">Simulate in Player</button>
+        </div>
+      </div>
+
+      <!-- VARIATION 3: Scattered Monoline Architecture -->
+      <div class="var-card" id="card-v3">
+        <div class="var-head">
+          <div class="var-title-wrap">
+            <span class="num-pill">03</span>
+            <span class="var-title">Scattered Monoline Anatomy</span>
+          </div>
+          <span class="tag-dna">FRACTURED GEOMETRIC</span>
+        </div>
+        <div class="icon-stage">
+          <div class="icon-row">
+
+            <!-- Close Button (Detached tips like the S and R) -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Close">
+                <div class="var3-spark-base">
+                  <div class="var3-pulse-flare"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <!-- Floating top horizontal bar -->
+                  <line x1="6" y1="6" x2="14" y2="6" stroke="#ffffff" stroke-width="2"/>
+                  <line x1="18" y1="6" x2="26" y2="6" stroke="#00f0ff" stroke-width="2"/>
+                  <!-- Diagonal cross with detached center -->
+                  <line x1="9" y1="9" x2="14" y2="14" stroke="#ffffff" stroke-width="2.4" stroke-linecap="square"/>
+                  <line x1="18" y1="18" x2="23" y2="23" stroke="#ffffff" stroke-width="2.4" stroke-linecap="square"/>
+                  <line x1="23" y1="9" x2="18" y2="14" stroke="#00f0ff" stroke-width="2.4" stroke-linecap="square"/>
+                  <line x1="14" y1="18" x2="9" y2="23" stroke="#00f0ff" stroke-width="2.4" stroke-linecap="square"/>
+                  <!-- Center detached spark dot -->
+                  <polygon points="16,14 18,16 16,18 14,16" fill="#00f0ff"/>
+                </svg>
+              </button>
+              <span class="icon-label">Close (X)</span>
+            </div>
+
+            <!-- Download Button (Split brackets like the O) -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Download">
+                <div class="var3-spark-base">
+                  <div class="var3-pulse-flare"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <!-- Detached stem and floating chevron -->
+                  <line x1="16" y1="6" x2="16" y2="16" stroke="#ffffff" stroke-width="2.2" stroke-linecap="square"/>
+                  <path d="M 11 14 L 16 19 L 21 14" fill="none" stroke="#00f0ff" stroke-width="2.2" stroke-linecap="square"/>
+                  <!-- Split Brackets Tray ( ) -->
+                  <path d="M 8 23 C 6 24, 6 26, 8 27 L 13 27" fill="none" stroke="#ffffff" stroke-width="2"/>
+                  <path d="M 24 23 C 26 24, 26 26, 24 27 L 19 27" fill="none" stroke="#00f0ff" stroke-width="2"/>
+                </svg>
+              </button>
+              <span class="icon-label">Download</span>
+            </div>
+
+            <!-- Next Arrow (Inverted Chevron with Floating Bar) -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Next">
+                <div class="var3-spark-base">
+                  <div class="var3-pulse-flare"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M 12 8 L 22 16 L 12 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="square"/>
+                  <line x1="8" y1="16" x2="15" y2="16" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <span class="icon-label">Next (&gt;)</span>
+            </div>
+
+            <!-- Zoom Plus -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Zoom">
+                <div class="var3-spark-base">
+                  <div class="var3-pulse-flare"></div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line x1="16" y1="6" x2="16" y2="13" stroke="#ffffff" stroke-width="2"/>
+                  <line x1="16" y1="19" x2="16" y2="26" stroke="#ffffff" stroke-width="2"/>
+                  <line x1="6" y1="16" x2="13" y2="16" stroke="#00f0ff" stroke-width="2"/>
+                  <line x1="19" y1="16" x2="26" y2="16" stroke="#00f0ff" stroke-width="2"/>
+                  <polygon points="16,14 18,16 16,18 14,16" fill="#ffffff"/>
+                </svg>
+              </button>
+              <span class="icon-label">Zoom (+)</span>
+            </div>
+
+          </div>
+        </div>
+        <div class="var-desc">
+          Direct anatomical reflection of the logo's typography. The icons feature detached crossbars, floating horizontal brackets (like S and O), and rhomboid spark centers with an ambient baseline laser breathing pulse.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">Scattered DNA</span>
+          <button class="btn-action" onclick="previewVariation(3)">Simulate in Player</button>
+        </div>
+      </div>
+
+      <!-- VARIATION 4: Kinetic Laser Beam Wave Shimmer -->
+      <div class="var-card" id="card-v4">
+        <div class="var-head">
+          <div class="var-title-wrap">
+            <span class="num-pill">04</span>
+            <span class="var-title">Kinetic Laser Shimmer Wave</span>
+          </div>
+          <span class="tag-dna">CYBERNETIC GRADIENT WAVE</span>
+        </div>
+        <div class="icon-stage">
+          <div class="icon-row">
+
+            <!-- Close Button -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Close">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+                  <line x1="7" y1="7" x2="25" y2="25" stroke="url(#shimmerGrad1)" stroke-width="2.5" stroke-linecap="square"/>
+                  <line x1="25" y1="7" x2="7" y2="25" stroke="url(#shimmerGrad1)" stroke-width="2.5" stroke-linecap="square"/>
+                </svg>
+              </button>
+              <span class="icon-label">Close (X)</span>
+            </div>
+
+            <!-- Download Button -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Download">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+                  <line x1="16" y1="6" x2="16" y2="20" stroke="url(#shimmerGrad1)" stroke-width="2.5" stroke-linecap="square"/>
+                  <path d="M 10 15 L 16 21 L 22 15" fill="none" stroke="url(#shimmerGrad1)" stroke-width="2.5" stroke-linecap="square"/>
+                  <line x1="7" y1="26" x2="25" y2="26" stroke="url(#shimmerGrad1)" stroke-width="2.5" stroke-linecap="square"/>
+                </svg>
+              </button>
+              <span class="icon-label">Download</span>
+            </div>
+
+            <!-- Next Arrow -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Next">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+                  <path d="M 12 7 L 22 16 L 12 25" fill="none" stroke="url(#shimmerGrad1)" stroke-width="2.8" stroke-linecap="square" stroke-linejoin="miter"/>
+                </svg>
+              </button>
+              <span class="icon-label">Next (&gt;)</span>
+            </div>
+
+            <!-- Zoom Plus -->
+            <div class="icon-cell">
+              <button class="icon-btn-pure" title="Zoom">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+                  <line x1="16" y1="7" x2="16" y2="25" stroke="url(#shimmerGrad1)" stroke-width="2.5" stroke-linecap="square"/>
+                  <line x1="7" y1="16" x2="25" y2="16" stroke="url(#shimmerGrad1)" stroke-width="2.5" stroke-linecap="square"/>
+                </svg>
+              </button>
+              <span class="icon-label">Zoom (+)</span>
+            </div>
+
+          </div>
+        </div>
+        <div class="var-desc">
+          Continuous traveling laser wave that sweeps diagonally through the vector icon strokes, shifting them dynamically from Stark White into vibrant Electric Cyan with an intense optical halo at the crest of the wave.
+        </div>
+        <div class="var-foot">
+          <span style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">Wave Modulation</span>
+          <button class="btn-action" onclick="previewVariation(4)">Simulate in Player</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Hidden Global SVG Gradients for Shimmer Wave -->
+    <svg width="0" height="0">
+      <defs>
+        <linearGradient id="shimmerGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff">
+            <animate attributeName="offset" values="-1; 1" dur="3s" repeatCount="indefinite"/>
+          </stop>
+          <stop offset="50%" stop-color="#00f0ff">
+            <animate attributeName="offset" values="-0.5; 1.5" dur="3s" repeatCount="indefinite"/>
+          </stop>
+          <stop offset="100%" stop-color="#ffffff">
+            <animate attributeName="offset" values="0; 2" dur="3s" repeatCount="indefinite"/>
+          </stop>
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <!-- =================================================================== -->
+    <!-- FULL-SCREEN LIVE SIMULATION MODAL (REAL USER PHOTO CONTEXT)         -->
+    <!-- =================================================================== -->
+    <div class="mock-section">
+      <div class="mock-head">
+        <div class="mock-title">
+          <span class="badge-dot"></span>
+          <span id="simTitle">Live Player Simulation: Variation 1 (Sub-Horizon Laser Scan)</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-action" onclick="previewVariation(1)">Var 1</button>
+          <button class="btn-action" onclick="previewVariation(2)">Var 2</button>
+          <button class="btn-action" onclick="previewVariation(3)">Var 3</button>
+          <button class="btn-action" onclick="previewVariation(4)">Var 4</button>
+        </div>
+      </div>
+      <div class="mock-stage" id="playerStage">
+
+        <!-- User Photo from Screenshot -->
+        <img src="/mock-photo.jpg" class="mock-bg-img" alt="Active Photo Vault Context">
+
+        <!-- Top-Left: Enlarged Floating Logo without Box/Capsule Outline -->
+        <div class="mock-corner-top-left">
+          <div class="logo-container">
+            <div class="spark-line-base" style="bottom: 1px;">
+              <div class="sweep-trail" style="width: 70px;"></div>
+              <div class="sweep-node"></div>
+            </div>
+            <!-- Enlarged Vector Logo -->
+            <svg viewBox="0 0 740 90" width="240" height="34" style="filter: drop-shadow(0 0 16px rgba(0,0,0,0.95));">
+              <g transform="translate(10, 15)">
+                <line x1="16" y1="6" x2="48" y2="6" stroke="#ffffff" stroke-width="3"/>
+                <path d="M 48 14 L 16 14 C 8 14, 8 26, 16 26 L 38 26 C 46 26, 46 38, 38 38 L 8 38" fill="none" stroke="#ffffff" stroke-width="3"/>
+                <line x1="8" y1="46" x2="40" y2="46" stroke="#ffffff" stroke-width="3"/>
+                <path d="M 68 46 L 90 6 L 112 46" fill="none" stroke="#ffffff" stroke-width="3"/>
+                <line x1="74" y1="30" x2="106" y2="30" stroke="#00f0ff" stroke-width="2.2"/>
+                <path d="M 132 46 L 132 6 L 158 6 C 170 6, 170 24, 158 24 L 132 24" fill="none" stroke="#ffffff" stroke-width="3"/>
+                <line x1="152" y1="24" x2="168" y2="46" stroke="#ffffff" stroke-width="3"/>
+                <path d="M 188 6 L 198 46 L 212 20 L 226 46 L 236 6" fill="none" stroke="#ffffff" stroke-width="3"/>
+                <path d="M 256 46 L 278 6 L 300 46" fill="none" stroke="#ffffff" stroke-width="3"/>
+                <line x1="262" y1="30" x2="294" y2="30" stroke="#00f0ff" stroke-width="2.2"/>
+                <path d="M 320 46 L 320 6 L 346 6 C 358 6, 358 24, 346 24 L 320 24" fill="none" stroke="#ffffff" stroke-width="3"/>
+                <line x1="340" y1="24" x2="356" y2="46" stroke="#ffffff" stroke-width="3"/>
+                <polygon points="380,44 386,34 394,34 388,44" fill="#00f0ff"/>
+                <path d="M 444 14 L 420 14 C 408 14, 408 38, 420 38 L 444 38" fill="none" stroke="#00f0ff" stroke-width="3"/>
+                <path d="M 462 6 L 476 24 L 490 6" fill="none" stroke="#00f0ff" stroke-width="3"/>
+                <line x1="476" y1="28" x2="476" y2="46" stroke="#00f0ff" stroke-width="3"/>
+                <path d="M 520 8 C 508 16, 508 36, 520 44" fill="none" stroke="#00f0ff" stroke-width="3"/>
+                <path d="M 528 8 C 540 16, 540 36, 528 44" fill="none" stroke="#00f0ff" stroke-width="3"/>
+                <line x1="560" y1="6" x2="560" y2="20" stroke="#00f0ff" stroke-width="3"/>
+                <path d="M 560 26 L 560 36 C 560 46, 588 46, 588 36 L 588 6" fill="none" stroke="#00f0ff" stroke-width="3"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Top-Right: Pure Floating Close Icon (No outline box) -->
+        <div class="mock-corner-top-right" id="slotClose">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Left Nav Arrow (No outline box) -->
+        <div class="mock-nav-left" id="slotPrev">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Right Nav Arrow (No outline box) -->
+        <div class="mock-nav-right" id="slotNext">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Bottom-Left: Pure Floating Download Icon (No outline box) -->
+        <div class="mock-corner-bottom-left" id="slotDownload">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Bottom-Right: Pure Floating Zoom Controls (No outline box) -->
+        <div class="mock-corner-bottom-right" id="slotZoom">
+          <!-- Injected dynamically -->
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const SIM_MARKUP = {
+      1: {
+        title: "Variation 1: Sub-Horizon Laser Scan (Micro-spark beneath each icon)",
+        close: `
+          <button class="icon-btn-pure" title="Close" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var1-spark-base" style="bottom: -2px;">
+              <div class="var1-trail"></div>
+              <div class="var1-node"></div>
+            </div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <line x1="8" y1="8" x2="24" y2="24" stroke="#ffffff" stroke-width="2.4" stroke-linecap="square"/>
+              <line x1="24" y1="8" x2="8" y2="24" stroke="#00f0ff" stroke-width="2.4" stroke-linecap="square"/>
+            </svg>
+          </button>
+        `,
+        prev: `
+          <button class="icon-btn-pure" title="Previous" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var1-spark-base" style="bottom: -2px;">
+              <div class="var1-trail"></div>
+              <div class="var1-node"></div>
+            </div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <path d="M 20 8 L 11 16 L 20 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="square"/>
+            </svg>
+          </button>
+        `,
+        next: `
+          <button class="icon-btn-pure" title="Next" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var1-spark-base" style="bottom: -2px;">
+              <div class="var1-trail"></div>
+              <div class="var1-node"></div>
+            </div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <path d="M 12 8 L 21 16 L 12 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="square"/>
+            </svg>
+          </button>
+        `,
+        download: `
+          <button class="icon-btn-pure" title="Download" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var1-spark-base" style="bottom: -2px;">
+              <div class="var1-trail"></div>
+              <div class="var1-node"></div>
+            </div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <line x1="16" y1="6" x2="16" y2="19" stroke="#ffffff" stroke-width="2.4" stroke-linecap="square"/>
+              <path d="M 10 14 L 16 20 L 22 14" fill="none" stroke="#00f0ff" stroke-width="2.4" stroke-linecap="square"/>
+              <line x1="7" y1="25" x2="25" y2="25" stroke="#ffffff" stroke-width="2.4" stroke-linecap="square"/>
+            </svg>
+          </button>
+        `,
+        zoom: `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <button class="icon-btn-pure" title="Zoom In">
+              <div class="var1-spark-base" style="bottom: -2px;">
+                <div class="var1-trail"></div>
+                <div class="var1-node"></div>
+              </div>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19" stroke="#ffffff" stroke-width="2.2"/>
+                <line x1="5" y1="12" x2="19" y2="12" stroke="#00f0ff" stroke-width="2.2"/>
+              </svg>
+            </button>
+            <div class="mock-zoom-track">
+              <div class="mock-zoom-thumb"></div>
+            </div>
+            <button class="icon-btn-pure" title="Zoom Out">
+              <div class="var1-spark-base" style="bottom: -2px;">
+                <div class="var1-trail"></div>
+                <div class="var1-node"></div>
+              </div>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <line x1="5" y1="12" x2="19" y2="12" stroke="#ffffff" stroke-width="2.2"/>
+              </svg>
+            </button>
+          </div>
+        `
+      },
+      2: {
+        title: "Variation 2: Contour Laser Runner (Particle glides directly along glyph outline)",
+        close: `
+          <button class="icon-btn-pure" title="Close" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <line x1="8" y1="8" x2="24" y2="24" stroke="rgba(255,255,255,0.3)" stroke-width="2.2"/>
+              <line x1="8" y1="8" x2="24" y2="24" stroke="#00f0ff" stroke-width="2.8" stroke-linecap="round" class="var2-laser-stroke"/>
+              <line x1="24" y1="8" x2="8" y2="24" stroke="rgba(255,255,255,0.3)" stroke-width="2.2"/>
+              <line x1="24" y1="8" x2="8" y2="24" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" class="var2-laser-stroke" style="animation-delay: 1.5s;"/>
+            </svg>
+          </button>
+        `,
+        prev: `
+          <button class="icon-btn-pure" title="Previous" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <path d="M 20 8 L 11 16 L 20 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2"/>
+              <path d="M 20 8 L 11 16 L 20 24" fill="none" stroke="#00f0ff" stroke-width="2.8" stroke-linecap="round" class="var2-laser-stroke"/>
+            </svg>
+          </button>
+        `,
+        next: `
+          <button class="icon-btn-pure" title="Next" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <path d="M 12 8 L 21 16 L 12 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2"/>
+              <path d="M 12 8 L 21 16 L 12 24" fill="none" stroke="#00f0ff" stroke-width="2.8" stroke-linecap="round" class="var2-laser-stroke"/>
+            </svg>
+          </button>
+        `,
+        download: `
+          <button class="icon-btn-pure" title="Download" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <line x1="16" y1="6" x2="16" y2="19" stroke="rgba(255,255,255,0.3)" stroke-width="2.2"/>
+              <line x1="16" y1="6" x2="16" y2="19" stroke="#00f0ff" stroke-width="2.8" class="var2-laser-stroke"/>
+              <path d="M 10 14 L 16 20 L 22 14" fill="none" stroke="#ffffff" stroke-width="2.2"/>
+              <line x1="7" y1="25" x2="25" y2="25" stroke="#00f0ff" stroke-width="2.2"/>
+            </svg>
+          </button>
+        `,
+        zoom: `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <button class="icon-btn-pure" title="Zoom In">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19" stroke="#00f0ff" stroke-width="2.4" class="var2-laser-stroke"/>
+                <line x1="5" y1="12" x2="19" y2="12" stroke="#ffffff" stroke-width="2.2"/>
+              </svg>
+            </button>
+            <div class="mock-zoom-track">
+              <div class="mock-zoom-thumb"></div>
+            </div>
+            <button class="icon-btn-pure" title="Zoom Out">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <line x1="5" y1="12" x2="19" y2="12" stroke="#00f0ff" stroke-width="2.4" class="var2-laser-stroke"/>
+              </svg>
+            </button>
+          </div>
+        `
+      },
+      3: {
+        title: "Variation 3: Scattered Monoline Anatomy (Detached strokes + rhombus spark core)",
+        close: `
+          <button class="icon-btn-pure" title="Close" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var3-spark-base"><div class="var3-pulse-flare"></div></div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <line x1="6" y1="6" x2="14" y2="6" stroke="#ffffff" stroke-width="2"/>
+              <line x1="18" y1="6" x2="26" y2="6" stroke="#00f0ff" stroke-width="2"/>
+              <line x1="9" y1="9" x2="14" y2="14" stroke="#ffffff" stroke-width="2.4"/>
+              <line x1="18" y1="18" x2="23" y2="23" stroke="#ffffff" stroke-width="2.4"/>
+              <line x1="23" y1="9" x2="18" y2="14" stroke="#00f0ff" stroke-width="2.4"/>
+              <line x1="14" y1="18" x2="9" y2="23" stroke="#00f0ff" stroke-width="2.4"/>
+              <polygon points="16,14 18,16 16,18 14,16" fill="#00f0ff"/>
+            </svg>
+          </button>
+        `,
+        prev: `
+          <button class="icon-btn-pure" title="Previous" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var3-spark-base"><div class="var3-pulse-flare"></div></div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <path d="M 20 8 L 10 16 L 20 24" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+              <line x1="24" y1="16" x2="17" y2="16" stroke="#00f0ff" stroke-width="2"/>
+            </svg>
+          </button>
+        `,
+        next: `
+          <button class="icon-btn-pure" title="Next" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var3-spark-base"><div class="var3-pulse-flare"></div></div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <path d="M 12 8 L 22 16 L 12 24" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+              <line x1="8" y1="16" x2="15" y2="16" stroke="#00f0ff" stroke-width="2"/>
+            </svg>
+          </button>
+        `,
+        download: `
+          <button class="icon-btn-pure" title="Download" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+            <div class="var3-spark-base"><div class="var3-pulse-flare"></div></div>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <line x1="16" y1="6" x2="16" y2="16" stroke="#ffffff" stroke-width="2.4"/>
+              <path d="M 11 14 L 16 19 L 21 14" fill="none" stroke="#00f0ff" stroke-width="2.4"/>
+              <path d="M 8 23 C 6 24, 6 26, 8 27 L 13 27" fill="none" stroke="#ffffff" stroke-width="2"/>
+              <path d="M 24 23 C 26 24, 26 26, 24 27 L 19 27" fill="none" stroke="#00f0ff" stroke-width="2"/>
+            </svg>
+          </button>
+        `,
+        zoom: `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <button class="icon-btn-pure" title="Zoom In">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="6" x2="12" y2="12" stroke="#ffffff" stroke-width="2"/>
+                <line x1="12" y1="16" x2="12" y2="22" stroke="#ffffff" stroke-width="2"/>
+                <line x1="6" y1="12" x2="12" y2="12" stroke="#00f0ff" stroke-width="2"/>
+                <line x1="16" y1="12" x2="22" y2="12" stroke="#00f0ff" stroke-width="2"/>
+              </svg>
+            </button>
+            <div class="mock-zoom-track">
+              <div class="mock-zoom-thumb"></div>
+            </div>
+            <button class="icon-btn-pure" title="Zoom Out">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <line x1="6" y1="12" x2="22" y2="12" stroke="#00f0ff" stroke-width="2"/>
+              </svg>
+            </button>
+          </div>
+        `
+      },
+      4: {
+        title: "Variation 4: Kinetic Laser Shimmer Wave (Dynamic cyan scan shimmer)",
+        close: `
+          <button class="icon-btn-pure" title="Close">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+              <line x1="8" y1="8" x2="24" y2="24" stroke="url(#shimmerGrad1)" stroke-width="2.6"/>
+              <line x1="24" y1="8" x2="8" y2="24" stroke="url(#shimmerGrad1)" stroke-width="2.6"/>
+            </svg>
+          </button>
+        `,
+        prev: `
+          <button class="icon-btn-pure" title="Previous">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+              <path d="M 20 8 L 11 16 L 20 24" fill="none" stroke="url(#shimmerGrad1)" stroke-width="2.8"/>
+            </svg>
+          </button>
+        `,
+        next: `
+          <button class="icon-btn-pure" title="Next">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+              <path d="M 12 8 L 21 16 L 12 24" fill="none" stroke="url(#shimmerGrad1)" stroke-width="2.8"/>
+            </svg>
+          </button>
+        `,
+        download: `
+          <button class="icon-btn-pure" title="Download">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none" class="var4-shimmer-svg">
+              <line x1="16" y1="6" x2="16" y2="19" stroke="url(#shimmerGrad1)" stroke-width="2.6"/>
+              <path d="M 10 14 L 16 20 L 22 14" fill="none" stroke="url(#shimmerGrad1)" stroke-width="2.6"/>
+              <line x1="7" y1="25" x2="25" y2="25" stroke="url(#shimmerGrad1)" stroke-width="2.6"/>
+            </svg>
+          </button>
+        `,
+        zoom: `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <button class="icon-btn-pure" title="Zoom In">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="var4-shimmer-svg">
+                <line x1="12" y1="5" x2="12" y2="19" stroke="url(#shimmerGrad1)" stroke-width="2.4"/>
+                <line x1="5" y1="12" x2="19" y2="12" stroke="url(#shimmerGrad1)" stroke-width="2.4"/>
+              </svg>
+            </button>
+            <div class="mock-zoom-track">
+              <div class="mock-zoom-thumb"></div>
+            </div>
+            <button class="icon-btn-pure" title="Zoom Out">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="var4-shimmer-svg">
+                <line x1="5" y1="12" x2="19" y2="12" stroke="url(#shimmerGrad1)" stroke-width="2.4"/>
+              </svg>
+            </button>
+          </div>
+        `
+      }
+    };
+
+    function previewVariation(v) {
+      const data = SIM_MARKUP[v];
+      document.getElementById('simTitle').textContent = data.title;
+      document.getElementById('slotClose').innerHTML = data.close;
+      document.getElementById('slotPrev').innerHTML = data.prev;
+      document.getElementById('slotNext').innerHTML = data.next;
+      document.getElementById('slotDownload').innerHTML = data.download;
+      document.getElementById('slotZoom').innerHTML = data.zoom;
+
+      document.querySelectorAll('.var-card').forEach(c => c.classList.remove('selected'));
+      const activeCard = document.getElementById('card-v' + v);
+      if (activeCard) activeCard.classList.add('selected');
+    }
+
+    // Default to Variation 1
+    previewVariation(1);
+  </script>
+</body>
+</html>
