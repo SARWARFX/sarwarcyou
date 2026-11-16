@@ -415,10 +415,10 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
 }
 
 .shorts-stream-card:hover {
-  filter: brightness(1.1) !important;
+  filter: brightness(1.05) !important;
   opacity: 1 !important;
   z-index: 40;
-  box-shadow: inset 0 0 0 2px #00f0ff, 0 0 35px rgba(0, 240, 255, 0.4);
+  box-shadow: none;
 }
 
 html, body {

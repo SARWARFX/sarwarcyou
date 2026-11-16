@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { AlertTriangle, Loader2, Play, Pause, Heart, FastForward, Sparkles } from 'lucide-react';
+import { AlertTriangle, Loader2, Play, Pause, Heart, FastForward } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
@@ -20,9 +20,6 @@ import { getGlobalAudioMuted } from '../utils/audioMuteManager';
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
 }
-
-// Seamless Zero-Gap Stream Badges
-const STREAM_BADGES = ['RECOMMENDED', 'TRENDING', 'HOT PICKS', 'DISCOVER', 'SUGGESTED', 'FEATURED', 'FOR YOU'];
 
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   isOpen, onClose, shorts, initialIndex = 0, onIndexChange,
@@ -586,8 +583,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
           isDesktop
             ? isLandscape
-              ? 'rounded-none border-2 border-[#00f0ff] shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_35px_rgba(0, 240, 255,0.35)] bg-black'
-              : 'h-screen rounded-none border-l-2 border-r-2 border-[#00f0ff] shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7),-10px_0_25px_rgba(0, 240, 255,0.35),10px_0_25px_rgba(0, 240, 255,0.35)] bg-black'
+              ? 'rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.85)] bg-black'
+              : 'h-screen rounded-none border-0 shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7)] bg-black'
             : 'w-full h-full bg-black'
         } ${
           isActive
@@ -837,7 +834,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     e.stopPropagation();
                     goToShortIndex(originalIndex, originalIndex > activeIndex ? 'next' : 'prev');
                   }}
-                  className="shorts-stream-card group"
+                  className="shorts-stream-card"
                   title={item.title || 'Play Short'}
                 >
                   <img
@@ -846,22 +843,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                     className="w-full h-full object-cover pointer-events-none select-none"
                     loading="lazy"
                   />
-                  <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-black/85 border border-[#00f0ff]/40 backdrop-blur-md pointer-events-none shadow-md">
-                    <Sparkles className="w-2.5 h-2.5 text-[#00f0ff]" />
-                    <span className="text-[9px] font-mono font-bold tracking-wider text-[#00f0ff] uppercase">
-                      {STREAM_BADGES[idx % STREAM_BADGES.length]}
-                    </span>
-                  </div>
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
-                    <div className="w-12 h-12 rounded-none bg-[#00f0ff] text-black flex items-center justify-center shadow-[0_0_20px_rgba(0, 240, 255,0.6)]">
-                      <Play className="w-5 h-5 fill-current ml-0.5" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-4 left-4 right-4 pointer-events-none flex items-center">
-                    <span className="px-2.5 py-1 rounded-none bg-black/80 border border-white/10 backdrop-blur-md text-[11px] font-medium text-white/90 truncate max-w-full drop-shadow">
-                      {item.title || 'Short'}
-                    </span>
-                  </div>
                 </div>
               );
             })}
