@@ -3,20 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SARWAR.CYOU — Neon Black & Neon White Visual Comparison</title>
+  <title>SARWAR.CYOU — Pure Black & White + Logo Font Showcase</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Michroma&family=Oxanium:wght@600;700;800&family=Audiowide&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #000000;
       --card-bg: #05070c;
       --neon-white: #ffffff;
       --neon-white-glow: rgba(255, 255, 255, 0.7);
-      --neon-cyan: #00f0ff;
-      --neon-cyan-glow: rgba(0, 240, 255, 0.6);
-      --neon-pink: #ff2bd6;
-      --border-subtle: rgba(255, 255, 255, 0.15);
+      --border-subtle: rgba(255, 255, 255, 0.2);
       --text-main: #ffffff;
       --text-muted: #8b9bb4;
     }
@@ -78,8 +75,8 @@
       left: -2px;
       width: 14px;
       height: 14px;
-      border-top: 2px solid #00f0ff;
-      border-left: 2px solid #00f0ff;
+      border-top: 2px solid #ffffff;
+      border-left: 2px solid #ffffff;
     }
     .bracket-br {
       position: absolute;
@@ -87,8 +84,8 @@
       right: -2px;
       width: 14px;
       height: 14px;
-      border-bottom: 2px solid #ff2bd6;
-      border-right: 2px solid #ff2bd6;
+      border-bottom: 2px solid #ffffff;
+      border-right: 2px solid #ffffff;
     }
 
     .tag-pill {
@@ -101,16 +98,16 @@
       font-weight: 700;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      background: rgba(0, 240, 255, 0.1);
-      border: 1px solid rgba(0, 240, 255, 0.35);
-      color: #00f0ff;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #ffffff;
       margin-bottom: 12px;
     }
     .tag-dot {
       width: 6px;
       height: 6px;
-      background: #00f0ff;
-      box-shadow: 0 0 8px #00f0ff;
+      background: #ffffff;
+      box-shadow: 0 0 8px #ffffff;
       animation: pulse 1.5s infinite;
     }
     @keyframes pulse {
@@ -131,66 +128,14 @@
     .subtitle {
       font-size: 14px;
       color: var(--text-muted);
-      max-width: 800px;
-      font-family: 'Space Grotesk', sans-serif;
-    }
-
-    /* Interactive Theme Selector Bar */
-    .mode-selector {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 14px;
-      margin-bottom: 40px;
-    }
-    .mode-btn {
-      background: rgba(6, 10, 18, 0.9);
-      border: 1px solid var(--border-subtle);
-      padding: 18px 20px;
-      text-align: left;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      position: relative;
-    }
-    .mode-btn:hover {
-      border-color: #ffffff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .mode-btn.active {
-      border-color: #00f0ff;
-      background: rgba(0, 240, 255, 0.08);
-      box-shadow: 0 0 25px rgba(0, 240, 255, 0.25), inset 0 0 15px rgba(0, 240, 255, 0.05);
-    }
-    .mode-btn.active::after {
-      content: '● ACTIVE VIEW';
-      position: absolute;
-      top: 14px;
-      right: 16px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
-      font-weight: 800;
-      color: #00f0ff;
-      letter-spacing: 0.15em;
-    }
-    .mode-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #ffffff;
-      margin-bottom: 4px;
-    }
-    .mode-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
+      max-width: 850px;
       font-family: 'Space Grotesk', sans-serif;
     }
 
     /* Section Headers */
     .section-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       letter-spacing: 0.15em;
       text-transform: uppercase;
@@ -199,38 +144,41 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 18px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
       padding-bottom: 8px;
+      margin-top: 48px;
     }
     .section-num {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: #00f0ff;
-      background: rgba(0, 240, 255, 0.12);
+      color: #000000;
+      background: #ffffff;
       padding: 2px 8px;
-      border: 1px solid rgba(0, 240, 255, 0.3);
+      font-weight: 900;
     }
 
-    /* 1. MASTER LOGO HERO VERIFICATION */
+    /* 1. MASTER LOGO HERO (PURE MONOCHROME VERSION) */
     .logo-hero-card {
       background: #000000;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 40px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 36px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       position: relative;
-      margin-bottom: 44px;
+      margin-bottom: 24px;
       box-shadow: 0 0 60px rgba(0, 0, 0, 0.95);
     }
     .logo-display {
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 16px 24px;
+      gap: 16px;
+      padding: 18px 26px;
       background: #000000;
       user-select: none;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     .logo-text-sarwar {
       font-family: 'Space Grotesk', -apple-system, sans-serif;
@@ -239,288 +187,224 @@
       letter-spacing: 0.32em;
       color: #ffffff;
       text-transform: uppercase;
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.7), 0 0 40px rgba(255, 255, 255, 0.25);
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.7), 0 0 40px rgba(255, 255, 255, 0.3);
     }
-    .logo-text-cyou {
+    .logo-pill-monochrome {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border: 2px solid #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+    .logo-pill-dot {
+      width: 7px;
+      height: 7px;
+      background: #ffffff;
+      box-shadow: 0 0 10px #ffffff;
+    }
+    .logo-text-cyou-mono {
       font-family: 'Space Grotesk', -apple-system, sans-serif;
-      font-size: clamp(28px, 6vw, 48px);
+      font-size: clamp(22px, 4.5vw, 36px);
       font-weight: 900;
-      letter-spacing: 0.32em;
-      color: #00f0ff;
+      letter-spacing: 0.25em;
+      color: #ffffff;
       text-transform: uppercase;
-      text-shadow: 0 0 20px rgba(0, 240, 255, 0.8), 0 0 40px rgba(0, 240, 255, 0.35);
+      text-shadow: 0 0 18px rgba(255, 255, 255, 0.7);
     }
     .logo-note {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: #8fa0bc;
+      color: #cbd5e1;
       letter-spacing: 0.15em;
       text-transform: uppercase;
       margin-top: 14px;
       text-align: center;
     }
 
-    /* 2. SIDE BY SIDE COMPARISON GRID */
-    .comparison-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 28px;
-      margin-bottom: 50px;
-    }
-
-    .concept-card {
-      background: #020408;
+    /* Interactive Live Text Tester */
+    .live-tester-bar {
+      background: rgba(6, 10, 18, 0.95);
       border: 1px solid var(--border-subtle);
-      padding: 24px;
-      position: relative;
+      padding: 16px 20px;
+      margin-bottom: 30px;
       display: flex;
-      flex-direction: column;
-      gap: 20px;
-      transition: all 0.3s ease;
-    }
-    .concept-card.highlight {
-      border-color: #00f0ff;
-      box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
-    }
-    .concept-badge {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
-
-    /* MEDIA CARD PREVIEW */
-    .mock-media-card {
-      width: 100%;
-      height: 240px;
-      background: #000000;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      position: relative;
-      overflow: hidden;
-      cursor: pointer;
-      transition: transform 0.25s ease, border-color 0.25s ease;
-    }
-    .mock-media-card:hover {
-      transform: scale(1.02);
-    }
-    .mock-media-card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0.85;
-      transition: opacity 0.25s ease;
-    }
-    .mock-media-card:hover img {
-      opacity: 1;
-    }
-    .mock-card-meta {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 12px;
-      background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
-    }
-    .mock-card-title {
-      font-family: 'Orbitron', sans-serif;
+    .tester-label {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0.1em;
-      text-transform: uppercase;
       color: #ffffff;
+      text-transform: uppercase;
+      white-space: nowrap;
     }
-    .mock-card-sub {
+    .tester-input {
+      flex: 1;
+      min-width: 220px;
+      background: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #ffffff;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
-      color: #8b9bb4;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 8px 12px;
       letter-spacing: 0.1em;
+      text-transform: uppercase;
+      outline: none;
     }
-
-    /* Card Themes */
-    /* Concept A: Pure Neon White & Black */
-    .card-style-a {
-      border: 1px solid rgba(255, 255, 255, 0.25);
-    }
-    .card-style-a:hover {
+    .tester-input:focus {
       border-color: #ffffff;
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.1);
-    }
-    .card-style-a .bracket-tl {
-      border-top-color: #ffffff;
-      border-left-color: #ffffff;
-    }
-    .card-style-a .bracket-br {
-      border-bottom-color: #ffffff;
-      border-right-color: #ffffff;
-    }
-    .card-style-a .scan-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: #ffffff;
-      box-shadow: 0 0 14px #ffffff;
-      animation: cyberScan 3s linear infinite;
-      opacity: 0.75;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
     }
 
-    /* Concept B: Dual Neon (White Hero + Electric Cyan Tech) */
-    .card-style-b {
-      border: 1px solid rgba(0, 240, 255, 0.35);
-    }
-    .card-style-b:hover {
-      border-color: #00f0ff;
-      box-shadow: 0 0 30px rgba(0, 240, 255, 0.35), inset 0 0 15px rgba(0, 240, 255, 0.08);
-    }
-    .card-style-b .bracket-tl {
-      border-top-color: #ffffff;
-      border-left-color: #ffffff;
-    }
-    .card-style-b .bracket-br {
-      border-bottom-color: #00f0ff;
-      border-right-color: #00f0ff;
-    }
-    .card-style-b .scan-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: #00f0ff;
-      box-shadow: 0 0 14px #00f0ff;
-      animation: cyberScan 3s linear infinite;
+    /* 4-COLUMN FONT CANDIDATES GRID */
+    .font-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 50px;
     }
 
-    @keyframes cyberScan {
-      0% { top: -2px; }
-      100% { top: 100%; }
-    }
-
-    /* DOCK MOCKUPS */
-    .mock-dock-preview {
-      background: rgba(6, 10, 18, 0.98);
-      border: 1px solid var(--border-subtle);
-      padding: 14px;
+    .font-card {
+      background: #020408;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 22px;
+      position: relative;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 16px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .font-card:hover {
+      border-color: #ffffff;
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.25);
+    }
+    .font-card.selected {
+      border-color: #ffffff;
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 40px rgba(255, 255, 255, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.05);
+    }
+    .font-card.selected::after {
+      content: '✓ SELECTED';
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 900;
+      color: #000000;
+      background: #ffffff;
+      padding: 2px 6px;
+      letter-spacing: 0.15em;
+    }
+
+    .font-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 10px;
+    }
+    .font-name {
+      font-size: 16px;
+      font-weight: 900;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .font-traits {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* Subfolder Docks Inside Font Cards */
+    .dock-mock {
+      background: rgba(6, 10, 18, 0.98);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       position: relative;
     }
-    .dock-btn {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
+    .subfolder-item {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       padding: 8px 12px;
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       color: #94a3b8;
-      cursor: pointer;
       text-align: left;
       transition: all 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
     }
-
-    /* Style A Dock */
-    .dock-style-a .dock-btn:hover {
+    .subfolder-item:hover {
       background: #ffffff;
       color: #000000;
       border-color: #ffffff;
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+      font-weight: 900;
     }
-    .dock-style-a .dock-btn.active {
+    .subfolder-item.active {
       background: #ffffff;
       color: #000000;
       border-color: #ffffff;
       font-weight: 900;
     }
 
-    /* Style B Dock */
-    .dock-style-b .dock-btn:hover {
-      background: rgba(0, 240, 255, 0.15);
-      color: #00f0ff;
-      border-color: #00f0ff;
-      box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
-    }
-    .dock-style-b .dock-btn.active {
-      background: rgba(0, 240, 255, 0.2);
-      color: #00f0ff;
-      border-color: #00f0ff;
-      font-weight: 900;
-    }
+    /* Specific Font Families */
+    .f-orbitron { font-family: 'Orbitron', sans-serif !important; }
+    .f-michroma { font-family: 'Michroma', sans-serif !important; }
+    .f-oxanium { font-family: 'Oxanium', monospace, sans-serif !important; }
+    .f-audiowide { font-family: 'Audiowide', cursive, sans-serif !important; }
 
-    /* TELEMETRY GRAPH MOCKUP */
-    .mock-graph-bar {
-      width: 100%;
-      height: 20px;
-      background: rgba(255, 255, 255, 0.06);
+    /* Telemetry Bar Preview inside Font Card */
+    .telemetry-preview {
+      margin-top: 8px;
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.12);
+      height: 22px;
       position: relative;
       display: flex;
       align-items: center;
       overflow: hidden;
-      margin-bottom: 6px;
     }
-    .graph-fill-a {
+    .telemetry-fill {
       height: 100%;
       background: linear-gradient(to right, #ffffff, #a0aec0);
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     }
-    .graph-fill-b {
-      height: 100%;
-      background: linear-gradient(to right, #00f0ff, #0088cc);
-      box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
-    }
-    .graph-label {
+    .telemetry-text {
       position: absolute;
       left: 8px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 8.5px;
+      font-size: 9px;
       font-weight: 900;
       color: #000000;
       z-index: 10;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    /* SUMMARY TABLE */
-    .spec-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 14px;
-      font-size: 12px;
-      font-family: 'Space Grotesk', sans-serif;
-    }
-    .spec-table th, .spec-table td {
-      padding: 10px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: left;
-    }
-    .spec-table th {
-      background: rgba(255, 255, 255, 0.04);
-      color: #ffffff;
-      font-family: 'Orbitron', sans-serif;
-      font-size: 10px;
       letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-    .spec-table td {
-      color: #8b9bb4;
     }
 
-    /* ACTION RECOMMENDATION BOX */
+    /* Decision Box */
     .decision-box {
-      border: 1px solid rgba(0, 240, 255, 0.4);
-      background: rgba(6, 10, 18, 0.95);
-      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(6, 10, 18, 0.98);
+      padding: 28px;
       position: relative;
       margin-top: 50px;
-      box-shadow: 0 0 35px rgba(0, 240, 255, 0.15);
+      box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
     }
     .decision-title {
       font-family: 'Orbitron', sans-serif;
@@ -529,10 +413,7 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: #ffffff;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      margin-bottom: 12px;
     }
   </style>
 </head>
@@ -545,7 +426,7 @@
       <div class="marquee-inner">
         <span>INDEX NOTICE • SARWAR.CYOU Bespoke Branding System</span>
         <span>•</span>
-        <span>NEON BLACK & NEON WHITE VISUAL COMPARISON MATRIX</span>
+        <span>PURE BLACK & NEON WHITE FONT SELECTION MATRIX</span>
         <span>•</span>
         <span>100% SQUARE GEOMETRY</span>
         <span>•</span>
@@ -562,20 +443,19 @@
 
       <div class="tag-pill">
         <span class="tag-dot"></span>
-        <span>DESIGN SYSTEM DNA ALIGNMENT</span>
+        <span>ZERO-TEXT TYPOGRAPHY LAB</span>
       </div>
 
-      <h1>Neon Black & Neon White Visual Comparison</h1>
+      <h1>Pure Black & White + Logo Font Selection</h1>
       <p class="subtitle">
-        Evaluating the exact aesthetic harmony between the master website logo and the entire website interface.
-        Test and compare the two interpretations below.
+        You chose <strong>Pure Black & White</strong>. Now let's pick the exact typeface for subfolders and navigation text that inherits the DNA and geometric proportions of the website logo.
       </p>
     </div>
 
-    <!-- SECTION 1: THE BRAND SOURCE OF TRUTH (LOCKED MASTER LOGO) -->
+    <!-- SECTION 1: THE MONOCHROME LOGO ANCHOR -->
     <div class="section-title">
       <span class="section-num">01</span>
-      <span>The Brand Source of Truth (Locked Logo)</span>
+      <span>The Monochrome Logo Source of Truth</span>
     </div>
 
     <div class="logo-hero-card">
@@ -584,233 +464,223 @@
 
       <div class="logo-display">
         <span class="logo-text-sarwar">SARWAR</span>
-        <span class="logo-text-cyou">.CYOU</span>
+        <div class="logo-pill-monochrome">
+          <div class="logo-pill-dot"></div>
+          <span class="logo-text-cyou-mono">CYOU</span>
+        </div>
       </div>
 
       <div class="logo-note">
-        [ SARWAR: Stark Phosphor Neon White #FFFFFF ] &nbsp;•&nbsp; [ .CYOU: Electric Cyan #00F0FF ] &nbsp;•&nbsp; [ Void: Pure Obsidian #000000 ]
+        [ PURE OBSIDIAN BLACK #000000 &nbsp;•&nbsp; PURE PHOSPHOR NEON WHITE #FFFFFF &nbsp;•&nbsp; UNIFIED MONOCHROME INSIGNIA ]
       </div>
     </div>
 
-    <!-- SECTION 2: SIDE-BY-SIDE CONCEPT COMPARISON -->
+    <!-- SECTION 2: LIVE TESTER INPUT BAR -->
     <div class="section-title">
       <span class="section-num">02</span>
-      <span>Interactive Concept Matrix</span>
+      <span>Live Interactive Subfolder Font Lab</span>
     </div>
 
-    <!-- Live Selector Tabs -->
-    <div class="mode-selector">
-      <div class="mode-btn" onclick="selectTheme('b')">
-        <div class="mode-title">Concept B (Recommended): Dual Cyber Neon</div>
-        <div class="mode-desc">
-          Matches the logo's exact dual-nature: <strong>Stark White</strong> hero presence + <strong>Electric Cyan</strong> tactical beacon highlights on pure obsidian black.
-        </div>
-      </div>
-
-      <div class="mode-btn" onclick="selectTheme('a')">
-        <div class="mode-title">Concept A: Pure Obsidian Monochrome</div>
-        <div class="mode-desc">
-          100% strict <strong>Neon White & Neon Black</strong>. High-contrast inversion buttons. Cyan is only kept as a tiny 1px micro-ping dot.
-        </div>
-      </div>
+    <div class="live-tester-bar">
+      <span class="tester-label">Type Custom Text to Test:</span>
+      <input type="text" id="customInput" class="tester-input" value="FAVORITE // 2027" placeholder="Type anything...">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8fa0bc;">Updates all font cards in real time</span>
     </div>
 
-    <div class="comparison-grid">
+    <!-- SECTION 3: 4 FONT CANDIDATES COMPARED -->
+    <div class="font-grid">
 
-      <!-- COLUMN 1: CONCEPT A (PURE OBSIDIAN & NEON WHITE) -->
-      <div class="concept-card card-concept-a">
-        <div class="concept-badge">
-          <span style="color: #ffffff;">Concept A: Pure Neon White & Black</span>
-          <span style="color: #ffffff; font-family: 'JetBrains Mono', monospace; font-size: 10px;">MONOCHROME VOID</span>
+      <!-- CANDIDATE 1: ORBITRON -->
+      <div class="font-card selected" onclick="pickFont('Orbitron', this)">
+        <div class="bracket-tl"></div>
+        <div class="bracket-br"></div>
+
+        <div class="font-header">
+          <div class="font-name f-orbitron">1. Orbitron</div>
+          <div class="font-traits">Geometric • Cyber-Tactical • Cut Corners</div>
         </div>
 
-        <p style="font-size: 12px; color: #8b9bb4;">
-          Minimalist, high-fashion brutalism. Every element is stark white with blinding phosphor glow against pitch black. Inverts to solid white on hover.
+        <p style="font-size: 12px; color: #8fa0bc; line-height: 1.5;">
+          Bold, angular military-cyber presence. Perfectly matches the tactical drop-up dock and reticle feel.
         </p>
 
-        <!-- Media Card Demo -->
-        <div>
-          <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #ffffff; margin-bottom: 6px; text-transform: uppercase;">
-            1. Media Card Preview (Hover to interact)
-          </div>
-          <div class="mock-media-card card-style-a">
-            <div class="bracket-tl"></div>
-            <div class="bracket-br"></div>
-            <div class="scan-line"></div>
-            <img src="/mock-photo.jpg" alt="Preview Photo">
-            <div class="mock-card-meta">
-              <div class="mock-card-title">DEEPIKA PADUKONE // 2026</div>
-              <div class="mock-card-sub">PHOTOGRAPHS / FAVORITE • 4K RES</div>
-            </div>
-          </div>
+        <!-- Live Custom Input Render -->
+        <div style="padding: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.15);">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">LIVE PREVIEW:</div>
+          <div class="f-orbitron dynamic-text" style="font-size: 14px; font-weight: 900; color: #ffffff; letter-spacing: 0.15em;">FAVORITE // 2027</div>
         </div>
 
-        <!-- Navigation Dock Demo -->
-        <div>
-          <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #ffffff; margin-bottom: 6px; text-transform: uppercase;">
-            2. Drop-Up Navigation Dock Preview
-          </div>
-          <div class="mock-dock-preview dock-style-a">
-            <div class="bracket-tl"></div>
-            <div class="bracket-br"></div>
-            <button class="dock-btn">&gt; HOME</button>
-            <button class="dock-btn active">&gt; PHOTOGRAPHS</button>
-            <button class="dock-btn">&gt; SHORTS</button>
-            <button class="dock-btn">&gt; VIDEO CLIPS</button>
-            <button class="dock-btn">&gt; BANDHOBI</button>
-          </div>
+        <!-- Subfolder Dock Mockup -->
+        <div class="dock-mock f-orbitron">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">SUBFOLDER DOCK:</div>
+          <div class="subfolder-item active">&gt; FAVORITE</div>
+          <div class="subfolder-item">&gt; 2027</div>
+          <div class="subfolder-item">&gt; 2026</div>
+          <div class="subfolder-item">&gt; 2025</div>
+          <div class="subfolder-item">&gt; OLDER</div>
         </div>
 
-        <!-- Activity Graph Demo -->
-        <div>
-          <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #ffffff; margin-bottom: 6px; text-transform: uppercase;">
-            3. Activity Graph Telemetry Bars
-          </div>
-          <div class="mock-dock-preview">
-            <div class="mock-graph-bar">
-              <div class="graph-fill-a" style="width: 82%;"></div>
-              <span class="graph-label">Today: 1 hour 43 minutes</span>
-            </div>
-            <div class="mock-graph-bar">
-              <div class="graph-fill-a" style="width: 58%;"></div>
-              <span class="graph-label">Yesterday: 52 minutes</span>
-            </div>
-            <div class="mock-graph-bar">
-              <div class="graph-fill-a" style="width: 34%;"></div>
-              <span class="graph-label">Sat: 24 minutes</span>
-            </div>
-          </div>
+        <!-- Telemetry Graph Bar Mockup -->
+        <div class="telemetry-preview f-orbitron">
+          <div class="telemetry-fill" style="width: 84%;"></div>
+          <span class="telemetry-text">Today: 1 hour 43 minutes</span>
         </div>
-
-        <table class="spec-table">
-          <tr><th>Element</th><th>Style</th></tr>
-          <tr><td>Typography</td><td>100% Stark Neon White (#FFFFFF)</td></tr>
-          <tr><td>Hover State</td><td>Solid White Inversion with Black Text</td></tr>
-          <tr><td>Laser Scan</td><td>White Phosphor CRT Beam</td></tr>
-          <tr><td>Reticles</td><td>White L-Brackets (Top-Left & Bottom-Right)</td></tr>
-        </table>
       </div>
 
-      <!-- COLUMN 2: CONCEPT B (DUAL CYBER NEON: WHITE HERO + CYAN TECH) -->
-      <div class="concept-card card-concept-b highlight">
-        <div class="concept-badge">
-          <span style="color: #00f0ff;">Concept B: Dual Cyber Neon (Logo DNA)</span>
-          <span style="color: #00f0ff; font-family: 'JetBrains Mono', monospace; font-size: 10px;">LOGO HARMONIZED</span>
+      <!-- CANDIDATE 2: MICHROMA -->
+      <div class="font-card" onclick="pickFont('Michroma', this)">
+        <div class="bracket-tl"></div>
+        <div class="bracket-br"></div>
+
+        <div class="font-header">
+          <div class="font-name f-michroma">2. Michroma</div>
+          <div class="font-traits">Ultra-Wide • Extended Tape • Smooth Roof</div>
         </div>
 
-        <p style="font-size: 12px; color: #8b9bb4;">
-          Direct mirror of the logo: <strong>SARWAR (White)</strong> defines all primary typography, titles, and headers; <strong>.CYOU (Electric Cyan)</strong> drives telemetry, laser scans, and active badges.
+        <p style="font-size: 12px; color: #8fa0bc; line-height: 1.5;">
+          Ultra-wide horizontal proportions. Closest to the wide tape-style letterforms of `SARWAR` in the logo.
         </p>
 
-        <!-- Media Card Demo -->
-        <div>
-          <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #00f0ff; margin-bottom: 6px; text-transform: uppercase;">
-            1. Media Card Preview (Hover to interact)
-          </div>
-          <div class="mock-media-card card-style-b">
-            <div class="bracket-tl"></div>
-            <div class="bracket-br"></div>
-            <div class="scan-line"></div>
-            <img src="/mock-photo.jpg" alt="Preview Photo">
-            <div class="mock-card-meta">
-              <div class="mock-card-title">DEEPIKA PADUKONE // 2026</div>
-              <div class="mock-card-sub" style="color: #00f0ff;">PHOTOGRAPHS / FAVORITE • 4K RES</div>
-            </div>
-          </div>
+        <!-- Live Custom Input Render -->
+        <div style="padding: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.15);">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">LIVE PREVIEW:</div>
+          <div class="f-michroma dynamic-text" style="font-size: 13px; font-weight: bold; color: #ffffff; letter-spacing: 0.18em;">FAVORITE // 2027</div>
         </div>
 
-        <!-- Navigation Dock Demo -->
-        <div>
-          <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #00f0ff; margin-bottom: 6px; text-transform: uppercase;">
-            2. Drop-Up Navigation Dock Preview
-          </div>
-          <div class="mock-dock-preview dock-style-b">
-            <div class="bracket-tl"></div>
-            <div class="bracket-br"></div>
-            <button class="dock-btn">&gt; HOME</button>
-            <button class="dock-btn active">&gt; PHOTOGRAPHS</button>
-            <button class="dock-btn">&gt; SHORTS</button>
-            <button class="dock-btn">&gt; VIDEO CLIPS</button>
-            <button class="dock-btn">&gt; BANDHOBI</button>
-          </div>
+        <!-- Subfolder Dock Mockup -->
+        <div class="dock-mock f-michroma">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">SUBFOLDER DOCK:</div>
+          <div class="subfolder-item active">&gt; FAVORITE</div>
+          <div class="subfolder-item">&gt; 2027</div>
+          <div class="subfolder-item">&gt; 2026</div>
+          <div class="subfolder-item">&gt; 2025</div>
+          <div class="subfolder-item">&gt; OLDER</div>
         </div>
 
-        <!-- Activity Graph Demo -->
-        <div>
-          <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #00f0ff; margin-bottom: 6px; text-transform: uppercase;">
-            3. Activity Graph Telemetry Bars
-          </div>
-          <div class="mock-dock-preview">
-            <div class="mock-graph-bar">
-              <div class="graph-fill-b" style="width: 82%;"></div>
-              <span class="graph-label">Today: 1 hour 43 minutes</span>
-            </div>
-            <div class="mock-graph-bar">
-              <div class="graph-fill-b" style="width: 58%;"></div>
-              <span class="graph-label">Yesterday: 52 minutes</span>
-            </div>
-            <div class="mock-graph-bar">
-              <div class="graph-fill-b" style="width: 34%;"></div>
-              <span class="graph-label">Sat: 24 minutes</span>
-            </div>
-          </div>
+        <!-- Telemetry Graph Bar Mockup -->
+        <div class="telemetry-preview f-michroma">
+          <div class="telemetry-fill" style="width: 84%;"></div>
+          <span class="telemetry-text">Today: 1 hour 43 minutes</span>
+        </div>
+      </div>
+
+      <!-- CANDIDATE 3: OXANIUM -->
+      <div class="font-card" onclick="pickFont('Oxanium', this)">
+        <div class="bracket-tl"></div>
+        <div class="bracket-br"></div>
+
+        <div class="font-header">
+          <div class="font-name f-oxanium">3. Oxanium</div>
+          <div class="font-traits">Square Corners • Hexagonal Cut • High Legibility</div>
         </div>
 
-        <table class="spec-table">
-          <tr><th>Element</th><th>Style</th></tr>
-          <tr><td>Typography</td><td>Stark White Headers (#FFFFFF) + Cyan Subtags</td></tr>
-          <tr><td>Hover State</td><td>Electric Cyan Neon Glow & Outline</td></tr>
-          <tr><td>Laser Scan</td><td>Cyan High-Voltage Laser Beam</td></tr>
-          <tr><td>Reticles</td><td>White Top-Left + Electric Cyan Bottom-Right</td></tr>
-        </table>
+        <p style="font-size: 12px; color: #8fa0bc; line-height: 1.5;">
+          Honors the 100% square corner rule of your UI. Crisp, readable, and numbers (`2027`, `2026`) look stunning.
+        </p>
+
+        <!-- Live Custom Input Render -->
+        <div style="padding: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.15);">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">LIVE PREVIEW:</div>
+          <div class="f-oxanium dynamic-text" style="font-size: 14px; font-weight: 800; color: #ffffff; letter-spacing: 0.15em;">FAVORITE // 2027</div>
+        </div>
+
+        <!-- Subfolder Dock Mockup -->
+        <div class="dock-mock f-oxanium">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">SUBFOLDER DOCK:</div>
+          <div class="subfolder-item active">&gt; FAVORITE</div>
+          <div class="subfolder-item">&gt; 2027</div>
+          <div class="subfolder-item">&gt; 2026</div>
+          <div class="subfolder-item">&gt; 2025</div>
+          <div class="subfolder-item">&gt; OLDER</div>
+        </div>
+
+        <!-- Telemetry Graph Bar Mockup -->
+        <div class="telemetry-preview f-oxanium">
+          <div class="telemetry-fill" style="width: 84%;"></div>
+          <span class="telemetry-text">Today: 1 hour 43 minutes</span>
+        </div>
+      </div>
+
+      <!-- CANDIDATE 4: AUDIOWIDE -->
+      <div class="font-card" onclick="pickFont('Audiowide', this)">
+        <div class="bracket-tl"></div>
+        <div class="bracket-br"></div>
+
+        <div class="font-header">
+          <div class="font-name f-audiowide">4. Audiowide</div>
+          <div class="font-traits">Folded Ribbon • Sci-Fi Curves • High Identity</div>
+        </div>
+
+        <p style="font-size: 12px; color: #8fa0bc; line-height: 1.5;">
+          Distinctive ribbon bends that echo the curved inner turns of `S` and `R` in the wordmark.
+        </p>
+
+        <!-- Live Custom Input Render -->
+        <div style="padding: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.15);">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">LIVE PREVIEW:</div>
+          <div class="f-audiowide dynamic-text" style="font-size: 14px; font-weight: bold; color: #ffffff; letter-spacing: 0.14em;">FAVORITE // 2027</div>
+        </div>
+
+        <!-- Subfolder Dock Mockup -->
+        <div class="dock-mock f-audiowide">
+          <div style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: #8fa0bc; margin-bottom: 4px;">SUBFOLDER DOCK:</div>
+          <div class="subfolder-item active">&gt; FAVORITE</div>
+          <div class="subfolder-item">&gt; 2027</div>
+          <div class="subfolder-item">&gt; 2026</div>
+          <div class="subfolder-item">&gt; 2025</div>
+          <div class="subfolder-item">&gt; OLDER</div>
+        </div>
+
+        <!-- Telemetry Graph Bar Mockup -->
+        <div class="telemetry-preview f-audiowide">
+          <div class="telemetry-fill" style="width: 84%;"></div>
+          <span class="telemetry-text">Today: 1 hour 43 minutes</span>
+        </div>
       </div>
 
     </div>
 
-    <!-- SECTION 3: KEY TAKEAWAYS & NEXT STEPS -->
+    <!-- SECTION 4: COMPARATIVE ANALYSIS -->
     <div class="decision-box">
       <div class="bracket-tl"></div>
       <div class="bracket-br"></div>
 
       <div class="decision-title">
-        <span>Analysis: Why Concept B Matches Your Logo Perfectly</span>
+        <span>Architectural Breakdown: Which Font Best Matches the Logo?</span>
       </div>
 
-      <p style="font-size: 13px; color: #cbd5e1; line-height: 1.7; margin-bottom: 14px;">
-        Your logo is not single-color — it is a deliberate, brilliant partnership between <strong>Stark White (SARWAR)</strong> and <strong>Electric Cyan (.CYOU)</strong> set against deep void black.
-      </p>
-
-      <ul style="font-size: 13px; color: #94a3b8; line-height: 1.8; margin-left: 20px; margin-bottom: 18px;">
-        <li><strong>If we pick Concept A (Pure Monochrome):</strong> The site becomes strict black and white. It looks very brutalist, but it completely abandons the cyan tech spark that makes <code>.CYOU</code> pop in your logo.</li>
-        <li><strong>If we pick Concept B (Dual Cyber Neon):</strong> Every single media card and dock feels like it was literally sculpted by the same hand that made the logo. The white provides clarity and dignity, while the cyan provides the futuristic sci-fi pulse.</li>
+      <ul style="font-size: 13px; color: #94a3b8; line-height: 1.8; margin-left: 20px;">
+        <li><strong style="color: #ffffff;">Orbitron:</strong> Recommended if you want a battle-hardened, tactical HUD aesthetic. Numbers (`2027`, `2026`) and words (`FAVORITE`, `PHOTOGRAPHS`) have sharp, aggressive authority.</li>
+        <li><strong style="color: #ffffff;">Michroma:</strong> Recommended if you want the absolute closest horizontal aspect ratio to `SARWAR`. The letters are wide and stretched, creating a cinematic widescreen feel.</li>
+        <li><strong style="color: #ffffff;">Oxanium:</strong> Recommended if you want pure geometric alignment with your square UI. Every terminal and vertex is strictly sharp.</li>
+        <li><strong style="color: #ffffff;">Audiowide:</strong> Recommended if you prefer the smooth outer curves of the logo's `S` and `R` forms.</li>
       </ul>
 
-      <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #00f0ff; letter-spacing: 0.1em; text-transform: uppercase;">
-        Which direction feels right to you: Concept A (Pure Monochrome) or Concept B (Dual Cyber Neon matching the Logo)?
+      <div id="selectionStatus" style="margin-top: 18px; padding: 12px 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.25); font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.12em;">
+        Currently Selected: <strong>Orbitron</strong> (Click any card to change)
       </div>
     </div>
 
   </div>
 
   <script>
-    function selectTheme(mode) {
-      const cards = document.querySelectorAll('.concept-card');
-      const btns = document.querySelectorAll('.mode-btn');
+    // Live input handler
+    const input = document.getElementById('customInput');
+    const dynamicNodes = document.querySelectorAll('.dynamic-text');
 
-      btns.forEach(b => b.classList.remove('active'));
-      cards.forEach(c => c.classList.remove('highlight'));
+    input.addEventListener('input', (e) => {
+      const val = e.target.value.toUpperCase() || 'FAVORITE // 2027';
+      dynamicNodes.forEach(node => {
+        node.textContent = val;
+      });
+    });
 
-      if (mode === 'a') {
-        btns[1].classList.add('active');
-        cards[0].classList.add('highlight');
-      } else {
-        btns[0].classList.add('active');
-        cards[1].classList.add('highlight');
-      }
+    // Font card selection
+    function pickFont(name, element) {
+      document.querySelectorAll('.font-grid .font-card').forEach(c => c.classList.remove('selected'));
+      element.classList.add('selected');
+      document.getElementById('selectionStatus').innerHTML = `Currently Selected: <strong>${name}</strong> (Click any card to change)`;
     }
-
-    // Default select Concept B
-    selectTheme('b');
   </script>
 </body>
 </html>
