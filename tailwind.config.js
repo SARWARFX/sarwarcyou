@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
-        display: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
-        brand: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
-        audiowide: ['"Audiowide"', 'cursive', 'sans-serif'],
-        serif: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
+        sans: ['"Space Grotesk"', 'sans-serif'],
+        display: ['"Space Grotesk"', 'sans-serif'],
+        brand: ['"Space Grotesk"', 'sans-serif'],
+        audiowide: ['"Space Grotesk"', 'sans-serif'],
+        serif: ['"Space Grotesk"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
     },
