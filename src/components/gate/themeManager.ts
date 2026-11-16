@@ -25,11 +25,11 @@ export const BIENNALE_AVANT_GARDE_THEME: CinematicTheme = {
   id: 'biennale-avant-garde',
   name: 'Acid Avant-Garde Biennale',
   bgGradient: ['#050505', '#080808', '#030303'],
-  fogColor: 'rgba(4, 18, 28, ',
-  particleColor: 'rgba(0, 240, 255, ',
+  fogColor: 'rgba(20, 24, 10, ',
+  particleColor: 'rgba(204, 255, 0, ',
   particleSpeed: 0.18,
   particleCount: 35,
-  glowAccent: 'rgba(0, 240, 255, 0.035)',
+  glowAccent: 'rgba(204, 255, 0, 0.035)',
   vignetteColor: '#050505',
 };
 

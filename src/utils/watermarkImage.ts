@@ -20,21 +20,20 @@ const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0
     </filter>
     <linearGradient id="wmGradient" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="45%" stop-color="#00d2ff"/>
-      <stop offset="100%" stop-color="#a855f7"/>
+      <stop offset="50%" stop-color="#ccff00"/>
+      <stop offset="100%" stop-color="#ffffff"/>
     </linearGradient>
     <linearGradient id="wmLaserGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00d2ff" stop-opacity="0"/>
-      <stop offset="25%" stop-color="#00d2ff" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#ccff00" stop-opacity="0"/>
+      <stop offset="25%" stop-color="#ccff00" stop-opacity="0.3"/>
       <stop offset="50%" stop-color="#ffffff" stop-opacity="0.95"/>
-      <stop offset="75%" stop-color="#a855f7" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+      <stop offset="75%" stop-color="#ccff00" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ccff00" stop-opacity="0"/>
     </linearGradient>
     <radialGradient id="wmSparkFlare" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-      <stop offset="35%" stop-color="#00d2ff" stop-opacity="0.9"/>
-      <stop offset="70%" stop-color="#a855f7" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#ccff00" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ccff00" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
@@ -60,7 +59,7 @@ const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0
     <path d="M 428 12 L 448 12 A 10 10 0 0 1 448 32 L 418 32 A 10 10 0 0 0 406 42 L 406 52"/>
     <path d="M 438 32 L 466 52"/>
     <!-- Dot -->
-    <rect x="478" y="44" width="8" height="8" fill="#00d2ff" stroke="none"/>
+    <rect x="478" y="44" width="8" height="8" fill="#ccff00" stroke="none"/>
     <!-- C -->
     <path d="M 560 12 L 524 12 A 10 10 0 0 0 514 22 L 514 42 A 10 10 0 0 0 524 52 L 560 52"/>
     <!-- Y -->

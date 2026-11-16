@@ -13,8 +13,9 @@ export interface LaserSparkLogoProps {
  * Variation 1: Aerodynamic Horizon Wordmark (Harmonized Ribbon + Clean Cyber Apex)
  * Custom-architected SPARK typography with Symmetrical Keystone symmetry:
  * S -> [A R] -> W (Center Crown) -> [A R] . C Y O U
+ * Color Scheme: Restored Yellowish-White Neon / Acid Lime (#CCFF00 & #FFFFFF)
  * Features:
- * - Full-Span Traveling Spark Wave (S -> U) through Stark White (#FFFFFF), Electric Cyan (#00D2FF), and Cosmic Violet (#A855F7)
+ * - Full-Span Traveling Spark Wave (S -> U) through Stark White (#FFFFFF) & Neon Acid Lime (#CCFF00)
  * - Synchronized Baseline Optical Horizon Flare
  * - Ambient Base Underlay for 100% Geometric Presence
  */
@@ -47,14 +48,14 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
       `}</style>
 
       {/* Baseline Optical Laser Horizon */}
-      <div className="absolute bottom-[3px] left-[6%] right-[6%] h-[1.5px] bg-gradient-to-r from-transparent via-[#00d2ff]/40 to-transparent pointer-events-none z-10">
-        {/* Sweeping Cyan / Violet Flare Trail */}
+      <div className="absolute bottom-[3px] left-[6%] right-[6%] h-[1.5px] bg-gradient-to-r from-transparent via-[#ccff00]/40 to-transparent pointer-events-none z-10">
+        {/* Sweeping Yellowish-White Flare Trail */}
         <div
-          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[110px] h-[7px] bg-[radial-gradient(ellipse_at_center,rgba(0,210,255,0.95)_0%,rgba(168,85,247,0.7)_50%,transparent_80%)] blur-[2px] pointer-events-none"
+          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[110px] h-[7px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.95)_0%,rgba(204,255,0,0.85)_40%,transparent_80%)] blur-[2px] pointer-events-none"
         />
         {/* Sweeping White Laser Core Node */}
         <div
-          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[4px] h-[4px] bg-white rounded-full shadow-[0_0_8px_#ffffff,0_0_16px_#00d2ff,0_0_24px_#a855f7] pointer-events-none"
+          className="anim-sweep-track absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[4px] h-[4px] bg-white rounded-full shadow-[0_0_8px_#ffffff,0_0_16px_#ccff00,0_0_24px_#ccff00] pointer-events-none"
         />
       </div>
 
@@ -63,20 +64,20 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
         viewBox="0 0 820 68"
         width={width}
         height={height}
-        className="relative z-20 filter drop-shadow-[0_0_18px_rgba(0,210,255,0.45)]"
+        className="relative z-20 filter drop-shadow-[0_0_18px_rgba(204,255,0,0.45)]"
       >
         <defs>
-          {/* Continuous Full-Span Traveling Spark Wave (S -> U) */}
+          {/* Continuous Full-Span Traveling Spark Wave (S -> U) in Yellowish-White Neon */}
           <linearGradient id="logoTravelingSpark" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="-0.3" stopColor="#050811" />
-            <stop offset="-0.15" stopColor="#0066ff" />
-            <stop offset="0.0" stopColor="#a855f7" />
-            <stop offset="0.1" stopColor="#00d2ff" />
+            <stop offset="-0.3" stopColor="#050805" />
+            <stop offset="-0.15" stopColor="#557700" />
+            <stop offset="0.0" stopColor="#99dd00" />
+            <stop offset="0.1" stopColor="#ccff00" />
             <stop offset="0.15" stopColor="#ffffff" />
-            <stop offset="0.2" stopColor="#00d2ff" />
-            <stop offset="0.3" stopColor="#a855f7" />
-            <stop offset="0.45" stopColor="#0066ff" />
-            <stop offset="0.6" stopColor="#050811" />
+            <stop offset="0.2" stopColor="#ccff00" />
+            <stop offset="0.3" stopColor="#99dd00" />
+            <stop offset="0.45" stopColor="#557700" />
+            <stop offset="0.6" stopColor="#050805" />
 
             <animate attributeName="x1" values="-60%; 100%" dur="3.2s" repeatCount="indefinite" />
             <animate attributeName="x2" values="40%; 200%" dur="3.2s" repeatCount="indefinite" />
@@ -84,9 +85,9 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
 
           {/* Ambient Base Underlay */}
           <linearGradient id="logoAmbientBase" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(0, 210, 255, 0.35)" />
+            <stop offset="0%" stopColor="rgba(204, 255, 0, 0.35)" />
             <stop offset="50%" stopColor="rgba(255, 255, 255, 0.45)" />
-            <stop offset="100%" stopColor="rgba(168, 85, 247, 0.35)" />
+            <stop offset="100%" stopColor="rgba(204, 255, 0, 0.35)" />
           </linearGradient>
         </defs>
 
@@ -135,7 +136,7 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           <path d="M 428 12 L 448 12 A 10 10 0 0 1 448 32 L 418 32 A 10 10 0 0 0 406 42 L 406 52" />
           <path d="M 438 32 L 466 52" />
           {/* Separator Dot */}
-          <rect x="478" y="44" width="8" height="8" fill="#00d2ff" stroke="none" />
+          <rect x="478" y="44" width="8" height="8" fill="#ccff00" stroke="none" />
           {/* C */}
           <path d="M 560 12 L 524 12 A 10 10 0 0 0 514 22 L 514 42 A 10 10 0 0 0 524 52 L 560 52" />
           {/* Y */}

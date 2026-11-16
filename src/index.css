@@ -1381,26 +1381,26 @@ html, body, #root {
 .reticle-btn:hover {
   background: transparent !important;
   transform: scale(1.18);
-  filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.95)) drop-shadow(0 0 6px #ffffff);
+  filter: drop-shadow(0 0 16px rgba(204, 255, 0, 0.95)) drop-shadow(0 0 6px #ffffff);
 }
 
 .reticle-btn:active {
   transform: scale(0.92);
 }
 
-/* Kinetic Laser Shimmer Wave Icon Styling (White, Electric Cyan, Cosmic Violet) */
+/* Kinetic Laser Shimmer Wave Icon Styling (Yellowish-White Neon / Acid Lime #CCFF00 & #FFFFFF) */
 .laser-shimmer-icon {
-  filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.45)) drop-shadow(0 0 12px rgba(168, 85, 247, 0.3));
+  filter: drop-shadow(0 0 8px rgba(204, 255, 0, 0.45));
   animation: laserShimmerGlow 3.2s ease-in-out infinite;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s;
 }
 
 @keyframes laserShimmerGlow {
   0%, 100% {
-    filter: drop-shadow(0 0 6px rgba(0, 210, 255, 0.35)) drop-shadow(0 0 10px rgba(168, 85, 247, 0.25));
+    filter: drop-shadow(0 0 5px rgba(204, 255, 0, 0.35));
   }
   50% {
-    filter: drop-shadow(0 0 16px rgba(0, 210, 255, 0.95)) drop-shadow(0 0 20px rgba(168, 85, 247, 0.75)) drop-shadow(0 0 8px #ffffff);
+    filter: drop-shadow(0 0 16px rgba(204, 255, 0, 0.95)) drop-shadow(0 0 8px #ffffff);
   }
 }
 

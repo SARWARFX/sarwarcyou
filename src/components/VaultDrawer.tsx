@@ -101,7 +101,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
         }`}
         style={{
           backgroundImage:
-            'radial-gradient(circle at 10% 10%, rgba(0, 240, 255, 0.04) 0%, transparent 60%)',
+            'radial-gradient(circle at 10% 10%, rgba(204, 255, 0, 0.04) 0%, transparent 60%)',
         }}
       >
         {/* Masthead */}
@@ -122,14 +122,14 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           >
             <div className="flex items-center gap-2">
               <span className="font-['Space_Grotesk',sans-serif] text-base font-black tracking-wider uppercase text-white group-hover:text-white transition-colors">
-                SARWAR<span className="text-[#00f0ff]">.CYOU</span>
+                SARWAR<span className="text-[#ccff00]">.CYOU</span>
               </span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 group-hover:bg-[#00f0ff] group-hover:text-black font-bold uppercase transition-all tracking-wider shadow-sm">
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 group-hover:bg-[#ccff00] group-hover:text-black font-bold uppercase transition-all tracking-wider shadow-sm">
                 HOME
               </span>
             </div>
-            <div className="flex items-center gap-1.5 font-mono text-[9px] text-[#00f0ff] uppercase tracking-widest">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff] shadow-[0_0_6px_rgba(0, 240, 255,0.8)] animate-pulse" />
+            <div className="flex items-center gap-1.5 font-mono text-[9px] text-[#ccff00] uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] shadow-[0_0_6px_rgba(204, 255, 0,0.8)] animate-pulse" />
               <span>TIME &amp; SESSION METRICS</span>
             </div>
           </button>
@@ -140,7 +140,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
               hapticMedium();
               onClose();
             }}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-[#00f0ff]/15 border border-white/10 hover:border-[#00f0ff]/40 text-neutral-400 hover:text-[#00f0ff] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-[#ccff00]/15 border border-white/10 hover:border-[#ccff00]/40 text-neutral-400 hover:text-[#ccff00] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
             title="Close tray"
             aria-label="Close tray"
           >
@@ -153,10 +153,10 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           {/* 1. Hero Stat Card: Today's Time */}
           <div className="relative rounded-2xl p-5 bg-[#0d0d11] border border-white/10 overflow-hidden shadow-lg">
             {/* Background subtle scanline aura */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(ellipse_at_top_right,_rgba(0, 240, 255,0.12)_0%,_transparent_70%)] pointer-events-none" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(ellipse_at_top_right,_rgba(204, 255, 0,0.12)_0%,_transparent_70%)] pointer-events-none" />
 
             <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-[#00f0ff] font-bold flex items-center gap-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-[#ccff00] font-bold flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
                 <span>TODAY&apos;S ENGAGEMENT</span>
               </span>
@@ -168,7 +168,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
 
             {/* Huge Time Metric */}
             <div className="my-1">
-              <span className="font-['Space_Grotesk',sans-serif] text-4xl sm:text-5xl font-black text-[#00f0ff] tracking-tight drop-shadow-[0_0_12px_rgba(0, 240, 255,0.3)]">
+              <span className="font-['Space_Grotesk',sans-serif] text-4xl sm:text-5xl font-black text-[#ccff00] tracking-tight drop-shadow-[0_0_12px_rgba(204, 255, 0,0.3)]">
                 {telemetry.todayFormatted.replace(' today', '')}
               </span>
               <span className="text-sm font-mono text-neutral-400 uppercase tracking-wider ml-2">
@@ -205,7 +205,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           <div className="rounded-2xl p-5 bg-[#0d0d11] border border-white/10 shadow-lg flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-[#00f0ff]" />
+                <BarChart3 className="w-4 h-4 text-[#ccff00]" />
                 <h3 className="font-['Space_Grotesk',sans-serif] text-xs font-bold uppercase tracking-wider text-white">
                   TIME SPENT GRAPH
                 </h3>
@@ -250,7 +250,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                         <span
                           className={`text-[9px] font-mono font-bold mb-1 transition-all duration-200 truncate ${
                             isToday
-                              ? 'text-[#00f0ff]'
+                              ? 'text-[#ccff00]'
                               : 'text-neutral-400 group-hover:text-white'
                           }`}
                         >
@@ -261,9 +261,9 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                         <div
                           className={`w-full rounded-t-md transition-all duration-300 ${
                             isToday
-                              ? 'bg-gradient-to-t from-[#00f0ff]/40 to-[#00f0ff] shadow-[0_0_14px_rgba(0, 240, 255,0.45)] group-hover:shadow-[0_0_20px_rgba(0, 240, 255,0.8)]'
+                              ? 'bg-gradient-to-t from-[#ccff00]/40 to-[#ccff00] shadow-[0_0_14px_rgba(204, 255, 0,0.45)] group-hover:shadow-[0_0_20px_rgba(204, 255, 0,0.8)]'
                               : day.minutes > 0
-                              ? 'bg-gradient-to-t from-white/10 to-neutral-200 group-hover:from-[#00f0ff]/30 group-hover:to-[#00f0ff] group-hover:shadow-[0_0_12px_rgba(0, 240, 255,0.4)]'
+                              ? 'bg-gradient-to-t from-white/10 to-neutral-200 group-hover:from-[#ccff00]/30 group-hover:to-[#ccff00] group-hover:shadow-[0_0_12px_rgba(204, 255, 0,0.4)]'
                               : 'bg-white/5'
                           }`}
                           style={{
@@ -287,7 +287,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                         <span
                           className={`text-[10px] uppercase font-bold leading-none tracking-widest ${
                             isToday
-                              ? 'text-[#00d2ff] font-extrabold drop-shadow-[0_0_8px_#00d2ff]'
+                              ? 'text-[#ccff00] font-extrabold drop-shadow-[0_0_8px_#ccff00]'
                               : 'text-neutral-400 group-hover:text-white'
                           }`}
                           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
@@ -309,7 +309,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
           <div className="rounded-2xl p-4 sm:p-5 bg-[#0d0d11] border border-white/10 shadow-lg flex flex-col gap-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-300 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#00f0ff]" />
+                <Calendar className="w-3.5 h-3.5 text-[#ccff00]" />
                 <span>ACTIVITY LOG ({displayedDays.filter((d) => d.minutes > 0).length} DAYS)</span>
               </span>
               <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">
@@ -333,7 +333,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                         <div className="flex items-center gap-2">
                           <span
                             className={`font-mono font-bold text-[11px] ${
-                              isToday ? 'text-[#00f0ff]' : 'text-neutral-300'
+                              isToday ? 'text-[#ccff00]' : 'text-neutral-300'
                             }`}
                           >
                             {isToday ? 'Today' : day.label === 'YEST' ? 'Yesterday' : day.weekday}
@@ -351,7 +351,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
                       <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            isToday ? 'bg-[#00f0ff]' : 'bg-neutral-400'
+                            isToday ? 'bg-[#ccff00]' : 'bg-neutral-400'
                           }`}
                           style={{ width: `${percent}%` }}
                         />
@@ -371,7 +371,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
               <div
                 className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
                   keepScreenOn
-                    ? 'bg-[#00f0ff]/15 text-[#00f0ff]'
+                    ? 'bg-[#ccff00]/15 text-[#ccff00]'
                     : 'bg-white/5 text-neutral-400'
                 }`}
               >
@@ -393,7 +393,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
               aria-checked={keepScreenOn}
               onClick={handleToggleKeepScreenOn}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full p-0.5 border border-white/10 transition-colors duration-200 ease-in-out focus:outline-none ${
-                keepScreenOn ? 'bg-[#00f0ff] shadow-[0_0_10px_rgba(0, 240, 255,0.4)]' : 'bg-neutral-800'
+                keepScreenOn ? 'bg-[#ccff00] shadow-[0_0_10px_rgba(204, 255, 0,0.4)]' : 'bg-neutral-800'
               }`}
               title={keepScreenOn ? 'Keep screen on: Enabled' : 'Keep screen on: Disabled'}
             >
@@ -410,7 +410,7 @@ export const VaultDrawer: React.FC<VaultDrawerProps> = ({
 
           {/* Privacy Note */}
           <div className="flex items-center justify-center gap-1.5 text-[9px] font-mono text-neutral-500 uppercase tracking-widest text-center">
-            <ShieldCheck className="w-3 h-3 text-[#00f0ff]" />
+            <ShieldCheck className="w-3 h-3 text-[#ccff00]" />
             <span>100% PRIVATE • STORED LOCALLY IN BROWSER</span>
           </div>
         </div>

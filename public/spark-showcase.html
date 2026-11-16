@@ -12,8 +12,8 @@
       --bg: #03050a;
       --card-bg: #060a14;
       --card-border: #132238;
-      --cyan: #00d2ff;
-      --violet: #a855f7;
+      --cyan: #ccff00;
+      --violet: #ccff00;
       --white: #ffffff;
       --text-muted: #8391a6;
     }
@@ -39,8 +39,8 @@
       font-weight: 700;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      background: rgba(0, 210, 255, 0.12);
-      border: 1px solid rgba(0, 210, 255, 0.4);
+      background: rgba(204, 255, 0, 0.12);
+      border: 1px solid rgba(204, 255, 0, 0.4);
       color: var(--cyan);
       margin-bottom: 14px;
     }
@@ -75,7 +75,7 @@
     /* Diagnosis Alert Box */
     .diagnosis-box {
       background: rgba(14, 23, 42, 0.85);
-      border: 1px solid rgba(0, 210, 255, 0.25);
+      border: 1px solid rgba(204, 255, 0, 0.25);
       border-left: 4px solid var(--cyan);
       border-radius: 12px;
       padding: 20px 24px;
@@ -107,8 +107,8 @@
       transition: border-color 0.3s, box-shadow 0.3s;
     }
     .option-card:hover {
-      border-color: rgba(0, 210, 255, 0.4);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 210, 255, 0.12);
+      border-color: rgba(204, 255, 0, 0.4);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(204, 255, 0, 0.12);
     }
     .option-header {
       display: flex;
@@ -159,8 +159,8 @@
       position: absolute;
       inset: 0;
       background-image: 
-        linear-gradient(rgba(0, 210, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 210, 255, 0.03) 1px, transparent 1px);
+        linear-gradient(rgba(204, 255, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(204, 255, 0, 0.03) 1px, transparent 1px);
       background-size: 20px 20px;
       pointer-events: none;
     }
@@ -172,7 +172,7 @@
       left: 8%;
       right: 8%;
       height: 2px;
-      background: linear-gradient(90deg, transparent 0%, rgba(0, 210, 255, 0.2) 20%, rgba(168, 85, 247, 0.25) 80%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, rgba(204, 255, 0, 0.2) 20%, rgba(204, 255, 0, 0.25) 80%, transparent 100%);
       pointer-events: none;
     }
     .baseline-spark-flare {
@@ -181,8 +181,8 @@
       height: 8px;
       width: 140px;
       border-radius: 9999px;
-      background: linear-gradient(90deg, transparent, #00d2ff, #ffffff, #a855f7, transparent);
-      filter: drop-shadow(0 0 12px #00d2ff) drop-shadow(0 0 20px #a855f7);
+      background: linear-gradient(90deg, transparent, #ccff00, #ffffff, #ccff00, transparent);
+      filter: drop-shadow(0 0 12px #ccff00) drop-shadow(0 0 20px #ccff00);
       animation: sweepFlare 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
     @keyframes sweepFlare {
@@ -226,11 +226,11 @@
       <linearGradient id="travelingSpark" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="-0.3" stop-color="#050811"/>
         <stop offset="-0.15" stop-color="#0066ff"/>
-        <stop offset="0.0" stop-color="#a855f7"/>
-        <stop offset="0.1" stop-color="#00d2ff"/>
+        <stop offset="0.0" stop-color="#ccff00"/>
+        <stop offset="0.1" stop-color="#ccff00"/>
         <stop offset="0.15" stop-color="#ffffff"/>
-        <stop offset="0.2" stop-color="#00d2ff"/>
-        <stop offset="0.3" stop-color="#a855f7"/>
+        <stop offset="0.2" stop-color="#ccff00"/>
+        <stop offset="0.3" stop-color="#ccff00"/>
         <stop offset="0.45" stop-color="#0066ff"/>
         <stop offset="0.6" stop-color="#050811"/>
         
@@ -240,9 +240,9 @@
 
       <!-- Ambient Glow Underlay -->
       <linearGradient id="ambientBase" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="rgba(0, 210, 255, 0.3)"/>
+        <stop offset="0%" stop-color="rgba(204, 255, 0, 0.3)"/>
         <stop offset="50%" stop-color="rgba(255, 255, 255, 0.4)"/>
-        <stop offset="100%" stop-color="rgba(168, 85, 247, 0.3)"/>
+        <stop offset="100%" stop-color="rgba(204, 255, 0, 0.3)"/>
       </linearGradient>
     </defs>
   </svg>
@@ -284,7 +284,7 @@
           <div class="baseline-spark-flare"></div>
         </div>
 
-        <svg viewBox="0 0 820 68" width="760" height="64" style="filter: drop-shadow(0 0 18px rgba(0, 210, 255, 0.6));">
+        <svg viewBox="0 0 820 68" width="760" height="64" style="filter: drop-shadow(0 0 18px rgba(204, 255, 0, 0.6));">
           <!-- Ambient Base -->
           <g stroke="url(#ambientBase)" stroke-width="8" stroke-linecap="butt" stroke-linejoin="round" fill="none">
             <!-- S (x: 10 to 76) -->
@@ -330,7 +330,7 @@
             <path d="M 428 12 L 448 12 A 10 10 0 0 1 448 32 L 418 32 A 10 10 0 0 0 406 42 L 406 52"/>
             <path d="M 438 32 L 466 52"/>
             <!-- Dot -->
-            <rect x="478" y="44" width="8" height="8" fill="#00d2ff" stroke="none"/>
+            <rect x="478" y="44" width="8" height="8" fill="#ccff00" stroke="none"/>
             <!-- C -->
             <path d="M 560 12 L 524 12 A 10 10 0 0 0 514 22 L 514 42 A 10 10 0 0 0 524 52 L 560 52"/>
             <!-- Y -->
@@ -368,7 +368,7 @@
           <div class="baseline-spark-flare"></div>
         </div>
 
-        <svg viewBox="0 0 820 70" width="760" height="65" style="filter: drop-shadow(0 0 18px rgba(0, 210, 255, 0.6));">
+        <svg viewBox="0 0 820 70" width="760" height="65" style="filter: drop-shadow(0 0 18px rgba(204, 255, 0, 0.6));">
           <!-- Ambient Layer -->
           <g stroke="url(#ambientBase)" stroke-width="8.5" stroke-linecap="butt" stroke-linejoin="round" fill="none">
             <!-- S (x: 10 to 86) -->
@@ -387,9 +387,9 @@
             <path d="M 504 33 L 536 54"/>
             
             <!-- .CYOU Cyber Tag Pill (x: 560 to 770) -->
-            <rect x="560" y="16" width="210" height="34" rx="8" stroke="rgba(0, 210, 255, 0.4)" stroke-width="1.8" fill="rgba(0, 210, 255, 0.05)"/>
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="rgba(204, 255, 0, 0.4)" stroke-width="1.8" fill="rgba(204, 255, 0, 0.05)"/>
             <!-- . -->
-            <circle cx="582" cy="33" r="3.5" fill="#00d2ff" stroke="none"/>
+            <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none"/>
             <!-- C -->
             <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" stroke-width="3"/>
             <!-- Y -->
@@ -444,7 +444,7 @@
           <div class="baseline-spark-flare"></div>
         </div>
 
-        <svg viewBox="0 0 820 68" width="760" height="64" style="filter: drop-shadow(0 0 18px rgba(0, 210, 255, 0.6));">
+        <svg viewBox="0 0 820 68" width="760" height="64" style="filter: drop-shadow(0 0 18px rgba(204, 255, 0, 0.6));">
           <!-- Ambient Layer -->
           <g stroke="url(#ambientBase)" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" fill="none">
             <!-- S (Chiseled corners) -->
@@ -490,7 +490,7 @@
             <path d="M 428 12 L 454 12 L 466 24 L 454 32 L 416 32 L 406 42 L 406 52"/>
             <path d="M 446 32 L 466 52"/>
             <!-- Dot -->
-            <polygon points="480,52 488,44 488,52 480,52" fill="#00d2ff" stroke="none"/>
+            <polygon points="480,52 488,44 488,52 480,52" fill="#ccff00" stroke="none"/>
             <!-- C -->
             <path d="M 560 12 L 524 12 L 512 24 L 512 40 L 524 52 L 560 52"/>
             <!-- Y -->
@@ -527,7 +527,7 @@
           <div class="baseline-spark-flare"></div>
         </div>
 
-        <svg viewBox="0 0 860 68" width="790" height="64" style="filter: drop-shadow(0 0 20px rgba(0, 210, 255, 0.7));">
+        <svg viewBox="0 0 860 68" width="790" height="64" style="filter: drop-shadow(0 0 20px rgba(204, 255, 0, 0.7));">
           <!-- Ambient Layer -->
           <g stroke="url(#ambientBase)" stroke-width="5.5" stroke-linecap="butt" stroke-linejoin="round" fill="none">
             <!-- S -->
@@ -573,7 +573,7 @@
             <path d="M 426 14 L 448 14 A 9.5 9.5 0 0 1 448 33 L 416 33 A 9.5 9.5 0 0 0 406 42.5 L 406 52"/>
             <path d="M 438 33 L 464 52"/>
             <!-- Dot -->
-            <circle cx="488" cy="48" r="3.5" fill="#00d2ff" stroke="none"/>
+            <circle cx="488" cy="48" r="3.5" fill="#ccff00" stroke="none"/>
             <!-- C -->
             <path d="M 564 14 L 530 14 A 10 10 0 0 0 520 24 L 520 42 A 10 10 0 0 0 530 52 L 564 52"/>
             <!-- Y -->
