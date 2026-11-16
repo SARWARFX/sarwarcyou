@@ -53,8 +53,8 @@ function formatRetentionTime(minutes: number): string {
  */
 export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   isOpen,
-  onClose,
-  onToggleOpen,
+  onClose: _onClose,
+  onToggleOpen: _onToggleOpen,
   activeMainTab,
   onSelectMainTab: _onSelectMainTab,
   activeSubfolder,
@@ -281,15 +281,16 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       {/* SECTION 1: WEBSITE LOGO + RETENTION TIME SPENT TEXT            */}
       {/* ============================================================== */}
       <div>
-        {/* Top Logo */}
+        {/* Top Logo - Clicking takes visitor back to homepage */}
         <div
           className="flex items-center justify-center cursor-pointer hover:brightness-125 transition-all pb-1.5 pt-0.5"
           onClick={() => {
             hapticMedium();
-            if (onToggleOpen) onToggleOpen();
-            else onClose();
+            setViewingSubfolders(false);
+            setSearchQuery('');
+            onSelectHome();
           }}
-          title="SARWAR.CYOU (Click to close dock)"
+          title="SARWAR.CYOU (Return to Homepage)"
         >
           <LaserSparkLogo width={175} height={24} interactive={false} />
         </div>
@@ -326,51 +327,18 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             {/* Gradient Area Fill */}
             <path d={waveData.areaPath} fill="url(#cyberWaveGradMiddleNarrow)" />
 
-            {/* Base Spline Line with Draw-In Entrance */}
+            {/* Clean Static Spline Line (Still Image) */}
             <path
               d={waveData.strokePath}
               fill="none"
               stroke="#ffffff"
               strokeWidth="2"
               filter="url(#whiteLaserGlowMiddleNarrow)"
-              className="animate-graph-line-draw"
             />
 
-            {/* High-Voltage Traveling Laser Dash Pulse (Slow 10s animation) */}
-            <path
-              d={waveData.strokePath}
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="2.5"
-              strokeDasharray="14 60"
-              className="animate-laser-spark-dash"
-            />
-
-            {/* Active Sparking Electric Particle Traveling Along Spline (Slow 12s animation) */}
-            <g>
-              <animateMotion
-                path={waveData.strokePath}
-                dur="12s"
-                repeatCount="indefinite"
-                rotate="auto"
-              />
-              <circle r="3.2" fill="#ffffff" filter="url(#whiteLaserGlowMiddleNarrow)" />
-              <circle r="1.4" fill="#ffffff" />
-              <line x1="-5" y1="0" x2="5" y2="0" stroke="#ffffff" strokeWidth="1.2" opacity="0.9" />
-              <line x1="0" y1="-5" x2="0" y2="5" stroke="#ffffff" strokeWidth="1.2" opacity="0.9" />
-              <line x1="-2.8" y1="-2.8" x2="2.8" y2="2.8" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
-              <line x1="-2.8" y1="2.8" x2="2.8" y2="-2.8" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
-            </g>
-
-            {/* Today's Peak Beacon on Far Left (pts[0]) */}
+            {/* Today's Peak Node on Far Left (pts[0]) - Static Beacon */}
             {waveData.pts.length > 0 && (
               <g transform={`translate(${waveData.pts[0].x}, ${waveData.pts[0].y})`}>
-                <circle
-                  r="4.5"
-                  fill="#ffffff"
-                  filter="url(#whiteLaserGlowMiddleNarrow)"
-                  className="animate-ping opacity-60"
-                />
                 <rect
                   x="-2.5"
                   y="-2.5"
