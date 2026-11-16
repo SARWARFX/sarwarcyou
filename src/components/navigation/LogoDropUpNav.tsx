@@ -91,21 +91,21 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   const renderTelemetryPanel = (extraClass: string = '') => (
     <aside
       aria-label="Activity Telemetry & Power Control"
-      className={`relative bg-[rgba(6,10,18,0.96)] border border-[rgba(0,245,255,0.35)] p-2.5 sm:p-3 shadow-[0_0_35px_rgba(0,245,255,0.15),inset_0_0_20px_rgba(0,245,255,0.05)] rounded-none flex flex-col gap-2 overflow-hidden ${extraClass}`}
+      className={`relative bg-[rgba(5,7,12,0.98)] border border-white/30 p-2.5 sm:p-3 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_20px_rgba(255,255,255,0.03)] rounded-none flex flex-col gap-2 overflow-hidden ${extraClass}`}
     >
-      {/* Top-Left Cyan L-Bracket */}
+      {/* Top-Left White L-Bracket */}
       <div className="cyber-dock-corner-tl" />
 
-      {/* Bottom-Right Pink L-Bracket */}
+      {/* Bottom-Right White L-Bracket */}
       <div className="cyber-dock-corner-br" />
 
       {/* 1-shot laser sweep beam */}
-      <div className="absolute left-0 right-0 bg-[#00f0ff] shadow-[0_0_12px_#00f0ff] pointer-events-none z-40 animate-hacker-beam-sweep" />
+      <div className="absolute left-0 right-0 bg-white shadow-[0_0_14px_#ffffff] pointer-events-none z-40 animate-hacker-beam-sweep" />
 
       {/* Top Row: Square Radar Indicator + Keep Screen On Toggle */}
-      <div className="flex items-center justify-between border-b border-[rgba(0,245,255,0.2)] pb-1.5">
+      <div className="flex items-center justify-between border-b border-white/15 pb-1.5">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-none bg-[#00ff9d] shadow-[0_0_10px_#00ff9d] animate-pulse" />
+          <span className="w-2 h-2 rounded-none bg-white shadow-[0_0_10px_#ffffff] animate-pulse" />
         </div>
         <label
           className="inline-flex items-center gap-2 cursor-pointer select-none"
@@ -116,7 +116,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
         >
           <div
             className={`w-6 h-3.5 rounded-none relative border transition-colors duration-200 ${
-              keepAwakeOn ? 'bg-[#00f0ff] border-[#00f0ff]' : 'bg-white/10 border-white/20'
+              keepAwakeOn ? 'bg-white border-white' : 'bg-white/10 border-white/20'
             }`}
           >
             <div
@@ -125,7 +125,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
               }`}
             />
           </div>
-          <span className="font-mono text-[8px] text-white/80 tracking-wider uppercase">
+          <span className="font-['Michroma',sans-serif] text-[7.5px] text-white/80 tracking-wider uppercase">
             KEEP SCREEN ON
           </span>
         </label>
@@ -141,18 +141,18 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           return (
             <div
               key={d.date}
-              className="w-full h-[18px] bg-white/5 border border-white/10 rounded-none relative overflow-hidden flex items-center"
+              className="w-full h-[18px] bg-white/5 border border-white/15 rounded-none relative overflow-hidden flex items-center"
             >
               <div
                 className={`h-full rounded-none transition-all duration-300 ${
                   isToday
-                    ? 'bg-gradient-to-r from-[#00f0ff] to-[#00b4d8] shadow-[0_0_10px_rgba(0,245,255,0.4)]'
+                    ? 'bg-gradient-to-r from-white to-[#cbd5e1] shadow-[0_0_12px_rgba(255,255,255,0.5)]'
                     : 'bg-white/25'
                 }`}
                 style={{ width: `${widthPct}%` }}
               />
               <span
-                className={`absolute left-1.5 text-[8px] font-mono font-bold tracking-tight truncate z-10 ${
+                className={`absolute left-1.5 text-[7.5px] font-['Michroma',sans-serif] font-bold tracking-tight truncate z-10 ${
                   isToday ? 'text-black font-black' : 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]'
                 }`}
               >
@@ -205,7 +205,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           {/* Main Directory Dock (Slides left out of screen when folder is active) */}
           <aside
             aria-label="Tactical Navigation Dock"
-            className={`w-[205px] bg-[rgba(6,10,18,0.96)] border border-[rgba(0,245,255,0.35)] p-2.5 shadow-[0_0_35px_rgba(0,245,255,0.15)] rounded-none flex flex-col gap-1.5 overflow-hidden transition-all duration-300 ease-out ${
+            className={`w-[205px] bg-[rgba(5,7,12,0.98)] border border-white/30 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.1)] rounded-none flex flex-col gap-1.5 overflow-hidden transition-all duration-300 ease-out ${
               expandedFolder !== null
                 ? '-translate-x-[140%] opacity-0 pointer-events-none'
                 : 'translate-x-0 opacity-100 pointer-events-auto animate-hacker-dock-deploy'
@@ -223,7 +223,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 onSelectHome();
                 onClose();
               }}
-              className="font-['Orbitron',sans-serif] text-[9px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/10 bg-white/5 text-white/85 active:border-[#00f0ff] active:text-[#00f0ff]"
+              className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/15 bg-white/5 text-white/90 active:bg-white active:text-black active:border-white"
             >
               &gt; HOME
             </button>
@@ -240,10 +240,10 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                     setExpandedFolder(folder);
                     onSelectMainTab(folder);
                   }}
-                  className={`font-['Orbitron',sans-serif] text-[9px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer ${
+                  className={`font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer ${
                     isActiveMain
-                      ? 'border-[#00f0ff]/60 text-white bg-[rgba(0,245,255,0.08)]'
-                      : 'border-white/10 bg-white/2 text-[#8fa0bc] active:border-[#00f0ff]/60 active:text-white'
+                      ? 'border-white bg-white text-black font-black shadow-[0_0_15px_rgba(255,255,255,0.4)]'
+                      : 'border-white/15 bg-white/2 text-[#a0aec0] active:border-white active:text-white active:bg-white/10'
                   }`}
                 >
                   &gt; {folder.toUpperCase()}
@@ -257,7 +257,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             <aside
               key={expandedFolder}
               aria-label="Subfolder Matrix Dock"
-              className="absolute bottom-0 left-0 w-[205px] bg-[rgba(6,10,18,0.96)] border border-[rgba(0,245,255,0.45)] p-2.5 shadow-[0_0_35px_rgba(0,245,255,0.2)] rounded-none flex flex-col gap-1.5 animate-mobile-subdock-enter-right"
+              className="absolute bottom-0 left-0 w-[205px] bg-[rgba(5,7,12,0.98)] border border-white/40 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.15)] rounded-none flex flex-col gap-1.5 animate-mobile-subdock-enter-right"
             >
               <div className="cyber-dock-corner-tl" />
               <div className="cyber-dock-corner-br" />
@@ -269,7 +269,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                   hapticLight();
                   setExpandedFolder(null);
                 }}
-                className="font-['Orbitron',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-1.5 border rounded-none transition-all duration-200 cursor-pointer border-[#ff2bd6]/50 bg-[rgba(255,43,214,0.1)] text-[#ff2bd6] active:bg-[rgba(255,43,214,0.25)] flex items-center gap-1.5 mb-0.5"
+                className="font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-1.5 border rounded-none transition-all duration-200 cursor-pointer border-white/30 bg-white/10 text-white active:bg-white active:text-black flex items-center gap-1.5 mb-0.5"
               >
                 <span>&lt; BACK</span>
               </button>
@@ -286,10 +286,10 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                       onSelectSubfolder(expandedFolder, subfolder);
                       onClose();
                     }}
-                    className={`font-['Orbitron',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
+                    className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
                       isActive
-                        ? 'border-[#00f0ff] text-[#00f0ff] bg-[rgba(0,245,255,0.18)] shadow-[0_0_12px_rgba(0,245,255,0.35)] font-black'
-                        : 'border-white/10 bg-white/2 text-[#8fa0bc] active:border-[#00f0ff]/50 active:text-white'
+                        ? 'border-white bg-white text-black font-black shadow-[0_0_18px_rgba(255,255,255,0.5)]'
+                        : 'border-white/15 bg-white/2 text-[#a0aec0] active:border-white active:text-white active:bg-white/10'
                     }`}
                   >
                     &gt; {subfolder.toUpperCase()}
@@ -310,11 +310,11 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           {/* Main Directory Dock (Dock 1) */}
           <aside
             aria-label="Tactical Navigation Dock"
-            className="relative w-[210px] sm:w-[225px] bg-[rgba(6,10,18,0.96)] border border-[rgba(0,245,255,0.35)] p-3 shadow-[0_0_35px_rgba(0,245,255,0.15),inset_0_0_20px_rgba(0,245,255,0.05)] rounded-none flex flex-col gap-1.5 animate-hacker-dock-deploy overflow-hidden"
+            className="relative w-[210px] sm:w-[225px] bg-[rgba(5,7,12,0.98)] border border-white/30 p-3 shadow-[0_0_35px_rgba(255,255,255,0.1),inset_0_0_20px_rgba(255,255,255,0.03)] rounded-none flex flex-col gap-1.5 animate-hacker-dock-deploy overflow-hidden"
           >
             <div className="cyber-dock-corner-tl" />
             <div className="cyber-dock-corner-br" />
-            <div className="absolute left-0 right-0 bg-[#00f0ff] shadow-[0_0_12px_#00f0ff] pointer-events-none z-40 animate-hacker-beam-sweep" />
+            <div className="absolute left-0 right-0 bg-white shadow-[0_0_14px_#ffffff] pointer-events-none z-40 animate-hacker-beam-sweep" />
 
             {/* > HOME Button */}
             <button
@@ -326,7 +326,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                 onSelectHome();
                 onClose();
               }}
-              className="font-['Orbitron',sans-serif] text-[9px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/10 bg-white/5 text-white/85 hover:border-[#00f0ff] hover:text-[#00f0ff] hover:bg-[rgba(0,245,255,0.08)]"
+              className="font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer border-white/15 bg-white/5 text-white/90 hover:border-white hover:text-white hover:bg-white/10"
             >
               &gt; HOME
             </button>
@@ -345,12 +345,12 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                     setExpandedFolder(folder);
                     onSelectMainTab(folder);
                   }}
-                  className={`font-['Orbitron',sans-serif] text-[9px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer ${
+                  className={`font-['Michroma',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer ${
                     isExpanded
-                      ? 'border-[#00f0ff] text-[#00f0ff] bg-[rgba(0,245,255,0.14)] shadow-[0_0_14px_rgba(0,245,255,0.25)] font-black'
+                      ? 'border-white bg-white/15 text-white shadow-[0_0_14px_rgba(255,255,255,0.25)] font-black'
                       : isActiveMain
-                      ? 'border-[#00f0ff]/50 text-white bg-[rgba(0,245,255,0.06)]'
-                      : 'border-white/10 bg-white/2 text-[#8fa0bc] hover:border-[#00f0ff]/60 hover:text-white hover:bg-white/5'
+                      ? 'border-white/60 text-white bg-white/10'
+                      : 'border-white/15 bg-white/2 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/5'
                   }`}
                 >
                   &gt; {folder.toUpperCase()}
@@ -364,7 +364,7 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
             <aside
               key={expandedFolder}
               aria-label="Subfolder Matrix Dock"
-              className="relative w-[165px] sm:w-[180px] bg-[rgba(6,10,18,0.96)] border border-[rgba(0,245,255,0.45)] p-2.5 shadow-[0_0_35px_rgba(0,245,255,0.2),inset_0_0_20px_rgba(0,245,255,0.06)] rounded-none flex flex-col gap-1.5 animate-hacker-subdock-slide"
+              className="relative w-[165px] sm:w-[185px] bg-[rgba(5,7,12,0.98)] border border-white/40 p-2.5 shadow-[0_0_35px_rgba(255,255,255,0.15),inset_0_0_20px_rgba(255,255,255,0.03)] rounded-none flex flex-col gap-1.5 animate-hacker-subdock-slide"
             >
               <div className="cyber-dock-corner-tl" />
               <div className="cyber-dock-corner-br" />
@@ -381,10 +381,10 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
                       onSelectSubfolder(expandedFolder, subfolder);
                       onClose();
                     }}
-                    className={`font-['Orbitron',sans-serif] text-[8.5px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
+                    className={`font-['Michroma',sans-serif] text-[8px] font-bold tracking-widest text-left px-2.5 py-2 border rounded-none transition-all duration-200 cursor-pointer truncate ${
                       isActive
-                        ? 'border-[#00f0ff] text-[#00f0ff] bg-[rgba(0,245,255,0.18)] shadow-[0_0_12px_rgba(0,245,255,0.35)] font-black'
-                        : 'border-white/10 bg-white/2 text-[#8fa0bc] hover:border-[#00f0ff]/50 hover:text-white hover:bg-white/5'
+                        ? 'border-white bg-white text-black font-black shadow-[0_0_20px_rgba(255,255,255,0.6)]'
+                        : 'border-white/15 bg-white/2 text-[#a0aec0] hover:border-white hover:text-white hover:bg-white/10'
                     }`}
                   >
                     &gt; {subfolder.toUpperCase()}

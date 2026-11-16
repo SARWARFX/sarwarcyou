@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Michroma&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -21,14 +21,15 @@
   --font-sans: 'Space Grotesk', sans-serif;
   --font-serif: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-brand: 'Space Grotesk', sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
+  --font-brand: 'Michroma', sans-serif;
+  --font-display: 'Michroma', sans-serif;
+  --font-michroma: 'Michroma', sans-serif;
   --font-audiowide: 'Audiowide', cursive, sans-serif;
-  --font-orbitron: 'Space Grotesk', -apple-system, sans-serif;
-  --font-rajdhani: 'Space Grotesk', sans-serif;
+  --font-orbitron: 'Michroma', sans-serif;
+  --font-rajdhani: 'Michroma', sans-serif;
 
-  --color-neutral-border: rgba(255, 255, 255, 0.12);
-  --color-neutral-hover: rgba(255, 255, 255, 0.08);
+  --color-neutral-border: rgba(255, 255, 255, 0.15);
+  --color-neutral-hover: rgba(255, 255, 255, 0.1);
 }
 
 :root {
@@ -116,8 +117,8 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
   left: 0;
   right: 0;
   height: 2px;
-  background: rgba(0, 245, 255, 0.65);
-  box-shadow: 0 0 14px #00f0ff;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 14px #ffffff;
   z-index: 20;
   animation: cyberScan 3.5s linear infinite;
   pointer-events: none;
@@ -129,8 +130,8 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
   left: -2px;
   width: 14px;
   height: 14px;
-  border-top: 2px solid #00f0ff;
-  border-left: 2px solid #00f0ff;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
   pointer-events: none;
   z-index: 30;
 }
@@ -141,8 +142,8 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
   right: -2px;
   width: 14px;
   height: 14px;
-  border-bottom: 2px solid #ff2bd6;
-  border-right: 2px solid #ff2bd6;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
   pointer-events: none;
   z-index: 30;
 }
@@ -153,7 +154,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
     clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%);
     opacity: 0;
     transform: translateY(24px) scaleY(0.2);
-    filter: brightness(3.5) contrast(2) drop-shadow(0 0 30px #00f0ff);
+    filter: brightness(3.5) contrast(2) drop-shadow(0 0 30px #ffffff);
   }
   25% {
     clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
@@ -183,7 +184,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
     opacity: 1;
     transform: translateY(0) skewX(0deg);
-    filter: brightness(1) drop-shadow(0 0 25px rgba(0, 240, 255, 0.2));
+    filter: brightness(1) drop-shadow(0 0 25px rgba(255, 255, 255, 0.22));
   }
 }
 
@@ -198,7 +199,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
     clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
     opacity: 0;
     transform: translateX(-24px) scaleX(0.2) skewX(-4deg);
-    filter: brightness(3.5) drop-shadow(-8px 0 25px #00f0ff);
+    filter: brightness(3.5) drop-shadow(-8px 0 25px #ffffff);
   }
   30% {
     clip-path: polygon(0 0, 45% 0, 45% 100%, 0 100%);
@@ -216,7 +217,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
     opacity: 1;
     transform: translateX(0) scaleX(1) skewX(0deg);
-    filter: brightness(1) drop-shadow(0 0 25px rgba(0, 240, 255, 0.22));
+    filter: brightness(1) drop-shadow(0 0 25px rgba(255, 255, 255, 0.22));
   }
 }
 
@@ -252,7 +253,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
   0% {
     transform: translateX(120%);
     opacity: 0;
-    filter: brightness(2.5) drop-shadow(-8px 0 20px #00f0ff);
+    filter: brightness(2.5) drop-shadow(-8px 0 20px #ffffff);
   }
   60% {
     transform: translateX(-4px);
@@ -277,7 +278,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
     clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
     opacity: 0;
     transform: translateY(-16px);
-    filter: brightness(3) drop-shadow(0 0 25px #00f0ff);
+    filter: brightness(3) drop-shadow(0 0 25px #ffffff);
   }
   40% {
     clip-path: polygon(0 0, 100% 0, 100% 60%, 0 60%);
@@ -289,7 +290,7 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
     opacity: 1;
     transform: translateY(0);
-    filter: brightness(1) drop-shadow(0 0 20px rgba(0, 240, 255, 0.2));
+    filter: brightness(1) drop-shadow(0 0 25px rgba(255, 255, 255, 0.22));
   }
 }
 

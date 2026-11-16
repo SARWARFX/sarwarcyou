@@ -35,15 +35,15 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           : ''
       } ${className}`}
     >
-      {/* SVG Wordmark (Global White + Electric Cyan Palette) */}
+      {/* SVG Wordmark (Pure Stark White Neon Monochrome Palette) */}
       <svg
         viewBox="0 0 820 70"
         width={width}
         height={height}
-        className="relative z-20 filter drop-shadow-[0_0_16px_rgba(0,240,255,0.55)] group-hover:drop-shadow-[0_0_24px_rgba(0,240,255,0.85)] transition-all duration-200"
+        className="relative z-20 filter drop-shadow-[0_0_16px_rgba(255,255,255,0.6)] group-hover:drop-shadow-[0_0_24px_rgba(255,255,255,0.95)] transition-all duration-200"
       >
         <defs>
-          <filter id="solidWhiteCyanGlow">
+          <filter id="solidWhiteGlow">
             <feGaussianBlur stdDeviation="2.8" result="glow" />
             <feMerge>
               <feMergeNode in="glow" />
@@ -59,7 +59,7 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           strokeLinecap="butt"
           strokeLinejoin="round"
           fill="none"
-          filter="url(#solidWhiteCyanGlow)"
+          filter="url(#solidWhiteGlow)"
         >
           {/* S (x: 10 to 86) */}
           <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
@@ -77,13 +77,13 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           <path d="M 504 33 L 536 54" />
         </g>
 
-        {/* 2. .CYOU Cyber Tag Pill — Electric Cyan (#00F0FF) */}
+        {/* 2. .CYOU Cyber Tag Pill — Pure Stark White (#FFFFFF) */}
         <g
-          stroke="#00f0ff"
+          stroke="#ffffff"
           strokeLinecap="butt"
           strokeLinejoin="round"
           fill="none"
-          filter="url(#solidWhiteCyanGlow)"
+          filter="url(#solidWhiteGlow)"
         >
           {/* Cyber Pill Capsule */}
           <rect
@@ -92,12 +92,12 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
             width="210"
             height="34"
             rx="8"
-            stroke="#00f0ff"
+            stroke="#ffffff"
             strokeWidth="2.2"
-            fill="rgba(0, 240, 255, 0.08)"
+            fill="rgba(255, 255, 255, 0.08)"
           />
           {/* Dot */}
-          <circle cx="582" cy="33" r="3.5" fill="#00f0ff" stroke="none" />
+          <circle cx="582" cy="33" r="3.5" fill="#ffffff" stroke="none" />
           {/* C */}
           <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
           {/* Y */}

@@ -90,17 +90,17 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       style={{ animationDelay: `${Math.min(delayIdx, 15) * 25}ms` }}
       className={`relative p-2.5 sm:p-3.5 group cursor-pointer ${aspectClass} select-none rounded-none transition-all duration-300 hover:scale-[1.025] hover:z-30`}
     >
-      {/* 1. Tactical Top-Left Cyan L-Bracket */}
-      <div className="absolute top-0 left-0 w-6 sm:w-8 h-6 sm:h-8 border-t-2 border-l-2 border-[#00f0ff] pointer-events-none z-20 group-hover:shadow-[0_0_12px_#00f0ff] transition-all" />
+      {/* 1. Tactical Top-Left White L-Bracket */}
+      <div className="absolute top-0 left-0 w-6 sm:w-8 h-6 sm:h-8 border-t-2 border-l-2 border-white pointer-events-none z-20 group-hover:shadow-[0_0_14px_#ffffff] transition-all" />
 
-      {/* 2. Tactical Bottom-Right Pink/Cyan L-Bracket */}
-      <div className="absolute bottom-0 right-0 w-6 sm:w-8 h-6 sm:h-8 border-b-2 border-r-2 border-[#ff2bd6] sm:border-[#00f0ff] pointer-events-none z-20 group-hover:shadow-[0_0_12px_#ff2bd6] transition-all" />
+      {/* 2. Tactical Bottom-Right White L-Bracket */}
+      <div className="absolute bottom-0 right-0 w-6 sm:w-8 h-6 sm:h-8 border-b-2 border-r-2 border-white pointer-events-none z-20 group-hover:shadow-[0_0_14px_#ffffff] transition-all" />
 
       {/* 3. Inner Cyber Photo Box */}
-      <div className="relative w-full h-full overflow-hidden border border-[#00f0ff]/35 bg-[#0a101c] shadow-[0_0_35px_rgba(0,240,255,0.08),inset_0_0_35px_rgba(0,240,255,0.04)] group-hover:border-[#00f0ff] group-hover:shadow-[0_0_45px_rgba(0,240,255,0.22)] rounded-none">
+      <div className="relative w-full h-full overflow-hidden border border-white/30 bg-[#05070c] shadow-[0_0_35px_rgba(255,255,255,0.06),inset_0_0_25px_rgba(255,255,255,0.02)] group-hover:border-white group-hover:shadow-[0_0_45px_rgba(255,255,255,0.2)] rounded-none">
         {/* Scanline Grid Texture Overlay */}
         <div
-          className="absolute inset-0 pointer-events-none z-15 opacity-40 bg-[linear-gradient(transparent_50%,rgba(0,245,255,0.04)_50%)] bg-[length:100%_6px]"
+          className="absolute inset-0 pointer-events-none z-15 opacity-30 bg-[linear-gradient(transparent_50%,rgba(255,255,255,0.04)_50%)] bg-[length:100%_6px]"
           aria-hidden="true"
         />
 
