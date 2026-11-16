@@ -594,6 +594,20 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     Boolean(isNavTrayOpen || isSearchOpen || activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
   );
 
+  // Random Vault Shuffle Discovery Handler
+  const handleShuffleVault = useCallback(() => {
+    if (!items || items.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * items.length);
+    const item = items[randomIndex];
+    if (item.mediaType === 'short') {
+      onOpenShort(item, items, randomIndex);
+    } else if (isPhotoExtension(item.path || '')) {
+      onOpenPhoto(item, items, randomIndex);
+    } else {
+      onOpenVideo(item, items);
+    }
+  }, [items, onOpenPhoto, onOpenShort, onOpenVideo]);
+
   // 7-day rolling session telemetry metrics (zero suppression: days with 0 data are excluded)
   const telemetry7DayData = useMemo(() => {
     return getRolling7DayDisplayData();
@@ -829,6 +843,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         telemetryData={telemetry7DayData}
         keepAwakeOn={keepAwakeOn}
         onToggleKeepAwake={toggleKeepScreenOn}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onShuffle={handleShuffleVault}
       />
 
       {/* 3. 5-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}

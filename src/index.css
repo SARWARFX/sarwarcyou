@@ -249,6 +249,40 @@ code, pre, kbd, samp, .font-mono, .font-mono * {
   animation: hackerBeamSweep 0.32s ease-out forwards;
 }
 
+/* Graph Stroke Laser Dash Travel */
+@keyframes laserSparkDash {
+  0% {
+    stroke-dashoffset: 200;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-laser-spark-dash {
+  animation: laserSparkDash 2.4s linear infinite;
+}
+
+/* Attractive Graph Line Reveal */
+@keyframes cyberGraphDraw {
+  0% {
+    stroke-dashoffset: 300;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.animate-graph-line-draw {
+  stroke-dasharray: 300;
+  animation: cyberGraphDraw 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Mobile Subdock Slide In from Right */
 @keyframes mobileSubdockEnterRight {
   0% {
@@ -2006,30 +2040,19 @@ html.theme-white body {
 }
 
 html.theme-white aside[aria-label="Tactical Navigation Dock"] {
-  background: rgba(255, 255, 255, 0.45) !important;
-  border-color: rgba(0, 0, 0, 0.35) !important;
-  box-shadow: 0 0 35px rgba(0, 0, 0, 0.1), inset 0 0 25px rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border: none !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
   color: #000000 !important;
-}
-
-html.theme-white aside[aria-label="Tactical Navigation Dock"] .cyber-dock-corner-tl {
-  border-top-color: #000000 !important;
-  border-left-color: #000000 !important;
-}
-
-html.theme-white aside[aria-label="Tactical Navigation Dock"] .cyber-dock-corner-br {
-  border-bottom-color: #000000 !important;
-  border-right-color: #000000 !important;
 }
 
 html.theme-white aside[aria-label="Tactical Navigation Dock"] button {
   color: #111827 !important;
-  border-color: rgba(0, 0, 0, 0.25) !important;
+  border: none !important;
 }
 
 html.theme-white aside[aria-label="Tactical Navigation Dock"] button:hover {
-  background-color: rgba(0, 0, 0, 0.1) !important;
-  border-color: #000000 !important;
+  background-color: rgba(0, 0, 0, 0.12) !important;
   color: #000000 !important;
 }
 
@@ -2037,7 +2060,7 @@ html.theme-white aside[aria-label="Tactical Navigation Dock"] button.active,
 html.theme-white aside[aria-label="Tactical Navigation Dock"] button.bg-white {
   background-color: #000000 !important;
   color: #ffffff !important;
-  border-color: #000000 !important;
+  border: none !important;
 }
 
 

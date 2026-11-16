@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SARWAR.CYOU // Dock Empty Space Feature Variations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      outline: none !important;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: #06080d;
+      color: #ffffff;
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 50%),
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+    }
+
+    .michroma {
+      font-family: 'Michroma', sans-serif;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Header Banner */
+    header {
+      padding: 18px 24px;
+      background: rgba(8, 10, 16, 0.9);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      z-index: 50;
+    }
+
+    .title-group h1 {
+      font-family: 'Michroma', sans-serif;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-group p {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 4px;
+    }
+
+    /* Variation Selector Tabs */
+    .variant-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .variant-pill {
+      font-family: 'Michroma', sans-serif;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      padding: 8px 14px;
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.7);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .variant-pill:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+
+    .variant-pill.active {
+      background: #ffffff;
+      color: #000000;
+      font-weight: 900;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+
+    /* Main Showcase Canvas */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    /* ============================================================== */
+    /* THE TACTICAL DOCK (ZERO OUTLINES)                             */
+    /* ============================================================== */
+    .dock-container {
+      width: 195px;
+      min-height: 560px;
+      background: rgba(5, 7, 12, 0.85);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.9);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      border: none !important;
+      animation: dockDeploy 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes dockDeploy {
+      0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Laser Sweep Beam */
+    .laser-beam {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #ffffff;
+      box-shadow: 0 0 14px #ffffff;
+      pointer-events: none;
+      z-index: 40;
+      animation: beamSweep 0.5s ease-out forwards;
+    }
+
+    @keyframes beamSweep {
+      0% { top: 100%; opacity: 1; height: 3px; }
+      80% { top: 0%; opacity: 1; height: 2px; }
+      100% { top: 0%; opacity: 0; }
+    }
+
+    /* Top Logo */
+    .logo-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 8px;
+      padding-top: 2px;
+      cursor: pointer;
+      transition: filter 0.2s ease;
+    }
+
+    .logo-box:hover {
+      filter: brightness(1.3);
+    }
+
+    .sarwar-svg {
+      width: 160px;
+      height: 23px;
+    }
+
+    /* Graph Box (Zero Outlines) */
+    .graph-plate {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 8px;
+      border: none !important;
+    }
+
+    .spark-laser-dash {
+      stroke-dasharray: 14 60;
+      animation: sparkLaserTravel 2.4s linear infinite;
+    }
+
+    @keyframes sparkLaserTravel {
+      0% { stroke-dashoffset: 200; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    .graph-line-draw {
+      stroke-dasharray: 260;
+      animation: graphDraw 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes graphDraw {
+      0% { stroke-dashoffset: 260; opacity: 0; }
+      30% { opacity: 1; }
+      100% { stroke-dashoffset: 0; opacity: 1; }
+    }
+
+    /* Day Labels Axis */
+    .day-axis {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Michroma', sans-serif;
+      font-size: 7px;
+      color: rgba(255, 255, 255, 0.45);
+      padding-top: 4px;
+      padding-left: 2px;
+      padding-right: 2px;
+    }
+
+    .day-axis .today {
+      color: #ffffff;
+      font-weight: 900;
+      text-shadow: 0 0 6px #ffffff;
+    }
+
+    /* Dynamic Slot: Space Below Graph */
+    .slot-below-graph {
+      margin-bottom: 6px;
+    }
+
+    /* Buttons (Zero Outlines) */
+    .dock-btn {
+      width: 100%;
+      font-family: 'Michroma', sans-serif;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-align: left;
+      padding: 7px 8px;
+      border: none !important;
+      background: rgba(255, 255, 255, 0.05);
+      color: #b0b8c4;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      margin-bottom: 4px;
+    }
+
+    .dock-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+    }
+
+    .dock-btn.active {
+      background: #ffffff;
+      color: #000000;
+      font-weight: 900;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.45);
+    }
+
+    /* Sliding Views */
+    .view-slider {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      min-height: 195px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      margin: 2px 0;
+    }
+
+    .view-folders, .view-subs {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .view-subs {
+      position: absolute;
+      inset: 0;
+      transform: translateX(115%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .view-slider.show-subs .view-folders {
+      transform: translateX(-115%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .view-slider.show-subs .view-subs {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Sub Category Header */
+    .sub-head {
+      font-family: 'Michroma', sans-serif;
+      font-size: 7px;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding-bottom: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Back Button */
+    .back-btn {
+      font-family: 'Michroma', sans-serif;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 6px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border: none !important;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .back-btn:hover {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    /* Dynamic Slot: Space Below Folders */
+    .slot-below-folders {
+      margin-top: 4px;
+      margin-bottom: 6px;
+    }
+
+    /* Footer Controls */
+    .dock-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .keep-on-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .toggle-track {
+      width: 16px;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      position: relative;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-track.active {
+      background: #ffffff;
+    }
+
+    .toggle-thumb {
+      width: 6px;
+      height: 6px;
+      background: #ffffff;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .toggle-track.active .toggle-thumb {
+      transform: translateX(6px);
+      background: #000000;
+    }
+
+    .toggle-label {
+      font-family: 'Michroma', sans-serif;
+      font-size: 6.5px;
+      color: rgba(255, 255, 255, 0.8);
+      letter-spacing: 1px;
+    }
+
+    .theme-cycle-btn {
+      font-family: 'Michroma', sans-serif;
+      font-size: 6.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 4px 8px;
+      border: none !important;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .theme-cycle-btn:hover {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .theme-dot {
+      width: 6px;
+      height: 6px;
+      background: #ffffff;
+      box-shadow: 0 0 6px #ffffff;
+    }
+
+    .theme-cycle-btn:hover .theme-dot {
+      background: #000000;
+      box-shadow: none;
+    }
+
+    /* Feature Explanation Card */
+    .feature-card {
+      max-width: 420px;
+      background: rgba(12, 16, 24, 0.7);
+      backdrop-filter: blur(16px);
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .feature-tag {
+      font-family: 'Michroma', sans-serif;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+    }
+
+    .feature-title {
+      font-family: 'Michroma', sans-serif;
+      font-size: 14px;
+      letter-spacing: 1px;
+      color: #ffffff;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feature-list li {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .feature-list li strong {
+      color: #ffffff;
+      font-family: 'Michroma', sans-serif;
+      font-size: 9px;
+      letter-spacing: 1px;
+    }
+
+    .feature-bullet {
+      width: 4px;
+      height: 4px;
+      background: #ffffff;
+      margin-top: 6px;
+      box-shadow: 0 0 6px #ffffff;
+      flex-shrink: 0;
+    }
+
+    .status-toast {
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      font-family: 'Michroma', sans-serif;
+      font-size: 8px;
+      letter-spacing: 1px;
+      color: #ffffff;
+      border-left: 2px solid #ffffff;
+    }
+
+    /* Animation Equalizer Bars */
+    .eq-bar {
+      width: 2px;
+      background: #ffffff;
+      animation: eqBounce 1.2s ease-in-out infinite alternate;
+    }
+    .eq-1 { height: 4px; animation-delay: 0.1s; }
+    .eq-2 { height: 9px; animation-delay: 0.3s; }
+    .eq-3 { height: 6px; animation-delay: 0.5s; }
+    .eq-4 { height: 8px; animation-delay: 0.2s; }
+
+    @keyframes eqBounce {
+      0% { transform: scaleY(0.3); }
+      100% { transform: scaleY(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <h1>
+        <span style="display:inline-block; width:8px; height:8px; background:#ffffff; box-shadow:0 0 10px #ffffff;"></span>
+        SARWAR.CYOU // DOCK FEATURES SHOWCASE
+      </h1>
+      <p>Interactive demonstration: Reverse 7-Day Sparking Graph, Zero Outlines, and Empty Space Feature Modules.</p>
+    </div>
+
+    <!-- Variant Selector Pills -->
+    <div class="variant-pills">
+      <button class="variant-pill active" onclick="switchVariant('v1', this)">1. TACTICAL SEARCH & AUDIO</button>
+      <button class="variant-pill" onclick="switchVariant('v2', this)">2. LIVE TELEMETRY & HEALTH</button>
+      <button class="variant-pill" onclick="switchVariant('v3', this)">3. RECENT TRAY & DENSITY</button>
+      <button class="variant-pill" onclick="switchVariant('v4', this)">4. AMBIENT FX MATRIX</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============================================================== -->
+    <!-- INTERACTIVE TACTICAL CYBER DOCK                                -->
+    <!-- ============================================================== -->
+    <div class="dock-container" id="dockEl">
+      <div class="laser-beam"></div>
+
+      <!-- SECTION 1: TOP LOGO & REVERSE GRAPH -->
+      <div>
+        <!-- Website Logo -->
+        <div class="logo-box" onclick="togglePulse()" title="SARWAR.CYOU">
+          <svg class="sarwar-svg" viewBox="0 0 160 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="80" y="17" font-family="'Michroma', sans-serif" font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="4">SARWAR</text>
+          </svg>
+        </div>
+
+        <!-- REVERSE 7-DAY GRAPH (Today on the Left + Sparking Animation) -->
+        <div class="graph-plate">
+          <svg class="w-full" style="width:100%; height:50px; overflow:visible;" viewBox="0 0 160 48" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="0.0" />
+              </linearGradient>
+              <filter id="whiteGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="1.6" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- Gradient Area Fill (Today on Left) -->
+            <path d="M 8 12 C 20 12, 20 28, 32 28 C 44 28, 44 14, 56 14 C 68 14, 68 34, 80 34 C 92 34, 92 10, 104 10 C 116 10, 116 26, 128 26 C 140 26, 140 38, 152 38 L 152 48 L 8 48 Z" fill="url(#waveGrad)" />
+
+            <!-- Smooth Spline Stroke Line -->
+            <path id="splineStroke" class="graph-line-draw" d="M 8 12 C 20 12, 20 28, 32 28 C 44 28, 44 14, 56 14 C 68 14, 68 34, 80 34 C 92 34, 92 10, 104 10 C 116 10, 116 26, 128 26 C 140 26, 140 38, 152 38" fill="none" stroke="#ffffff" stroke-width="2" filter="url(#whiteGlow)" />
+
+            <!-- Traveling Laser Dash Pulse -->
+            <path class="spark-laser-dash" d="M 8 12 C 20 12, 20 28, 32 28 C 44 28, 44 14, 56 14 C 68 14, 68 34, 80 34 C 92 34, 92 10, 104 10 C 116 10, 116 26, 128 26 C 140 26, 140 38, 152 38" fill="none" stroke="#ffffff" stroke-width="2.5" />
+
+            <!-- SPARKING ELECTRIC PARTICLE Traveling continuously on the path -->
+            <g>
+              <animateMotion dur="2.8s" repeatCount="indefinite" rotate="auto" path="M 8 12 C 20 12, 20 28, 32 28 C 44 28, 44 14, 56 14 C 68 14, 68 34, 80 34 C 92 34, 92 10, 104 10 C 116 10, 116 26, 128 26 C 140 26, 140 38, 152 38" />
+              <circle r="3.2" fill="#ffffff" filter="url(#whiteGlow)" />
+              <circle r="1.4" fill="#ffffff" />
+              <line x1="-5" y1="0" x2="5" y2="0" stroke="#ffffff" stroke-width="1.2" opacity="0.9" />
+              <line x1="0" y1="-5" x2="0" y2="5" stroke="#ffffff" stroke-width="1.2" opacity="0.9" />
+              <line x1="-2.8" y1="-2.8" x2="2.8" y2="2.8" stroke="#ffffff" stroke-width="0.8" opacity="0.6" />
+              <line x1="-2.8" y1="2.8" x2="2.8" y2="-2.8" stroke="#ffffff" stroke-width="0.8" opacity="0.6" />
+            </g>
+
+            <!-- TODAY'S PEAK BEACON AT FAR LEFT (x=8, y=12) -->
+            <g transform="translate(8, 12)">
+              <circle r="5" fill="#ffffff" filter="url(#whiteGlow)" opacity="0.6">
+                <animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite" />
+              </circle>
+              <rect x="-2.5" y="-2.5" width="5" height="5" fill="#ffffff" filter="url(#whiteGlow)" />
+              <rect x="-1" y="-1" width="2" height="2" fill="#000000" />
+            </g>
+
+            <!-- Past Day Nodes (Rightwards) -->
+            <rect x="30.5" y="26.5" width="3" height="3" fill="#ffffff" opacity="0.7" />
+            <rect x="54.5" y="12.5" width="3" height="3" fill="#ffffff" opacity="0.7" />
+            <rect x="78.5" y="32.5" width="3" height="3" fill="#ffffff" opacity="0.7" />
+            <rect x="102.5" y="8.5" width="3" height="3" fill="#ffffff" opacity="0.7" />
+            <rect x="126.5" y="24.5" width="3" height="3" fill="#ffffff" opacity="0.7" />
+            <rect x="150.5" y="36.5" width="3" height="3" fill="#ffffff" opacity="0.7" />
+          </svg>
+
+          <!-- 7 SINGLE-LETTER DAYS (S, S, M, T, W, T, F) with TODAY ON LEFT -->
+          <div class="day-axis">
+            <span class="today" title="Today (Starts on Left)">T</span>
+            <span title="Yesterday">S</span>
+            <span title="2 days ago">S</span>
+            <span title="3 days ago">F</span>
+            <span title="4 days ago">T</span>
+            <span title="5 days ago">W</span>
+            <span title="6 days ago">M</span>
+          </div>
+        </div>
+
+        <!-- DYNAMIC FEATURE SLOT 1: SPACE BELOW GRAPH -->
+        <div class="slot-below-graph" id="slotBelowGraph">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- SECTION 2: SINGLE-DOCK SLIDING FOLDERS VIEW (ZERO OUTLINES) -->
+      <div class="view-slider" id="viewSlider">
+        <!-- Major Folders -->
+        <div class="view-folders">
+          <button class="dock-btn" onclick="toast('Home living wall selected')">&gt; HOME</button>
+          <button class="dock-btn active" onclick="openSubs('Photographs')">
+            <span>&gt; PHOTOGRAPHS</span>
+            <span style="font-size:7px; opacity:0.8;">»</span>
+          </button>
+          <button class="dock-btn" onclick="openSubs('Shorts')">
+            <span>&gt; SHORTS</span>
+            <span style="font-size:7px; opacity:0.8;">»</span>
+          </button>
+          <button class="dock-btn" onclick="openSubs('Video Clips')">
+            <span>&gt; VIDEO CLIPS</span>
+            <span style="font-size:7px; opacity:0.8;">»</span>
+          </button>
+          <button class="dock-btn" onclick="openSubs('Bandhobi')">
+            <span>&gt; BANDHOBI</span>
+            <span style="font-size:7px; opacity:0.8;">»</span>
+          </button>
+        </div>
+
+        <!-- Subfolders View with < BACK underneath -->
+        <div class="view-subs" id="subsContainer">
+          <div class="sub-head" id="subHead">PHOTOGRAPHS // SUB</div>
+          <button class="dock-btn active" onclick="toast('Subfolder Favorite chosen')">&gt; FAVORITE</button>
+          <button class="dock-btn" onclick="toast('Subfolder 2027 chosen')">&gt; 2027</button>
+          <button class="dock-btn" onclick="toast('Subfolder 2026 chosen')">&gt; 2026</button>
+          <button class="dock-btn" onclick="toast('Subfolder 2025 chosen')">&gt; 2025</button>
+          <button class="dock-btn" onclick="toast('Subfolder Older chosen')">&gt; OLDER</button>
+          <button class="back-btn" onclick="closeSubs()">&lt; BACK</button>
+        </div>
+      </div>
+
+      <!-- SECTION 3: SPACE BELOW FOLDERS & DOCK FOOTER -->
+      <div>
+        <!-- DYNAMIC FEATURE SLOT 2: SPACE BELOW FOLDERS -->
+        <div class="slot-below-folders" id="slotBelowFolders">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <!-- DOCK FOOTER -->
+        <div class="dock-footer">
+          <div class="keep-on-toggle" onclick="toggleKeepOn()">
+            <div class="toggle-track" id="keepOnTrack">
+              <div class="toggle-thumb"></div>
+            </div>
+            <span class="toggle-label">KEEP ON</span>
+          </div>
+
+          <button class="theme-cycle-btn" onclick="cycleTheme()" id="themeBtn">
+            <span class="theme-dot"></span>
+            <span id="themeLabel">DARK</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- VARIATION EXPLANATION PANEL                                    -->
+    <!-- ============================================================== -->
+    <div class="feature-card">
+      <div class="feature-tag" id="cardTag">VARIATION 1 ARCHITECTURE</div>
+      <h2 class="feature-title" id="cardTitle">TACTICAL SEARCH & AUDIO HUD</h2>
+      <p class="feature-desc" id="cardDesc">
+        Currently deployed in your repository. Replaces empty dock spaces with high-utility fast navigation and active vault controls.
+      </p>
+
+      <ul class="feature-list" id="cardList">
+        <!-- List elements injected via JavaScript -->
+      </ul>
+
+      <div class="status-toast" id="statusToast">
+        STATUS: Reverse Graph active (Today on Left) // Zero Outlines Applied.
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentVariant = 'v1';
+    let keepOn = false;
+    let themeIndex = 0; // 0: Dark, 1: White, 2: Auto
+    const themes = ['DARK', 'WHITE', 'AUTO'];
+
+    const VARIATIONS = {
+      v1: {
+        tag: 'VARIATION 1 // CURRENT PRODUCTION BUILD',
+        title: 'TACTICAL SEARCH & AUDIO HUD',
+        desc: 'Optimized for high-speed vault exploration. Puts the search trigger 1-click away and adds ambient sound telemetry.',
+        slot1Html: `
+          <button class="dock-btn" style="margin-bottom:3px; justify-content:space-between;" onclick="toast('Quick Search Command Palette Opened')">
+            <span style="display:flex; align-items:center; gap:4px;">
+              <span>⌕</span>
+              <span>QUICK SEARCH</span>
+            </span>
+            <span style="background:rgba(255,255,255,0.15); padding:1px 4px; font-family:'JetBrains Mono'; font-size:6px;">/</span>
+          </button>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:2px 4px; font-family:'Michroma'; font-size:6.5px; color:rgba(255,255,255,0.5);">
+            <span style="display:flex; align-items:center; gap:4px;">
+              <span style="width:5px; height:5px; background:#fff; box-shadow:0 0 6px #fff; display:inline-block;"></span>
+              <span>AUDIO: LIVE</span>
+            </span>
+            <div style="display:flex; gap:2px; align-items:flex-end; height:10px;">
+              <div class="eq-bar eq-1"></div>
+              <div class="eq-bar eq-2"></div>
+              <div class="eq-bar eq-3"></div>
+              <div class="eq-bar eq-4"></div>
+            </div>
+          </div>
+        `,
+        slot2Html: `
+          <button class="dock-btn" style="margin-bottom:4px; justify-content:center; gap:6px;" onclick="toast('Surprise Shuffle Launched Random Media')">
+            <span style="font-size:8px;">⚡</span>
+            <span>SHUFFLE VAULT</span>
+          </button>
+          <div style="padding:2px 4px;">
+            <div style="display:flex; justify-content:space-between; font-family:'Michroma'; font-size:6px; color:rgba(255,255,255,0.4); margin-bottom:2px;">
+              <span>SESSION HUD</span>
+              <span>60 FPS</span>
+            </div>
+            <div style="width:100%; height:2px; background:rgba(255,255,255,0.1); position:relative; overflow:hidden;">
+              <div style="width:45%; height:100%; background:#fff;"></div>
+            </div>
+          </div>
+        `,
+        items: [
+          '<strong>Slot Below Graph:</strong> Quick Search Button (opens search modal instantly or with "/") + Active Audio status indicator.',
+          '<strong>Slot Below Folders:</strong> Surprise Vault Shuffle (launches a random photo/clip/short) + Session Telemetry pacing bar.',
+          '<strong>Benefits:</strong> Zero dead space, zero outlines, immediate navigation access.'
+        ]
+      },
+      v2: {
+        tag: 'VARIATION 2 // CYBER TELEMETRY SUITE',
+        title: 'LIVE TELEMETRY & SYSTEM HEALTH',
+        desc: 'Transforms the dock into a full hardware & network monitoring terminal for real-time streaming vitals.',
+        slot1Html: `
+          <div style="background:rgba(255,255,255,0.03); padding:5px 6px; margin-bottom:4px; display:flex; flex-direction:column; gap:3px;">
+            <div style="display:flex; justify-content:space-between; font-family:'Michroma'; font-size:6px; color:rgba(255,255,255,0.5);">
+              <span>NET: ONLINE</span>
+              <span style="color:#ffffff;">PING: 18MS</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:6.5px; color:#ffffff;">
+              <span>24H CLOCK</span>
+              <span>00:14:32</span>
+            </div>
+          </div>
+        `,
+        slot2Html: `
+          <div style="background:rgba(255,255,255,0.03); padding:5px 6px; margin-bottom:4px;">
+            <div style="display:flex; justify-content:space-between; font-family:'Michroma'; font-size:6px; color:rgba(255,255,255,0.6); margin-bottom:3px;">
+              <span>BATTERY</span>
+              <span>98% [====]</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-family:'Michroma'; font-size:6px; color:rgba(255,255,255,0.6);">
+              <span>QUALITY</span>
+              <span>4K / 60FPS</span>
+            </div>
+          </div>
+          <button class="dock-btn" style="justify-content:center; gap:4px;" onclick="toast('System Diagnostics Triggered')">
+            <span>● DIAGNOSTICS</span>
+          </button>
+        `,
+        items: [
+          '<strong>Slot Below Graph:</strong> Live Cyber Clock, Ping Latency (18ms), and Network status.',
+          '<strong>Slot Below Folders:</strong> Battery gauge, Stream Quality badge (4K/60FPS), and Quick Diagnostics trigger.',
+          '<strong>Benefits:</strong> Perfect for tech enthusiasts who want deep telemetry at all times.'
+        ]
+      },
+      v3: {
+        tag: 'VARIATION 3 // VAULT HISTORY & VIEW MODES',
+        title: 'RECENT PLAYED TRAY & VIEW MATRIX',
+        desc: 'Focuses on rapid media switching: gives 1-click access to recent views and switches grid layout density.',
+        slot1Html: `
+          <div style="margin-bottom:4px;">
+            <div style="font-family:'Michroma'; font-size:6px; color:rgba(255,255,255,0.5); margin-bottom:3px; padding-left:2px;">
+              RECENT VAULT //
+            </div>
+            <div style="display:flex; gap:3px;">
+              <button style="flex:1; padding:4px 2px; font-family:'Michroma'; font-size:6px; background:rgba(255,255,255,0.06); color:#fff; border:none; cursor:pointer;" onclick="toast('Loaded Recent 01')">#01</button>
+              <button style="flex:1; padding:4px 2px; font-family:'Michroma'; font-size:6px; background:rgba(255,255,255,0.06); color:#fff; border:none; cursor:pointer;" onclick="toast('Loaded Recent 02')">#02</button>
+              <button style="flex:1; padding:4px 2px; font-family:'Michroma'; font-size:6px; background:rgba(255,255,255,0.06); color:#fff; border:none; cursor:pointer;" onclick="toast('Loaded Recent 03')">#03</button>
+            </div>
+          </div>
+        `,
+        slot2Html: `
+          <div style="display:flex; gap:4px; margin-bottom:4px;">
+            <button class="dock-btn" style="flex:1; margin-bottom:0; justify-content:center; font-size:6.5px;" onclick="toast('Switched Grid: 2-Row')">GRID 2x</button>
+            <button class="dock-btn" style="flex:1; margin-bottom:0; justify-content:center; font-size:6.5px;" onclick="toast('Switched Grid: Cinematic 1-Row')">1x WIDE</button>
+          </div>
+          <button class="dock-btn" style="justify-content:center; gap:4px;" onclick="toast('Toggled Fullscreen View')">
+            <span>⛶ FULLSCREEN</span>
+          </button>
+        `,
+        items: [
+          '<strong>Slot Below Graph:</strong> 3-slot Recent History tray to jump straight back to previously opened photos/clips.',
+          '<strong>Slot Below Folders:</strong> Grid Density selector (2-Row vs 1-Row Wide) and Fullscreen Theater mode toggle.',
+          '<strong>Benefits:</strong> Direct layout and media control without touching browser controls.'
+        ]
+      },
+      v4: {
+        tag: 'VARIATION 4 // AUDIOPHILE MATRIX',
+        title: 'AMBIENT SOUNDFX & EQ MATRIX',
+        desc: 'Interactive sound board for users who love acoustic feedback, atmospheric lo-fi rain/cyber audio, and visual audio spectrum.',
+        slot1Html: `
+          <div style="background:rgba(255,255,255,0.03); padding:4px 6px; margin-bottom:4px;">
+            <div style="display:flex; justify-content:space-between; font-family:'Michroma'; font-size:6px; color:rgba(255,255,255,0.6); margin-bottom:3px;">
+              <span>FX VOLUME</span>
+              <span>85%</span>
+            </div>
+            <div style="width:100%; height:3px; background:rgba(255,255,255,0.15); position:relative;">
+              <div style="width:85%; height:100%; background:#fff;"></div>
+            </div>
+          </div>
+        `,
+        slot2Html: `
+          <div style="display:flex; justify-content:center; gap:3px; align-items:flex-end; height:18px; margin-bottom:6px; padding:0 8px;">
+            <div class="eq-bar eq-1" style="flex:1;"></div>
+            <div class="eq-bar eq-2" style="flex:1;"></div>
+            <div class="eq-bar eq-3" style="flex:1;"></div>
+            <div class="eq-bar eq-4" style="flex:1;"></div>
+            <div class="eq-bar eq-2" style="flex:1;"></div>
+            <div class="eq-bar eq-1" style="flex:1;"></div>
+            <div class="eq-bar eq-3" style="flex:1;"></div>
+          </div>
+          <button class="dock-btn" style="justify-content:center;" onclick="toast('Muted/Unmuted Ambient FX')">
+            <span>MUTE AUDIO FX</span>
+          </button>
+        `,
+        items: [
+          '<strong>Slot Below Graph:</strong> Master Sound FX volume level indicator & mute toggle.',
+          '<strong>Slot Below Folders:</strong> 7-Band Graphic Equalizer Spectrum visualizer reacting in real-time.',
+          '<strong>Benefits:</strong> Highly cinematic and immersive ambiance.'
+        ]
+      }
+    };
+
+    function renderVariant(vKey) {
+      const data = VARIATIONS[vKey];
+      document.getElementById('slotBelowGraph').innerHTML = data.slot1Html;
+      document.getElementById('slotBelowFolders').innerHTML = data.slot2Html;
+
+      document.getElementById('cardTag').innerText = data.tag;
+      document.getElementById('cardTitle').innerText = data.title;
+      document.getElementById('cardDesc').innerText = data.desc;
+
+      const listEl = document.getElementById('cardList');
+      listEl.innerHTML = data.items.map(item => `
+        <li>
+          <div class="feature-bullet"></div>
+          <div>${item}</div>
+        </li>
+      `).join('');
+    }
+
+    function switchVariant(vKey, btn) {
+      currentVariant = vKey;
+      document.querySelectorAll('.variant-pill').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      renderVariant(vKey);
+      toast(`Switched to ${VARIATIONS[vKey].title}`);
+    }
+
+    function openSubs(folderName) {
+      document.getElementById('subHead').innerText = folderName.toUpperCase() + ' // SUB';
+      document.getElementById('viewSlider').classList.add('show-subs');
+      toast(`Viewing subfolders of ${folderName}`);
+    }
+
+    function closeSubs() {
+      document.getElementById('viewSlider').classList.remove('show-subs');
+      toast('Returned to major folders');
+    }
+
+    function toggleKeepOn() {
+      keepOn = !keepOn;
+      const track = document.getElementById('keepOnTrack');
+      if (keepOn) track.classList.add('active');
+      else track.classList.remove('active');
+      toast(`Keep Screen On: ${keepOn ? 'ACTIVE' : 'OFF'}`);
+    }
+
+    function cycleTheme() {
+      themeIndex = (themeIndex + 1) % themes.length;
+      const newTheme = themes[themeIndex];
+      document.getElementById('themeLabel').innerText = newTheme;
+      toast(`Theme set to: ${newTheme}`);
+    }
+
+    function toast(msg) {
+      const el = document.getElementById('statusToast');
+      el.innerText = `ACTION: ${msg}`;
+      el.style.borderColor = '#ffffff';
+      setTimeout(() => {
+        el.innerText = `STATUS: Reverse Graph active (Today on Left) // Zero Outlines Applied.`;
+      }, 2500);
+    }
+
+    function togglePulse() {
+      toast('SARWAR.CYOU Logo Clicked (Toggles Dock)');
+    }
+
+    // Initialize with Variation 1
+    renderVariant('v1');
+  </script>
+</body>
+</html>
