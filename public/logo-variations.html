@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SARWAR.CYOU — Logo Color & Animation Variations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #03050a;
+      --card-bg: #070c18;
+      --card-border: #132238;
+      --neon-lime: #ccff00;
+      --neon-cyan: #00f0ff;
+      --neon-violet: #c026d3;
+      --text-main: #e2e8f0;
+      --text-muted: #8391a6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 36px 20px 100px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: rgba(204, 255, 0, 0.12);
+      border: 1px solid rgba(204, 255, 0, 0.4);
+      color: var(--neon-lime);
+      margin-bottom: 14px;
+    }
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--neon-lime);
+      box-shadow: 0 0 10px var(--neon-lime);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--neon-lime) 80%, #99dd00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.lead {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      max-width: 900px;
+    }
+
+    /* Diagnosis Box */
+    .diagnosis-box {
+      background: rgba(14, 23, 42, 0.85);
+      border: 1px solid rgba(204, 255, 0, 0.25);
+      border-left: 4px solid var(--neon-lime);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 36px;
+    }
+    .diagnosis-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--neon-lime);
+      margin-bottom: 8px;
+    }
+    .diagnosis-text {
+      font-size: 13.5px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    /* Speed Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #091122;
+      border: 1px solid #1a2b47;
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 30px;
+    }
+    .toolbar-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-speed {
+      background: #0d1a33;
+      border: 1px solid #20355a;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-speed:hover, .btn-speed.active {
+      background: rgba(204, 255, 0, 0.15);
+      border-color: var(--neon-lime);
+      color: var(--neon-lime);
+    }
+
+    /* Grid of variations */
+    .variations-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .variation-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px 28px;
+      transition: border-color 0.25s, box-shadow 0.25s;
+      position: relative;
+    }
+    .variation-card:hover {
+      border-color: rgba(204, 255, 0, 0.45);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    }
+    .variation-card.featured {
+      border-color: rgba(204, 255, 0, 0.6);
+      background: linear-gradient(180deg, rgba(204, 255, 0, 0.04) 0%, var(--card-bg) 100%);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+    .card-meta {
+      flex: 1;
+    }
+    .card-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--neon-lime);
+      margin-bottom: 4px;
+    }
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .card-badge-pick {
+      background: rgba(204, 255, 0, 0.15);
+      border: 1px solid var(--neon-lime);
+      color: var(--neon-lime);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .card-badge-pick:hover {
+      background: var(--neon-lime);
+      color: #000;
+    }
+
+    /* Stage Canvas */
+    .stage-canvas {
+      background: #020408;
+      border: 1px solid #142033;
+      border-radius: 12px;
+      padding: 32px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+    .stage-canvas::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+    .stage-canvas.oled-mode {
+      background: #000000;
+    }
+
+    .traits-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .trait-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: #0c1626;
+      border: 1px solid #1c2d47;
+      color: #94a3b8;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    /* Bottom Bar Context Preview */
+    .nav-context-section {
+      background: #060a14;
+      border: 1px solid #182844;
+      border-radius: 16px;
+      padding: 28px;
+      margin-top: 40px;
+    }
+    .nav-context-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    .nav-context-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .nav-mockup-frame {
+      background: #030509;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      height: 180px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .nav-mockup-media {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      opacity: 0.25;
+      filter: blur(1px);
+    }
+    .nav-mockup-card {
+      flex: 1;
+      background: #111827;
+      border-radius: 8px;
+      border: 1px solid #374151;
+    }
+    .nav-mockup-bar {
+      position: relative;
+      z-index: 10;
+      height: 60px;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    /* Comparison Box (Buggy vs New) */
+    .compare-section {
+      margin-top: 48px;
+      padding: 24px;
+      background: rgba(239, 68, 68, 0.05);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 14px;
+    }
+    .compare-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f87171;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .compare-desc {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 16px;
+    }
+
+    .selected-notification {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--neon-lime);
+      color: #000;
+      font-weight: 700;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(204, 255, 0, 0.4);
+      display: none;
+      z-index: 100;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Interactive Brand Showcase
+  </div>
+
+  <h1>SARWAR.CYOU — Logo Color & Animation Variations</h1>
+  <p class="lead">
+    Explore 6 refined color treatments and animation choreographies for the master wordmark. Each variation permanently eliminates the jarring "black and yellow" flashing cycle by maintaining steady base luminance and replacing dark murky tones with vivid specular light.
+  </p>
+
+  <!-- Technical Diagnosis -->
+  <div class="diagnosis-box">
+    <div class="diagnosis-title">Root Cause Analysis: Why The Logo Was Alternating Black & Yellow</div>
+    <div class="diagnosis-text">
+      The previous gradient had dark boundary stops set to <code>#050805</code> (near-black) and <code>#557700</code> (olive green) layered as an opaque stroke directly over the letters. As the gradient animated horizontally, each letterform was repeatedly masked in solid black before flashing back to neon lime, creating an unintended strobe-like alternation. 
+      <br><br>
+      <strong>The Solution:</strong> In every variation below, the base letters are anchored in steady, vibrant illumination. The moving wave is a pure specular glint, a fluid multi-color spectrum, or an organic breathing pulse — with <strong>zero black dips</strong>.
+    </div>
+  </div>
+
+  <!-- Global Speed & Background Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-title">Interactive Display Controls</div>
+    <div class="toolbar-actions">
+      <button class="btn-speed" onclick="toggleOled()">Toggle Pure OLED Black</button>
+      <button class="btn-speed" onclick="setSpeed(0.5)">0.5x Slow</button>
+      <button class="btn-speed active" onclick="setSpeed(1.0)">1.0x Normal</button>
+      <button class="btn-speed" onclick="setSpeed(1.8)">1.8x Dynamic</button>
+      <button class="btn-speed" onclick="togglePause()">Pause Animation</button>
+    </div>
+  </div>
+
+  <!-- VARIATIONS GRID -->
+  <div class="variations-grid">
+
+    <!-- VARIATION 1 -->
+    <div class="variation-card featured" id="card-opt1">
+      <div class="card-header">
+        <div class="card-meta">
+          <div class="card-tag">Option 1 • Recommended</div>
+          <h2 class="card-title">Luminous Neon Beam (Zero-Black Smooth Glide)</h2>
+          <p class="card-desc">
+            Preserves your beloved yellowish-white neon palette (<code>#CCFF00</code> & <code>#FFFFFF</code>). The letters remain continuously lit in vibrant neon lime, while a pure white-hot laser core smoothly glides across from S to U. At no point do letters ever turn dark or black.
+          </p>
+        </div>
+        <button class="card-badge-pick" onclick="selectOption(1, 'Luminous Neon Beam')">Select Option 1</button>
+      </div>
+
+      <div class="stage-canvas">
+        <!-- Option 1 SVG -->
+        <svg viewBox="0 0 820 70" width="460" height="42" class="logo-svg filter drop-shadow-[0_0_18px_rgba(204,255,0,0.55)]">
+          <defs>
+            <linearGradient id="v1_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0.0" stopColor="#ccff00" stopOpacity="0.8" />
+              <stop offset="0.25" stopColor="#ccff00" stopOpacity="0.85" />
+              <stop offset="0.45" stopColor="#ffff66" stopOpacity="1" />
+              <stop offset="0.5" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="0.55" stopColor="#ffff66" stopOpacity="1" />
+              <stop offset="0.75" stopColor="#ccff00" stopOpacity="0.85" />
+              <stop offset="1.0" stopColor="#ccff00" stopOpacity="0.8" />
+              <animate class="anim-v1" attributeName="x1" values="-100%; 100%" dur="3.0s" repeatCount="indefinite" />
+              <animate class="anim-v1" attributeName="x2" values="0%; 200%" dur="3.0s" repeatCount="indefinite" />
+            </linearGradient>
+            <filter id="v1_glow">
+              <feGaussianBlur stdDeviation="3.5" result="glow" />
+              <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <!-- Core Wordmark -->
+          <g stroke="url(#v1_grad)" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none" filter="url(#v1_glow)">
+            <!-- S -->
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <!-- A1 -->
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <!-- R1 -->
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <!-- W -->
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <!-- A2 -->
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <!-- R2 -->
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+
+            <!-- .CYOU Cyber Tag Pill -->
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="url(#v1_grad)" strokeWidth="2.2" fill="rgba(204, 255, 0, 0.06)" />
+            <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none" />
+            <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+            <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+            <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+            <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="traits-list">
+        <span class="trait-pill">Base: Constant Neon #CCFF00</span>
+        <span class="trait-pill">Wave: White-Hot Specular #FFFFFF</span>
+        <span class="trait-pill">Zero Black Dips</span>
+        <span class="trait-pill">Seamless 3.0s Continuous Sweep</span>
+      </div>
+    </div>
+
+    <!-- VARIATION 2 -->
+    <div class="variation-card" id="card-opt2">
+      <div class="card-header">
+        <div class="card-meta">
+          <div class="card-tag">Option 2 • Original Cyber Tricolor</div>
+          <h2 class="card-title">Tricolor Plasma Stream (White → Electric Cyan → Cosmic Violet)</h2>
+          <p class="card-desc">
+            Directly fulfills your initial vision ("white, blue, and violet color continuously exploring like a spark across the entire logo"). A smooth, non-flickering plasma stream cycles from S to U across stark white, electric cyan, and cosmic violet over an energized base.
+          </p>
+        </div>
+        <button class="card-badge-pick" onclick="selectOption(2, 'Tricolor Plasma Stream')">Select Option 2</button>
+      </div>
+
+      <div class="stage-canvas">
+        <!-- Option 2 SVG -->
+        <svg viewBox="0 0 820 70" width="460" height="42" class="logo-svg filter drop-shadow-[0_0_18px_rgba(0,240,255,0.45)]">
+          <defs>
+            <linearGradient id="v2_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0.0" stopColor="#00f0ff" />
+              <stop offset="0.2" stopColor="#ffffff" />
+              <stop offset="0.4" stopColor="#00f0ff" />
+              <stop offset="0.65" stopColor="#b026ff" />
+              <stop offset="0.85" stopColor="#ff00a0" />
+              <stop offset="1.0" stopColor="#00f0ff" />
+              <animate class="anim-v2" attributeName="x1" values="-100%; 100%" dur="3.6s" repeatCount="indefinite" />
+              <animate class="anim-v2" attributeName="x2" values="0%; 200%" dur="3.6s" repeatCount="indefinite" />
+            </linearGradient>
+            <filter id="v2_glow">
+              <feGaussianBlur stdDeviation="3.5" result="glow" />
+              <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <g stroke="url(#v2_grad)" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none" filter="url(#v2_glow)">
+            <!-- S -->
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <!-- A1 -->
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <!-- R1 -->
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <!-- W -->
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <!-- A2 -->
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <!-- R2 -->
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+
+            <!-- .CYOU Cyber Tag Pill -->
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="url(#v2_grad)" strokeWidth="2.2" fill="rgba(0, 240, 255, 0.05)" />
+            <circle cx="582" cy="33" r="3.5" fill="#00f0ff" stroke="none" />
+            <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+            <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+            <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+            <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="traits-list">
+        <span class="trait-pill">Palette: White / Cyan #00F0FF / Violet #B026FF</span>
+        <span class="trait-pill">Seamless Chromatic Shift</span>
+        <span class="trait-pill">Fluid Cyberpunk Energy</span>
+      </div>
+    </div>
+
+    <!-- VARIATION 3 -->
+    <div class="variation-card" id="card-opt3">
+      <div class="card-header">
+        <div class="card-meta">
+          <div class="card-tag">Option 3 • Ultra Clean</div>
+          <h2 class="card-title">Solid Cyber Neon (Static / Zero Flashing)</h2>
+          <p class="card-desc">
+            Completely eliminates all traveling waves and animation cycles. The master wordmark is rendered in rock-solid, unwavering Yellowish Neon (<code>#CCFF00</code>) with razor-sharp geometry and a subtle neon atmospheric glow. Zero distraction, 100% legibility.
+          </p>
+        </div>
+        <button class="card-badge-pick" onclick="selectOption(3, 'Solid Cyber Neon')">Select Option 3</button>
+      </div>
+
+      <div class="stage-canvas">
+        <!-- Option 3 SVG -->
+        <svg viewBox="0 0 820 70" width="460" height="42" class="logo-svg filter drop-shadow-[0_0_16px_rgba(204,255,0,0.6)]">
+          <defs>
+            <filter id="v3_glow">
+              <feGaussianBlur stdDeviation="3.0" result="glow" />
+              <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <g stroke="#ccff00" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none" filter="url(#v3_glow)">
+            <!-- S -->
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <!-- A1 -->
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <!-- R1 -->
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <!-- W -->
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <!-- A2 -->
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <!-- R2 -->
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+
+            <!-- .CYOU Cyber Tag Pill -->
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="#ccff00" strokeWidth="2.2" fill="rgba(204, 255, 0, 0.08)" />
+            <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none" />
+            <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+            <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+            <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+            <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="traits-list">
+        <span class="trait-pill">Motion: 100% Static (Zero Animation)</span>
+        <span class="trait-pill">Color: Pure Acid Lime #CCFF00</span>
+        <span class="trait-pill">Max Clarity & Focus</span>
+      </div>
+    </div>
+
+    <!-- VARIATION 4 -->
+    <div class="variation-card" id="card-opt4">
+      <div class="card-header">
+        <div class="card-meta">
+          <div class="card-tag">Option 4 • Organic Pulse</div>
+          <h2 class="card-title">Ambient Hypnotic Breathing (Whole Logo Sine-Wave Pulse)</h2>
+          <p class="card-desc">
+            Instead of a streak of light traveling from left to right, the entire wordmark gently breathes together in a soothing, hypnotic 4-second sine wave. The luminescence softens smoothly from 100% to 75% and back. No horizontal movement, no color changes.
+          </p>
+        </div>
+        <button class="card-badge-pick" onclick="selectOption(4, 'Ambient Hypnotic Breathing')">Select Option 4</button>
+      </div>
+
+      <div class="stage-canvas">
+        <!-- Option 4 SVG -->
+        <svg viewBox="0 0 820 70" width="460" height="42" class="logo-svg">
+          <defs>
+            <style>
+              @keyframes breathePulse {
+                0%, 100% { opacity: 1; filter: drop-shadow(0 0 20px rgba(204,255,0,0.85)); }
+                50% { opacity: 0.72; filter: drop-shadow(0 0 8px rgba(204,255,0,0.35)); }
+              }
+              .anim-breathe {
+                animation: breathePulse 3.8s ease-in-out infinite;
+              }
+            </style>
+          </defs>
+
+          <g class="anim-breathe" stroke="#ccff00" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+            <!-- S -->
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <!-- A1 -->
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <!-- R1 -->
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <!-- W -->
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <!-- A2 -->
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <!-- R2 -->
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+
+            <!-- .CYOU Cyber Tag Pill -->
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="#ccff00" strokeWidth="2.2" fill="rgba(204, 255, 0, 0.08)" />
+            <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none" />
+            <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+            <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+            <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+            <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="traits-list">
+        <span class="trait-pill">Sine Wave Luminescence Breathing</span>
+        <span class="trait-pill">All Characters Pulse in Unison</span>
+        <span class="trait-pill">Zero Directional Strobe</span>
+      </div>
+    </div>
+
+    <!-- VARIATION 5 -->
+    <div class="variation-card" id="card-opt5">
+      <div class="card-header">
+        <div class="card-meta">
+          <div class="card-tag">Option 5 • Specular Sheen</div>
+          <h2 class="card-title">High-Voltage Electric Glint (Calm Rest + Quick Shimmer)</h2>
+          <p class="card-desc">
+            The logo rests serenely in steady yellowish-white neon for 4.5 seconds. Then, a slender 0.35s diamond-white specular glint sweeps across like light reflecting off precision-milled glass. Refined, futuristic, and never repetitive or fatiguing.
+          </p>
+        </div>
+        <button class="card-badge-pick" onclick="selectOption(5, 'High-Voltage Electric Glint')">Select Option 5</button>
+      </div>
+
+      <div class="stage-canvas">
+        <!-- Option 5 SVG -->
+        <svg viewBox="0 0 820 70" width="460" height="42" class="logo-svg filter drop-shadow-[0_0_16px_rgba(204,255,0,0.5)]">
+          <defs>
+            <linearGradient id="v5_base" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ccff00" />
+              <stop offset="100%" stopColor="#ccff00" />
+            </linearGradient>
+
+            <linearGradient id="v5_glint" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0.0" stopColor="rgba(255, 255, 255, 0)" />
+              <stop offset="0.45" stopColor="rgba(255, 255, 255, 0)" />
+              <stop offset="0.5" stopColor="#ffffff" />
+              <stop offset="0.55" stopColor="rgba(255, 255, 255, 0)" />
+              <stop offset="1.0" stopColor="rgba(255, 255, 255, 0)" />
+              <animate class="anim-v5" attributeName="x1" values="-150%; -150%; 150%; 150%" keyTimes="0; 0.2; 0.45; 1" dur="5.0s" repeatCount="indefinite" />
+              <animate class="anim-v5" attributeName="x2" values="-50%; -50%; 250%; 250%" keyTimes="0; 0.2; 0.45; 1" dur="5.0s" repeatCount="indefinite" />
+            </linearGradient>
+          </defs>
+
+          <!-- Layer 1: Solid Base -->
+          <g stroke="url(#v5_base)" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+            <!-- S -->
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <!-- A1 -->
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <!-- R1 -->
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <!-- W -->
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <!-- A2 -->
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <!-- R2 -->
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+
+            <!-- .CYOU Cyber Tag Pill -->
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="#ccff00" strokeWidth="2.2" fill="rgba(204, 255, 0, 0.08)" />
+            <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none" />
+            <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+            <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+            <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+            <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+          </g>
+
+          <!-- Layer 2: Fast Silvery Specular Glint -->
+          <g stroke="url(#v5_glint)" strokeWidth="9.5" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="url(#v5_glint)" strokeWidth="2.5" fill="none" />
+            <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+            <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+            <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+            <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="traits-list">
+        <span class="trait-pill">4.5s Calm Rest State</span>
+        <span class="trait-pill">0.35s Quick Diamond Sheen</span>
+        <span class="trait-pill">Luxury Tech Specular Glint</span>
+      </div>
+    </div>
+
+    <!-- VARIATION 6 -->
+    <div class="variation-card" id="card-opt6">
+      <div class="card-header">
+        <div class="card-meta">
+          <div class="card-tag">Option 6 • Harmonic Gradient</div>
+          <h2 class="card-title">Cyberpunk Dual-Tone Harmonic Shift (Cyan to Acid Lime)</h2>
+          <p class="card-desc">
+            A lush color progression transitioning from Electric Cyan (<code>#00F0FF</code>) on the 'S' smoothly into Acid Lime (<code>#CCFF00</code>) on the '.CYOU'. An animated soft luminescence wash ripples through without changing the base colors or turning letters black.
+          </p>
+        </div>
+        <button class="card-badge-pick" onclick="selectOption(6, 'Cyberpunk Dual-Tone')">Select Option 6</button>
+      </div>
+
+      <div class="stage-canvas">
+        <!-- Option 6 SVG -->
+        <svg viewBox="0 0 820 70" width="460" height="42" class="logo-svg filter drop-shadow-[0_0_18px_rgba(0,240,255,0.4)]">
+          <defs>
+            <linearGradient id="v6_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#00f0ff" />
+              <stop offset="30%" stopColor="#00e5ff" />
+              <stop offset="70%" stopColor="#76ff03" />
+              <stop offset="100%" stopColor="#ccff00" />
+            </linearGradient>
+
+            <linearGradient id="v6_shimmer" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0.0" stopColor="rgba(255, 255, 255, 0)" />
+              <stop offset="0.45" stopColor="rgba(255, 255, 255, 0)" />
+              <stop offset="0.5" stopColor="rgba(255, 255, 255, 0.95)" />
+              <stop offset="0.55" stopColor="rgba(255, 255, 255, 0)" />
+              <stop offset="1.0" stopColor="rgba(255, 255, 255, 0)" />
+              <animate class="anim-v6" attributeName="x1" values="-100%; 100%" dur="3.4s" repeatCount="indefinite" />
+              <animate class="anim-v6" attributeName="x2" values="0%; 200%" dur="3.4s" repeatCount="indefinite" />
+            </linearGradient>
+          </defs>
+
+          <!-- Layer 1: Dual-tone base -->
+          <g stroke="url(#v6_grad)" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+            <!-- S -->
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <!-- A1 -->
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <!-- R1 -->
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <!-- W -->
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <!-- A2 -->
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <!-- R2 -->
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+
+            <!-- .CYOU Cyber Tag Pill -->
+            <rect x="560" y="16" width="210" height="34" rx="8" stroke="#ccff00" strokeWidth="2.2" fill="rgba(204, 255, 0, 0.08)" />
+            <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none" />
+            <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+            <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+            <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+            <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+          </g>
+
+          <!-- Layer 2: White Shimmer Sheen -->
+          <g stroke="url(#v6_shimmer)" strokeWidth="9" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+            <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+            <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+            <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+            <path d="M 228 33 L 260 54" />
+            <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+            <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+            <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+            <path d="M 504 33 L 536 54" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="traits-list">
+        <span class="trait-pill">Cyan to Lime Gradient</span>
+        <span class="trait-pill">Harmonic Duo Saturation</span>
+        <span class="trait-pill">Gentle Specular Wave</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LIVE WEBSITE BOTTOM BAR CONTEXT PREVIEW -->
+  <div class="nav-context-section">
+    <div class="nav-context-title">Live Bottom Navigation Bar Simulation</div>
+    <div class="nav-context-desc">
+      Here is how your chosen variation looks when placed directly inside the website's bottom navigation bar on <strong>sarwar.cyou</strong>:
+    </div>
+
+    <div class="nav-mockup-frame">
+      <div class="nav-mockup-media">
+        <div class="nav-mockup-card"></div>
+        <div class="nav-mockup-card"></div>
+        <div class="nav-mockup-card"></div>
+        <div class="nav-mockup-card"></div>
+      </div>
+
+      <div class="nav-mockup-bar">
+        <!-- Logo Trigger in Nav -->
+        <div id="mockup-logo-slot">
+          <!-- Will update based on user pick, defaults to Option 1 -->
+          <svg id="mockup-svg" viewBox="0 0 820 70" width="280" height="38">
+            <use href="#v1_grad" />
+            <g stroke="url(#v1_grad)" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+              <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+              <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+              <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+              <path d="M 228 33 L 260 54" />
+              <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+              <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+              <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+              <path d="M 504 33 L 536 54" />
+              <rect x="560" y="16" width="210" height="34" rx="8" stroke="url(#v1_grad)" strokeWidth="2.2" fill="rgba(204, 255, 0, 0.08)" />
+              <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none" />
+              <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
+              <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
+              <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
+              <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
+            </g>
+          </svg>
+        </div>
+
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #475569; display: flex; align-items: center; gap: 8px;">
+          <span>[ CLICK LOGO TO OPEN TRAY ]</span>
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THE PREVIOUS BUGGY LOGO FOR COMPARISON -->
+  <div class="compare-section">
+    <div class="compare-title">⚠️ Previous Version (Buggy Black & Yellow Flicker) — For Comparison</div>
+    <div class="compare-desc">
+      Notice how the letters below intermittently go pitch black (<code>#050805</code>) as the dark gradient stops sweep across, causing the harsh "black & yellow" strobe effect you noticed. All 6 options above completely fix this bug.
+    </div>
+
+    <div class="stage-canvas" style="background: #020408;">
+      <!-- Buggy Logo SVG -->
+      <svg viewBox="0 0 820 70" width="460" height="42">
+        <defs>
+          <linearGradient id="old_buggy_spark" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="-0.3" stopColor="#050805" />
+            <stop offset="-0.15" stopColor="#557700" />
+            <stop offset="0.0" stopColor="#99dd00" />
+            <stop offset="0.1" stopColor="#ccff00" />
+            <stop offset="0.15" stopColor="#ffffff" />
+            <stop offset="0.2" stopColor="#ccff00" />
+            <stop offset="0.3" stopColor="#99dd00" />
+            <stop offset="0.45" stopColor="#557700" />
+            <stop offset="0.6" stopColor="#050805" />
+            <animate attributeName="x1" values="-60%; 100%" dur="3.2s" repeatCount="indefinite" />
+            <animate attributeName="x2" values="40%; 200%" dur="3.2s" repeatCount="indefinite" />
+          </linearGradient>
+        </defs>
+
+        <g stroke="url(#old_buggy_spark)" strokeWidth="8.5" strokeLinecap="butt" strokeLinejoin="round" fill="none">
+          <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+          <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+          <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+          <path d="M 228 33 L 260 54" />
+          <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+          <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+          <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+          <path d="M 504 33 L 536 54" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+</div>
+
+<!-- Selected Feedback Toast -->
+<div class="selected-notification" id="toast">
+  Selected <span id="toast-title">Option 1</span>! You can tell me in chat: "Apply Option 1"
+</div>
+
+<script>
+  let isPaused = false;
+  let isOled = false;
+
+  function toggleOled() {
+    isOled = !isOled;
+    document.querySelectorAll('.stage-canvas').forEach(el => {
+      if (isOled) {
+        el.classList.add('oled-mode');
+      } else {
+        el.classList.remove('oled-mode');
+      }
+    });
+  }
+
+  function setSpeed(mult) {
+    document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const anims = document.querySelectorAll('animate');
+    anims.forEach(anim => {
+      const baseDur = anim.getAttribute('data-base-dur') || anim.getAttribute('dur') || '3s';
+      if (!anim.getAttribute('data-base-dur')) {
+        anim.setAttribute('data-base-dur', baseDur);
+      }
+      const rawSec = parseFloat(anim.getAttribute('data-base-dur'));
+      anim.setAttribute('dur', (rawSec / mult) + 's');
+    });
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+    const svgs = document.querySelectorAll('svg');
+    svgs.forEach(s => {
+      if (isPaused) {
+        if (s.pauseAnimations) s.pauseAnimations();
+      } else {
+        if (s.unpauseAnimations) s.unpauseAnimations();
+      }
+    });
+    event.target.textContent = isPaused ? 'Resume Animation' : 'Pause Animation';
+  }
+
+  function selectOption(num, name) {
+    document.querySelectorAll('.variation-card').forEach(c => c.classList.remove('featured'));
+    const target = document.getElementById('card-opt' + num);
+    if (target) target.classList.add('featured');
+
+    // Update bottom nav simulation
+    const srcSvg = target.querySelector('.stage-canvas svg');
+    const mockupSlot = document.getElementById('mockup-logo-slot');
+    if (srcSvg && mockupSlot) {
+      mockupSlot.innerHTML = '';
+      const clone = srcSvg.cloneNode(true);
+      clone.setAttribute('width', '280');
+      clone.setAttribute('height', '38');
+      mockupSlot.appendChild(clone);
+    }
+
+    // Show toast
+    const toast = document.getElementById('toast');
+    const toastTitle = document.getElementById('toast-title');
+    toastTitle.textContent = `Option ${num} (${name})`;
+    toast.style.display = 'block';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 4000);
+  }
+</script>
+
+</body>
+</html>
