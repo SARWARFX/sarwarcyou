@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -14,6 +14,7 @@ import {
   parseIdRoute,
   parseAppPathname,
   updateBrowserUrl,
+  findMediaByShortId,
 } from '../../utils/urlRouter';
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { LivingMediaCard } from './LivingMediaCard';
@@ -160,12 +161,56 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [notFoundInfo, setNotFoundInfo] = useState<{
     isOpen: boolean;
     path: string;
-    tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'TRAILER';
+    tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER';
   }>({
     isOpen: false,
     path: '',
     tab: 'TRAILER',
   });
+
+  // Direct Short ID or Invalid URL validation on initial load
+  const hasAutoLaunchedRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoLaunchedRef.current || !items || items.length === 0) return;
+
+    const parsed = parseAppPathname();
+
+    // 1. If path is an unrecognized root path (e.g. /unknown-page) -> Show 404 error screen
+    if (parsed.isNotFound) {
+      hasAutoLaunchedRef.current = true;
+      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+      return;
+    }
+
+    // 2. If path has a media short ID (e.g. /shorts/7mK9 or /photographs/v9Q1)
+    if (parsed.shortId) {
+      hasAutoLaunchedRef.current = true;
+      const matched = findMediaByShortId(items, parsed.shortId);
+      if (matched) {
+        const item = matched.item;
+        const isPhoto =
+          item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+        const isShort =
+          item.mediaType === 'short' ||
+          item.path?.toLowerCase().includes('short') ||
+          item.url?.toLowerCase().includes('short');
+
+        if (isPhoto) {
+          setTabIndex(1);
+          onOpenPhoto(item, [item], 0);
+        } else if (isShort) {
+          setTabIndex(2);
+          onOpenShort(item, [item], 0);
+        } else {
+          setTabIndex(3);
+          onOpenVideo(item, [item]);
+        }
+      } else {
+        // Short ID not found in library -> Show 404 error screen
+        setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+      }
+    }
+  }, [items, onOpenPhoto, onOpenShort, onOpenVideo]);
 
   // Universal Command Palette / Fast-Find Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -211,6 +256,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   useEffect(() => {
     const handlePopState = () => {
       const parsed = parseAppPathname();
+      if (parsed.isNotFound) {
+        setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+        return;
+      }
       if (parsed.tab === 'PHOTOGRAPHY') setTabIndex(1);
       else if (parsed.tab === 'SHORTS') setTabIndex(2);
       else if (parsed.tab === 'CLIPS') setTabIndex(3);
@@ -615,6 +664,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           if (tab === 'PHOTOGRAPHY') switchTab(1);
           else if (tab === 'SHORTS') switchTab(2);
           else if (tab === 'CLIPS') switchTab(3);
+          else if (tab === 'BANDHOBI') switchTab(4);
           else switchTab(0);
         }}
       />
