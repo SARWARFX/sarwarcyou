@@ -97,6 +97,33 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
     };
   }, []);
 
+  // Proportional responsive scaling to fit short landscape/rotated mobile screens
+  const [dockScale, setDockScale] = useState<number>(1);
+
+  useEffect(() => {
+    const computeDockScale = () => {
+      const vh = window.innerHeight;
+      const topBarOffset = 34; // 28px marquee bar + 6px breathing room
+      const availableH = vh - topBarOffset;
+      const naturalDockHeight = 525;
+      if (availableH < naturalDockHeight) {
+        // Proportionally scale down while maintaining exact aspect ratio
+        const s = Math.max(0.55, availableH / naturalDockHeight);
+        setDockScale(Number(s.toFixed(3)));
+      } else {
+        setDockScale(1);
+      }
+    };
+
+    computeDockScale();
+    window.addEventListener('resize', computeDockScale);
+    window.addEventListener('orientationchange', computeDockScale);
+    return () => {
+      window.removeEventListener('resize', computeDockScale);
+      window.removeEventListener('orientationchange', computeDockScale);
+    };
+  }, []);
+
   // Sync activeFolderForSub when activeMainTab changes
   useEffect(() => {
     setActiveFolderForSub(activeMainTab);
@@ -174,10 +201,18 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
     <aside
       aria-label="Tactical Navigation Dock"
       onClick={(e) => e.stopPropagation()}
-      className={`fixed left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 w-[205px] sm:w-[215px] min-h-[500px] sm:min-h-[540px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-hidden border-0 transition-all duration-300 ease-out select-none ${
+      style={{
+        top: 'calc(50% + 14px)',
+        transform: isOpen
+          ? `translate3d(0, -50%, 0) scale(${dockScale})`
+          : `translate3d(-150%, -50%, 0) scale(${dockScale})`,
+        transformOrigin: 'left center',
+        maxHeight: 'calc(100dvh - 34px)',
+      }}
+      className={`fixed left-2 sm:left-4 z-50 w-[205px] sm:w-[215px] bg-[rgba(5,7,12,0.85)] backdrop-blur-xl p-2.5 shadow-[0_12px_45px_rgba(0,0,0,0.85)] rounded-none flex flex-col justify-between overflow-y-auto space-scrollbar border-0 transition-all duration-300 ease-out select-none ${
         isOpen
-          ? 'translate-x-0 opacity-100 pointer-events-auto'
-          : '-translate-x-[135%] opacity-0 pointer-events-none'
+          ? 'opacity-100 pointer-events-auto'
+          : 'opacity-0 pointer-events-none'
       }`}
     >
       {/* 1-shot laser sweep beam on dock reveal */}

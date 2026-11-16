@@ -211,13 +211,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           setIsNavTrayOpen(true);
         }
         startX = curX;
-      } else if (!isWideScreen && Math.abs(diffY) > 20) {
-        if (diffY > 20) {
-          setIsNavTrayOpen(false);
-        } else if (diffY < -20) {
+      } else if (!isWideScreen) {
+        // Portrait mobile screen:
+        // Swiping left-to-right (curX > startX -> diffX < -30): SHOW DOCK!
+        if (diffX < -30 && Math.abs(diffX) > Math.abs(diffY)) {
           setIsNavTrayOpen(true);
+          startX = curX;
+        } else if (diffX > 30 && Math.abs(diffX) > Math.abs(diffY)) {
+          // Swiping right-to-left: HIDE DOCK
+          setIsNavTrayOpen(false);
+          startX = curX;
+        } else if (Math.abs(diffY) > 25) {
+          // Vertical scroll: down hides dock, up reveals dock
+          if (diffY > 25) {
+            setIsNavTrayOpen(false);
+          } else if (diffY < -25) {
+            setIsNavTrayOpen(true);
+          }
+          startY = curY;
         }
-        startY = curY;
       }
     };
 
