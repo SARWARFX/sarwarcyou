@@ -74,35 +74,43 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Network Connection Type Detection (Wi-Fi vs Mobile Data)
-  const [networkType, setNetworkType] = useState<{
+  // Network Connection Type Detection (Unmetered Wi-Fi vs Metered Cellular vs Offline)
+  const [networkState, setNetworkState] = useState<{
     isOnline: boolean;
-    isCellular: boolean;
-    label: string;
+    isMetered: boolean;
+    tooltip: string;
   }>(() => {
     if (typeof window === 'undefined') {
-      return { isOnline: true, isCellular: false, label: 'CONNECTED TO WI-FI' };
+      return {
+        isOnline: true,
+        isMetered: false,
+        tooltip: 'Connected to an unmetered Wi-Fi network. High-speed media streaming available with no data limits.',
+      };
     }
     const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
     const isOnline = navigator.onLine;
-    const isCellular = conn?.type === 'cellular';
-    return {
-      isOnline,
-      isCellular,
-      label: !isOnline ? 'OFFLINE' : isCellular ? 'MOBILE DATA' : 'CONNECTED TO WI-FI',
-    };
+    const isMetered = Boolean(conn?.type === 'cellular' || conn?.saveData === true);
+    const tooltip = !isOnline
+      ? 'Disconnected from the network. Operating in offline archive mode.'
+      : isMetered
+      ? 'Connected to a metered mobile network. High-resolution video and shorts streaming may incur substantial data usage charges.'
+      : 'Connected to an unmetered Wi-Fi network. High-speed media streaming available with no data limits.';
+
+    return { isOnline, isMetered, tooltip };
   });
 
   useEffect(() => {
     const checkNetwork = () => {
       const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
       const isOnline = navigator.onLine;
-      const isCellular = conn?.type === 'cellular';
-      setNetworkType({
-        isOnline,
-        isCellular,
-        label: !isOnline ? 'OFFLINE' : isCellular ? 'MOBILE DATA' : 'CONNECTED TO WI-FI',
-      });
+      const isMetered = Boolean(conn?.type === 'cellular' || conn?.saveData === true);
+      const tooltip = !isOnline
+        ? 'Disconnected from the network. Operating in offline archive mode.'
+        : isMetered
+        ? 'Connected to a metered mobile network. High-resolution video and shorts streaming may incur substantial data usage charges.'
+        : 'Connected to an unmetered Wi-Fi network. High-speed media streaming available with no data limits.';
+
+      setNetworkState({ isOnline, isMetered, tooltip });
     };
 
     window.addEventListener('online', checkNetwork);
@@ -555,16 +563,16 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* SECTION 4: MOBILE DATA WARNING (IF ON CELLULAR)                */}
+      {/* SECTION 4: METERED MOBILE DATA WARNING                         */}
       {/* ============================================================== */}
-      {networkType.isCellular && (
+      {networkState.isMetered && (
         <div className="w-full mb-1.5 p-1.5 bg-amber-500/10 text-[6.5px] font-['Michroma',sans-serif] text-amber-300 tracking-wide leading-tight select-none border-0">
-          ⚠ CAUTION: Connected to mobile data. Streaming high-resolution videos or shorts may consume substantial cellular data.
+          ⚠ CAUTION: Connected to a metered mobile network. High-resolution video and shorts streaming may incur substantial data usage charges.
         </div>
       )}
 
       {/* ============================================================== */}
-      {/* SECTION 5: DOCK FOOTER (KEEP ON + WI-FI / MOBILE DATA STATUS)  */}
+      {/* SECTION 5: DOCK FOOTER (KEEP ON + NETWORK STATUS ICONS)        */}
       {/* ============================================================== */}
       <div className="flex items-center justify-between pt-2 border-0">
         {/* Bottom-Left: KEEP SCREEN ON */}
@@ -592,37 +600,48 @@ export const LogoDropUpNav: React.FC<LogoDropUpNavProps> = ({
           </span>
         </div>
 
-        {/* Bottom-Right: WI-FI or MOBILE DATA Status Indicator */}
+        {/* Bottom-Right: Wi-Fi Icon (Unmetered), 4-Pillar Mobile Network Icon (Metered), or Red OFFLINE text */}
         <div
-          className="flex items-center gap-1.5 select-none"
-          title={
-            !networkType.isOnline
-              ? 'Network Connection: Offline'
-              : networkType.isCellular
-              ? 'Warning: Connected to Mobile Data. Streaming media may incur high data usage.'
-              : 'Network Connection: Connected to Wi-Fi'
-          }
+          className="relative group/net select-none flex items-center cursor-pointer"
+          title={networkState.tooltip}
         >
-          <span
-            className={`w-1.5 h-1.5 rounded-none ${
-              !networkType.isOnline
-                ? 'bg-red-500 shadow-[0_0_6px_#ef4444] animate-pulse'
-                : networkType.isCellular
-                ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24] animate-pulse'
-                : 'bg-emerald-400 shadow-[0_0_6px_#34d399]'
-            }`}
-          />
-          <span
-            className={`font-['Michroma',sans-serif] text-[7px] font-bold tracking-wider uppercase ${
-              !networkType.isOnline
-                ? 'text-red-400 animate-pulse'
-                : networkType.isCellular
-                ? 'text-amber-300'
-                : 'text-white/80'
-            }`}
-          >
-            {networkType.label}
-          </span>
+          {/* Floating Hover Tooltip Card (Desktop & Touch) */}
+          <div className="absolute bottom-full right-0 mb-2 hidden group-hover/net:flex flex-col w-48 p-1.5 bg-black/95 border border-white/20 shadow-[0_8px_24px_rgba(0,0,0,0.95)] z-50 pointer-events-none rounded-none backdrop-blur-md">
+            <span className="font-['Michroma',sans-serif] text-[6.5px] text-white/90 leading-tight tracking-wider">
+              {networkState.tooltip}
+            </span>
+          </div>
+
+          {!networkState.isOnline ? (
+            /* Offline State: Red Color OFFLINE Text */
+            <span className="font-['Michroma',sans-serif] text-[7.5px] font-black tracking-widest text-red-500 animate-pulse drop-shadow-[0_0_6px_#ef4444]">
+              OFFLINE
+            </span>
+          ) : networkState.isMetered ? (
+            /* Metered State: Four-Pillar Mobile Network Icon */
+            <div className="flex items-end gap-[1.5px] p-0.5 h-3.5" title={networkState.tooltip}>
+              <div className="w-[2.2px] h-[3.5px] bg-amber-400 rounded-none shadow-[0_0_4px_#fbbf24]" />
+              <div className="w-[2.2px] h-[6px] bg-amber-400 rounded-none shadow-[0_0_4px_#fbbf24]" />
+              <div className="w-[2.2px] h-[9px] bg-amber-400 rounded-none shadow-[0_0_4px_#fbbf24]" />
+              <div className="w-[2.2px] h-[12px] bg-amber-400 rounded-none shadow-[0_0_4px_#fbbf24]" />
+            </div>
+          ) : (
+            /* Unmetered State: Wi-Fi Icon */
+            <svg
+              className="w-3.5 h-3.5 text-white/90 hover:text-white transition-colors drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+              <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+              <line x1="12" y1="20" x2="12.01" y2="20" strokeWidth="3" />
+            </svg>
+          )}
         </div>
       </div>
     </aside>
