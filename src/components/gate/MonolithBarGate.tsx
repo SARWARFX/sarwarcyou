@@ -135,8 +135,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return 'Photographs';
   });
 
-  // Logo Drop-Up Navigation Menu Open State
-  const [isNavTrayOpen, setIsNavTrayOpen] = useState(false);
+  // Logo Drop-Up Navigation Menu Open State (shown by default, toggles on logo click)
+  const [isNavTrayOpen, setIsNavTrayOpen] = useState(true);
 
   // Individual section subfolder filters (ordered per strict specs)
   const [photosSubfolder, setPhotosSubfolder] = useState<string>('Favorite');
