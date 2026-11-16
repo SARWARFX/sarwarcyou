@@ -878,7 +878,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
           {/* ================================================================= */}
           {/* PANEL 1: PHOTOGRAPHS TAB PAGE                                     */}
-          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
+          {/* Widescreen: 2-Row Horizontal Strip (Fits screen height, tight gap) */}
+          {/* Portrait: Vertical Up-Down Grid                                   */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
@@ -886,15 +887,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               onWheel={handleHorizontalWheel}
               className={`w-full h-full space-scrollbar p-0 m-0 ${
                 isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-6'
                   : 'overflow-y-auto overflow-x-hidden pb-28'
               }`}
             >
               <div
                 className={
                   isWideScreen
-                    ? 'flex flex-row items-center gap-6 sm:gap-8 h-[calc(100dvh-75px)] py-3 shrink-0'
-                    : 'grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 p-4 max-w-[1200px] mx-auto'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    : 'grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 max-w-[1200px] mx-auto'
                 }
               >
                 {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
@@ -916,7 +917,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
           {/* ================================================================= */}
           {/* PANEL 2: SHORTS TAB PAGE                                          */}
-          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
+          {/* Widescreen: 2-Row Horizontal Strip (Fits screen height, tight gap) */}
+          {/* Portrait: Vertical Up-Down Grid                                   */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
@@ -924,15 +926,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               onWheel={handleHorizontalWheel}
               className={`w-full h-full space-scrollbar p-0 m-0 ${
                 isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-6'
                   : 'overflow-y-auto overflow-x-hidden pb-28'
               }`}
             >
               <div
                 className={
                   isWideScreen
-                    ? 'flex flex-row items-center gap-6 sm:gap-8 h-[calc(100dvh-75px)] py-3 shrink-0'
-                    : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6 p-4 max-w-[1400px] mx-auto'
+                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 max-w-[1400px] mx-auto'
                 }
               >
                 {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
@@ -954,7 +956,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
           {/* ================================================================= */}
           {/* PANEL 3: VIDEO CLIPS TAB PAGE                                     */}
-          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
+          {/* Widescreen: Cinema-scale Large Horizontal Cards                   */}
+          {/* Portrait: 1-Column Full-width Large Cards                         */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
@@ -962,15 +965,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               onWheel={handleHorizontalWheel}
               className={`w-full h-full space-scrollbar p-0 m-0 ${
                 isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-8'
                   : 'overflow-y-auto overflow-x-hidden pb-28'
               }`}
             >
               <div
                 className={
                   isWideScreen
-                    ? 'flex flex-row items-center gap-6 sm:gap-8 h-[calc(100dvh-120px)] max-h-[620px] py-3 shrink-0'
-                    : 'grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 p-4 max-w-[1200px] mx-auto'
+                    ? 'flex flex-row items-center gap-4 h-[calc(100dvh-50px)] py-1.5 shrink-0'
+                    : 'grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 max-w-[1200px] mx-auto'
                 }
               >
                 {activeClipsList.slice(0, visibleClips).map((item, idx) => (
@@ -992,7 +995,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
           {/* ================================================================= */}
           {/* PANEL 4: BANDHOBI TAB PAGE                                        */}
-          {/* Portrait: vertical up-down scroll | Widescreen: horizontal scroll */}
+          {/* Widescreen: 2-Row or Grand Single Row (Tight gaps, proper height) */}
+          {/* Portrait: Vertical Up-Down Grid                                   */}
           {/* ================================================================= */}
           <section className="panoramic-panel">
             <div
@@ -1000,19 +1004,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               onWheel={handleHorizontalWheel}
               className={`w-full h-full space-scrollbar p-0 m-0 ${
                 isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-6 sm:px-12'
+                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-6'
                   : 'overflow-y-auto overflow-x-hidden pb-28'
               }`}
             >
               <div
                 className={
                   isWideScreen
-                    ? `flex flex-row items-center gap-6 sm:gap-8 ${
-                        bandhobiSubfolder === 'Video Clips'
-                          ? 'h-[calc(100dvh-120px)] max-h-[620px]'
-                          : 'h-[calc(100dvh-75px)]'
-                      } py-3 shrink-0`
-                    : `grid gap-4 sm:gap-6 p-4 max-w-[1400px] mx-auto ${
+                    ? bandhobiSubfolder === 'Video Clips'
+                      ? 'flex flex-row items-center gap-4 h-[calc(100dvh-50px)] py-1.5 shrink-0'
+                      : 'grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-[calc(100dvh-44px)] py-1.5 shrink-0'
+                    : `grid gap-3 p-3 max-w-[1400px] mx-auto ${
                         bandhobiSubfolder === 'Video Clips'
                           ? 'grid-cols-1 sm:grid-cols-2'
                           : 'grid-cols-2 sm:grid-cols-3'
