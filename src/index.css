@@ -82,7 +82,7 @@ button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
   font-family: 'Space Grotesk', sans-serif !important;
 }
 
-code, pre, kbd, samp, .font-mono {
+code, pre, kbd, samp, .font-mono, .font-mono * {
   font-family: 'JetBrains Mono', monospace !important;
 }
 

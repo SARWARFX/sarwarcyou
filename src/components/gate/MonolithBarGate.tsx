@@ -572,10 +572,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         }}
       />
 
-      {/* 1. TOP ACID LIME KINETIC MARQUEE TICKER (EXACTLY UNCHANGED) */}
-      <div className="w-full h-[28px] overflow-hidden bg-[#00f0ff] text-black font-mono font-black text-[11px] uppercase tracking-widest select-none shrink-0 z-50 shadow-md flex items-center">
-        <div className="animate-marquee whitespace-nowrap flex gap-8 items-center">
-          <span className="bg-black text-[#00f0ff] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider">INDEX NOTICE</span>
+      {/* 1. TOP ACID LIME KINETIC MARQUEE TICKER (ORIGINAL COLOR & FONT) */}
+      <div
+        className="w-full h-[28px] overflow-hidden bg-[#ccff00] text-black font-mono font-black text-[11px] uppercase tracking-widest select-none shrink-0 z-50 shadow-md flex items-center"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        <div className="animate-marquee whitespace-nowrap flex gap-8 items-center" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>INDEX NOTICE</span>
           <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
           <span>•</span>
           <span>SARWARCYOU ARCHIVE 2026</span>
@@ -588,7 +591,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <span>•</span>
           <span>BIENNALE EDITION // VOL. 2026</span>
           <span>•</span>
-          <span className="bg-black text-[#00f0ff] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider">INDEX NOTICE</span>
+          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace" }}>INDEX NOTICE</span>
           <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
           <span>•</span>
           <span>SARWARCYOU ARCHIVE 2026</span>
