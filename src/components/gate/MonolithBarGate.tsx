@@ -92,6 +92,15 @@ const SHORTS_SUBFOLDERS = ['ALL', '2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
 const BANDHOBI_SUBFOLDERS = ['ALL', 'Photographs', 'Video Clips', 'Shorts'];
 
+function shuffleArray<T>(list: T[]): T[] {
+  const result = [...list];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   items,
   onOpenPhoto,
@@ -117,6 +126,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [shortsSubfolder, setShortsSubfolder] = useState<string>('ALL');
   const [clipsSubfolder, setClipsSubfolder] = useState<string>('ALL');
   const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('ALL');
+  const [shuffleTrigger, setShuffleTrigger] = useState<number>(0);
 
   const [notFoundInfo, setNotFoundInfo] = useState<{
     isOpen: boolean;
@@ -126,6 +136,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const switchTab = useCallback((index: number) => {
     setTabIndex(index);
+    if (index === 1) setPhotosSubfolder('ALL');
+    else if (index === 2) setShortsSubfolder('ALL');
+    else if (index === 3) setClipsSubfolder('ALL');
+    else if (index === 4) setBandhobiSubfolder('ALL');
+    setShuffleTrigger((prev) => prev + 1);
+
     if (typeof window !== 'undefined') {
       let route = '/';
       if (index === 1) route = '/photographs';
@@ -144,11 +160,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setNotFoundInfo({ isOpen: true, path: window.location.pathname });
         return;
       }
-      if (parsed.tab === 'PHOTOGRAPHY') setTabIndex(1);
-      else if (parsed.tab === 'SHORTS') setTabIndex(2);
-      else if (parsed.tab === 'CLIPS') setTabIndex(3);
-      else if (parsed.tab === 'BANDHOBI') setTabIndex(4);
-      else setTabIndex(0);
+      setShuffleTrigger((prev) => prev + 1);
+      if (parsed.tab === 'PHOTOGRAPHY') {
+        setPhotosSubfolder('ALL');
+        setTabIndex(1);
+      } else if (parsed.tab === 'SHORTS') {
+        setShortsSubfolder('ALL');
+        setTabIndex(2);
+      } else if (parsed.tab === 'CLIPS') {
+        setClipsSubfolder('ALL');
+        setTabIndex(3);
+      } else if (parsed.tab === 'BANDHOBI') {
+        setBandhobiSubfolder('ALL');
+        setTabIndex(4);
+      } else {
+        setTabIndex(0);
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -303,30 +330,30 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return sortMediaItemsDescending(list);
   }, [rootMap]);
 
-  // Active subfolder-filtered lists
-  const activePhotosList = useMemo(() => {
-    if (photosSubfolder === 'ALL') return allPhotosFiles;
+  // Active subfolder-filtered lists (ALL is shuffled, subfolders are strictly newest first)
+  const activePhotosList: StageMediaItem[] = useMemo(() => {
+    if (photosSubfolder === 'ALL') return shuffleArray(allPhotosFiles);
     const node = rootMap.get('Photographs')?.subfolders.get(photosSubfolder);
-    return node && node.files.length > 0 ? node.files : allPhotosFiles;
-  }, [allPhotosFiles, rootMap, photosSubfolder]);
+    return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allPhotosFiles;
+  }, [allPhotosFiles, rootMap, photosSubfolder, shuffleTrigger]);
 
-  const activeShortsList = useMemo(() => {
-    if (shortsSubfolder === 'ALL') return allShortsFiles;
+  const activeShortsList: StageMediaItem[] = useMemo(() => {
+    if (shortsSubfolder === 'ALL') return shuffleArray(allShortsFiles);
     const node = rootMap.get('Shorts')?.subfolders.get(shortsSubfolder);
-    return node && node.files.length > 0 ? node.files : allShortsFiles;
-  }, [allShortsFiles, rootMap, shortsSubfolder]);
+    return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allShortsFiles;
+  }, [allShortsFiles, rootMap, shortsSubfolder, shuffleTrigger]);
 
-  const activeClipsList = useMemo(() => {
-    if (clipsSubfolder === 'ALL') return allClipsFiles;
+  const activeClipsList: StageMediaItem[] = useMemo(() => {
+    if (clipsSubfolder === 'ALL') return shuffleArray(allClipsFiles);
     const node = rootMap.get('Video Clips')?.subfolders.get(clipsSubfolder);
-    return node && node.files.length > 0 ? node.files : allClipsFiles;
-  }, [allClipsFiles, rootMap, clipsSubfolder]);
+    return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allClipsFiles;
+  }, [allClipsFiles, rootMap, clipsSubfolder, shuffleTrigger]);
 
-  const activeBandhobiList = useMemo(() => {
-    if (bandhobiSubfolder === 'ALL') return allBandhobiFiles;
+  const activeBandhobiList: StageMediaItem[] = useMemo(() => {
+    if (bandhobiSubfolder === 'ALL') return shuffleArray(allBandhobiFiles);
     const node = rootMap.get('Bandhobi')?.subfolders.get(bandhobiSubfolder);
-    return node && node.files.length > 0 ? node.files : allBandhobiFiles;
-  }, [allBandhobiFiles, rootMap, bandhobiSubfolder]);
+    return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allBandhobiFiles;
+  }, [allBandhobiFiles, rootMap, bandhobiSubfolder, shuffleTrigger]);
 
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {
@@ -390,6 +417,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       : bandhobiSubfolder;
 
   const handleSelectSubfolder = (sub: string) => {
+    if (sub === 'ALL') {
+      setShuffleTrigger((prev) => prev + 1);
+    }
     if (tabIndex === 1) setPhotosSubfolder(sub);
     else if (tabIndex === 2) setShortsSubfolder(sub);
     else if (tabIndex === 3) setClipsSubfolder(sub);
