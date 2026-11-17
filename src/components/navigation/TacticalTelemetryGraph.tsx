@@ -118,7 +118,7 @@ export const TacticalTelemetryGraph: React.FC = () => {
               }}
             >
               <span
-                className={`font-mono text-[9px] sm:text-[10px] font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${
+                className={`text-[9px] sm:text-[10px] font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${
                   day.isToday
                     ? 'text-white'
                     : day.isPeak
@@ -176,7 +176,7 @@ export const TacticalTelemetryGraph: React.FC = () => {
 
           {/* Single-letter day initial at bottom (T, Y, S, S, F, T, W) */}
           <span
-            className={`font-mono text-[10px] sm:text-[11px] font-bold transition-colors duration-150 ${
+            className={`text-[10px] sm:text-[11px] font-bold transition-colors duration-150 ${
               day.isToday
                 ? 'text-white font-extrabold'
                 : 'text-[#64748b] group-hover:text-white'

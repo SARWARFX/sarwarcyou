@@ -69,7 +69,7 @@ export const TopMiddleNetworkStatus: React.FC = () => {
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
       <div
-        className={`flex items-center gap-2 px-3 py-1 font-mono text-[10.5px] font-bold tracking-[0.14em] uppercase transition-colors cursor-help ${
+        className={`flex items-center gap-2 px-3 py-1 text-[10.5px] font-bold tracking-[0.14em] uppercase transition-colors cursor-help ${
           isOffline
             ? 'bg-[#1a080a] text-[#ef4444] animate-pulse'
             : 'bg-[#081a12] text-[#22c55e]'
