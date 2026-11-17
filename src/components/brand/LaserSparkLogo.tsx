@@ -10,12 +10,10 @@ export interface LaserSparkLogoProps {
 }
 
 /**
- * Option 3: Solid Cyber Neon — Global White & Electric Cyan (#00F0FF) Palette
- * Matches the start screen brand identity:
- * - SARWAR in wide, expansive SPARK letterforms in Stark White (#FFFFFF)
- * - .CYOU inside an integrated cyber-capsule badge in Electric Cyan (#00F0FF)
- * - PURE FLOATING LOGO (No baseline laser track/flare underneath)
- * - 100% Static: Zero flashing, zero color alternating, zero black dips
+ * Modern High-End Living Wordmark
+ * - SARWAR in wide, expansive SPARK letterforms
+ * - .CYOU inside an integrated cyber-capsule badge
+ * - Painted in a slowly moving White -> Blue -> Violet gradient
  */
 export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
   className = '',
@@ -35,15 +33,51 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           : ''
       } ${className}`}
     >
-      {/* SVG Wordmark (Pure Stark White Neon Monochrome Palette) */}
+      {/* SVG Wordmark (Slowly moving White -> Blue -> Violet Gradient) */}
       <svg
         viewBox="0 0 820 70"
         width={width}
         height={height}
-        className="relative z-20 filter drop-shadow-[0_0_16px_rgba(255,255,255,0.6)] group-hover:drop-shadow-[0_0_24px_rgba(255,255,255,0.95)] transition-all duration-200"
+        className="relative z-20 filter drop-shadow-[0_0_12px_rgba(139,92,246,0.45)] drop-shadow-[0_0_20px_rgba(56,189,248,0.35)] group-hover:drop-shadow-[0_0_18px_rgba(139,92,246,0.8)] group-hover:drop-shadow-[0_0_28px_rgba(56,189,248,0.65)] transition-all duration-200"
       >
         <defs>
-          <filter id="solidWhiteGlow">
+          {/* Slowly Moving White -> Blue -> Violet Linear Gradient */}
+          <linearGradient
+            id="logoWhiteBlueVioletGrad"
+            x1="0"
+            y1="0"
+            x2="1640"
+            y2="0"
+            gradientUnits="userSpaceOnUse"
+          >
+            {/* Cycle 1 (0 to 820) */}
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="8%" stopColor="#67e8f9" />
+            <stop offset="16%" stopColor="#38bdf8" />
+            <stop offset="25%" stopColor="#6366f1" />
+            <stop offset="35%" stopColor="#8b5cf6" />
+            <stop offset="42%" stopColor="#c084fc" />
+            <stop offset="50%" stopColor="#ffffff" />
+
+            {/* Cycle 2 (820 to 1640) - Seamless Duplicate */}
+            <stop offset="58%" stopColor="#67e8f9" />
+            <stop offset="66%" stopColor="#38bdf8" />
+            <stop offset="75%" stopColor="#6366f1" />
+            <stop offset="85%" stopColor="#8b5cf6" />
+            <stop offset="92%" stopColor="#c084fc" />
+            <stop offset="100%" stopColor="#ffffff" />
+
+            <animateTransform
+              attributeName="gradientTransform"
+              type="translate"
+              from="0,0"
+              to="-820,0"
+              dur="10s"
+              repeatCount="indefinite"
+            />
+          </linearGradient>
+
+          <filter id="logoGradientGlow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2.8" result="glow" />
             <feMerge>
               <feMergeNode in="glow" />
@@ -52,14 +86,14 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           </filter>
         </defs>
 
-        {/* 1. SARWAR Hero Wordmark — Stark White (#FFFFFF) */}
+        {/* 1. SARWAR Hero Wordmark */}
         <g
-          stroke="#ffffff"
+          stroke="url(#logoWhiteBlueVioletGrad)"
           strokeWidth="8.5"
           strokeLinecap="butt"
           strokeLinejoin="round"
           fill="none"
-          filter="url(#solidWhiteGlow)"
+          filter="url(#logoGradientGlow)"
         >
           {/* S (x: 10 to 86) */}
           <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
@@ -77,13 +111,13 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           <path d="M 504 33 L 536 54" />
         </g>
 
-        {/* 2. .CYOU Cyber Tag Pill — Pure Stark White (#FFFFFF) */}
+        {/* 2. .CYOU Cyber Tag Pill */}
         <g
-          stroke="#ffffff"
+          stroke="url(#logoWhiteBlueVioletGrad)"
           strokeLinecap="butt"
           strokeLinejoin="round"
           fill="none"
-          filter="url(#solidWhiteGlow)"
+          filter="url(#logoGradientGlow)"
         >
           {/* Cyber Pill Capsule */}
           <rect
@@ -92,12 +126,12 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
             width="210"
             height="34"
             rx="8"
-            stroke="#ffffff"
+            stroke="url(#logoWhiteBlueVioletGrad)"
             strokeWidth="2.2"
-            fill="rgba(255, 255, 255, 0.08)"
+            fill="rgba(139, 92, 246, 0.08)"
           />
           {/* Dot */}
-          <circle cx="582" cy="33" r="3.5" fill="#ffffff" stroke="none" />
+          <circle cx="582" cy="33" r="3.5" fill="url(#logoWhiteBlueVioletGrad)" stroke="none" />
           {/* C */}
           <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
           {/* Y */}
