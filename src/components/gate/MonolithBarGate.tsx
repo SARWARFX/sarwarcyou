@@ -1067,7 +1067,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               >
                 {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
                   <div
-                    key={item.id || item.url || idx}
+                    key={`${photosSubfolder}-${item.id || item.url || idx}`}
                     className={isWideScreen ? 'h-full min-h-0 aspect-[3/4] shrink-0' : 'w-full'}
                   >
                     <LivingMediaCard
@@ -1106,7 +1106,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               >
                 {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
                   <div
-                    key={item.id || item.url || idx}
+                    key={`${shortsSubfolder}-${item.id || item.url || idx}`}
                     className={isWideScreen ? 'h-full min-h-0 aspect-[9/16] shrink-0' : 'w-full'}
                   >
                     <LivingMediaCard
@@ -1145,7 +1145,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               >
                 {activeClipsList.slice(0, visibleClips).map((item, idx) => (
                   <div
-                    key={item.id || item.url || idx}
+                    key={`${clipsSubfolder}-${item.id || item.url || idx}`}
                     className={isWideScreen ? 'h-full min-h-0 aspect-video shrink-0' : 'w-full'}
                   >
                     <LivingMediaCard
@@ -1201,7 +1201,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                       : 'aspect-[3/4]';
                   return (
                     <div
-                      key={item.id || item.url || idx}
+                      key={`${bandhobiSubfolder}-${item.id || item.url || idx}`}
                       className={isWideScreen ? `h-full min-h-0 ${aspectClass} shrink-0` : 'w-full'}
                     >
                       <LivingMediaCard

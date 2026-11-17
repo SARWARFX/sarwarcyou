@@ -88,8 +88,8 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      style={{ animationDelay: `${Math.min(delayIdx, 15) * 25}ms` }}
-      className={`relative p-1 sm:p-1.5 group cursor-pointer ${aspectClass} select-none rounded-none transition-all duration-300 hover:scale-[1.02] hover:z-30 w-full h-full`}
+      style={{ animationDelay: `${Math.min(delayIdx, 20) * 35}ms` }}
+      className={`relative p-1 sm:p-1.5 group cursor-pointer ${aspectClass} select-none rounded-none animate-card-enter transition-all duration-300 hover:scale-[1.02] hover:z-30 w-full h-full`}
     >
       {/* 1. Tactical Top-Left White L-Bracket */}
       <div className="absolute top-0 left-0 w-6 sm:w-8 h-6 sm:h-8 border-t-2 border-l-2 border-white pointer-events-none z-20 group-hover:shadow-[0_0_14px_#ffffff] transition-all" />
