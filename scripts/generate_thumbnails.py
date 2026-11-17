@@ -71,7 +71,7 @@ def main():
             print(f"[{idx}/{len(video_files)}] [SKIP] Already on Hugging Face: {thumb_rel_path}")
             continue
 
-        print(f"[{idx}/{len(video_files)}] [PROCESSING] Capturing 30% frame for: {v}")
+        print(f"[{idx}/{len(video_files)}] [PROCESSING] Capturing 50% midpoint frame for: {v}")
         quoted_v = urllib.parse.quote(v, safe="/")
         video_url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{quoted_v}"
 
@@ -79,7 +79,7 @@ def main():
         if not duration or duration <= 0:
             duration = 10.0
 
-        seek_time = max(0.5, round(duration * 0.30, 2))
+        seek_time = max(0.5, round(duration * 0.50, 2))
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
         cmd = ["ffmpeg", "-y"]
