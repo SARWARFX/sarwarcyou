@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { StageMediaItem } from '../../types';
 import { FALLBACK_HF_CATALOG } from '../../data/fallbackData';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
-import { getMediaUrl } from '../../utils/imageUrlResolver';
-import { isPhotoExtension } from '../../utils/mediaTypeDetector';
+import { isPhotoExtension, isVideoExtension } from '../../utils/mediaTypeDetector';
 
 export interface BackgroundThumbnailCacheToastProps {
   items?: StageMediaItem[];
@@ -27,21 +26,23 @@ export const BackgroundThumbnailCacheToast: React.FC<BackgroundThumbnailCacheToa
   const [totalCount, setTotalCount] = useState<number>(0);
   const hasStartedRef = useRef(false);
 
-  // Extract all catalog thumbnails to cache in background (prioritizing videos and shorts)
+  // Extract only video clips and shorts thumbnails to cache in background (skipping photographs/images)
   const targetUrls = useMemo(() => {
     const urls: string[] = [];
     const seen = new Set<string>();
 
     const extractThumb = (item: any): string => {
       if (!item) return '';
-      if (item.thumbnail && typeof item.thumbnail === 'string') return item.thumbnail;
-      const isPhoto = isPhotoExtension(item.path || item.url || item.name || '');
-      if (!isPhoto) {
-        const resolved = resolveStaticVideoThumbnail(item);
-        if (resolved) return resolved;
+      if (item.thumbnail && typeof item.thumbnail === 'string' && !isVideoExtension(item.thumbnail)) {
+        return item.thumbnail;
       }
-      if (item.poster) return item.poster;
-      if (item.url) return getMediaUrl(item.url);
+      const resolved = resolveStaticVideoThumbnail(item);
+      if (resolved && !isVideoExtension(resolved)) {
+        return resolved;
+      }
+      if (item.poster && !isVideoExtension(item.poster)) {
+        return item.poster;
+      }
       return '';
     };
 
@@ -54,20 +55,15 @@ export const BackgroundThumbnailCacheToast: React.FC<BackgroundThumbnailCacheToa
     };
 
     if (items && items.length > 0) {
-      // Prioritize all video clips and shorts first, then photographs
+      // Filter strictly for video clips and shorts; photographs are omitted to keep network and cache light
       const videosAndShorts = items.filter((it) => !isPhotoExtension(it.path || it.url || it.name || ''));
-      const photos = items.filter((it) => isPhotoExtension(it.path || it.url || it.name || ''));
-
       videosAndShorts.forEach(addUrl);
-      photos.forEach(addUrl);
     } else {
       const shorts = FALLBACK_HF_CATALOG.shorts || [];
       const clips = FALLBACK_HF_CATALOG.clips || [];
-      const images = FALLBACK_HF_CATALOG.images || [];
-
+      // Only cache video clips and shorts
       shorts.forEach(addUrl);
       clips.forEach(addUrl);
-      images.forEach(addUrl);
     }
 
     return urls;
