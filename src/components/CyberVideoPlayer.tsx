@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Repeat,
   Repeat1,
@@ -76,7 +77,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(() => getGlobalAudioMuted());
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [speedMenuPos, setSpeedMenuPos] = useState<{ bottom: number; right: number } | null>(null);
+  const [speedMenuPos, setSpeedMenuPos] = useState<{ bottom: number; left: number } | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
   const [repeatMode, setRepeatMode] = useState<VideoRepeatMode>('off');
@@ -241,17 +242,19 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const toggleSpeedMenu = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     const targetEl = (e.currentTarget as HTMLElement) || speedBtnRef.current;
-    setShowSpeedMenu((prev) => {
-      const next = !prev;
-      if (next && targetEl) {
-        const rect = targetEl.getBoundingClientRect();
-        setSpeedMenuPos({
-          bottom: Math.max(16, window.innerHeight - rect.top + 8),
-          right: Math.max(8, window.innerWidth - rect.right),
-        });
-      }
-      return next;
-    });
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      const menuWidth = 140;
+      const calculatedLeft = Math.min(
+        Math.max(8, rect.left),
+        window.innerWidth - menuWidth - 8
+      );
+      setSpeedMenuPos({
+        bottom: Math.max(16, window.innerHeight - rect.top + 8),
+        left: calculatedLeft,
+      });
+    }
+    setShowSpeedMenu((prev) => !prev);
   }, []);
 
   // Sync menu position dynamically on resize / scroll
@@ -260,9 +263,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     const updatePos = () => {
       if (speedBtnRef.current) {
         const rect = speedBtnRef.current.getBoundingClientRect();
+        const menuWidth = 140;
+        const calculatedLeft = Math.min(
+          Math.max(8, rect.left),
+          window.innerWidth - menuWidth - 8
+        );
         setSpeedMenuPos({
           bottom: Math.max(16, window.innerHeight - rect.top + 8),
-          right: Math.max(8, window.innerWidth - rect.right),
+          left: calculatedLeft,
         });
       }
     };
@@ -1161,11 +1169,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           onClose();
         }
       }}
-      className="fixed inset-0 z-50 bg-black/95 text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-keynote-modal"
+      className="fixed inset-0 z-50 bg-[#020408] text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-keynote-modal"
       style={{
-        background: 'rgba(2, 4, 8, 0.96)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        backgroundColor: '#020408',
       }}
     >
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
@@ -1320,7 +1326,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       <div
         className={
           isDesktop
-            ? "fixed inset-0 z-20 flex items-center justify-center p-6 sm:p-10 pointer-events-auto select-none cursor-pointer"
+            ? "fixed inset-0 z-20 flex items-center justify-center p-6 sm:p-10 pb-24 pointer-events-auto select-none cursor-pointer"
             : isPortrait && !isFullscreen
             ? "fixed inset-0 z-20 flex flex-col items-center justify-between pointer-events-auto select-none cursor-pointer"
             : "absolute inset-0 w-full h-full flex items-center justify-center touch-none cursor-pointer overflow-hidden z-10"
@@ -1346,7 +1352,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         <div
           className={
             isDesktop
-              ? "pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none shrink-0 z-20"
+              ? "pointer-events-auto relative w-full max-w-[min(84vw,calc(72vh*(16/9)))] max-h-[72vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none shrink-0 z-20"
               : isPortrait && !isFullscreen
               ? "pointer-events-auto relative w-full aspect-[16/9] max-h-[75vh] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none shrink-0 z-20"
               : "relative w-full h-full flex items-center justify-center overflow-hidden"
@@ -1636,7 +1642,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             ? `translateX(-50%) translateY(${showHud ? '0px' : '16px'})`
             : `translateY(${showHud ? '0px' : '16px'})`,
         }}
-        className={`fixed bottom-4 left-4 sm:bottom-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+        className={`fixed ${
+          isPortrait && !isFullscreen
+            ? 'bottom-16 sm:bottom-20 left-4'
+            : isDesktop
+            ? 'bottom-5 sm:bottom-6'
+            : 'bottom-4 left-4 sm:bottom-6'
+        } z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
           showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -1738,46 +1750,52 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <Gauge className="w-3.5 h-3.5" />
               <span>{playbackSpeed}x</span>
             </button>
-
-            {showSpeedMenu && (
-              <div
-                ref={speedMenuRef}
-                style={{
-                  bottom: speedMenuPos ? `${speedMenuPos.bottom}px` : '3.5rem',
-                  left: 0,
-                  background: 'rgba(10, 11, 15, 0.98)',
-                  border: 'none',
-                }}
-                className="absolute py-1.5 px-1 rounded-none shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-0.5 z-[10000] min-w-[120px] max-h-[50vh] overflow-y-auto pointer-events-auto border-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-semibold border-b border-white/10 mb-0.5">
-                  Playback Speed
-                </div>
-                {PLAYBACK_SPEED_OPTIONS.map((speed) => {
-                  const isSelected = playbackSpeed === speed;
-                  return (
-                    <button
-                      key={speed}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSelectSpeed(speed);
-                      }}
-                      className={`px-2 py-1.5 rounded-none text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 border-0 ${
-                        isSelected
-                          ? 'bg-white text-black font-semibold'
-                          : 'text-neutral-300 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      <span>{speed === 1 ? '1x (Normal)' : `${speed}x`}</span>
-                      {isSelected && <Check className="w-3 h-3 text-black" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
+
+          {showSpeedMenu && typeof document !== 'undefined' && createPortal(
+            <div
+              ref={speedMenuRef}
+              style={{
+                position: 'fixed',
+                bottom: speedMenuPos ? `${speedMenuPos.bottom}px` : '5rem',
+                left: speedMenuPos ? `${speedMenuPos.left}px` : '50%',
+                background: 'rgba(7, 9, 14, 0.98)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                boxShadow: '0 12px 45px rgba(0,0,0,0.95), 0 0 20px rgba(56, 189, 248, 0.2)',
+              }}
+              className="py-1.5 px-1 rounded-none flex flex-col gap-0.5 z-[999999] min-w-[130px] max-h-[50vh] overflow-y-auto pointer-events-auto backdrop-blur-xl border-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-[#38bdf8] font-bold border-b border-white/10 mb-0.5"
+                style={{ fontFamily: "'Science Gothic', sans-serif" }}
+              >
+                SPEED CONTROL
+              </div>
+              {PLAYBACK_SPEED_OPTIONS.map((speed) => {
+                const isSelected = playbackSpeed === speed;
+                return (
+                  <button
+                    key={speed}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectSpeed(speed);
+                    }}
+                    className={`px-2 py-1.5 rounded-none text-xs font-mono transition-all cursor-pointer text-left flex items-center justify-between gap-2 border-0 ${
+                      isSelected
+                        ? 'bg-white text-black font-semibold'
+                        : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <span>{speed === 1 ? '1x (Normal)' : `${speed}x`}</span>
+                    {isSelected && <Check className="w-3 h-3 text-black" />}
+                  </button>
+                );
+              })}
+            </div>,
+            document.body
+          )}
 
           {/* Picture-in-Picture (Desktop, Landscape & Fullscreen) */}
           {(!isPortrait || isFullscreen) && isPiPSupported && (
