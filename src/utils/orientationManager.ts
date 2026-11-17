@@ -6,7 +6,7 @@ export async function lockToLandscape(): Promise<void> {
   if (typeof screen !== 'undefined' && 'orientation' in screen && 'lock' in (screen.orientation as any)) {
     try {
       await (screen.orientation as any).lock('landscape');
-    } catch (_) {}
+    } catch {}
   }
 }
 
@@ -14,6 +14,6 @@ export async function unlockOrientation(): Promise<void> {
   if (typeof screen !== 'undefined' && 'orientation' in screen && 'unlock' in (screen.orientation as any)) {
     try {
       (screen.orientation as any).unlock();
-    } catch (_) {}
+    } catch {}
   }
 }

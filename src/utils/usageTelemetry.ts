@@ -336,7 +336,7 @@ export function initSessionTimeTracker(): void {
       history[todayStr] = 1;
       localStorage.setItem(TIME_STORAGE_KEY, JSON.stringify(history));
     }
-  } catch (_) {}
+  } catch {}
 }
 
 /**

@@ -190,8 +190,6 @@ export function normalizeRepoPath(path: string): string {
   clean = deduplicatePathSegments(clean);
 
   return clean;
-
-  return clean;
 }
 
 /**

@@ -94,7 +94,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // Shuffle photo pool: pick 20 random images from directory for background slideshow
   const shuffledBackgroundPhotos = useMemo(() => {
-    if (!photoPool || photoPool.length === 0) return [];
+    const _videoKey = `${item?.id || ''}_${item?.url || ''}_${isOpen}`;
+    if (!photoPool || photoPool.length === 0 || !_videoKey) return [];
     const pool = [...photoPool];
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -958,7 +959,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose, togglePlay, seekBy, handleFullscreenToggle, handleToggleMute, playbackSpeed, applyPlaybackSpeed, resetHudTimer]);
+  }, [isOpen, onClose, togglePlay, seekBy, handleFullscreenToggle, handleToggleMute, playbackSpeed, applyPlaybackSpeed, resetHudTimer, handleClose, showSidebar]);
 
   // Handle Download
   const handleDownload = async () => {

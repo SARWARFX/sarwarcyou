@@ -48,7 +48,7 @@ export function getActiveAccent(): ThemeAccent {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     return THEME_ACCENTS.find((a) => a.id === saved) || THEME_ACCENTS[0];
-  } catch (_) {
+  } catch {
     return THEME_ACCENTS[0];
   }
 }
@@ -68,7 +68,7 @@ export function setAccent(accentId: string) {
     applyAccentToDom(target);
     hapticSelection();
     window.dispatchEvent(new CustomEvent(EVENT_KEY, { detail: target }));
-  } catch (_) {}
+  } catch {}
 }
 
 export const setThemeAccent = setAccent;
