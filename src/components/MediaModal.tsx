@@ -57,6 +57,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const scaleRef = useRef<number>(1);
   const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastGestureTimeRef = useRef<number>(0);
+  const lastDoubleTapTimeRef = useRef<number>(0);
+  const lastClickTimeRef = useRef<number>(0);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isDownloading, setIsDownloading] = useState(false);
@@ -66,6 +68,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
       // Tray does not view upon opening photo; only appears on single tap on image
       setShowControls(false);
     }
@@ -324,8 +330,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
 
   // Universal Double-Tap / Double-Click Zoom Engine
   const handleDoubleTap = useCallback((clientX: number, clientY: number) => {
-    hapticMedium();
+    if (singleTapTimerRef.current) {
+      clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = null;
+    }
+    lastDoubleTapTimeRef.current = Date.now();
     lastGestureTimeRef.current = Date.now();
+    hapticMedium();
     setAnimationClass('');
 
     const img = imgRef.current;
@@ -435,6 +446,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             clearTimeout(singleTapTimerRef.current);
             singleTapTimerRef.current = null;
           }
+          lastDoubleTapTimeRef.current = Date.now();
+          lastGestureTimeRef.current = Date.now();
           lastTapTime = 0;
           handleDoubleTap(touch.clientX, touch.clientY);
           currentScale = scaleRef.current;
@@ -558,6 +571,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const onDoubleClick = (e: MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
+      lastDoubleTapTimeRef.current = Date.now();
+      lastGestureTimeRef.current = Date.now();
       handleDoubleTap(e.clientX, e.clientY);
       currentScale = scaleRef.current;
       posX = positionRef.current.x;
@@ -713,6 +732,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         backgroundColor: 'rgba(2, 4, 8, 0.75)',
       }}
       onClick={(e) => {
+        if (Date.now() - lastDoubleTapTimeRef.current < 400) return;
         if (Date.now() - lastGestureTimeRef.current < 400) return;
         if (scaleRef.current > 1.05) {
           resetZoom();
@@ -883,7 +903,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         ref={imageContainerRef}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
+            if (Date.now() - lastDoubleTapTimeRef.current < 400) return;
             if (Date.now() - lastGestureTimeRef.current < 400) return;
+            if (singleTapTimerRef.current) {
+              clearTimeout(singleTapTimerRef.current);
+              singleTapTimerRef.current = null;
+            }
             if (scaleRef.current > 1.05) {
               resetZoom();
               return;
@@ -900,12 +925,40 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           alt={cleanTitle}
           onClick={(e) => {
             e.stopPropagation();
-            if (Date.now() - lastGestureTimeRef.current < 350) return;
-            setShowControls((prev) => !prev);
+            const now = Date.now();
+            if (now - lastDoubleTapTimeRef.current < 400) return;
+            if (now - lastGestureTimeRef.current < 350) return;
+
+            // If another click occurs within 300ms, it is a double click/tap: abort single-tap tray toggle
+            if (now - lastClickTimeRef.current < 300) {
+              if (singleTapTimerRef.current) {
+                clearTimeout(singleTapTimerRef.current);
+                singleTapTimerRef.current = null;
+              }
+              lastClickTimeRef.current = now;
+              return;
+            }
+            lastClickTimeRef.current = now;
+
+            if (singleTapTimerRef.current) {
+              clearTimeout(singleTapTimerRef.current);
+              singleTapTimerRef.current = null;
+            }
+
+            singleTapTimerRef.current = setTimeout(() => {
+              setShowControls((prev) => !prev);
+              singleTapTimerRef.current = null;
+            }, 250);
           }}
           onDoubleClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            if (singleTapTimerRef.current) {
+              clearTimeout(singleTapTimerRef.current);
+              singleTapTimerRef.current = null;
+            }
+            lastDoubleTapTimeRef.current = Date.now();
+            lastGestureTimeRef.current = Date.now();
             setAnimationClass('');
             handleDoubleTap(e.clientX, e.clientY);
           }}
