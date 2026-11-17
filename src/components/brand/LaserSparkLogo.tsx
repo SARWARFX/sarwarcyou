@@ -33,17 +33,17 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           : ''
       } ${className}`}
     >
-      {/* SVG Wordmark (Slowly moving White -> Blue -> Violet Gradient) */}
+      {/* SVG Wordmark (Slowly moving Red -> Blue Gradient) */}
       <svg
         viewBox="0 0 820 70"
         width={width}
         height={height}
-        className="relative z-20 filter drop-shadow-[0_0_12px_rgba(139,92,246,0.45)] drop-shadow-[0_0_20px_rgba(56,189,248,0.35)] group-hover:drop-shadow-[0_0_18px_rgba(139,92,246,0.8)] group-hover:drop-shadow-[0_0_28px_rgba(56,189,248,0.65)] transition-all duration-200"
+        className="relative z-20 filter drop-shadow-[0_0_12px_rgba(239,68,68,0.45)] drop-shadow-[0_0_20px_rgba(59,130,246,0.35)] group-hover:drop-shadow-[0_0_18px_rgba(239,68,68,0.7)] group-hover:drop-shadow-[0_0_28px_rgba(59,130,246,0.65)] transition-all duration-200"
       >
         <defs>
-          {/* Slowly Moving White -> Blue -> Violet Linear Gradient */}
+          {/* Slowly Moving Red -> Blue Linear Gradient */}
           <linearGradient
-            id="logoWhiteBlueVioletGrad"
+            id="logoRedBlueGrad"
             x1="0"
             y1="0"
             x2="1640"
@@ -51,28 +51,24 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
             gradientUnits="userSpaceOnUse"
           >
             {/* Cycle 1 (0 to 820) */}
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="8%" stopColor="#67e8f9" />
-            <stop offset="16%" stopColor="#38bdf8" />
-            <stop offset="25%" stopColor="#6366f1" />
-            <stop offset="35%" stopColor="#8b5cf6" />
-            <stop offset="42%" stopColor="#c084fc" />
-            <stop offset="50%" stopColor="#ffffff" />
+            <stop offset="0%" stopColor="#ef4444" />
+            <stop offset="12%" stopColor="#f43f5e" />
+            <stop offset="25%" stopColor="#a855f7" />
+            <stop offset="38%" stopColor="#3b82f6" />
+            <stop offset="50%" stopColor="#ef4444" />
 
             {/* Cycle 2 (820 to 1640) - Seamless Duplicate */}
-            <stop offset="58%" stopColor="#67e8f9" />
-            <stop offset="66%" stopColor="#38bdf8" />
-            <stop offset="75%" stopColor="#6366f1" />
-            <stop offset="85%" stopColor="#8b5cf6" />
-            <stop offset="92%" stopColor="#c084fc" />
-            <stop offset="100%" stopColor="#ffffff" />
+            <stop offset="62%" stopColor="#f43f5e" />
+            <stop offset="75%" stopColor="#a855f7" />
+            <stop offset="88%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#ef4444" />
 
             <animateTransform
               attributeName="gradientTransform"
               type="translate"
               from="-820,0"
               to="0,0"
-              dur="10s"
+              dur="12s"
               repeatCount="indefinite"
             />
           </linearGradient>
@@ -88,7 +84,7 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
 
         {/* 1. SARWAR Hero Wordmark */}
         <g
-          stroke="url(#logoWhiteBlueVioletGrad)"
+          stroke="url(#logoRedBlueGrad)"
           strokeWidth="8.5"
           strokeLinecap="butt"
           strokeLinejoin="round"
@@ -113,7 +109,7 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
 
         {/* 2. .CYOU Cyber Tag Pill */}
         <g
-          stroke="url(#logoWhiteBlueVioletGrad)"
+          stroke="url(#logoRedBlueGrad)"
           strokeLinecap="butt"
           strokeLinejoin="round"
           fill="none"
@@ -126,12 +122,12 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
             width="210"
             height="34"
             rx="8"
-            stroke="url(#logoWhiteBlueVioletGrad)"
+            stroke="url(#logoRedBlueGrad)"
             strokeWidth="2.2"
-            fill="rgba(139, 92, 246, 0.08)"
+            fill="rgba(59, 130, 246, 0.08)"
           />
           {/* Dot */}
-          <circle cx="582" cy="33" r="3.5" fill="url(#logoWhiteBlueVioletGrad)" stroke="none" />
+          <circle cx="582" cy="33" r="3.5" fill="url(#logoRedBlueGrad)" stroke="none" />
           {/* C */}
           <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
           {/* Y */}

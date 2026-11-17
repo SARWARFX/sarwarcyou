@@ -48,7 +48,7 @@ export const CyberSplash: React.FC<CyberSplashProps> = ({ onComplete }) => {
       style={{ borderRadius: 0, outline: 'none' }}
     >
       {/* Subtle Dark Ambient Void */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.05)_0%,rgba(139,92,246,0.03)_50%,transparent_75%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.06)_0%,rgba(59,130,246,0.04)_50%,transparent_75%)] pointer-events-none" />
 
       {/* 2B. Horizontal Razor Sweep Logo Stage */}
       <div className="relative flex items-center justify-center overflow-hidden p-8 sm:p-12 z-10 w-full max-w-[600px]">
@@ -56,7 +56,7 @@ export const CyberSplash: React.FC<CyberSplashProps> = ({ onComplete }) => {
         <div className="cyber-sweep-line" />
 
         {/* Clean Logo Reveal (Unmasked behind the sweep line) */}
-        <div className="cyber-sweep-logo filter drop-shadow-[0_0_16px_rgba(139,92,246,0.5)] drop-shadow-[0_0_26px_rgba(56,189,248,0.35)]">
+        <div className="cyber-sweep-logo filter drop-shadow-[0_0_16px_rgba(239,68,68,0.5)] drop-shadow-[0_0_26px_rgba(59,130,246,0.4)]">
           <LaserSparkLogo width={360} height={48} interactive={false} />
         </div>
       </div>
@@ -105,8 +105,8 @@ export const CyberSplash: React.FC<CyberSplashProps> = ({ onComplete }) => {
           top: 15%;
           height: 70%;
           width: 2px;
-          background: linear-gradient(180deg, transparent, #38bdf8 30%, #ffffff 50%, #8b5cf6 70%, transparent);
-          box-shadow: 0 0 10px #38bdf8, 0 0 20px #8b5cf6;
+          background: linear-gradient(180deg, transparent, #ef4444 30%, #ffffff 50%, #3b82f6 70%, transparent);
+          box-shadow: 0 0 10px #ef4444, 0 0 20px #3b82f6;
           z-index: 20;
           animation: v2bSweepLine 1.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           pointer-events: none;
