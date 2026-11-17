@@ -17,6 +17,8 @@ export const HeaderBrandLogo: React.FC<HeaderBrandLogoProps> = ({
     e.stopPropagation();
     hapticMedium();
 
+    window.dispatchEvent(new CustomEvent('streamvault_open_dock'));
+
     if (onTrigger) {
       onTrigger();
     }

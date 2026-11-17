@@ -184,128 +184,109 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     };
   }, []);
 
-  // Homepage living showcase mouse movement detector on widescreen:
-  // On wide screen devices, for the homepage (tabIndex === 0), the dock automatically
-  // disappears, but if mouse movement is detected, the dock appears. Otherwise it disappears.
-  useEffect(() => {
-    if (!isWideScreen || tabIndex !== 0) return;
+  // Track whether visitor is scrolling
+  const isScrollingRef = useRef<boolean>(false);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Global scroll detector:
+  // When scrolling, dock must immediately disappear and NOT appear
+  useEffect(() => {
+    const markScrolling = () => {
+      isScrollingRef.current = true;
+      // Hide dock when user scrolls
+      setIsNavTrayOpen(false);
+
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
+    };
+
+    window.addEventListener('scroll', markScrolling, { passive: true, capture: true });
+    window.addEventListener('wheel', markScrolling, { passive: true, capture: true });
+    window.addEventListener('touchmove', markScrolling, { passive: true, capture: true });
+
+    return () => {
+      window.removeEventListener('scroll', markScrolling, { capture: true });
+      window.removeEventListener('wheel', markScrolling, { capture: true });
+      window.removeEventListener('touchmove', markScrolling, { capture: true });
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // 8-second Dock Auto-Dismissal and Mouse Movement Detector:
+  // 1. Dock auto-dismisses after 8 seconds of inactivity.
+  // 2. Dock reappears on mouse movement ONLY IF:
+  //    - Visitor is NOT scrolling (isScrollingRef.current is false)
+  //    - Visitor is NOT watching something (isModalOpen is false)
+  //    - Visitor is on homepage (tabIndex === 0)
+  // 3. If visitor is scrolling media pages or watching something, mouse movement NEVER opens the dock.
+  // 4. On any screen (homepage, media card page, player), clicking the website logo opens the dock.
+  useEffect(() => {
     let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
     const resetIdleTimer = () => {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
-        // If dock notification is currently active, DO NOT auto-close the dock early!
+        // If dock notification is currently active (e.g. 10s offline alert), do not auto-close early!
         if (isNotificationActiveRef.current) return;
         const dockEl = document.querySelector('aside[aria-label="Tactical Navigation Dock"]');
         if (dockEl && dockEl.matches(':hover')) {
+          resetIdleTimer();
           return;
         }
         setIsNavTrayOpen(false);
-      }, 2500);
+      }, 8000);
     };
 
     const handleMouseMove = () => {
+      // If dock is already open, any mouse movement (or hover) resets the 8s countdown
+      if (isNavTrayOpen) {
+        resetIdleTimer();
+        return;
+      }
+
+      // If dock is closed:
+      // STRICT RULES:
+      // - If visitor is scrolling media pages -> DO NOT appear
+      // - If visitor is watching something (video, shorts, image) -> DO NOT appear
+      // - If visitor is on media card pages (tabIndex !== 0) -> DO NOT appear
+      if (isScrollingRef.current || isModalOpen || tabIndex !== 0) {
+        return;
+      }
+
+      // Visitor is on homepage, not scrolling, and not watching anything: reveal dock and start 8s countdown
       setIsNavTrayOpen(true);
       resetIdleTimer();
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
-    // Initial countdown to hide dock if user is idle on homepage
-    resetIdleTimer();
+    // If dock is open, start the 8s countdown immediately
+    if (isNavTrayOpen) {
+      resetIdleTimer();
+    }
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       if (idleTimer) clearTimeout(idleTimer);
     };
-  }, [isWideScreen, tabIndex]);
+  }, [isNavTrayOpen, isModalOpen, tabIndex]);
 
-  // Scroll detector:
-  // On wide screen devices:
-  //   Scrolling rightwards (content moves right-to-left) -> dock disappears
-  //   Scrolling leftwards (content moves left-to-right) -> dock appears
-  // On portrait:
-  //   Scrolling downwards -> dock disappears
-  //   Scrolling upwards -> dock appears
+  // Listen for global logo click dock reveal event (from CyberVideoPlayer, MediaModal, ShortsFeedModal, etc.)
   useEffect(() => {
-    let lastWheelTime = 0;
-    const handleGlobalWheel = (e: WheelEvent) => {
-      const now = Date.now();
-      if (now - lastWheelTime < 60) return;
-      lastWheelTime = now;
-
-      if (isWideScreen) {
-        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-        if (delta > 8) {
-          setIsNavTrayOpen(false);
-        } else if (delta < -8) {
-          setIsNavTrayOpen(true);
-        }
-      } else {
-        if (e.deltaY > 8) {
-          setIsNavTrayOpen(false);
-        } else if (e.deltaY < -8) {
-          setIsNavTrayOpen(true);
-        }
-      }
+    const handleOpenDock = () => {
+      setIsNavTrayOpen(true);
     };
-
-    let startX = 0;
-    let startY = 0;
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 0) return;
-      const curX = e.touches[0].clientX;
-      const curY = e.touches[0].clientY;
-      const diffX = startX - curX; // positive when swiping left (scrolling rightwards)
-      const diffY = startY - curY; // positive when swiping up (scrolling downwards)
-
-      if (isWideScreen && Math.abs(diffX) > 20) {
-        if (diffX > 20) {
-          setIsNavTrayOpen(false);
-        } else if (diffX < -20) {
-          setIsNavTrayOpen(true);
-        }
-        startX = curX;
-      } else if (!isWideScreen) {
-        // Portrait mobile screen:
-        // Swiping left-to-right (curX > startX -> diffX < -30): SHOW DOCK!
-        if (diffX < -30 && Math.abs(diffX) > Math.abs(diffY)) {
-          setIsNavTrayOpen(true);
-          startX = curX;
-        } else if (diffX > 30 && Math.abs(diffX) > Math.abs(diffY)) {
-          // Swiping right-to-left: HIDE DOCK
-          setIsNavTrayOpen(false);
-          startX = curX;
-        } else if (Math.abs(diffY) > 25) {
-          // Vertical scroll: down hides dock, up reveals dock
-          if (diffY > 25) {
-            setIsNavTrayOpen(false);
-          } else if (diffY < -25) {
-            setIsNavTrayOpen(true);
-          }
-          startY = curY;
-        }
-      }
-    };
-
-    window.addEventListener('wheel', handleGlobalWheel, { passive: true, capture: true });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true });
-
+    window.addEventListener('streamvault_open_dock', handleOpenDock);
     return () => {
-      window.removeEventListener('wheel', handleGlobalWheel, { capture: true });
-      window.removeEventListener('touchstart', handleTouchStart, { capture: true });
-      window.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      window.removeEventListener('streamvault_open_dock', handleOpenDock);
     };
-  }, [isWideScreen]);
+  }, []);
 
   // Individual section subfolder filters (ordered per strict specs)
   const [photosSubfolder, setPhotosSubfolder] = useState<string>('Favorite');
@@ -333,11 +314,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) && e.deltaY !== 0) {
             e.currentTarget.scrollLeft += e.deltaY;
           }
-          if (delta > 8) {
-            setIsNavTrayOpen(false);
-          } else if (delta < -8) {
-            setIsNavTrayOpen(true);
-          }
+          setIsNavTrayOpen(false);
+          isScrollingRef.current = true;
+          if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+          scrollTimeoutRef.current = setTimeout(() => {
+            isScrollingRef.current = false;
+          }, 800);
         }
       }
     },
@@ -987,6 +969,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         }
         onSelectSubfolder={(tab, subfolder) => {
           setActiveMainTab(tab);
+          if (isModalOpen) {
+            window.dispatchEvent(new CustomEvent('streamvault_close_modal'));
+          }
           // ONLY clicking a subfolder switches the page and shows media cards
           if (tab === 'Photographs') {
             setPhotosSubfolder(subfolder);
@@ -1002,7 +987,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             switchTab(4);
           }
         }}
-        onSelectHome={() => switchTab(0)}
+        onSelectHome={() => {
+          if (isModalOpen) {
+            window.dispatchEvent(new CustomEvent('streamvault_close_modal'));
+          }
+          switchTab(0);
+        }}
         telemetryData={telemetry7DayData}
         keepAwakeOn={keepAwakeOn}
         onToggleKeepAwake={toggleKeepScreenOn}

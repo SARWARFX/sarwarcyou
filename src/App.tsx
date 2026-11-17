@@ -178,6 +178,17 @@ function App() {
     applyAccentToDom(getActiveAccent());
   }, []);
 
+  // Listen for programmatic close modal events (e.g. from dock navigation)
+  useEffect(() => {
+    const handleCloseAll = () => {
+      handleCloseModal();
+    };
+    window.addEventListener('streamvault_close_modal', handleCloseAll);
+    return () => {
+      window.removeEventListener('streamvault_close_modal', handleCloseAll);
+    };
+  }, [handleCloseModal]);
+
   // Global fallback back handler for active modals
   useBackButton(
     useCallback(() => {

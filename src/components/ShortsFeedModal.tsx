@@ -960,19 +960,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       )}
 
-      {/* Brand Watermark Logo on Desktop/Tablet: shows at bottom-right corner when buttons disappear */}
+      {/* Brand Watermark Logo on Bottom-Right: click opens navigation dock on any screen */}
       <div
-        onClick={() => {
-          setShowControls(true);
-          scheduleAutoHide();
+        onClick={(e) => {
+          e.stopPropagation();
+          hapticLight();
+          window.dispatchEvent(new CustomEvent('streamvault_open_dock'));
         }}
-        onMouseEnter={() => {
-          setShowControls(true);
-          scheduleAutoHide();
-        }}
-        className={`fixed bottom-6 right-6 z-40 hidden sm:flex items-center select-none cursor-pointer transition-all duration-300 ease-out ${
-          !showControls ? 'opacity-90 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
-        }`}
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center select-none cursor-pointer transition-all duration-300 ease-out opacity-80 hover:opacity-100 hover:scale-105 pointer-events-auto"
+        title="Open Navigation Dock"
       >
         <div className="flex items-center">
           <HeaderBrandLogo trackingClass="tracking-[0.2em]" />

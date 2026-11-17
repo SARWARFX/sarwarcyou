@@ -1710,16 +1710,16 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           </button>
         </div>
 
-      {/* 6. Brand Watermark Logo on Desktop/Tablet: shows at bottom-right corner when buttons disappear */}
+      {/* 6. Brand Watermark Logo on Bottom-Right: click opens navigation dock on any screen */}
       <div
         onClick={(e) => {
           e.stopPropagation();
-          resetHudTimer();
+          hapticLight();
+          window.dispatchEvent(new CustomEvent('streamvault_open_dock'));
         }}
         onMouseEnter={() => resetHudTimer()}
-        className={`fixed bottom-6 right-6 z-40 hidden sm:flex items-center select-none cursor-pointer transition-all duration-300 ease-out ${
-          !showHud ? 'opacity-90 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
-        }`}
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center select-none cursor-pointer transition-all duration-300 ease-out opacity-80 hover:opacity-100 hover:scale-105 pointer-events-auto"
+        title="Open Navigation Dock"
       >
         <div className="flex items-center">
           <HeaderBrandLogo trackingClass="tracking-[0.2em]" />
