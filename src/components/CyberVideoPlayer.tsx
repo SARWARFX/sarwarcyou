@@ -199,18 +199,19 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const speedBtnRef = useRef<HTMLButtonElement>(null);
   const isDraggingProgress = useRef(false);
 
-  // Auto-hide HUD on inactivity (3 seconds) ONLY when in fullscreen
+  // Auto-hide HUD on inactivity (3 seconds) when in fullscreen OR on rotated screen
   const resetHudTimer = useCallback(() => {
     setShowHud(true);
     if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
-    // When not in fullscreen (desktop or portrait windowed), tray does not disappear
-    if (!isFullscreen) return;
+    // Auto-hide only when in fullscreen OR on a rotated screen (mobile landscape)
+    const shouldAutoHide = isFullscreen || (!isDesktop && !isPortrait);
+    if (!shouldAutoHide) return;
     if (showSpeedMenu || seekHover.isHovering) return;
     hudTimerRef.current = window.setTimeout(() => {
       setShowHud(false);
       setShowSpeedMenu(false);
     }, 3000);
-  }, [isFullscreen, showSpeedMenu, seekHover.isHovering]);
+  }, [isFullscreen, isDesktop, isPortrait, showSpeedMenu, seekHover.isHovering]);
 
   // Robust Playback Speed Application Engine
   const applyPlaybackSpeed = useCallback((speed: number) => {
@@ -1152,6 +1153,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     <div
       ref={playerContainerRef}
       onMouseMove={resetHudTimer}
+      onTouchStart={resetHudTimer}
+      onTouchMove={resetHudTimer}
       onClick={(e) => {
         resetHudTimer();
         if (e.target === e.currentTarget) {
@@ -1168,8 +1171,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
 
-      {/* Photographic Background Tapestry on Desktop/Tablet */}
-      {isDesktop && photoPool && photoPool.length > 0 && (
+      {/* Photographic Background Tapestry on Desktop & Portrait Screens (Hidden when in Fullscreen) */}
+      {!isFullscreen && photoPool && photoPool.length > 0 && (
         <div
           className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none opacity-30"
           aria-hidden="true"
@@ -1539,7 +1542,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         )}
       </div>
 
-      {/* 4. Top Floating Control Tray (Portrait Screens: Fit, PiP, Download, Close) */}
+      {/* 4. Top Floating Control Tray (Portrait Screens: Timer, Fit, PiP, Download, Close) */}
       {isPortrait && !isFullscreen && (
         <div
           onPointerDown={(e) => e.stopPropagation()}
@@ -1548,6 +1551,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             showHud ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
           }`}
         >
+          {/* Current Time / Duration on Portrait Screens */}
+          <span
+            className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+          >
+            {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
+          </span>
+
           {/* Aspect Ratio Fit / Fill Toggle */}
           <button
             type="button"
@@ -1619,8 +1630,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
-          showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        style={{
+          left: isDesktop ? '50%' : undefined,
+          transform: isDesktop
+            ? `translateX(-50%) translateY(${showHud ? '0px' : '16px'})`
+            : `translateY(${showHud ? '0px' : '16px'})`,
+        }}
+        className={`fixed bottom-4 left-4 sm:bottom-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
           {/* Play / Pause Toggle (Laser Shimmer Outline) */}
@@ -1638,13 +1655,15 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             )}
           </button>
 
-          {/* Current Time / Duration */}
-          <span
-            className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
-            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
-          >
-            {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
-          </span>
+          {/* Current Time / Duration (Desktop, Landscape & Fullscreen) */}
+          {(!isPortrait || isFullscreen) && (
+            <span
+              className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+            >
+              {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
+            </span>
+          )}
 
           {/* Repeat Mode (Loop) */}
           <button
