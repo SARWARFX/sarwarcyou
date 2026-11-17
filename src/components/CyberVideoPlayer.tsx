@@ -85,14 +85,22 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [showTelemetry, setShowTelemetry] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
 
-  // Desktop vs Mobile Layout Detection
+  // Desktop vs Mobile and Portrait vs Landscape Screen Detection
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  const [isPortrait, setIsPortrait] = useState(() => typeof window !== 'undefined' && window.innerHeight > window.innerWidth);
+  const [isFullscreen, setIsFullscreen] = useState(() => typeof document !== 'undefined' && Boolean(document.fullscreenElement));
+
   useEffect(() => {
     const handleResize = () => {
       setIsDesktop(window.innerWidth >= 1024);
+      setIsPortrait(window.innerHeight > window.innerWidth);
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
   }, []);
 
   // Picture-in-Picture State
@@ -191,16 +199,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const speedBtnRef = useRef<HTMLButtonElement>(null);
   const isDraggingProgress = useRef(false);
 
-  // Auto-hide HUD on inactivity (3 seconds)
+  // Auto-hide HUD on inactivity (3 seconds) ONLY when in fullscreen
   const resetHudTimer = useCallback(() => {
     setShowHud(true);
     if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
+    // When not in fullscreen (desktop or portrait windowed), tray does not disappear
+    if (!isFullscreen) return;
     if (showSpeedMenu || seekHover.isHovering) return;
     hudTimerRef.current = window.setTimeout(() => {
       setShowHud(false);
       setShowSpeedMenu(false);
     }, 3000);
-  }, [showSpeedMenu, seekHover.isHovering]);
+  }, [isFullscreen, showSpeedMenu, seekHover.isHovering]);
 
   // Robust Playback Speed Application Engine
   const applyPlaybackSpeed = useCallback((speed: number) => {
@@ -736,6 +746,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
       // Force rotate phone screen to landscape on video fullscreen
       await lockToLandscape();
+      setIsFullscreen(true);
     } else {
       try {
         if (document.exitFullscreen) {
@@ -748,6 +759,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       }
 
       await unlockOrientation();
+      setIsFullscreen(false);
+      setShowHud(true);
     }
     resetHudTimer();
   }, [resetHudTimer]);
@@ -755,8 +768,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   // Listen to fullscreenchange to unlock orientation if user exits via hardware gestures
   useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
+      const inFullscreen = Boolean(document.fullscreenElement);
+      setIsFullscreen(inFullscreen);
+      if (!inFullscreen) {
         unlockOrientation();
+        setShowHud(true);
       }
     };
 
@@ -1138,7 +1154,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       onMouseMove={resetHudTimer}
       onClick={(e) => {
         resetHudTimer();
-        if (isDesktop && e.target === e.currentTarget) {
+        if (e.target === e.currentTarget) {
           onClose();
         }
       }}
@@ -1297,23 +1313,39 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* 3. Video Stage: Desktop Centered Cinema Card vs Mobile Fullscreen */}
+      {/* 3. Video Stage: Desktop Centered Cinema Card vs Mobile / Portrait Centered Card */}
       <div
         className={
           isDesktop
             ? "fixed inset-0 z-20 flex items-center justify-center p-6 sm:p-10 pointer-events-auto select-none cursor-pointer"
+            : isPortrait && !isFullscreen
+            ? "fixed inset-0 z-20 flex flex-col items-center justify-between pointer-events-auto select-none cursor-pointer"
             : "absolute inset-0 w-full h-full flex items-center justify-center touch-none cursor-pointer overflow-hidden z-10"
         }
         onClick={(e) => {
-          if (isDesktop && e.target === e.currentTarget) {
+          if (e.target === e.currentTarget) {
             onClose();
           }
         }}
       >
+        {/* Upper Empty Space on Portrait Screens: Tap to Close */}
+        {isPortrait && !isFullscreen && (
+          <div
+            className="w-full flex-1 cursor-pointer min-h-[40px] z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            title="Tap empty space to close"
+          />
+        )}
+
         <div
           className={
             isDesktop
-              ? "pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none"
+              ? "pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none shrink-0 z-20"
+              : isPortrait && !isFullscreen
+              ? "pointer-events-auto relative w-full aspect-[16/9] max-h-[75vh] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none shrink-0 z-20"
               : "relative w-full h-full flex items-center justify-center overflow-hidden"
           }
           onClick={(e) => {
@@ -1493,9 +1525,97 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {renderScrubberBar()}
           </div>
         </div>
+
+        {/* Lower Empty Space on Portrait Screens: Tap to Close */}
+        {isPortrait && !isFullscreen && (
+          <div
+            className="w-full flex-1 cursor-pointer min-h-[40px] z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            title="Tap empty space to close"
+          />
+        )}
       </div>
 
-      {/* 5. Universal Floating Control Tray (Globally for Any Screen) */}
+      {/* 4. Top Floating Control Tray (Portrait Screens: Fit, PiP, Download, Close) */}
+      {isPortrait && !isFullscreen && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          className={`fixed top-4 left-4 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+            showHud ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+          }`}
+        >
+          {/* Aspect Ratio Fit / Fill Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
+              resetHudTimer();
+            }}
+            className={`reticle-btn px-2.5 h-9 rounded-none text-xs font-mono font-bold cursor-pointer border-0 ${
+              fitMode === 'cover' ? 'text-white drop-shadow-[0_0_8px_#ffffff]' : 'text-slate-400 hover:text-white'
+            }`}
+            title={fitMode === 'cover' ? 'Fill Screen Active (Click for Fit)' : 'Fit Screen Active (Click for Fill)'}
+            aria-label={`Fit mode: ${fitMode}`}
+          >
+            {fitMode === 'cover' ? 'FILL' : 'FIT'}
+          </button>
+
+          {/* Picture-in-Picture */}
+          {isPiPSupported && (
+            <button
+              type="button"
+              onClick={handleTogglePiP}
+              className="reticle-btn w-9 h-9 rounded-none cursor-pointer text-slate-300 hover:text-white border-0"
+              title="Picture-in-Picture (P)"
+              aria-label="Toggle Picture-in-Picture"
+            >
+              <PictureInPicture2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Download Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload();
+              resetHudTimer();
+            }}
+            disabled={isDownloading}
+            className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white disabled:opacity-40 border-0"
+            title="Download Video"
+            aria-label="Download Video"
+          >
+            {downloadSuccess ? (
+              <Check className="w-5 h-5 text-emerald-400" />
+            ) : isDownloading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+            ) : (
+              <LaserDownloadIcon size={22} />
+            )}
+          </button>
+
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
+            title="Close (Esc)"
+            aria-label="Close"
+          >
+            <LaserCloseIcon size={22} />
+          </button>
+        </div>
+      )}
+
+      {/* 5. Universal Floating Control Tray (Globally for Any Screen / Bottom Tray) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
@@ -1565,21 +1685,23 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {loopA !== null && loopB !== null ? 'A-B' : loopA !== null ? 'Set B' : 'A-B'}
           </button>
 
-          {/* Aspect Ratio Fit / Fill Toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
-              resetHudTimer();
-            }}
-            className={`reticle-btn px-2.5 h-9 rounded-none text-xs font-mono font-bold cursor-pointer border-0 ${
-              fitMode === 'cover' ? 'text-white drop-shadow-[0_0_8px_#ffffff]' : 'text-slate-400 hover:text-white'
-            }`}
-            title={fitMode === 'cover' ? 'Fill Screen Active (Click for Fit)' : 'Fit Screen Active (Click for Fill)'}
-            aria-label={`Fit mode: ${fitMode}`}
-          >
-            {fitMode === 'cover' ? 'FILL' : 'FIT'}
-          </button>
+          {/* Aspect Ratio Fit / Fill Toggle (Desktop, Landscape & Fullscreen) */}
+          {(!isPortrait || isFullscreen) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
+                resetHudTimer();
+              }}
+              className={`reticle-btn px-2.5 h-9 rounded-none text-xs font-mono font-bold cursor-pointer border-0 ${
+                fitMode === 'cover' ? 'text-white drop-shadow-[0_0_8px_#ffffff]' : 'text-slate-400 hover:text-white'
+              }`}
+              title={fitMode === 'cover' ? 'Fill Screen Active (Click for Fit)' : 'Fit Screen Active (Click for Fill)'}
+              aria-label={`Fit mode: ${fitMode}`}
+            >
+              {fitMode === 'cover' ? 'FILL' : 'FIT'}
+            </button>
+          )}
 
           {/* Playback Speed Popover */}
           <div className="relative">
@@ -1638,8 +1760,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             )}
           </div>
 
-          {/* Picture-in-Picture */}
-          {isPiPSupported && (
+          {/* Picture-in-Picture (Desktop, Landscape & Fullscreen) */}
+          {(!isPortrait || isFullscreen) && isPiPSupported && (
             <button
               type="button"
               onClick={handleTogglePiP}
@@ -1662,27 +1784,29 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <LaserVolumeIcon size={24} isMuted={isMuted} />
           </button>
 
-          {/* Download Button inside Desktop Control Tray */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDownload();
-              resetHudTimer();
-            }}
-            disabled={isDownloading}
-            className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white disabled:opacity-40 border-0"
-            title="Download Video"
-            aria-label="Download Video"
-          >
-            {downloadSuccess ? (
-              <Check className="w-5 h-5 text-emerald-400" />
-            ) : isDownloading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
-            ) : (
-              <LaserDownloadIcon size={22} />
-            )}
-          </button>
+          {/* Download Button inside Control Tray (Desktop, Landscape & Fullscreen) */}
+          {(!isPortrait || isFullscreen) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownload();
+                resetHudTimer();
+              }}
+              disabled={isDownloading}
+              className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white disabled:opacity-40 border-0"
+              title="Download Video"
+              aria-label="Download Video"
+            >
+              {downloadSuccess ? (
+                <Check className="w-5 h-5 text-emerald-400" />
+              ) : isDownloading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+              ) : (
+                <LaserDownloadIcon size={22} />
+              )}
+            </button>
+          )}
 
           {/* Fullscreen Toggle (Laser Shimmer Outline) */}
           <button
@@ -1695,19 +1819,21 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <LaserFullscreenIcon size={22} />
           </button>
 
-          {/* Close Button inside Desktop Control Tray */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
-            title="Close (Esc)"
-            aria-label="Close"
-          >
-            <LaserCloseIcon size={22} />
-          </button>
+          {/* Close Button inside Control Tray (Desktop, Landscape & Fullscreen) */}
+          {(!isPortrait || isFullscreen) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
+              title="Close (Esc)"
+              aria-label="Close"
+            >
+              <LaserCloseIcon size={22} />
+            </button>
+          )}
         </div>
 
       {/* 6. Brand Watermark Logo on Bottom-Right: click opens navigation dock on any screen */}
