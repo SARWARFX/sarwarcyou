@@ -10,12 +10,12 @@ export interface HomepageSlidingShortsProps {
 }
 
 /**
- * Shorts Featured Showcase: 10 Randomly Selected Shorts
- * - 10 randomly selected shorts
- * - Buffer-free synchronization: stays in high-tech loading state until >= 6 shorts are ready
- * - Plays buffer-free simultaneously from frame 0
- * - Continuous right-to-left glide animation starts only when ready
- * - Remaining shorts continue caching/buffering in the background before sliding into view
+ * Shorts Featured Showcase: 6 Randomly Selected Shorts (Option A)
+ * - Showcases 6 curated shorts perfectly filling the homepage width
+ * - Preloads only the 6 primary visible videos to eliminate network contention
+ * - Strict buffer-depth verification (canplaythrough & deep buffer check) prevents stutter
+ * - Duplicate loop cards stay idle (preload="none") during startup to dedicate 100% bandwidth
+ * - 6 simultaneous streams stay well within GPU hardware decoder limits (no frame drops)
  * - Zero rounded corners, zero outlines, zero border strokes
  * - Font: Science Gothic
  */
@@ -27,32 +27,32 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
-  // 10 randomly selected shorts
-  const selected10 = useMemo(() => {
+  // 6 randomly selected shorts
+  const selected6 = useMemo(() => {
     if (!shorts || shorts.length === 0) return [];
     const pool = [...shorts];
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    return pool.slice(0, 10);
+    return pool.slice(0, 6);
   }, [shorts, randomSeed]);
 
-  // Duplicate the 10 shorts once to create an infinite, seamless loop
+  // Duplicate the 6 shorts once to create an infinite, seamless 12-card loop
   const displayList = useMemo(() => {
-    if (selected10.length === 0) return [];
-    return [...selected10, ...selected10];
-  }, [selected10]);
+    if (selected6.length === 0) return [];
+    return [...selected6, ...selected6];
+  }, [selected6]);
 
   // Buffer synchronization states
   const [readyIndices, setReadyIndices] = useState<Set<number>>(new Set());
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
   const isPlaybackReadyRef = useRef(false);
 
-  // Target threshold: minimum 6 media (or selected10.length if fewer available)
+  // Target threshold: all 6 media (or selected6.length if library has fewer)
   const targetThreshold = useMemo(() => {
-    return Math.min(6, selected10.length);
-  }, [selected10.length]);
+    return selected6.length;
+  }, [selected6.length]);
 
   // Reset buffering state whenever the selected shorts change
   useEffect(() => {
@@ -60,22 +60,14 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     setIsPlaybackReady(false);
     isPlaybackReadyRef.current = false;
     videoRefs.current = [];
-  }, [selected10]);
+  }, [selected6]);
 
   // Sync ref with state
   useEffect(() => {
     isPlaybackReadyRef.current = isPlaybackReady;
   }, [isPlaybackReady]);
 
-  // Check if minimum required media are buffered/playable
-  useEffect(() => {
-    if (!isPlaybackReady && targetThreshold > 0 && readyIndices.size >= targetThreshold) {
-      setIsPlaybackReady(true);
-      isPlaybackReadyRef.current = true;
-    }
-  }, [readyIndices.size, targetThreshold, isPlaybackReady]);
-
-  // Handle a single video reaching playable state
+  // Mark an item as truly ready
   const handleMediaReady = useCallback(
     (itemIndex: number) => {
       setReadyIndices((prev) => {
@@ -86,9 +78,9 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       });
 
       // If showcase already started, ensure newly ready videos start playing immediately
-      if (isPlaybackReadyRef.current && selected10.length > 0) {
+      if (isPlaybackReadyRef.current && selected6.length > 0) {
         const v1 = videoRefs.current[itemIndex];
-        const v2 = videoRefs.current[itemIndex + selected10.length];
+        const v2 = videoRefs.current[itemIndex + selected6.length];
         [v1, v2].forEach((v) => {
           if (v && v.paused) {
             v.muted = true;
@@ -98,10 +90,45 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
         });
       }
     },
-    [selected10.length]
+    [selected6.length]
   );
 
-  // When playback threshold is met, simultaneously start all buffered videos from 0
+  // Deep buffer inspection: confirms substantial buffer depth before marking ready
+  const verifyBufferDepth = useCallback(
+    (el: HTMLVideoElement | null, itemIndex: number) => {
+      if (!el) return;
+
+      // HTML5 readyState >= 4 means HAVE_ENOUGH_DATA (browser estimates buffer can play through)
+      if (el.readyState >= 4) {
+        handleMediaReady(itemIndex);
+        return;
+      }
+
+      // Check timeRanges buffer depth in seconds
+      if (el.buffered.length > 0) {
+        const bufferedEnd = el.buffered.end(el.buffered.length - 1);
+        const duration = el.duration;
+        // Require at least 5 seconds of buffer, or 75% of short's total duration
+        if (
+          bufferedEnd >= 5 ||
+          (duration && !isNaN(duration) && duration > 0 && bufferedEnd >= duration * 0.75)
+        ) {
+          handleMediaReady(itemIndex);
+        }
+      }
+    },
+    [handleMediaReady]
+  );
+
+  // Check if all 6 media are buffered/playable
+  useEffect(() => {
+    if (!isPlaybackReady && targetThreshold > 0 && readyIndices.size >= targetThreshold) {
+      setIsPlaybackReady(true);
+      isPlaybackReadyRef.current = true;
+    }
+  }, [readyIndices.size, targetThreshold, isPlaybackReady]);
+
+  // When playback threshold is met, simultaneously start all buffered videos from frame 0
   useEffect(() => {
     if (isPlaybackReady) {
       videoRefs.current.forEach((v) => {
@@ -119,24 +146,23 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 
   const handleVideoRef = (el: HTMLVideoElement | null, idx: number) => {
     videoRefs.current[idx] = el;
-    if (!el || selected10.length === 0) return;
+    if (!el || selected6.length === 0) return;
 
     el.muted = true;
     el.defaultMuted = true;
     el.playsInline = true;
 
-    const actualIndex = idx % selected10.length;
+    const actualIndex = idx % selected6.length;
 
-    // If browser already buffered the video (e.g. cached or fast connection)
-    if (el.readyState >= 3) {
-      handleMediaReady(actualIndex);
-    }
+    // Check buffer state if element is mounted
+    verifyBufferDepth(el, actualIndex);
   };
 
-  if (selected10.length === 0) return null;
+  if (selected6.length === 0) return null;
 
   const readyCount = readyIndices.size;
-  const progressPercent = targetThreshold > 0 ? Math.min(100, Math.round((readyCount / targetThreshold) * 100)) : 0;
+  const progressPercent =
+    targetThreshold > 0 ? Math.min(100, Math.round((readyCount / targetThreshold) * 100)) : 0;
 
   return (
     <div
@@ -158,7 +184,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
               </span>
             </div>
 
-            {/* Tactical 1px progress track */}
+            {/* Tactical 2px progress track */}
             <div className="w-full h-[2px] bg-[#38bdf8]/20 overflow-hidden mt-1 relative">
               <div
                 className="h-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-300 ease-out"
@@ -190,12 +216,13 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
             item.poster ||
             getMediaUrl(item.url || '');
 
-          const actualIndex = idx % selected10.length;
+          const actualIndex = idx % selected6.length;
+          const isPrimaryVisibleCard = idx < selected6.length;
 
           return (
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
-              onClick={() => onOpenShort(item, selected10, actualIndex)}
+              onClick={() => onOpenShort(item, selected6, actualIndex)}
               className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
@@ -206,11 +233,11 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
                 loop
                 muted
                 playsInline
-                preload="auto"
-                onCanPlay={() => handleMediaReady(actualIndex)}
+                preload={isPrimaryVisibleCard ? 'auto' : isPlaybackReady ? 'auto' : 'none'}
                 onCanPlayThrough={() => handleMediaReady(actualIndex)}
+                onProgress={(e) => verifyBufferDepth(e.currentTarget, actualIndex)}
                 onLoadedData={(e) => {
-                  if (e.currentTarget.readyState >= 3) {
+                  if (e.currentTarget.readyState >= 4) {
                     handleMediaReady(actualIndex);
                   }
                 }}
@@ -233,7 +260,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
           }
         }
         .animate-homepage-slow-slide {
-          animation: homepageSlowSlide 95s linear infinite;
+          animation: homepageSlowSlide 58s linear infinite;
         }
       `}</style>
     </div>
