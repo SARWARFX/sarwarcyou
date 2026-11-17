@@ -58,13 +58,13 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
     };
     window.addEventListener('resize', handleResize);
 
-    // 4 Living Ambient Mesh Nebula Nodes (Noticeable soft celestial aura)
+    // 4 Living Ambient Mesh Nebula Nodes (Soft celestial cyan and violet aura matching showcase)
     const nebulaNodes: NebulaNode[] = [
       {
         baseX: 0.22,
         baseY: 0.32,
         radiusMult: 0.58,
-        color: 'rgba(255, 255, 255, ',
+        color: 'rgba(56, 189, 248, ',
         speed: 0.0012,
         phaseX: 0,
         phaseY: 1.2,
@@ -73,7 +73,7 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
         baseX: 0.8,
         baseY: 0.62,
         radiusMult: 0.68,
-        color: 'rgba(235, 245, 255, ',
+        color: 'rgba(139, 92, 246, ',
         speed: 0.0009,
         phaseX: 2.1,
         phaseY: 0.7,
@@ -82,7 +82,7 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
         baseX: 0.48,
         baseY: 0.88,
         radiusMult: 0.52,
-        color: 'rgba(240, 248, 255, ',
+        color: 'rgba(56, 189, 248, ',
         speed: 0.0014,
         phaseX: 1.4,
         phaseY: 2.4,
@@ -91,7 +91,7 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
         baseX: 0.88,
         baseY: 0.18,
         radiusMult: 0.48,
-        color: 'rgba(255, 255, 255, ',
+        color: 'rgba(139, 92, 246, ',
         speed: 0.0008,
         phaseX: 3.2,
         phaseY: 1.5,
@@ -125,8 +125,8 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
     const render = () => {
       time += 1;
 
-      // 1. Deep Obsidian Base
-      ctx.fillStyle = '#050608';
+      // 1. Deep Obsidian Base (#030406 matching showcase)
+      ctx.fillStyle = '#030406';
       ctx.fillRect(0, 0, width, height);
 
       // 2. Living Ambient Mesh Nebula Waves (Noticeable radiant luminescence)
@@ -137,10 +137,10 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
         const radius = Math.max(width, height) * node.radiusMult;
 
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-        grad.addColorStop(0, `${node.color}0.085)`);
-        grad.addColorStop(0.35, `${node.color}0.042)`);
-        grad.addColorStop(0.7, `${node.color}0.012)`);
-        grad.addColorStop(1, 'rgba(5, 6, 8, 0)');
+        grad.addColorStop(0, `${node.color}0.075)`);
+        grad.addColorStop(0.35, `${node.color}0.035)`);
+        grad.addColorStop(0.7, `${node.color}0.01)`);
+        grad.addColorStop(1, 'rgba(3, 4, 6, 0)');
 
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, height);

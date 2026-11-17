@@ -55,7 +55,7 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
         outline: 'none',
         border: 'none',
       }}
-      className={`relative group cursor-pointer ${aspectClass} select-none bg-black overflow-hidden animate-card-enter transition-transform duration-300 hover:scale-[1.04] hover:z-20 w-full`}
+      className={`relative group cursor-pointer ${aspectClass} select-none bg-[#080b12] overflow-hidden animate-card-enter transition-transform duration-300 hover:scale-[1.04] hover:z-20 w-full`}
     >
       <img
         src={imageSrc}

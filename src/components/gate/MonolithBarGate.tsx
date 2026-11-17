@@ -428,7 +428,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
       {/* TOP HEADER: LOGO (LEFT) + NOTIF (CENTER) + GRAPH (RIGHT) */}
       <header
-        className="w-full flex justify-between items-start pt-6 sm:pt-7 pb-2 px-6 sm:px-10 shrink-0 z-30 bg-transparent gap-4"
+        className="w-full flex justify-between items-start pt-6 sm:pt-7 pb-3 px-6 sm:px-10 shrink-0 z-30 bg-black/85 backdrop-blur-md border-b border-white/[0.05] shadow-[0_10px_40px_rgba(0,0,0,0.95)] gap-4"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         {/* Left: Logo (clicking acts as Home) + Major Folders Bar directly underneath */}
@@ -440,7 +440,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             title="SARWAR.CYOU"
             style={{ borderRadius: 0, outline: 'none', border: 'none' }}
           >
-            <LaserSparkLogo width={250} height={34} interactive={false} />
+            <LaserSparkLogo width={240} height={32} interactive={false} />
           </button>
 
           {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}
@@ -449,7 +449,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               type="button"
               onClick={() => switchTab(1)}
               className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
-                tabIndex === 1 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+                tabIndex === 1 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
               }`}
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
@@ -459,7 +459,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               type="button"
               onClick={() => switchTab(3)}
               className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
-                tabIndex === 3 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+                tabIndex === 3 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
               }`}
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
@@ -469,7 +469,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               type="button"
               onClick={() => switchTab(2)}
               className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
-                tabIndex === 2 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+                tabIndex === 2 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
               }`}
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
@@ -479,7 +479,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               type="button"
               onClick={() => switchTab(4)}
               className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
-                tabIndex === 4 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+                tabIndex === 4 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
               }`}
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
@@ -558,7 +558,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   type="button"
                   onClick={() => handleSelectSubfolder(sub)}
                   className={`text-[11.5px] sm:text-[12px] tracking-wide transition-colors cursor-pointer whitespace-nowrap p-0 bg-transparent ${
-                    isActive ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+                    isActive ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
                   }`}
                   style={{ borderRadius: 0, outline: 'none', border: 'none' }}
                 >
