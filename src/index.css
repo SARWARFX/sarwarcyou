@@ -35,10 +35,12 @@
   --color-neutral-hover: rgba(255, 255, 255, 0.1);
 }
 
-/* EULO Acid Lime Marquee Bar: Strictly Archivo Black Font */
+/* EULO Marquee Bar: Globally Standard High-End Modern Sans (Inter) */
 .eulo-marquee-ticker,
 .eulo-marquee-ticker * {
-  font-family: 'Archivo Black', sans-serif !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: 0.16em !important;
+  font-weight: 700 !important;
 }
 
 :root {
