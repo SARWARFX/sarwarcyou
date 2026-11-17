@@ -14,8 +14,17 @@ import {
   LaserPrevIcon,
   LaserNextIcon,
   LaserVolumeIcon,
+  LaserPlayIcon,
+  LaserPauseIcon,
 } from './brand/LaserIcons';
 import { getGlobalAudioMuted } from '../utils/audioMuteManager';
+
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
 
 export interface ShortsFeedModalProps {
   isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
@@ -26,6 +35,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 }) => {
   useLockBodyScroll(isOpen);
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState(() => getGlobalAudioMuted());
   const [overrides, setOverrides] = useState<Record<number, string>>({});
   const [failedPermanently, setFailedPermanently] = useState<Record<number, boolean>>({});
@@ -398,9 +408,66 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     isScrubbingRef.current = false;
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (_) {}
+    } catch {}
     hapticLight();
   }, []);
+
+  const togglePlay = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    hapticLight();
+    const v = videoRefs.current[activeIndex];
+    if (!v) return;
+    if (v.paused) {
+      v.play().catch(() => {});
+      setIsPlaying(true);
+      setCenterIcon({ idx: activeIndex, type: 'play', id: Date.now() });
+      if (!isWideScreen) setShowControls(false);
+    } else {
+      v.pause();
+      setIsPlaying(false);
+      setCenterIcon({ idx: activeIndex, type: 'pause', id: Date.now() });
+      if (!isWideScreen) setShowControls(true);
+    }
+    if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
+    iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
+  }, [activeIndex, isWideScreen]);
+
+  const renderScrubberBar = useCallback((idx: number) => {
+    const progressPct = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+    return (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => handleScrubPointerDown(e, idx)}
+        onPointerMove={(e) => handleScrubPointerMove(e, idx)}
+        onPointerUp={handleScrubPointerUp}
+        onPointerCancel={handleScrubPointerUp}
+        className="group/seek relative w-full pt-1.5 pb-1.5 cursor-pointer select-none overflow-visible"
+        title="Seek playback"
+      >
+        {/* Visual Track: Slim 3px timeline track expanding to 5px on hover */}
+        <div className="relative w-full h-[3px] group-hover/seek:h-[5px] bg-white/20 rounded-full transition-all duration-150 flex items-center overflow-visible">
+          {/* Active Progress: Pure Stark White Style with Cyber Glow */}
+          <div
+            className="absolute left-0 top-0 bottom-0 rounded-full transition-all"
+            style={{
+              width: `${progressPct}%`,
+              background: '#ffffff',
+              boxShadow: '0 0 10px rgba(255, 255, 255, 0.85)',
+            }}
+          />
+
+          {/* Distinct Scrubber Dot */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border border-black/40 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
+            style={{
+              left: `${progressPct}%`,
+              boxShadow: '0 0 8px rgba(255, 255, 255, 0.9)',
+            }}
+          />
+        </div>
+      </div>
+    );
+  }, [duration, currentTime, handleScrubPointerDown, handleScrubPointerMove, handleScrubPointerUp]);
 
   // Break the infinite fallback loop (Single-shot fallback per itemKey)
   const handleVideoError = useCallback((idx: number, item: StageMediaItem, currentSrc: string) => {
@@ -446,19 +513,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }
       if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
         if (e.cancelable) e.preventDefault();
-        const v = videoRefs.current[activeIndex];
-        if (!v) return;
-        if (v.paused) {
-          v.play().catch(() => {});
-          setCenterIcon({ idx: activeIndex, type: 'play', id: Date.now() });
-          if (!isWideScreen) setShowControls(false);
-        } else {
-          v.pause();
-          setCenterIcon({ idx: activeIndex, type: 'pause', id: Date.now() });
-          if (!isWideScreen) setShowControls(true);
-        }
-        if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
-        iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
+        togglePlay();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -566,10 +621,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           isDesktop
             ? isLandscape
               ? {
-                  width: `min(88vw, calc(82vh * ${currentRatio}))`,
-                  maxWidth: '88vw',
-                  height: `min(82vh, calc(88vw / ${currentRatio}))`,
-                  maxHeight: '82vh',
+                  width: '100%',
+                  height: '100%',
                   aspectRatio: `${currentRatio}`,
                 }
               : {
@@ -647,13 +700,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 }
               }}
               onPause={() => {
-                if (idx === activeIndex && !isWideScreen) {
-                  setShowControls(true);
+                if (idx === activeIndex) {
+                  setIsPlaying(false);
+                  if (!isWideScreen) {
+                    setShowControls(true);
+                  }
                 }
               }}
               onPlay={() => {
-                if (idx === activeIndex && !isWideScreen) {
-                  setShowControls(false);
+                if (idx === activeIndex) {
+                  setIsPlaying(true);
+                  if (!isWideScreen) {
+                    setShowControls(false);
+                  }
                 }
               }}
               onError={() => handleVideoError(idx, item, streamUrl)}
@@ -676,8 +735,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               </div>
             )}
 
-            {/* Interactive glowing scrub timeline */}
-            {idx === activeIndex && duration > 0 && (
+            {/* Inside Top Time Slider for Mobile / Touchscreen 16:9 Cinema Mode */}
+            {isLandscape && !isDesktop && idx === activeIndex && duration > 0 && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className={`absolute top-0 inset-x-0 pt-2 pb-3 px-3 sm:px-4 z-30 cursor-pointer select-none bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-all duration-300 ${
+                  isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
+                }`}
+              >
+                {renderScrubberBar(idx)}
+              </div>
+            )}
+
+            {/* Bottom glowing scrub timeline for 9:16 Portrait Shorts Mode */}
+            {!isLandscape && idx === activeIndex && duration > 0 && (
               <div
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => handleScrubPointerDown(e, idx)}
@@ -745,16 +816,47 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }}
       className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-backdrop-fade cursor-pointer"
     >
-      {/* Universal Bottom-Left Shorts Player Control Tray (Globally for Any Screen) */}
+      {/* Universal Shorts Player Control Tray (Adaptive Center on 16:9, Bottom-Left on 9:16) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+        style={{
+          left: isDesktop && landscapeMap[activeIndex] ? '50%' : undefined,
+          transform: isDesktop && landscapeMap[activeIndex]
+            ? `translateX(-50%) translateY(${isTrayVisible ? '0px' : '16px'})`
+            : `translateY(${isTrayVisible ? '0px' : '16px'})`,
+        }}
+        className={`fixed ${
+          isDesktop && landscapeMap[activeIndex]
+            ? 'bottom-5 sm:bottom-6'
+            : 'bottom-4 left-4 sm:bottom-6 sm:left-6'
+        } z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
           isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
+        {/* Play / Pause Toggle Button */}
+        <button
+          type="button"
+          onClick={togglePlay}
+          className="reticle-btn w-9 h-9 cursor-pointer border-0"
+          title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? <LaserPauseIcon size={24} /> : <LaserPlayIcon size={24} />}
+        </button>
+
+        {/* Current Time / Duration Counter (displayed in 16:9 video player mode) */}
+        {landscapeMap[activeIndex] && duration > 0 && (
+          <span
+            className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+          >
+            {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
+          </span>
+        )}
+
         {/* Previous Short Button */}
         <button
           type="button"
@@ -891,15 +993,35 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             if (e.target === e.currentTarget) onClose();
           }}
         >
-          <div
-            className={`pointer-events-auto flex items-center justify-center transition-all duration-300 ${
-              landscapeMap[activeIndex]
-                ? 'w-full max-w-[min(88vw,calc(82vh*(16/9)))] max-h-[82vh] aspect-[16/9]'
-                : 'h-screen aspect-[9/16]'
-            }`}
-          >
-            {renderVideoCard(shorts[activeIndex], activeIndex, true)}
-          </div>
+          {landscapeMap[activeIndex] ? (
+            /* 16:9 Video Player Mode: outside top time slider goes up directly above the 16:9 video frame */
+            <div
+              className="pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] flex flex-col items-center justify-center cursor-default select-none shrink-0 z-20 transition-all duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Outside Top Time Slider */}
+              {duration > 0 && (
+                <div
+                  className={`w-full mb-2 sm:mb-2.5 z-30 cursor-pointer select-none transition-all duration-300 ${
+                    isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {renderScrubberBar(activeIndex)}
+                </div>
+              )}
+
+              {/* 16:9 Video Box */}
+              <div className="relative w-full max-h-[82vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.85)] bg-black overflow-hidden flex items-center justify-center">
+                {renderVideoCard(shorts[activeIndex], activeIndex, true)}
+              </div>
+            </div>
+          ) : (
+            /* 9:16 Portrait Shorts Mode (Centered 100vh Vertical Reel) */
+            <div className="pointer-events-auto h-screen aspect-[9/16] flex items-center justify-center transition-all duration-300">
+              {renderVideoCard(shorts[activeIndex], activeIndex, true)}
+            </div>
+          )}
           {/* Preload adjacent videos for zero-latency instant transitions */}
           {activeIndex + 1 < shorts.length && (
             <video
