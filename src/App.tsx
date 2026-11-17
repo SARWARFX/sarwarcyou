@@ -11,6 +11,7 @@ import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { CyberSplash } from './components/CyberSplash';
 import { BackgroundThumbnailCacheToast } from './components/common/BackgroundThumbnailCacheToast';
+import { NetworkStatusDialog } from './components/common/NetworkStatusDialog';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
 import { WinXPDesktop } from './components/winxp/WinXPDesktop';
 import { SilentHillShell } from './components/silenthill/SilentHillShell';
@@ -661,6 +662,7 @@ function App() {
     >
       <CyberSplash onComplete={() => setIsSplashComplete(true)} />
       <BackgroundThumbnailCacheToast items={rawFeed?.allMediaPool} enabled={isSplashComplete} />
+      <NetworkStatusDialog />
 
       {/* Universal Animated Graphical Background (Entire Website) */}
       <CinematicBackdropCanvas isPaused={theaterState.isOpen} />
