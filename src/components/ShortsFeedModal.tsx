@@ -72,6 +72,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [isScreenLandscape, setIsScreenLandscape] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
   );
+  const isWideScreen = isDesktop || isScreenLandscape;
+  const isTrayVisible = isWideScreen || showControls;
+
   useEffect(() => {
     const checkOrientation = () => {
       setIsDesktop(window.innerWidth >= 1024);
@@ -124,33 +127,23 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     isOpen
   );
 
-  // Auto-hide HUD controls after 2.5s of inactivity while playing
-  const scheduleAutoHide = useCallback(() => {
-    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-    hideControlsTimerRef.current = window.setTimeout(() => {
-      const currentVideo = videoRefs.current[activeIndex];
-      if (currentVideo && !currentVideo.paused) {
-        setShowControls(false);
+  // Initial controls state: wide screen stays appeared; portrait opens clean with tray hidden
+  useEffect(() => {
+    if (isOpen) {
+      if (!isWideScreen) {
+        setShowControls(false); // Portrait opens full screen with zero distraction (no tray)
+      } else {
+        setShowControls(true); // Wide screen tray stays appeared
       }
-    }, 2500);
-  }, [activeIndex]);
-
-  // Initial cold mount controls display & auto-hide
-  useEffect(() => {
-    if (!hasInitialScrolledRef.current) {
-      setShowControls(true);
-      scheduleAutoHide();
     }
-  }, [scheduleAutoHide]);
+  }, [isOpen, isWideScreen]);
 
-  // When swiping to a new short, strictly keep controls hidden while playing
+  // When swiping to a new short on portrait, keep controls hidden while playing
   useEffect(() => {
-    if (hasInitialScrolledRef.current) {
+    if (hasInitialScrolledRef.current && !isWideScreen) {
       setShowControls(false);
-      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
     }
-  }, [activeIndex]);
-
+  }, [activeIndex, isWideScreen]);
 
   // Unified short navigation handler for cards, keys, and gestures
   const goToShortIndex = useCallback((targetIdx: number, dir: 'next' | 'prev') => {
@@ -161,22 +154,24 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setCurrentTime(0);
     setDuration(0);
     onIndexChange?.(targetIdx);
-    setShowControls(false);
-    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    if (!isWideScreen) {
+      setShowControls(false);
+    }
     if (shorts[targetIdx]) {
       updateBrowserUrl('/shorts/' + getMediaShortId(shorts[targetIdx]), true);
     }
     if (!isDesktop && containerRef.current) {
       slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
     }
-  }, [shorts, isDesktop, onIndexChange]);
+  }, [shorts, isDesktop, isWideScreen, onIndexChange]);
 
-  // Desktop mouse movement reveals HUD and resets 2.5s idle timer (suppressed on touch gestures)
+  // Desktop mouse movement reveals HUD on wide screens
   const handleMouseMove = useCallback(() => {
     if (Date.now() - lastTouchTimeRef.current < 800) return;
-    setShowControls(true);
-    scheduleAutoHide();
-  }, [scheduleAutoHide]);
+    if (isWideScreen) {
+      setShowControls(true);
+    }
+  }, [isWideScreen]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     lastTouchTimeRef.current = Date.now();
@@ -208,9 +203,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   };
 
   // Screen tap handler:
-  // - If swiping: ignore tap
-  // - If controls are hidden: reveals controls on ongoing short and starts auto-hide timer
-  // - If controls are visible: pauses (stops) video and keeps controls visible
+  // - Wide screen devices: Tray stays appeared at bottom-left all the time; tap toggles play/pause
+  // - Portrait devices: Immersive view with synchronized play/pause & tray toggle:
+  //     * If playing: pauses video and shows the tray
+  //     * If paused: starts playing and hides the tray
   const handleScreenTap = useCallback((idx: number) => {
     if (isSwipingRef.current) {
       isSwipingRef.current = false;
@@ -219,28 +215,35 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const v = videoRefs.current[idx];
     if (!v) return;
 
-    if (!showControls) {
-      setShowControls(true);
-      scheduleAutoHide();
-      return;
-    }
-
-    if (v.paused) {
-      v.play().catch(() => {});
-      setCenterIcon({ idx, type: 'play', id: Date.now() });
-      hapticLight();
-      scheduleAutoHide();
+    if (!isWideScreen) {
+      // Portrait device behavior:
+      if (v.paused) {
+        v.play().catch(() => {});
+        setShowControls(false);
+        setCenterIcon({ idx, type: 'play', id: Date.now() });
+        hapticLight();
+      } else {
+        v.pause();
+        setShowControls(true);
+        setCenterIcon({ idx, type: 'pause', id: Date.now() });
+        hapticLight();
+      }
     } else {
-      v.pause();
-      setCenterIcon({ idx, type: 'pause', id: Date.now() });
-      hapticLight();
-      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-      setShowControls(true);
+      // Wide screen behavior (tray stays appeared at bottom-left):
+      if (v.paused) {
+        v.play().catch(() => {});
+        setCenterIcon({ idx, type: 'play', id: Date.now() });
+        hapticLight();
+      } else {
+        v.pause();
+        setCenterIcon({ idx, type: 'pause', id: Date.now() });
+        hapticLight();
+      }
     }
 
     if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
     iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
-  }, [showControls, scheduleAutoHide]);
+  }, [isWideScreen]);
 
   // Video Pointer Engine: Double-tap to Like, Hold-to-2x Speed, Desktop Drag
   const handleVideoPointerDown = useCallback((_e: React.PointerEvent, idx: number) => {
@@ -448,12 +451,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         if (v.paused) {
           v.play().catch(() => {});
           setCenterIcon({ idx: activeIndex, type: 'play', id: Date.now() });
-          scheduleAutoHide();
+          if (!isWideScreen) setShowControls(false);
         } else {
           v.pause();
           setCenterIcon({ idx: activeIndex, type: 'pause', id: Date.now() });
-          if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-          setShowControls(true);
+          if (!isWideScreen) setShowControls(true);
         }
         if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
         iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
@@ -461,7 +463,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, activeIndex, onClose, scheduleAutoHide, isDesktop, goToShortIndex, shorts.length]);
+  }, [isOpen, activeIndex, onClose, isWideScreen, isDesktop, goToShortIndex, shorts.length]);
 
   // Initial index accurate scrolling and playback on mount
   useEffect(() => {
@@ -645,14 +647,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 }
               }}
               onPause={() => {
-                if (idx === activeIndex) {
-                  if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+                if (idx === activeIndex && !isWideScreen) {
                   setShowControls(true);
                 }
               }}
               onPlay={() => {
-                if (idx === activeIndex) {
-                  scheduleAutoHide();
+                if (idx === activeIndex && !isWideScreen) {
+                  setShowControls(false);
                 }
               }}
               onError={() => handleVideoError(idx, item, streamUrl)}
@@ -751,7 +752,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
         className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
-          showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
         {/* Previous Short Button */}
