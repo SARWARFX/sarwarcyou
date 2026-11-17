@@ -744,75 +744,107 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }}
       className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-backdrop-fade cursor-pointer"
     >
-      {/* Top HUD Controls - Auto-hides on mobile during playback */}
-      <header
+      {/* Universal Bottom-Left Shorts Player Control Tray (Globally for Any Screen) */}
+      <div
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
-        className={`absolute top-0 inset-x-0 z-30 flex items-center justify-between p-4 bg-transparent transition-opacity duration-300 pointer-events-none ${
-          showControls ? 'opacity-100' : 'opacity-0'
+        onTouchEnd={(e) => e.stopPropagation()}
+        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+          showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
-        <span
-          onClick={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          className="text-xs font-mono font-bold tracking-wider px-3 py-1 rounded-none bg-black/80 text-[#00f0ff] border border-[#00f0ff]/30 backdrop-blur-md shadow-[0_0_10px_rgba(0, 240, 255,0.15)] pointer-events-auto"
+        {/* Previous Short Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (activeIndex > 0) goToShortIndex(activeIndex - 1, 'prev');
+          }}
+          disabled={activeIndex <= 0}
+          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+          title="Previous Short (↑ or Left Arrow)"
+          aria-label="Previous short"
         >
-          {activeIndex + 1} / {shorts.length}
+          <LaserPrevIcon size={22} />
+        </button>
+
+        {/* Short Index Counter */}
+        <span
+          className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+          style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+        >
+          {activeIndex + 1} <span className="text-white/40">/</span> {shorts.length}
         </span>
-        <div className="flex items-center gap-2.5 pointer-events-auto">
-          {/* Aspect Ratio / Cinema Mode Toggle Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              hapticLight();
-              const currentLandscape = !!landscapeMap[activeIndex];
-              const nextState = !currentLandscape;
-              setLandscapeMap((prev) => ({ ...prev, [activeIndex]: nextState }));
-              setAspectRatioMap((prev) => ({ ...prev, [activeIndex]: nextState ? 16 / 9 : 9 / 16 }));
-            }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            className={`reticle-btn px-2 h-9 rounded-none font-mono text-[10px] font-bold tracking-wider transition-all cursor-pointer ${
-              landscapeMap[activeIndex] ? 'text-[#00f0ff] border-[#00f0ff] bg-[#00f0ff]/15' : 'text-neutral-300'
-            }`}
-            title={
-              landscapeMap[activeIndex]
-                ? 'Cinema 16:9 Mode Active (Click for 9:16 Portrait)'
-                : 'Portrait 9:16 Mode (Click for 16:9 Cinema)'
-            }
-          >
-            {landscapeMap[activeIndex] ? '16:9' : '9:16'}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMuted((prev) => !prev);
-              hapticLight();
-            }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            className="reticle-btn w-9 h-9"
-            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
-          >
-            <LaserVolumeIcon size={24} isMuted={isMuted} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            className="reticle-btn reticle-btn-close w-9 h-9"
-            title="Close (Esc)"
-          >
-            <LaserCloseIcon size={30} />
-          </button>
-        </div>
-      </header>
+
+        {/* Next Short Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (activeIndex < shorts.length - 1) goToShortIndex(activeIndex + 1, 'next');
+          }}
+          disabled={activeIndex >= shorts.length - 1}
+          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+          title="Next Short (↓ or Right Arrow)"
+          aria-label="Next short"
+        >
+          <LaserNextIcon size={22} />
+        </button>
+
+        {/* Aspect Ratio / Cinema Mode Toggle Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            hapticLight();
+            const currentLandscape = !!landscapeMap[activeIndex];
+            const nextState = !currentLandscape;
+            setLandscapeMap((prev) => ({ ...prev, [activeIndex]: nextState }));
+            setAspectRatioMap((prev) => ({ ...prev, [activeIndex]: nextState ? 16 / 9 : 9 / 16 }));
+          }}
+          className={`reticle-btn px-2 h-9 rounded-none font-mono text-xs font-bold tracking-wider cursor-pointer border-0 ${
+            landscapeMap[activeIndex] ? 'text-white drop-shadow-[0_0_8px_#ffffff]' : 'text-slate-400 hover:text-white'
+          }`}
+          title={
+            landscapeMap[activeIndex]
+              ? 'Cinema 16:9 Mode Active (Click for 9:16 Portrait)'
+              : 'Portrait 9:16 Mode (Click for 16:9 Cinema)'
+          }
+          aria-label="Toggle aspect ratio"
+        >
+          {landscapeMap[activeIndex] ? '16:9' : '9:16'}
+        </button>
+
+        {/* Volume / Mute Toggle Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMuted((prev) => !prev);
+            hapticLight();
+          }}
+          className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
+          title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+        >
+          <LaserVolumeIcon size={24} isMuted={isMuted} />
+        </button>
+
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
+          title="Close (Esc)"
+          aria-label="Close shorts player"
+        >
+          <LaserCloseIcon size={22} />
+        </button>
+      </div>
 
       {/* ===== SEAMLESS ZERO-GAP STREAM (100VH FULL HEIGHT, 0PX GAP, 85S ULTRA CALM) ===== */}
       {isDesktop && streamItems.length > 0 && (
@@ -850,38 +882,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       )}
 
-      {/* ===== DESKTOP FLOATING EDGE NAVIGATION ARROWS (PURE LASER SHIMMER OUTLINE) ===== */}
-      {isDesktop && activeIndex > 0 && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            goToShortIndex(activeIndex - 1, 'prev');
-          }}
-          className={`reticle-btn reticle-btn-prev fixed left-6 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ${
-            showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          title="Previous Short (Left Arrow)"
-        >
-          <LaserPrevIcon size={34} />
-        </button>
-      )}
-
-      {isDesktop && activeIndex < shorts.length - 1 && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            goToShortIndex(activeIndex + 1, 'next');
-          }}
-          className={`reticle-btn reticle-btn-next fixed right-6 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ${
-            showControls ? 'opacity-95 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          title="Next Short (Right Arrow)"
-        >
-          <LaserNextIcon size={34} />
-        </button>
-      )}
       {/* Desktop Stage (Adaptive Landscape vs 100vh Portrait Centerpiece) vs Mobile Scroll-Snap Reels */}
       {isDesktop ? (
         <div

@@ -1176,51 +1176,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Top Corners: Download & Close Buttons (Rendered only on Mobile, Desktop uses Control Tray) */}
-      {!isDesktop && (
-        <>
-          {/* Top-Left Corner: Download Button (Precision Sci-Fi Reticle) */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDownload();
-              resetHudTimer();
-            }}
-            disabled={isDownloading}
-            className={`pointer-events-auto reticle-btn fixed top-4 left-4 sm:top-6 sm:left-6 z-50 transition-all duration-300 cursor-pointer disabled:opacity-40 border-0 ${
-              showHud ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
-            }`}
-            title="Download Video"
-            aria-label="Download Video"
-          >
-            {downloadSuccess ? (
-              <Check className="w-7 h-7 text-emerald-400" />
-            ) : isDownloading ? (
-              <Loader2 className="w-7 h-7 animate-spin text-neutral-300" />
-            ) : (
-              <LaserDownloadIcon size={30} />
-            )}
-          </button>
-
-          {/* Top-Right Corner: Close Action (Pure Laser Shimmer Outline) */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className={`pointer-events-auto reticle-btn reticle-btn-close fixed top-4 right-4 sm:top-6 sm:right-6 z-50 transition-all duration-300 cursor-pointer border-0 ${
-              showHud ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
-            }`}
-            title="Close (Esc)"
-            aria-label="Close"
-          >
-            <LaserCloseIcon size={32} />
-          </button>
-        </>
-      )}
-
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
       {showTelemetry && (
         <div
@@ -1528,162 +1483,26 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </div>
           )}
 
-          {/* Desktop Embedded Scrubber Bar at Bottom of Cinema Card */}
-          {isDesktop && (
-            <div
-              className={`absolute bottom-0 inset-x-0 pt-4 pb-2.5 px-4 z-30 cursor-pointer select-none bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 ${
-                showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {renderScrubberBar()}
-            </div>
-          )}
+          {/* Embedded Scrubber Bar at Bottom of Video Stage (Globally for Any Screen) */}
+          <div
+            className={`absolute bottom-0 inset-x-0 pt-4 pb-2.5 px-4 z-30 cursor-pointer select-none bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 ${
+              showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {renderScrubberBar()}
+          </div>
         </div>
       </div>
 
-      {/* 4. Mobile Controls & Bottom Scrim (rendered on mobile: !isDesktop) */}
-      {!isDesktop && (
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          className={`absolute bottom-6 left-0 right-0 px-6 md:px-12 flex flex-col gap-3.5 z-30 bg-transparent border-none transition-opacity duration-300 pointer-events-auto overflow-visible ${
-            showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Subtle Backdrop Gradient Scrim for Contrast & Legibility */}
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none -z-10" />
-
-          {/* Scrubber Container with Hover Preview */}
-          {renderScrubberBar()}
-
-          {/* Mobile Controls Row: Left (Play/Time), Center (FIT/Speed/⋯), Right (Mute/Fullscreen) */}
-          <div className="flex items-center justify-between gap-1 w-full relative z-10">
-            {/* Left: Play/Pause button + compact Timecode */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <button
-                type="button"
-                onClick={togglePlay}
-                className="bg-transparent border-none outline-none text-slate-300 hover:text-white cursor-pointer p-1.5 flex items-center justify-center flex-shrink-0"
-                title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-                aria-label={isPlaying ? 'Pause' : 'Play'}
-              >
-                {isPlaying ? (
-                  <LaserPauseIcon size={18} />
-                ) : (
-                  <LaserPlayIcon size={18} />
-                )}
-              </button>
-
-              <span
-                className="text-[10px] font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
-                style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
-              >
-                {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
-              </span>
-            </div>
-
-            {/* Center: Loop, A-B, FIT toggle, Speed button */}
-            <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-hidden min-w-0 justify-end">
-              {/* Loop Mode */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
-                  resetHudTimer();
-                }}
-                className={`p-1 rounded-md text-[10px] font-mono cursor-pointer flex-shrink-0 ${
-                  repeatMode !== 'off' ? 'text-white bg-white/20' : 'text-slate-400 hover:text-white'
-                }`}
-                title={`Loop: ${repeatMode.toUpperCase()}`}
-              >
-                {repeatMode === 'one' ? <Repeat1 className="w-3.5 h-3.5" /> : <Repeat className="w-3.5 h-3.5" />}
-              </button>
-
-              {/* A-B Loop */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleLoop();
-                  resetHudTimer();
-                }}
-                className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold cursor-pointer flex-shrink-0 ${
-                  loopA !== null ? 'text-white bg-white/20' : 'text-slate-400 hover:text-white'
-                }`}
-                title="A-B Loop"
-              >
-                A-B
-              </button>
-
-              {/* Aspect Ratio Fit */}
-              <button
-                type="button"
-                onClick={() => {
-                  setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
-                  resetHudTimer();
-                }}
-                className={`bg-transparent border-none outline-none p-1 text-[10px] font-['Roboto_Condensed'] font-sans font-medium tracking-wider cursor-pointer flex-shrink-0 ${
-                  fitMode === 'cover'
-                    ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title={fitMode === 'cover' ? 'Fill Screen' : 'Fit Screen'}
-              >
-                {fitMode === 'cover' ? 'FILL' : 'FIT'}
-              </button>
-
-              {/* Speed Selector */}
-              <button
-                type="button"
-                onClick={toggleSpeedMenu}
-                className={`bg-transparent border-none outline-none p-1 text-[10px] font-mono font-medium cursor-pointer flex-shrink-0 ${
-                  playbackSpeed !== 1 ? 'text-white font-bold' : 'text-zinc-400 hover:text-white'
-                }`}
-                title="Speed"
-              >
-                {playbackSpeed}x
-              </button>
-            </div>
-
-            {/* Right: Mute & Fullscreen ALWAYS pinned to the right edge with flex-shrink-0 z-10 */}
-            <div className="flex items-center gap-1 z-10 flex-shrink-0">
-              {/* Mute / Unmute Toggle */}
-              <button
-                type="button"
-                onClick={handleToggleMute}
-                className="bg-transparent border-none outline-none text-slate-300 hover:text-white cursor-pointer p-1.5 flex items-center justify-center flex-shrink-0 z-10"
-                title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
-              >
-                <LaserVolumeIcon size={18} isMuted={isMuted} />
-              </button>
-
-              {/* Fullscreen */}
-              <button
-                type="button"
-                onClick={handleFullscreenToggle}
-                className="bg-transparent border-none outline-none text-slate-300 hover:text-white cursor-pointer p-1.5 flex items-center justify-center flex-shrink-0 z-10"
-                title="Fullscreen (F)"
-                aria-label="Toggle Fullscreen"
-              >
-                <LaserFullscreenIcon size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 5. Desktop Sleek Horizontal Floating Control Tray */}
-      {isDesktop && (
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          className={`fixed bottom-6 left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 ${
-            showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-          }`}
-        >
+      {/* 5. Universal Floating Control Tray (Globally for Any Screen) */}
+      <div
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+          showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
           {/* Play / Pause Toggle (Laser Shimmer Outline) */}
           <button
             type="button"
@@ -1890,7 +1709,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <LaserCloseIcon size={22} />
           </button>
         </div>
-      )}
 
       {/* 6. Brand Watermark Logo on Desktop/Tablet: shows at bottom-right corner when buttons disappear */}
       <div

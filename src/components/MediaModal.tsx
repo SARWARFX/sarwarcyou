@@ -12,7 +12,7 @@ import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 
 import { unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
-import { hapticLight, hapticMedium } from '../utils/hapticsManager';
+import { hapticMedium } from '../utils/hapticsManager';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
 import {
@@ -293,37 +293,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
     }
   }, [calculatePanLimits]);
-
-  const zoomTrackRef = useRef<HTMLDivElement | null>(null);
-
-  const handleZoomTrackPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const track = e.currentTarget;
-    const updateFromPointer = (clientY: number) => {
-      const rect = track.getBoundingClientRect();
-      const ratio = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
-      const targetScale = 1 + ratio * (4.5 - 1);
-      setZoomLevel(targetScale, false);
-    };
-    updateFromPointer(e.clientY);
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      updateFromPointer(moveEvent.clientY);
-    };
-    const onPointerUp = (upEvent: PointerEvent) => {
-      track.removeEventListener('pointermove', onPointerMove);
-      track.removeEventListener('pointerup', onPointerUp);
-      track.removeEventListener('pointercancel', onPointerUp);
-      try {
-        track.releasePointerCapture(upEvent.pointerId);
-      } catch (_) {}
-      hapticLight();
-    };
-    track.addEventListener('pointermove', onPointerMove);
-    track.addEventListener('pointerup', onPointerUp);
-    track.addEventListener('pointercancel', onPointerUp);
-  }, [setZoomLevel]);
 
   // Handle window resizing while zoomed to prevent edge gaps
   useEffect(() => {
@@ -782,138 +751,141 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* Floating Close Button at Top Right (Pure Laser Shimmer Outline) */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        className={`reticle-btn reticle-btn-close fixed top-4 right-4 sm:top-6 sm:right-6 z-50 transition-all duration-300 cursor-pointer pointer-events-auto ${
-          showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
-        }`}
-        title="Close (Esc)"
-        aria-label="Close image viewer"
-      >
-        <LaserCloseIcon size={32} />
-      </button>
-
-      {/* Floating Left Edge / Mobile Bottom Left Navigation Arrow (Pure Laser Shimmer Outline) */}
-      {hasItemList && activeIdx > 0 && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            goToPrev();
-          }}
-          onMouseEnter={() => {
-            if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-          }}
-          onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-prev fixed bottom-4 left-4 translate-y-0 sm:bottom-auto sm:left-6 sm:top-1/2 sm:-translate-y-1/2 z-40 transition-all duration-300 cursor-pointer pointer-events-auto ${
-            showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
-          }`}
-          title="Previous Photo (←)"
-          aria-label="Previous photo"
-        >
-          <LaserPrevIcon size={34} />
-        </button>
-      )}
-
-      {/* Floating Right Edge / Mobile Bottom Right Navigation Arrow (Pure Laser Shimmer Outline) */}
-      {hasItemList && activeIdx < items.length - 1 && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            goToNext();
-          }}
-          onMouseEnter={() => {
-            if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-          }}
-          onMouseLeave={scheduleAutoHide}
-          className={`reticle-btn reticle-btn-next fixed bottom-4 right-4 translate-y-0 sm:bottom-auto sm:right-6 sm:top-1/2 sm:-translate-y-1/2 z-40 transition-all duration-300 cursor-pointer pointer-events-auto ${
-            showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
-          }`}
-          title="Next Photo (→)"
-          aria-label="Next photo"
-        >
-          <LaserNextIcon size={34} />
-        </button>
-      )}
-
-      {/* Dedicated Universal Zoom Column: Mobile Right-Middle vs Desktop Bottom-Right Corner */}
+      {/* Universal Bottom-Left Image Viewer Control Tray (Globally for Any Screen) */}
       <div
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         onMouseEnter={() => {
           if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
         }}
         onMouseLeave={scheduleAutoHide}
-        className={`reticle-zoom-box fixed right-3 top-1/2 -translate-y-1/2 sm:right-6 sm:top-auto sm:translate-y-0 sm:bottom-6 z-40 transition-all duration-300 pointer-events-auto ${
-          showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-95'
+        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+          showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
-        style={{ touchAction: 'none' }}
-        onClick={(e) => e.stopPropagation()}
-        onWheel={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const delta = e.deltaY < 0 ? 0.25 : -0.25;
-          setZoomLevel(scaleRef.current + delta);
-        }}
       >
-        {/* Zoom In Button (Laser Shimmer Outline) */}
+        {/* Previous Photo Button */}
+        {hasItemList && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToPrev();
+            }}
+            disabled={activeIdx <= 0}
+            className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            title="Previous Photo (←)"
+            aria-label="Previous photo"
+          >
+            <LaserPrevIcon size={22} />
+          </button>
+        )}
+
+        {/* Photo Counter */}
+        {hasItemList && (
+          <span
+            className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+          >
+            {activeIdx + 1} <span className="text-white/40">/</span> {items.length}
+          </span>
+        )}
+
+        {/* Next Photo Button */}
+        {hasItemList && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToNext();
+            }}
+            disabled={activeIdx >= items.length - 1}
+            className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            title="Next Photo (→)"
+            aria-label="Next photo"
+          >
+            <LaserNextIcon size={22} />
+          </button>
+        )}
+
+        {/* Zoom In Button */}
         <button
           type="button"
-          onClick={() => setZoomLevel(scaleRef.current + 0.35)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setZoomLevel(scaleRef.current + 0.35);
+          }}
           disabled={scale >= 4.5}
-          className="reticle-btn w-8 h-8 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-300 hover:text-white"
           title="Zoom In (+)"
           aria-label="Zoom in"
         >
-          <LaserZoomInIcon size={22} />
+          <LaserZoomInIcon size={20} />
         </button>
 
-        {/* Interactive Vertical Slider Track */}
-        <div
-          ref={zoomTrackRef}
-          onPointerDown={handleZoomTrackPointerDown}
-          className="relative w-1.5 h-24 sm:h-28 bg-white/10 hover:bg-white/20 rounded-full my-1 cursor-pointer transition-colors"
-          title="Drag up/down to zoom"
-        >
-          <div
-            className="absolute bottom-0 inset-x-0 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-            style={{
-              height: `${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}%`,
-            }}
-          />
-          <div
-            className="absolute -left-1 w-3.5 h-2 rounded-full bg-white shadow-[0_0_10px_#ffffff] -translate-y-1/2 transition-transform active:scale-125"
-            style={{
-              bottom: `calc(${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}% - 2px)`,
-            }}
-          />
-        </div>
-
-        {/* Zoom Out Button (Laser Shimmer Outline) */}
+        {/* Zoom Percentage / 100% Reset Button */}
         <button
           type="button"
-          onClick={() => setZoomLevel(scaleRef.current - 0.35)}
-          disabled={scale <= 1.02}
-          className="reticle-btn w-8 h-8 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-          title="Zoom Out (−)"
-          aria-label="Zoom out"
-        >
-          <LaserZoomOutIcon size={22} />
-        </button>
-
-        {/* 1-Click Fit / 100% Reset Button (Pure floating text) */}
-        <button
-          type="button"
-          onClick={resetZoom}
-          className="px-1 py-0.5 bg-transparent border-0 text-[10px] font-mono font-bold tracking-wider text-[#00f0ff] hover:text-white transition-all cursor-pointer active:scale-90 mt-0.5"
-          title="Reset to 100% Screen Fit"
+          onClick={(e) => {
+            e.stopPropagation();
+            resetZoom();
+          }}
+          className={`reticle-btn px-2 h-9 rounded-none text-xs font-mono font-bold cursor-pointer border-0 ${
+            scale > 1.05 ? 'text-white drop-shadow-[0_0_8px_#ffffff]' : 'text-slate-400 hover:text-white'
+          }`}
+          title="Reset Zoom (Fit to Screen)"
           aria-label="Reset zoom"
         >
           {Math.round(scale * 100)}%
+        </button>
+
+        {/* Zoom Out Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setZoomLevel(scaleRef.current - 0.35);
+          }}
+          disabled={scale <= 1.02}
+          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-300 hover:text-white"
+          title="Zoom Out (−)"
+          aria-label="Zoom out"
+        >
+          <LaserZoomOutIcon size={20} />
+        </button>
+
+        {/* Download Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload();
+          }}
+          disabled={isDownloading}
+          className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white disabled:opacity-40 border-0"
+          title="Download Original Photo"
+          aria-label="Download photo"
+        >
+          {downloadSuccess ? (
+            <Check className="w-5 h-5 text-emerald-400" />
+          ) : isDownloading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+          ) : (
+            <LaserDownloadIcon size={22} />
+          )}
+        </button>
+
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
+          title="Close (Esc)"
+          aria-label="Close image viewer"
+        >
+          <LaserCloseIcon size={22} />
         </button>
       </div>
 
@@ -989,30 +961,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           draggable={false}
         />
       </div>
-
-      {/* Floating Download Button: Mobile Top-Left Corner vs Desktop Bottom-Left Corner (Pure Laser Shimmer Outline) */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDownload();
-        }}
-        disabled={isDownloading}
-        className={`reticle-btn fixed top-4 left-4 sm:top-auto sm:bottom-6 sm:left-6 z-50 transition-all duration-300 cursor-pointer disabled:opacity-40 pointer-events-auto ${
-          showControls ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-90'
-        }`}
-        title="Download Original Photo"
-        aria-label="Download photo"
-      >
-        {downloadSuccess ? (
-          <Check className="w-7 h-7 text-emerald-400" />
-        ) : isDownloading ? (
-          <Loader2 className="w-7 h-7 animate-spin text-neutral-300" />
-        ) : (
-          <LaserDownloadIcon size={30} />
-        )}
-      </button>
-
     </div>,
     document.body
   );
