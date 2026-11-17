@@ -82,7 +82,6 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   if (/fav/i.test(subName)) subName = 'Favorite';
   else if (/2027/i.test(subName)) subName = '2027';
   else if (/2026/i.test(subName)) subName = '2026';
-  else if (/2025/i.test(subName)) subName = '2025';
   else subName = 'Older';
 
   return { root, subfolders: [subName] };
@@ -90,7 +89,7 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
 
 const PHOTO_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', '2025', 'Older'];
 const SHORTS_SUBFOLDERS = ['ALL', '2027', 'Older'];
-const CLIPS_SUBFOLDERS = ['ALL', '4K Cinema', '2027', '2026', 'Older', 'Favorite'];
+const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
 const BANDHOBI_SUBFOLDERS = ['ALL', 'Photographs', 'Video Clips', 'Shorts'];
 
 export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
