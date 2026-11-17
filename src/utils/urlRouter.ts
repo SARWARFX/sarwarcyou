@@ -1255,7 +1255,7 @@ export function findMediaByShortId(
   return null;
 }
 
-export type AppTabRoute = 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI';
+export type AppTabRoute = 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TELEMETRY';
 
 export interface ParsedAppRoute {
   tab: AppTabRoute;
@@ -1302,6 +1302,10 @@ export function parseAppPathname(pathname?: string): ParsedAppRoute {
 
   if (root === 'bandhobi') {
     return { tab: 'BANDHOBI', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+  }
+
+  if (root === 'telemetry' || root === 'stats' || root === 'graph' || root === 'screentime') {
+    return { tab: 'TELEMETRY', shortId: null, rawPath: raw, isNotFound: false };
   }
 
   // Any unrecognized root path

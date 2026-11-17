@@ -14,7 +14,11 @@ interface DayTelemetryData {
 // Fallback baseline telemetry when visitor is new / fresh session
 const DEFAULT_BASELINE_MINUTES = [112, 48, 24, 75, 125, 38, 62]; // 1H 52M, 0H 48M, 0H 24M, 1H 15M, 2H 05M, 0H 38M, 1H 02M
 
-export const TacticalTelemetryGraph: React.FC = () => {
+export interface TacticalTelemetryGraphProps {
+  onClick?: () => void;
+}
+
+export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({ onClick }) => {
   const [sessionTick, setSessionTick] = useState(0);
 
   // Periodically increment session time (1 minute intervals) and update state
@@ -81,7 +85,11 @@ export const TacticalTelemetryGraph: React.FC = () => {
   return (
     <aside
       aria-label="Daily screen time graph"
-      className="flex items-end gap-2.5 sm:gap-3.5 select-none bg-transparent"
+      onClick={onClick}
+      className={`flex items-end gap-2.5 sm:gap-3.5 select-none bg-transparent ${
+        onClick ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''
+      }`}
+      title={onClick ? 'Click to inspect 24-hour diurnal phase breakdown' : undefined}
       style={{
         borderRadius: 0,
         outline: 'none',

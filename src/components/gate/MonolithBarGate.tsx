@@ -19,6 +19,7 @@ import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { HomepageSlidingShorts } from './HomepageSlidingShorts';
 import { BandhobiSlidingFeaturedPhotos } from './BandhobiSlidingFeaturedPhotos';
+import { DeepDiurnalTelemetryView } from '../telemetry/DeepDiurnalTelemetryView';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -146,6 +147,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Featured');
   const [shuffleTrigger, setShuffleTrigger] = useState<number>(0);
 
+  const [showTelemetry, setShowTelemetry] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return parseAppPathname().tab === 'TELEMETRY';
+  });
+  const previousRouteRef = useRef<string>('/');
+
+  const handleOpenTelemetry = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      previousRouteRef.current = window.location.pathname;
+    }
+    setShowTelemetry(true);
+    updateBrowserUrl('/telemetry');
+  }, []);
+
+  const handleCloseTelemetry = useCallback(() => {
+    setShowTelemetry(false);
+    updateBrowserUrl(previousRouteRef.current || '/');
+  }, []);
+
   const [notFoundInfo, setNotFoundInfo] = useState<{
     isOpen: boolean;
     path: string;
@@ -178,6 +198,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setNotFoundInfo({ isOpen: true, path: window.location.pathname });
         return;
       }
+      if (parsed.tab === 'TELEMETRY') {
+        setShowTelemetry(true);
+        return;
+      }
+      setShowTelemetry(false);
       setShuffleTrigger((prev) => prev + 1);
       if (parsed.tab === 'PHOTOGRAPHY') {
         setPhotosSubfolder('ALL');
@@ -550,7 +575,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
         {/* Right: Clean Tactical Telemetry Graph (Zero Text Noise) */}
         <div className="shrink-0">
-          <TacticalTelemetryGraph />
+          <TacticalTelemetryGraph onClick={handleOpenTelemetry} />
         </div>
       </header>
 
@@ -638,6 +663,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </div>
         )}
       </footer>
+
+      {/* 24-HOUR DEEP DIURNAL TELEMETRY MATRIX VIEW */}
+      {showTelemetry && (
+        <DeepDiurnalTelemetryView onClose={handleCloseTelemetry} />
+      )}
     </div>
   );
 };
