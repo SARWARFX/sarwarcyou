@@ -1625,26 +1625,30 @@ html, body, #root {
 .reticle-btn:hover {
   background: transparent !important;
   transform: scale(1.18);
-  filter: drop-shadow(0 0 16px rgba(204, 255, 0, 0.95)) drop-shadow(0 0 6px #ffffff);
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 6px #ffffff);
 }
 
 .reticle-btn:active {
   transform: scale(0.92);
 }
 
-/* Kinetic Laser Shimmer Wave Icon Styling (Yellowish-White Neon / Acid Lime #CCFF00 & #FFFFFF) */
+/* Master Laser Icon Styling (Pure Stark Phosphor Neon White #FFFFFF & Specular Bloom) */
 .laser-shimmer-icon {
-  filter: drop-shadow(0 0 8px rgba(204, 255, 0, 0.45));
-  animation: laserShimmerGlow 3.2s ease-in-out infinite;
+  color: #ffffff;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.45));
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s;
+}
+
+.laser-shimmer-icon:hover {
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 6px #ffffff);
 }
 
 @keyframes laserShimmerGlow {
   0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(204, 255, 0, 0.35));
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.35));
   }
   50% {
-    filter: drop-shadow(0 0 16px rgba(204, 255, 0, 0.95)) drop-shadow(0 0 8px #ffffff);
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 6px #ffffff);
   }
 }
 

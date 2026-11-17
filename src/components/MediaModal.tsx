@@ -880,13 +880,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           title="Drag up/down to zoom"
         >
           <div
-            className="absolute bottom-0 inset-x-0 bg-[#00f0ff] rounded-full shadow-[0_0_8px_rgba(0, 240, 255,0.8)]"
+            className="absolute bottom-0 inset-x-0 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
             style={{
               height: `${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}%`,
             }}
           />
           <div
-            className="absolute -left-1 w-3.5 h-2 rounded-full bg-[#00f0ff] shadow-[0_0_10px_#00f0ff] -translate-y-1/2 transition-transform active:scale-125"
+            className="absolute -left-1 w-3.5 h-2 rounded-full bg-white shadow-[0_0_10px_#ffffff] -translate-y-1/2 transition-transform active:scale-125"
             style={{
               bottom: `calc(${Math.min(100, Math.max(0, ((scale - 1) / (4.5 - 1)) * 100))}% - 2px)`,
             }}

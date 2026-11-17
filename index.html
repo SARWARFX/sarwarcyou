@@ -57,19 +57,13 @@
     </style>
   </head>
   <body class="bg-[#08090c] text-neutral-100 antialiased overflow-x-hidden relative max-w-full select-none selection:bg-neutral-700 selection:text-white font-sans" style="font-family: 'Space Grotesk', sans-serif;">
-    <!-- Global Master SVG Defs for Live Exploring Spark Wave (Pure Stark White #FFFFFF & Electric Cyan #00F0FF) -->
+    <!-- Global Master SVG Defs for Live Exploring Spark Wave (Pure Stark White #FFFFFF) -->
     <svg width="0" height="0" style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;" aria-hidden="true">
       <defs>
         <linearGradient id="laserShimmerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#ffffff">
-            <animate attributeName="stop-color" values="#ffffff;#00f0ff;#ffffff" dur="2.4s" repeatCount="indefinite"/>
-          </stop>
-          <stop offset="50%" stop-color="#00f0ff">
-            <animate attributeName="stop-color" values="#00f0ff;#ffffff;#00f0ff" dur="2.4s" repeatCount="indefinite"/>
-          </stop>
-          <stop offset="100%" stop-color="#ffffff">
-            <animate attributeName="stop-color" values="#ffffff;#00f0ff;#ffffff" dur="2.4s" repeatCount="indefinite"/>
-          </stop>
+          <stop offset="0%" stop-color="#ffffff" />
+          <stop offset="50%" stop-color="#ffffff" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#ffffff" />
         </linearGradient>
       </defs>
     </svg>
