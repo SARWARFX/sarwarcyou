@@ -130,6 +130,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 }) => {
   const initialRoute = useMemo(() => parseAppPathname(), []);
 
+  // Visual tab display ordering for directional transitions (Photographs -> Video Clips -> Shorts -> Bandhobi)
+  const TAB_VISUAL_ORDER = useMemo<Record<number, number>>(() => ({
+    1: 0,
+    3: 1,
+    2: 2,
+    4: 3,
+  }), []);
+
   // 1: Photographs, 2: Shorts (Homepage Landing), 3: Video Clips, 4: Bandhobi
   const [tabIndex, setTabIndex] = useState<number>(() => {
     if (typeof window === 'undefined') return 2;
@@ -146,6 +154,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [clipsSubfolder, setClipsSubfolder] = useState<string>('ALL');
   const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Featured');
   const [shuffleTrigger, setShuffleTrigger] = useState<number>(0);
+
+  // Content display state (synchronized with Quantum 0.25x speed directional transitions)
+  const [displayedTab, setDisplayedTab] = useState<number>(() => tabIndex);
+  const [displayedPhotosSub, setDisplayedPhotosSub] = useState<string>('ALL');
+  const [displayedShortsSub, setDisplayedShortsSub] = useState<string>('Featured');
+  const [displayedClipsSub, setDisplayedClipsSub] = useState<string>('ALL');
+  const [displayedBandhobiSub, setDisplayedBandhobiSub] = useState<string>('Featured');
+  const [quantumAnimClass, setQuantumAnimClass] = useState<string>('');
+  const transitionTimerRef = useRef<{ t1?: ReturnType<typeof setTimeout>; t2?: ReturnType<typeof setTimeout> }>({});
 
   const [showTelemetry, setShowTelemetry] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -172,23 +189,53 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER';
   }>({ isOpen: false, path: '' });
 
-  const switchTab = useCallback((index: number) => {
-    setTabIndex(index);
-    if (index === 1) setPhotosSubfolder('ALL');
-    else if (index === 2) setShortsSubfolder('Featured');
-    else if (index === 3) setClipsSubfolder('ALL');
-    else if (index === 4) setBandhobiSubfolder('Featured');
+  const switchTab = useCallback((targetIndex: number) => {
+    if (targetIndex === tabIndex) return;
+
+    const currentVis = TAB_VISUAL_ORDER[tabIndex] ?? 0;
+    const targetVis = TAB_VISUAL_ORDER[targetIndex] ?? 0;
+    const isForward = targetVis >= currentVis;
+    const exitClass = isForward ? 'animate-quantum-tab-exit-fwd' : 'animate-quantum-tab-exit-bwd';
+    const enterClass = isForward ? 'animate-quantum-tab-enter-fwd' : 'animate-quantum-tab-enter-bwd';
+
+    // Clear existing animation timers
+    if (transitionTimerRef.current.t1) clearTimeout(transitionTimerRef.current.t1);
+    if (transitionTimerRef.current.t2) clearTimeout(transitionTimerRef.current.t2);
+
+    // Instantly highlight target nav button and update route
+    setTabIndex(targetIndex);
+    if (targetIndex === 1) setPhotosSubfolder('ALL');
+    else if (targetIndex === 2) setShortsSubfolder('Featured');
+    else if (targetIndex === 3) setClipsSubfolder('ALL');
+    else if (targetIndex === 4) setBandhobiSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
 
     if (typeof window !== 'undefined') {
       let route = '/';
-      if (index === 1) route = '/photographs';
-      else if (index === 2) route = '/shorts';
-      else if (index === 3) route = '/clips';
-      else if (index === 4) route = '/bandhobi';
+      if (targetIndex === 1) route = '/photographs';
+      else if (targetIndex === 2) route = '/shorts';
+      else if (targetIndex === 3) route = '/clips';
+      else if (targetIndex === 4) route = '/bandhobi';
       updateBrowserUrl(route);
     }
-  }, []);
+
+    // Quantum 0.25x speed: 800ms exit sweep, then swap displayed content and 880ms enter sweep
+    setQuantumAnimClass(exitClass);
+
+    transitionTimerRef.current.t1 = setTimeout(() => {
+      setDisplayedTab(targetIndex);
+      if (targetIndex === 1) setDisplayedPhotosSub('ALL');
+      else if (targetIndex === 2) setDisplayedShortsSub('Featured');
+      else if (targetIndex === 3) setDisplayedClipsSub('ALL');
+      else if (targetIndex === 4) setDisplayedBandhobiSub('Featured');
+
+      setQuantumAnimClass(enterClass);
+
+      transitionTimerRef.current.t2 = setTimeout(() => {
+        setQuantumAnimClass('');
+      }, 880);
+    }, 800);
+  }, [tabIndex, TAB_VISUAL_ORDER]);
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
   useEffect(() => {
@@ -206,19 +253,29 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setShuffleTrigger((prev) => prev + 1);
       if (parsed.tab === 'PHOTOGRAPHY') {
         setPhotosSubfolder('ALL');
+        setDisplayedPhotosSub('ALL');
         setTabIndex(1);
+        setDisplayedTab(1);
       } else if (parsed.tab === 'SHORTS') {
         setShortsSubfolder('Featured');
+        setDisplayedShortsSub('Featured');
         setTabIndex(2);
+        setDisplayedTab(2);
       } else if (parsed.tab === 'CLIPS') {
         setClipsSubfolder('ALL');
+        setDisplayedClipsSub('ALL');
         setTabIndex(3);
+        setDisplayedTab(3);
       } else if (parsed.tab === 'BANDHOBI') {
         setBandhobiSubfolder('Featured');
+        setDisplayedBandhobiSub('Featured');
         setTabIndex(4);
+        setDisplayedTab(4);
       } else {
         setShortsSubfolder('Featured');
+        setDisplayedShortsSub('Featured');
         setTabIndex(2);
+        setDisplayedTab(2);
       }
     };
 
@@ -358,25 +415,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   // Active subfolder-filtered lists (ALL is shuffled, subfolders are strictly newest first)
   const activePhotosList: StageMediaItem[] = useMemo(() => {
-    if (photosSubfolder === 'ALL') return shuffleArray(allPhotosFiles);
-    const node = rootMap.get('Photographs')?.subfolders.get(photosSubfolder);
+    if (displayedPhotosSub === 'ALL') return shuffleArray(allPhotosFiles);
+    const node = rootMap.get('Photographs')?.subfolders.get(displayedPhotosSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allPhotosFiles;
-  }, [allPhotosFiles, rootMap, photosSubfolder, shuffleTrigger]);
+  }, [allPhotosFiles, rootMap, displayedPhotosSub, shuffleTrigger]);
 
   const activeShortsList: StageMediaItem[] = useMemo(() => {
-    if (shortsSubfolder === 'Featured') return allShortsFiles;
-    const node = rootMap.get('Shorts')?.subfolders.get(shortsSubfolder);
+    if (displayedShortsSub === 'Featured') return allShortsFiles;
+    const node = rootMap.get('Shorts')?.subfolders.get(displayedShortsSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allShortsFiles;
-  }, [allShortsFiles, rootMap, shortsSubfolder]);
+  }, [allShortsFiles, rootMap, displayedShortsSub]);
 
   const activeClipsList: StageMediaItem[] = useMemo(() => {
-    if (clipsSubfolder === 'ALL') return shuffleArray(allClipsFiles);
-    const node = rootMap.get('Video Clips')?.subfolders.get(clipsSubfolder);
+    if (displayedClipsSub === 'ALL') return shuffleArray(allClipsFiles);
+    const node = rootMap.get('Video Clips')?.subfolders.get(displayedClipsSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allClipsFiles;
-  }, [allClipsFiles, rootMap, clipsSubfolder, shuffleTrigger]);
+  }, [allClipsFiles, rootMap, displayedClipsSub, shuffleTrigger]);
 
   const activeBandhobiList: StageMediaItem[] = useMemo(() => {
-    if (bandhobiSubfolder === 'Featured') {
+    if (displayedBandhobiSub === 'Featured') {
       const photosNode = rootMap.get('Bandhobi')?.subfolders.get('Photographs');
       const allPhotos = photosNode ? photosNode.files : [];
       // Build lookup map by shortId and filename
@@ -403,9 +460,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
       return selected.length > 0 ? selected : sortMediaItemsDescending<StageMediaItem>(allPhotos).slice(0, 12);
     }
-    const node = rootMap.get('Bandhobi')?.subfolders.get(bandhobiSubfolder);
+    const node = rootMap.get('Bandhobi')?.subfolders.get(displayedBandhobiSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
-  }, [items, rootMap, bandhobiSubfolder]);
+  }, [items, rootMap, displayedBandhobiSub]);
 
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {
@@ -418,7 +475,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         item.path?.toLowerCase().includes('short') ||
         item.url?.toLowerCase().includes('short');
 
-      if (tabIndex === 4) {
+      if (displayedTab === 4) {
         if (isPhoto) {
           onOpenPhoto(item, activeBandhobiList, index);
         } else if (isShort) {
@@ -437,16 +494,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         onOpenVideo(item, activeClipsList);
       }
     },
-    [tabIndex, activeBandhobiList, activePhotosList, activeShortsList, activeClipsList, onOpenPhoto, onOpenShort, onOpenVideo]
+    [displayedTab, activeBandhobiList, activePhotosList, activeShortsList, activeClipsList, onOpenPhoto, onOpenShort, onOpenVideo]
   );
 
   // Active list & subfolder list resolution
   const currentActiveList =
-    tabIndex === 1
+    displayedTab === 1
       ? activePhotosList
-      : tabIndex === 2
+      : displayedTab === 2
       ? activeShortsList
-      : tabIndex === 3
+      : displayedTab === 3
       ? activeClipsList
       : activeBandhobiList;
 
@@ -469,6 +526,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       : bandhobiSubfolder;
 
   const handleSelectSubfolder = (sub: string) => {
+    const currentSub =
+      tabIndex === 1
+        ? photosSubfolder
+        : tabIndex === 2
+        ? shortsSubfolder
+        : tabIndex === 3
+        ? clipsSubfolder
+        : bandhobiSubfolder;
+    if (sub === currentSub) return;
+
+    const list = currentSubfolderList;
+    const currentIdx = list.indexOf(currentSub);
+    const targetIdx = list.indexOf(sub);
+    const isForward = targetIdx >= currentIdx;
+    const exitClass = isForward ? 'animate-quantum-tab-exit-fwd' : 'animate-quantum-tab-exit-bwd';
+    const enterClass = isForward ? 'animate-quantum-tab-enter-fwd' : 'animate-quantum-tab-enter-bwd';
+
     if (sub === 'ALL' || sub === 'Featured') {
       setShuffleTrigger((prev) => prev + 1);
     }
@@ -476,6 +550,26 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     else if (tabIndex === 2) setShortsSubfolder(sub);
     else if (tabIndex === 3) setClipsSubfolder(sub);
     else if (tabIndex === 4) setBandhobiSubfolder(sub);
+
+    // Clear existing animation timers
+    if (transitionTimerRef.current.t1) clearTimeout(transitionTimerRef.current.t1);
+    if (transitionTimerRef.current.t2) clearTimeout(transitionTimerRef.current.t2);
+
+    // Quantum 0.25x speed: 800ms exit sweep, swap displayed content, then 880ms enter sweep
+    setQuantumAnimClass(exitClass);
+
+    transitionTimerRef.current.t1 = setTimeout(() => {
+      if (tabIndex === 1) setDisplayedPhotosSub(sub);
+      else if (tabIndex === 2) setDisplayedShortsSub(sub);
+      else if (tabIndex === 3) setDisplayedClipsSub(sub);
+      else if (tabIndex === 4) setDisplayedBandhobiSub(sub);
+
+      setQuantumAnimClass(enterClass);
+
+      transitionTimerRef.current.t2 = setTimeout(() => {
+        setQuantumAnimClass('');
+      }, 880);
+    }, 800);
   };
 
   return (
@@ -591,61 +685,66 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
       {/* MIDDLE PAGE SPACE: HOMEPAGE SLIDING SHORTS OR RECTANGULAR MEDIA GRID */}
       <main
-        className="flex-1 overflow-y-auto overflow-x-hidden px-6 sm:px-10 py-4 relative z-10 scrollbar-none flex flex-col"
+        className="flex-1 overflow-hidden px-6 sm:px-10 py-4 relative z-10 scrollbar-none flex flex-col"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        {tabIndex === 2 && shortsSubfolder === 'Featured' ? (
-          /* Shorts Featured: 10 Randomly Selected Shorts Playing & Sliding Right-to-Left */
-          <div className="w-full h-full flex items-center justify-start overflow-hidden">
-            <HomepageSlidingShorts
-              shorts={allShortsFiles}
-              randomSeed={shuffleTrigger}
-              onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenShort(item, playlist, idx, 'Shorts')}
-            />
-          </div>
-        ) : tabIndex === 4 && bandhobiSubfolder === 'Featured' ? (
-          /* Bandhobi Featured: Selected Photos Sliding Right-to-Left */
-          <div className="w-full h-full flex items-center justify-start overflow-hidden">
-            <BandhobiSlidingFeaturedPhotos
-              photos={activeBandhobiList}
-              onOpenPhoto={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenPhoto(item, playlist, idx)}
-            />
-          </div>
-        ) : (
-          /* Media Pages: Monolith Rectangular Grid (Zero Text, Enlarges on Hover) */
-          <div
-            className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-6"
-            style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-          >
-            {currentActiveList.map((item: StageMediaItem, idx: number) => (
-              <LivingMediaCard
-                key={`${item.id || item.url || item.name}-${idx}`}
-                item={item}
-                aspectRatio={
-                  tabIndex === 1
-                    ? '3/4'
-                    : tabIndex === 2
-                    ? '9/16'
-                    : tabIndex === 3
-                    ? '16/9'
-                    : tabIndex === 4 && bandhobiSubfolder === 'Photographs'
-                    ? '3/4'
-                    : tabIndex === 4 && bandhobiSubfolder === 'Shorts'
-                    ? '9/16'
-                    : tabIndex === 4 && bandhobiSubfolder === 'Video Clips'
-                    ? '16/9'
-                    : item.mediaType === 'short'
-                    ? '9/16'
-                    : isPhotoExtension(item.path || item.url || item.name || '')
-                    ? '3/4'
-                    : '16/9'
-                }
-                delayIdx={idx}
-                onClick={() => handleOpenItem(item, idx)}
+        <div
+          className={`w-full h-full flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none ${quantumAnimClass}`}
+          style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+        >
+          {displayedTab === 2 && displayedShortsSub === 'Featured' ? (
+            /* Shorts Featured: 10 Randomly Selected Shorts Playing & Sliding Right-to-Left */
+            <div className="w-full h-full flex items-center justify-start overflow-hidden">
+              <HomepageSlidingShorts
+                shorts={allShortsFiles}
+                randomSeed={shuffleTrigger}
+                onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenShort(item, playlist, idx, 'Shorts')}
               />
-            ))}
-          </div>
-        )}
+            </div>
+          ) : displayedTab === 4 && displayedBandhobiSub === 'Featured' ? (
+            /* Bandhobi Featured: Selected Photos Sliding Right-to-Left */
+            <div className="w-full h-full flex items-center justify-start overflow-hidden">
+              <BandhobiSlidingFeaturedPhotos
+                photos={activeBandhobiList}
+                onOpenPhoto={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenPhoto(item, playlist, idx)}
+              />
+            </div>
+          ) : (
+            /* Media Pages: Monolith Rectangular Grid (Zero Text, Enlarges on Hover) */
+            <div
+              className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-6"
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              {currentActiveList.map((item: StageMediaItem, idx: number) => (
+                <LivingMediaCard
+                  key={`${item.id || item.url || item.name}-${idx}`}
+                  item={item}
+                  aspectRatio={
+                    displayedTab === 1
+                      ? '3/4'
+                      : displayedTab === 2
+                      ? '9/16'
+                      : displayedTab === 3
+                      ? '16/9'
+                      : displayedTab === 4 && displayedBandhobiSub === 'Photographs'
+                      ? '3/4'
+                      : displayedTab === 4 && displayedBandhobiSub === 'Shorts'
+                      ? '9/16'
+                      : displayedTab === 4 && displayedBandhobiSub === 'Video Clips'
+                      ? '16/9'
+                      : item.mediaType === 'short'
+                      ? '9/16'
+                      : isPhotoExtension(item.path || item.url || item.name || '')
+                      ? '3/4'
+                      : '16/9'
+                  }
+                  delayIdx={idx}
+                  onClick={() => handleOpenItem(item, idx)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* BOTTOM NAVIGATION BAR: DYNAMIC SUBFOLDERS (Pure text, zero borders, zero outlines) */}
@@ -677,6 +776,69 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       {showTelemetry && (
         <DeepDiurnalTelemetryView onClose={handleCloseTelemetry} />
       )}
+
+      {/* QUANTUM 0.25X SPEED DIRECTIONAL NAVIGATION KEYFRAMES */}
+      <style>{`
+        @keyframes quantumTabExitFwd {
+          0% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-100%);
+          }
+        }
+
+        @keyframes quantumTabEnterFwd {
+          0% {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes quantumTabExitBwd {
+          0% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+        }
+
+        @keyframes quantumTabEnterBwd {
+          0% {
+            opacity: 0;
+            transform: translateX(-100%);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-quantum-tab-exit-fwd {
+          animation: quantumTabExitFwd 0.72s cubic-bezier(0.4, 0, 1, 1) forwards;
+        }
+
+        .animate-quantum-tab-enter-fwd {
+          animation: quantumTabEnterFwd 0.88s cubic-bezier(0, 0, 0.2, 1) forwards;
+        }
+
+        .animate-quantum-tab-exit-bwd {
+          animation: quantumTabExitBwd 0.72s cubic-bezier(0.4, 0, 1, 1) forwards;
+        }
+
+        .animate-quantum-tab-enter-bwd {
+          animation: quantumTabEnterBwd 0.88s cubic-bezier(0, 0, 0.2, 1) forwards;
+        }
+      `}</style>
     </div>
   );
 };

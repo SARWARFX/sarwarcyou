@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   getRolling7DayUsage,
   getDiurnalPhasesForDay,
@@ -45,21 +45,60 @@ const DIURNAL_CATEGORIES_24: DiurnalCategory24[] = [
 export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> = ({ onClose }) => {
   // null = Screen 1 (7-Day Graph); number = Screen 2 (Clicked Day's 8 Categories)
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
+  const [isClosing, setIsClosing] = useState<boolean>(false);
+  const [screenTransition, setScreenTransition] = useState<{
+    phase: 'idle' | 'exiting_to_screen2' | 'entering_screen2' | 'exiting_to_screen1' | 'entering_screen1';
+  }>({ phase: 'idle' });
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    hapticMedium();
+    setTimeout(() => {
+      onClose();
+    }, 240);
+  }, [isClosing, onClose]);
+
+  const handleSelectDay = useCallback((idx: number) => {
+    if (screenTransition.phase !== 'idle') return;
+    hapticMedium();
+    setScreenTransition({ phase: 'exiting_to_screen2' });
+    setTimeout(() => {
+      setSelectedDayIdx(idx);
+      setScreenTransition({ phase: 'entering_screen2' });
+      setTimeout(() => {
+        setScreenTransition({ phase: 'idle' });
+      }, 260);
+    }, 200);
+  }, [screenTransition.phase]);
+
+  const handleBack = useCallback(() => {
+    if (screenTransition.phase !== 'idle') return;
+    hapticMedium();
+    setScreenTransition({ phase: 'exiting_to_screen1' });
+    setTimeout(() => {
+      setSelectedDayIdx(null);
+      setScreenTransition({ phase: 'entering_screen1' });
+      setTimeout(() => {
+        setScreenTransition({ phase: 'idle' });
+      }, 260);
+    }, 200);
+  }, [screenTransition.phase]);
 
   // Keyboard shortcut: ESC returns to Screen 1 or closes modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (selectedDayIdx !== null) {
-          setSelectedDayIdx(null);
+          handleBack();
         } else {
-          onClose();
+          handleClose();
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedDayIdx, onClose]);
+  }, [selectedDayIdx, handleBack, handleClose]);
 
   // Compute 7 rolling days of telemetry
   const sevenDays = useMemo(() => {
@@ -133,11 +172,12 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
       aria-modal="true"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          hapticMedium();
-          onClose();
+          handleClose();
         }
       }}
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none animate-backdrop-fade"
+      className={`fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none ${
+        isClosing ? 'animate-holo-backdrop-out' : 'animate-holo-backdrop-in'
+      }`}
       style={{
         borderRadius: 0,
         outline: 'none',
@@ -147,22 +187,29 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
       }}
     >
       <div
-        className="w-full max-w-4xl bg-[#06080e]/92 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.85)] flex flex-col p-6 sm:p-10 relative"
+        className={`w-full max-w-4xl bg-[#06080e]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.85)] flex flex-col p-6 sm:p-10 relative overflow-hidden ${
+          isClosing ? 'animate-holo-beam-close' : 'animate-holo-beam-open'
+        }`}
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         {/* ============================================================ */}
         {/* SCREEN 1: ONLY THE ENLARGED 7-DAY GRAPH (First Screenshot)   */}
         {/* ============================================================ */}
         {selectedDayIdx === null ? (
-          <div className="flex flex-col relative w-full">
+          <div
+            className={`flex flex-col relative w-full ${
+              screenTransition.phase === 'exiting_to_screen2'
+                ? 'animate-holo-drill-exit'
+                : screenTransition.phase === 'entering_screen1'
+                ? 'animate-holo-drill-enter'
+                : ''
+            }`}
+          >
             {/* Top Right Corner: Close Button */}
             <div className="flex justify-end w-full mb-6 sm:mb-8">
               <button
                 type="button"
-                onClick={() => {
-                  hapticMedium();
-                  onClose();
-                }}
+                onClick={handleClose}
                 className="text-white/70 hover:text-white transition-colors cursor-pointer p-1 bg-transparent border-0"
                 style={{ borderRadius: 0, outline: 'none' }}
                 title="Close (Esc)"
@@ -176,10 +223,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
               {sevenDays.map((day, idx) => (
                 <div
                   key={day.key}
-                  onClick={() => {
-                    hapticMedium();
-                    setSelectedDayIdx(idx);
-                  }}
+                  onClick={() => handleSelectDay(idx)}
                   className="group flex flex-col items-center gap-2.5 sm:gap-3 cursor-pointer p-1 sm:p-2 transition-transform duration-200 hover:scale-[1.03]"
                   style={{ borderRadius: 0, outline: 'none' }}
                   title={`Click to inspect ${day.dayFullName} (${day.timeFormatted})`}
@@ -261,15 +305,20 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
           /* ============================================================ */
           /* SCREEN 2: ONLY THE 8 DIURNAL CATEGORIES (Second Screenshot)  */
           /* ============================================================ */
-          <div className="flex flex-col relative w-full">
+          <div
+            className={`flex flex-col relative w-full ${
+              screenTransition.phase === 'exiting_to_screen1'
+                ? 'animate-holo-drill-exit'
+                : screenTransition.phase === 'entering_screen2'
+                ? 'animate-holo-drill-enter'
+                : ''
+            }`}
+          >
             {/* Top Bar: Back Button (Left) and Close Button (Right) */}
             <div className="flex items-center justify-between w-full mb-6 sm:mb-8">
               <button
                 type="button"
-                onClick={() => {
-                  hapticMedium();
-                  setSelectedDayIdx(null);
-                }}
+                onClick={handleBack}
                 className="px-3 py-1.5 bg-white/[0.04] border border-white/[0.12] text-xs font-bold tracking-wider uppercase text-white hover:bg-[#38bdf8] hover:text-black hover:border-[#38bdf8] transition-all cursor-pointer flex items-center gap-2"
                 style={{ borderRadius: 0, outline: 'none' }}
                 title="Back to 7-Day Graph"
@@ -280,10 +329,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
 
               <button
                 type="button"
-                onClick={() => {
-                  hapticMedium();
-                  onClose();
-                }}
+                onClick={handleClose}
                 className="text-white/70 hover:text-white transition-colors cursor-pointer p-1 bg-transparent border-0"
                 style={{ borderRadius: 0, outline: 'none' }}
                 title="Close (Esc)"
@@ -371,6 +417,88 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes holoBeamModalOpen {
+          0% {
+            opacity: 0;
+            transform: scale(1, 0.005);
+            filter: brightness(3) drop-shadow(0 0 24px rgba(0, 242, 254, 0.9));
+          }
+          40% {
+            opacity: 1;
+            transform: scale(1, 0.005);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1, 1);
+            filter: brightness(1) drop-shadow(0 0 0px transparent);
+          }
+        }
+
+        @keyframes holoBeamModalClose {
+          0% {
+            opacity: 1;
+            transform: scale(1, 1);
+            filter: brightness(1);
+          }
+          60% {
+            opacity: 1;
+            transform: scale(1, 0.005);
+            filter: brightness(3) drop-shadow(0 0 24px rgba(0, 242, 254, 0.9));
+          }
+          100% {
+            opacity: 0;
+            transform: scale(0, 0.005);
+            filter: brightness(4);
+          }
+        }
+
+        @keyframes holoBackdropIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+
+        @keyframes holoBackdropOut {
+          0% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+
+        @keyframes holoDrillExit {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; filter: invert(0.5); transform: translateY(-4px); }
+          100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        @keyframes holoDrillEnter {
+          0% { opacity: 0; transform: translateY(15px); filter: contrast(1.5) drop-shadow(0 0 10px #00f2fe); }
+          100% { opacity: 1; transform: translateY(0); filter: contrast(1); }
+        }
+
+        .animate-holo-beam-open {
+          animation: holoBeamModalOpen 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .animate-holo-beam-close {
+          animation: holoBeamModalClose 0.24s ease forwards;
+        }
+
+        .animate-holo-backdrop-in {
+          animation: holoBackdropIn 0.3s ease forwards;
+        }
+
+        .animate-holo-backdrop-out {
+          animation: holoBackdropOut 0.24s ease forwards;
+        }
+
+        .animate-holo-drill-exit {
+          animation: holoDrillExit 0.2s steps(3) forwards;
+        }
+
+        .animate-holo-drill-enter {
+          animation: holoDrillEnter 0.26s ease forwards;
+        }
+      `}</style>
     </div>
   );
 };
