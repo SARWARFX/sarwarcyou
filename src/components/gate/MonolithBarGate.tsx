@@ -230,7 +230,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [notFoundInfo, setNotFoundInfo] = useState<{
     isOpen: boolean;
     path: string;
-    tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER';
+    tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER' | 'HOME' | 'TELEMETRY';
   }>({ isOpen: false, path: '' });
 
   const switchTab = useCallback((targetIndex: number) => {
@@ -280,6 +280,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }, 880);
     }, 800);
   }, [tabIndex, TAB_VISUAL_ORDER]);
+
+  // Navigate directly to the real homepage (Shorts -> Featured showcase at root '/')
+  const goToHome = useCallback(() => {
+    if (transitionTimerRef.current.t1) clearTimeout(transitionTimerRef.current.t1);
+    if (transitionTimerRef.current.t2) clearTimeout(transitionTimerRef.current.t2);
+
+    setTabIndex(2);
+    setShortsSubfolder('Featured');
+    setDisplayedTab(2);
+    setDisplayedShortsSub('Featured');
+    setQuantumAnimClass('');
+    setShuffleTrigger((prev) => prev + 1);
+
+    if (typeof window !== 'undefined') {
+      updateBrowserUrl('/');
+    }
+  }, []);
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
   useEffect(() => {
@@ -355,14 +372,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           onOpenVideo(item, [item]);
         }
       } else {
-        setNotFoundInfo({ isOpen: true, path: window.location.pathname });
+        setNotFoundInfo({ isOpen: true, path: window.location.pathname, tab: initialRoute.tab });
       }
       return;
     }
 
     const parsed = parseAppPathname();
     if (parsed.isNotFound) {
-      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath });
+      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
     }
   }, [items, initialRoute, onOpenPhoto, onOpenShort, onOpenVideo, switchTab]);
 
@@ -591,7 +608,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setShuffleTrigger((prev) => prev + 1);
     }
     if (tabIndex === 1) setPhotosSubfolder(sub);
-    else if (tabIndex === 2) setShortsSubfolder(sub);
+    else if (tabIndex === 2) {
+      setShortsSubfolder(sub);
+      if (typeof window !== 'undefined') {
+        updateBrowserUrl(sub === 'Featured' ? '/' : '/shorts');
+      }
+    }
     else if (tabIndex === 3) setClipsSubfolder(sub);
     else if (tabIndex === 4) setBandhobiSubfolder(sub);
 
@@ -634,7 +656,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         isOpen={notFoundInfo.isOpen}
         attemptedPath={notFoundInfo.path}
         suggestedTab={notFoundInfo.tab}
-        onClose={() => setNotFoundInfo((prev) => ({ ...prev, isOpen: false }))}
+        onClose={() => {
+          setNotFoundInfo((prev) => ({ ...prev, isOpen: false }));
+          goToHome();
+        }}
         onNavigateTab={(tab) => {
           setNotFoundInfo((prev) => ({ ...prev, isOpen: false }));
           if (tab === 'PHOTOGRAPHY') switchTab(1);
@@ -642,8 +667,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           else if (tab === 'CLIPS') switchTab(3);
           else if (tab === 'BANDHOBI') switchTab(4);
           else {
-            switchTab(2);
-            setShortsSubfolder('Featured');
+            goToHome();
           }
         }}
       />
@@ -661,17 +685,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               if (tabIndex === 2 && shortsSubfolder === 'Featured' && displayedShortsSub === 'Featured') {
                 return;
               }
-              if (tabIndex === 2) {
-                handleSelectSubfolder('Featured');
-              } else {
-                setTabIndex(2);
-                setShortsSubfolder('Featured');
-                setDisplayedTab(2);
-                setDisplayedShortsSub('Featured');
-              }
-              if (typeof window !== 'undefined') {
-                updateBrowserUrl('/');
-              }
+              goToHome();
             }}
             className="inline-flex items-center cursor-pointer transition-opacity hover:opacity-85 bg-transparent p-0"
             title="SARWAR.CYOU"

@@ -4,9 +4,9 @@ import { hapticLight, hapticMedium } from '../../utils/hapticsManager';
 export interface MediaNotFoundDialogProps {
   isOpen: boolean;
   attemptedPath: string;
-  suggestedTab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER';
+  suggestedTab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER' | 'HOME' | 'TELEMETRY';
   onClose: () => void;
-  onNavigateTab: (tab: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER') => void;
+  onNavigateTab: (tab: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER' | 'HOME' | 'TELEMETRY') => void;
 }
 
 /**
@@ -70,7 +70,7 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
             type="button"
             onClick={() => {
               hapticLight();
-              onNavigateTab('TRAILER');
+              onNavigateTab('HOME');
               onClose();
             }}
             className="py-2 px-4 bg-[#38bdf8] text-black font-mono font-bold text-xs uppercase tracking-wider hover:bg-white transition-colors cursor-pointer"
