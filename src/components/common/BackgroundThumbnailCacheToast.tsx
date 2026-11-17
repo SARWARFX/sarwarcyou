@@ -11,10 +11,10 @@ export interface BackgroundThumbnailCacheToastProps {
 }
 
 /**
- * Background Thumbnail Cache Engine with Bottom-Left Notification
+ * Background Thumbnail Cache Engine with Bottom-Right Notification
  * - Runs silently after visitor lands on the homepage
- * - Pre-caches catalog thumbnails concurrently via new Image()
- * - Displays a sleek, minimalist notification on the bottom-left corner
+ * - Pre-caches all video clips, shorts, and photo thumbnails concurrently via new Image()
+ * - Displays a sleek, minimalist notification on the bottom-right corner (zero overlap with left subfolders)
  * - Zero rounded corners (0px), zero outline strokes
  * - Fades away smoothly once caching is complete
  */
@@ -27,9 +27,10 @@ export const BackgroundThumbnailCacheToast: React.FC<BackgroundThumbnailCacheToa
   const [totalCount, setTotalCount] = useState<number>(0);
   const hasStartedRef = useRef(false);
 
-  // Extract catalog thumbnails to cache in background
+  // Extract all catalog thumbnails to cache in background (prioritizing videos and shorts)
   const targetUrls = useMemo(() => {
     const urls: string[] = [];
+    const seen = new Set<string>();
 
     const extractThumb = (item: any): string => {
       if (!item) return '';
@@ -44,19 +45,29 @@ export const BackgroundThumbnailCacheToast: React.FC<BackgroundThumbnailCacheToa
       return '';
     };
 
+    const addUrl = (item: any) => {
+      const url = extractThumb(item);
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        urls.push(url);
+      }
+    };
+
     if (items && items.length > 0) {
-      items.slice(0, 48).forEach((item) => {
-        const url = extractThumb(item);
-        if (url && !urls.includes(url)) urls.push(url);
-      });
+      // Prioritize all video clips and shorts first, then photographs
+      const videosAndShorts = items.filter((it) => !isPhotoExtension(it.path || it.url || it.name || ''));
+      const photos = items.filter((it) => isPhotoExtension(it.path || it.url || it.name || ''));
+
+      videosAndShorts.forEach(addUrl);
+      photos.forEach(addUrl);
     } else {
-      const images = (FALLBACK_HF_CATALOG.images || []).slice(0, 24);
-      const clips = (FALLBACK_HF_CATALOG.clips || []).slice(0, 14);
-      const shorts = (FALLBACK_HF_CATALOG.shorts || []).slice(0, 10);
-      [...images, ...clips, ...shorts].forEach((item) => {
-        const url = extractThumb(item);
-        if (url && !urls.includes(url)) urls.push(url);
-      });
+      const shorts = FALLBACK_HF_CATALOG.shorts || [];
+      const clips = FALLBACK_HF_CATALOG.clips || [];
+      const images = FALLBACK_HF_CATALOG.images || [];
+
+      shorts.forEach(addUrl);
+      clips.forEach(addUrl);
+      images.forEach(addUrl);
     }
 
     return urls;
@@ -73,25 +84,38 @@ export const BackgroundThumbnailCacheToast: React.FC<BackgroundThumbnailCacheToa
       setStatus('caching');
 
       let completed = 0;
+      let currentIndex = 0;
+      const CONCURRENCY = 8; // Concurrently fetch 8 thumbnails at a time to prevent network stalls
 
-      const handleLoad = () => {
-        completed++;
-        setLoadedCount(completed);
-        if (completed >= total) {
-          setStatus('complete');
-          // Disappear smoothly after 2.5 seconds
-          setTimeout(() => {
-            setStatus('hidden');
-          }, 2500);
-        }
+      const loadNext = () => {
+        if (currentIndex >= total) return;
+        const url = targetUrls[currentIndex++];
+        const img = new Image();
+
+        const onFinish = () => {
+          completed++;
+          setLoadedCount(completed);
+          if (completed >= total) {
+            setStatus('complete');
+            // Disappear smoothly after 2.5 seconds
+            setTimeout(() => {
+              setStatus('hidden');
+            }, 2500);
+          } else {
+            loadNext();
+          }
+        };
+
+        img.onload = onFinish;
+        img.onerror = onFinish;
+        img.src = url;
       };
 
-      targetUrls.forEach((url) => {
-        const img = new Image();
-        img.onload = handleLoad;
-        img.onerror = handleLoad;
-        img.src = url;
-      });
+      // Seed initial worker pool
+      const initialPoolSize = Math.min(CONCURRENCY, total);
+      for (let i = 0; i < initialPoolSize; i++) {
+        loadNext();
+      }
     }, 600);
 
     return () => clearTimeout(startTimer);
@@ -101,10 +125,14 @@ export const BackgroundThumbnailCacheToast: React.FC<BackgroundThumbnailCacheToa
 
   return (
     <div
-      className={`fixed bottom-5 left-5 sm:bottom-7 sm:left-7 z-40 select-none bg-[#07090e]/95 border border-[#38bdf8]/30 px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-3 shadow-[0_4px_24px_rgba(0,0,0,0.8)] backdrop-blur-md transition-all duration-400 ${
+      className={`fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-40 select-none bg-[#07090e]/95 border border-[#38bdf8]/30 px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-3 shadow-[0_4px_24px_rgba(0,0,0,0.8)] backdrop-blur-md transition-all duration-400 ${
         status === 'complete' ? 'border-[#22c55e]/40' : ''
       }`}
-      style={{ borderRadius: 0, outline: 'none' }}
+      style={{
+        borderRadius: 0,
+        outline: 'none',
+        fontFamily: "'Science Gothic', sans-serif",
+      }}
     >
       {/* Radar Pulse Indicator */}
       <div
