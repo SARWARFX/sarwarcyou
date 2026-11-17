@@ -189,7 +189,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                     className={`text-xs sm:text-sm font-bold tracking-wider ${
                       isActive ? 'text-white' : 'text-[#94a3b8]'
                     }`}
-                    style={{ fontFamily: "'Firjar', sans-serif" }}
+                    style={{ fontFamily: "'Ubuntu', sans-serif" }}
                   >
                     {day.dayLetter}
                   </span>
@@ -216,7 +216,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
 
                   <span
                     className="text-[10px] sm:text-[11px] font-bold text-[#cbd5e1] tracking-tight whitespace-nowrap"
-                    style={{ fontFamily: "'Firjar', sans-serif" }}
+                    style={{ fontFamily: "'Ubuntu', sans-serif" }}
                   >
                     {formatTime(day.totalMins)}
                   </span>
@@ -246,7 +246,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
               </div>
               <div
                 className="text-2xl sm:text-3xl font-extrabold text-white tracking-[0.04em]"
-                style={{ fontFamily: "'Firjar', sans-serif" }}
+                style={{ fontFamily: "'Ubuntu', sans-serif" }}
               >
                 {formatTime(activeDay.totalMins)} TOTAL TIME
               </div>
@@ -336,7 +336,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                       <span
                         className={`text-[10px] sm:text-[11px] font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${textColor}`}
                         style={{
-                          fontFamily: "'Firjar', sans-serif",
+                          fontFamily: "'Ubuntu', sans-serif",
                           transform: 'rotate(-90deg)',
                           transformOrigin: 'center center',
                           borderRadius: 0,
