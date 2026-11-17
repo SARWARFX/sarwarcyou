@@ -92,21 +92,21 @@ export const DiurnalPhase24hSummary: React.FC<DiurnalPhase24hSummaryProps> = ({
       }}
     >
       {/* Sleek Sub-Header with Selected Day & Total Time */}
-      <div className="w-full max-w-xl flex items-center justify-between px-2 mb-2">
+      <div className="w-full max-w-xl sm:max-w-2xl flex items-center justify-between px-2 mb-2 sm:mb-3">
         <span
-          className="text-[9px] sm:text-[10px] font-bold tracking-[0.16em] uppercase text-[#38bdf8]"
+          className="text-[10.5px] sm:text-[12px] font-bold tracking-[0.16em] uppercase text-[#38bdf8]"
           style={{ textShadow: '0 0 8px rgba(56, 189, 248, 0.5)' }}
         >
           {dayData.dayTitle} // 24-HOUR STATISTIC
         </span>
-        <span className="text-[9px] sm:text-[10px] font-bold tracking-wider text-white/90">
+        <span className="text-[10.5px] sm:text-[12px] font-bold tracking-wider text-white/90">
           {dayData.timeFormatted} TOTAL
         </span>
       </div>
 
       {/* 8 Columns: 24h Diurnal Categories */}
       <div
-        className="w-full max-w-xl grid grid-cols-8 gap-1 sm:gap-2 items-end px-2"
+        className="w-full max-w-xl sm:max-w-2xl grid grid-cols-8 gap-1.5 sm:gap-2.5 items-end px-2"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         {DIURNAL_CATEGORIES_24.map((cat, idx) => {
@@ -135,13 +135,13 @@ export const DiurnalPhase24hSummary: React.FC<DiurnalPhase24hSummaryProps> = ({
           return (
             <div
               key={cat.id}
-              className="flex flex-col items-center gap-1 cursor-default relative w-full"
+              className="flex flex-col items-center gap-1.5 cursor-default relative w-full"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               title={`${cat.name}: ${formatTime(mins)} (${cat.window24})`}
             >
               {/* Time count on top */}
               <span
-                className={`text-[7.5px] sm:text-[8.5px] font-bold leading-none tracking-tight whitespace-nowrap transition-colors duration-150 ${textColor}`}
+                className={`text-[9px] sm:text-[10.5px] font-bold leading-none tracking-tight whitespace-nowrap transition-colors duration-150 ${textColor}`}
                 style={{
                   fontFamily: "'Science Gothic', sans-serif",
                   textShadow: isPeak
@@ -156,7 +156,7 @@ export const DiurnalPhase24hSummary: React.FC<DiurnalPhase24hSummaryProps> = ({
 
               {/* Monolith Bar */}
               <div
-                className="w-2 sm:w-2.5 h-[42px] sm:h-[48px] bg-white/[0.05] flex items-end relative overflow-hidden"
+                className="w-3 sm:w-3.5 h-[68px] sm:h-[80px] bg-white/[0.05] flex items-end relative overflow-hidden"
                 style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               >
                 <div
@@ -176,9 +176,9 @@ export const DiurnalPhase24hSummary: React.FC<DiurnalPhase24hSummaryProps> = ({
               </div>
 
               {/* Short Label & Window */}
-              <div className="flex flex-col items-center text-center leading-none mt-0.5">
+              <div className="flex flex-col items-center text-center leading-none mt-1">
                 <span
-                  className={`text-[7.5px] sm:text-[8px] font-bold tracking-tight uppercase ${
+                  className={`text-[8.5px] sm:text-[9.5px] font-bold tracking-tight uppercase ${
                     isPeak ? 'text-[#38bdf8]' : 'text-white/80'
                   }`}
                   style={{ fontFamily: "'Science Gothic', sans-serif" }}
@@ -186,7 +186,7 @@ export const DiurnalPhase24hSummary: React.FC<DiurnalPhase24hSummaryProps> = ({
                   {cat.shortName}
                 </span>
                 <span
-                  className="text-[6.5px] sm:text-[7px] text-[#64748b] tracking-tighter whitespace-nowrap mt-0.5"
+                  className="text-[7.5px] sm:text-[8px] text-[#64748b] tracking-tighter whitespace-nowrap mt-0.5"
                   style={{ fontFamily: "'Science Gothic', sans-serif" }}
                 >
                   {cat.shortWindow}

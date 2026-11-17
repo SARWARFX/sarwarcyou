@@ -741,6 +741,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 {/* 1. First Graph: Mini Graph (Above Media Cards) */}
                 <div className="w-full flex justify-center shrink-0 pt-1 pb-1">
                   <TacticalTelemetryGraph
+                    size="large"
                     selectedDayIndex={portraitSelectedDay}
                     onSelectDay={(dayIdx) => setPortraitSelectedDay(dayIdx)}
                   />

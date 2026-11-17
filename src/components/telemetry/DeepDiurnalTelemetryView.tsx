@@ -4,7 +4,6 @@ import {
   getDiurnalPhasesForDay,
 } from '../../utils/usageTelemetry';
 import { hapticMedium } from '../../utils/hapticsManager';
-import { LaserCloseIcon } from '../brand/LaserIcons';
 
 export interface DeepDiurnalTelemetryViewProps {
   onClose: () => void;
@@ -38,18 +37,18 @@ const DIURNAL_CATEGORIES_24: DiurnalCategory24[] = [
 ];
 
 /**
- * Distraction-Free Telemetry Modal
- * - Screen 1: Pure enlarged 7-day graph with time on top, day name below, close button at top-right
- * - Screen 2: Pure 8-diurnal categories graph with time on top, 24h format below, back at top-left, close at top-right
- * - Rendered in a semi-transparent floating window over the page
+ * Distraction-Free 24-Hour Diurnal Telemetry Modal
+ * - Directly opens clicked day's 24-hour diurnal statistics
+ * - Zero back button, zero close button, zero 7-day overview
+ * - Clicking the backdrop outside the modal or pressing ESC closes it smoothly
+ * - All Science Gothic typography, zero rounded corners, zero outlines
  */
-export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> = ({ onClose, initialDayIndex = null }) => {
-  // null = Screen 1 (7-Day Graph); number = Screen 2 (Clicked Day's 8 Categories)
-  const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(() => initialDayIndex ?? null);
+export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> = ({
+  onClose,
+  initialDayIndex = 0,
+}) => {
+  const activeDayIndex = initialDayIndex ?? 0;
   const [isClosing, setIsClosing] = useState<boolean>(false);
-  const [screenTransition, setScreenTransition] = useState<{
-    phase: 'idle' | 'exiting_to_screen2' | 'entering_screen2' | 'exiting_to_screen1' | 'entering_screen1';
-  }>({ phase: 'idle' });
 
   const handleClose = useCallback(() => {
     if (isClosing) return;
@@ -60,46 +59,16 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
     }, 240);
   }, [isClosing, onClose]);
 
-  const handleSelectDay = useCallback((idx: number) => {
-    if (screenTransition.phase !== 'idle') return;
-    hapticMedium();
-    setScreenTransition({ phase: 'exiting_to_screen2' });
-    setTimeout(() => {
-      setSelectedDayIdx(idx);
-      setScreenTransition({ phase: 'entering_screen2' });
-      setTimeout(() => {
-        setScreenTransition({ phase: 'idle' });
-      }, 260);
-    }, 200);
-  }, [screenTransition.phase]);
-
-  const handleBack = useCallback(() => {
-    if (screenTransition.phase !== 'idle') return;
-    hapticMedium();
-    setScreenTransition({ phase: 'exiting_to_screen1' });
-    setTimeout(() => {
-      setSelectedDayIdx(null);
-      setScreenTransition({ phase: 'entering_screen1' });
-      setTimeout(() => {
-        setScreenTransition({ phase: 'idle' });
-      }, 260);
-    }, 200);
-  }, [screenTransition.phase]);
-
-  // Keyboard shortcut: ESC returns to Screen 1 or closes modal
+  // Keyboard shortcut: ESC closes modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (selectedDayIdx !== null) {
-          handleBack();
-        } else {
-          handleClose();
-        }
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedDayIdx, handleBack, handleClose]);
+  }, [handleClose]);
 
   // Compute 7 rolling days of telemetry
   const sevenDays = useMemo(() => {
@@ -126,6 +95,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
         dayFullName = 'YESTERDAY';
       } else {
         dayLetter = d.toLocaleDateString('en-US', { weekday: 'short' })[0].toUpperCase();
+        dayFullName = d.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
       }
 
       const recordedMins = reversed[i]?.minutes || 0;
@@ -153,7 +123,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
     }));
   }, []);
 
-  const activeDay = selectedDayIdx !== null ? sevenDays[selectedDayIdx] : null;
+  const activeDay = sevenDays[activeDayIndex] || sevenDays[0];
   const maxPhaseMins = activeDay ? Math.max(...activeDay.phasesMins, 1) : 1;
 
   let peakCategoryIdx = 0;
@@ -176,7 +146,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
           handleClose();
         }
       }}
-      className={`fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none ${
+      className={`fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none cursor-pointer ${
         isClosing ? 'animate-holo-backdrop-out' : 'animate-holo-backdrop-in'
       }`}
       style={{
@@ -186,237 +156,119 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
         WebkitBackdropFilter: 'blur(16px)',
         backdropFilter: 'blur(16px)',
       }}
+      title="Click outside graph to close"
     >
       <div
-        className={`w-full max-w-4xl bg-[#06080e]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.85)] flex flex-col p-6 sm:p-10 relative overflow-hidden ${
+        onClick={(e) => e.stopPropagation()}
+        className={`w-full max-w-4xl bg-[#06080e]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.85)] flex flex-col p-6 sm:p-10 relative overflow-hidden cursor-default ${
           isClosing ? 'animate-holo-beam-close' : 'animate-holo-beam-open'
         }`}
-        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+        style={{
+          borderRadius: 0,
+          outline: 'none',
+          border: 'none',
+          fontFamily: "'Science Gothic', sans-serif",
+        }}
       >
-        {/* ============================================================ */}
-        {/* SCREEN 1: ONLY THE ENLARGED 7-DAY GRAPH (First Screenshot)   */}
-        {/* ============================================================ */}
-        {selectedDayIdx === null ? (
-          <div
-            className={`flex flex-col relative w-full ${
-              screenTransition.phase === 'exiting_to_screen2'
-                ? 'animate-holo-drill-exit'
-                : screenTransition.phase === 'entering_screen1'
-                ? 'animate-holo-drill-enter'
-                : ''
-            }`}
+        {/* Sleek Header: Day Name + 24-Hour Diurnal Matrix & Total Time */}
+        <div className="flex items-center justify-between w-full mb-6 sm:mb-8">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-xs sm:text-sm font-bold tracking-[0.2em] uppercase text-[#38bdf8]"
+              style={{
+                fontFamily: "'Science Gothic', sans-serif",
+                textShadow: '0 0 10px rgba(56, 189, 248, 0.6)',
+              }}
+            >
+              {activeDay?.dayFullName} // 24-HOUR DIURNAL BREAKDOWN
+            </span>
+          </div>
+          <span
+            className="text-xs sm:text-sm font-bold tracking-wider text-white/90"
+            style={{ fontFamily: "'Science Gothic', sans-serif" }}
           >
-            {/* Top Right Corner: Close Button */}
-            <div className="flex justify-end w-full mb-6 sm:mb-8">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="text-white/70 hover:text-white transition-colors cursor-pointer p-1 bg-transparent border-0"
-                style={{ borderRadius: 0, outline: 'none' }}
-                title="Close (Esc)"
-              >
-                <LaserCloseIcon size={24} />
-              </button>
-            </div>
+            {formatTime(activeDay?.totalMins || 0)} TOTAL
+          </span>
+        </div>
 
-            {/* 7 Columns: Time on top -> Monolith Bar -> Day Name at Bottom */}
-            <div className="grid grid-cols-7 gap-2 sm:gap-6 items-end w-full pb-4">
-              {sevenDays.map((day, idx) => (
-                <div
-                  key={day.key}
-                  onClick={() => handleSelectDay(idx)}
-                  className="group flex flex-col items-center gap-2.5 sm:gap-3 cursor-pointer p-1 sm:p-2 transition-transform duration-200 hover:scale-[1.03]"
-                  style={{ borderRadius: 0, outline: 'none' }}
-                  title={`Click to inspect ${day.dayFullName} (${day.timeFormatted})`}
+        {/* 8 Columns: Time on top -> Monolith Bar -> Category Name & 24h Window Below */}
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3.5 items-end w-full pb-2">
+          {DIURNAL_CATEGORIES_24.map((cat, idx) => {
+            const mins = activeDay?.phasesMins[idx] || 0;
+            const heightPct =
+              mins > 0 ? Math.max(16, Math.round((mins / maxPhaseMins) * 100)) : 6;
+            const isPeak = idx === peakCategoryIdx && mins > 0;
+
+            const barColor =
+              mins === 0
+                ? 'bg-white/[0.06]'
+                : isPeak
+                ? 'bg-[#38bdf8] shadow-[0_0_14px_rgba(56,189,248,0.7)]'
+                : activeDay?.isToday
+                ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)]'
+                : 'bg-[#475569]';
+
+            const textColor =
+              mins === 0
+                ? 'text-[#475569]'
+                : isPeak
+                ? 'text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]'
+                : activeDay?.isToday
+                ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]'
+                : 'text-[#94a3b8]';
+
+            return (
+              <div
+                key={cat.id}
+                className="flex flex-col items-center gap-2.5 sm:gap-3 cursor-default p-1 transition-transform duration-200 hover:scale-[1.03]"
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+                title={`${cat.name}: ${formatTime(mins)} (${cat.window24})`}
+              >
+                {/* Time Count At Top of the Bar */}
+                <span
+                  className={`text-[9.5px] sm:text-[11px] font-bold leading-none tracking-tight whitespace-nowrap transition-colors duration-150 ${textColor}`}
+                  style={{ fontFamily: "'Science Gothic', sans-serif" }}
                 >
-                  {/* Time Count At Top of the Bar */}
-                  <span
-                    className={`text-[10px] sm:text-xs font-bold leading-none tracking-tight whitespace-nowrap transition-colors duration-150 ${
-                      day.isPeak
-                        ? 'text-[#38bdf8]'
-                        : day.isToday
-                        ? 'text-white'
-                        : 'text-[#94a3b8] group-hover:text-white'
-                    }`}
+                  {formatTime(mins)}
+                </span>
+
+                {/* Tall Vertical Monolith Bar */}
+                <div
+                  className="w-4 sm:w-5 md:w-6 h-[220px] sm:h-[280px] bg-white/[0.04] flex items-end relative overflow-hidden"
+                  style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+                >
+                  <div
+                    className={`w-full transition-all duration-300 ${barColor}`}
                     style={{
-                      fontFamily: "'Ubuntu', sans-serif",
-                      textShadow: day.isPeak
-                        ? '0 0 10px rgba(56, 189, 248, 0.7)'
-                        : day.isToday
-                        ? '0 0 10px rgba(255, 255, 255, 0.8)'
-                        : 'none',
+                      height: `${heightPct}%`,
+                      borderRadius: 0,
+                      outline: 'none',
+                      border: 'none',
                     }}
-                  >
-                    {day.timeFormatted}
-                  </span>
-
-                  {/* Tall Vertical Monolith Bar */}
-                  <div
-                    className="w-5 sm:w-7 md:w-8 h-[240px] sm:h-[300px] bg-white/[0.05] flex items-end relative overflow-hidden"
-                    style={{ borderRadius: 0, outline: 'none' }}
-                  >
-                    <div
-                      className={`w-full transition-all duration-300 ${
-                        day.isPeak
-                          ? 'bg-[#38bdf8] shadow-[0_0_14px_rgba(56,189,248,0.7)]'
-                          : day.isToday
-                          ? 'bg-white shadow-[0_0_12px_rgba(255,255,255,0.75)]'
-                          : 'bg-[#64748b] group-hover:bg-[#94a3b8]'
-                      }`}
-                      style={{
-                        height: `${day.heightPercent}%`,
-                        borderRadius: 0,
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-
-                  {/* Day Initial + Full Day Name Underneath */}
-                  <div className="flex flex-col items-center gap-1">
-                    <span
-                      className={`text-sm sm:text-base font-bold transition-colors ${
-                        day.isPeak
-                          ? 'text-[#38bdf8] font-extrabold'
-                          : day.isToday
-                          ? 'text-white font-extrabold'
-                          : 'text-[#94a3b8] group-hover:text-white'
-                      }`}
-                      style={{ fontFamily: "'Ubuntu', sans-serif" }}
-                    >
-                      {day.dayLetter}
-                    </span>
-                    <span
-                      className={`text-[9px] sm:text-[10px] font-bold tracking-wider uppercase transition-colors whitespace-nowrap ${
-                        day.isPeak
-                          ? 'text-[#38bdf8]'
-                          : day.isToday
-                          ? 'text-white'
-                          : 'text-[#64748b] group-hover:text-white'
-                      }`}
-                      style={{ fontFamily: "'Ubuntu', sans-serif" }}
-                    >
-                      {day.dayFullName}
-                    </span>
-                  </div>
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          /* ============================================================ */
-          /* SCREEN 2: ONLY THE 8 DIURNAL CATEGORIES (Second Screenshot)  */
-          /* ============================================================ */
-          <div
-            className={`flex flex-col relative w-full ${
-              screenTransition.phase === 'exiting_to_screen1'
-                ? 'animate-holo-drill-exit'
-                : screenTransition.phase === 'entering_screen2'
-                ? 'animate-holo-drill-enter'
-                : ''
-            }`}
-          >
-            {/* Top Bar: Back Button (Left) and Close Button (Right) */}
-            <div className="flex items-center justify-between w-full mb-6 sm:mb-8">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="px-3 py-1.5 bg-white/[0.04] border border-white/[0.12] text-xs font-bold tracking-wider uppercase text-white hover:bg-[#38bdf8] hover:text-black hover:border-[#38bdf8] transition-all cursor-pointer flex items-center gap-2"
-                style={{ borderRadius: 0, outline: 'none' }}
-                title="Back to 7-Day Graph"
-              >
-                <span>←</span>
-                <span>Back</span>
-              </button>
 
-              <button
-                type="button"
-                onClick={handleClose}
-                className="text-white/70 hover:text-white transition-colors cursor-pointer p-1 bg-transparent border-0"
-                style={{ borderRadius: 0, outline: 'none' }}
-                title="Close (Esc)"
-              >
-                <LaserCloseIcon size={24} />
-              </button>
-            </div>
-
-            {/* 8 Columns: Time on top -> Monolith Bar -> Category Name & 24h Window Below */}
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3.5 items-end w-full pb-4">
-              {DIURNAL_CATEGORIES_24.map((cat, idx) => {
-                const mins = activeDay?.phasesMins[idx] || 0;
-                const heightPct =
-                  mins > 0 ? Math.max(16, Math.round((mins / maxPhaseMins) * 100)) : 6;
-                const isPeak = idx === peakCategoryIdx && mins > 0;
-
-                const barColor =
-                  mins === 0
-                    ? 'bg-white/[0.06]'
-                    : isPeak
-                    ? 'bg-[#38bdf8] shadow-[0_0_14px_rgba(56,189,248,0.7)]'
-                    : activeDay?.isToday
-                    ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)]'
-                    : 'bg-[#475569]';
-
-                const textColor =
-                  mins === 0
-                    ? 'text-[#475569]'
-                    : isPeak
-                    ? 'text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]'
-                    : activeDay?.isToday
-                    ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]'
-                    : 'text-[#94a3b8]';
-
-                return (
-                  <div
-                    key={cat.id}
-                    className="flex flex-col items-center gap-2.5 sm:gap-3 cursor-default p-1 transition-transform duration-200 hover:scale-[1.03]"
-                    style={{ borderRadius: 0 }}
-                    title={`${cat.name}: ${formatTime(mins)} (${cat.window24})`}
+                {/* Category Name & 24h Window Underneath */}
+                <div className="flex flex-col items-center text-center gap-1 w-full">
+                  <span
+                    className={`text-[9.5px] sm:text-[10.5px] font-bold tracking-wider uppercase leading-tight ${
+                      isPeak ? 'text-[#38bdf8]' : 'text-white'
+                    }`}
+                    style={{ fontFamily: "'Science Gothic', sans-serif" }}
                   >
-                    {/* Time Count At Top of the Bar */}
-                    <span
-                      className={`text-[9.5px] sm:text-[11px] font-bold leading-none tracking-tight whitespace-nowrap transition-colors duration-150 ${textColor}`}
-                      style={{ fontFamily: "'Ubuntu', sans-serif" }}
-                    >
-                      {formatTime(mins)}
-                    </span>
-
-                    {/* Tall Vertical Monolith Bar */}
-                    <div
-                      className="w-4 sm:w-5 md:w-6 h-[220px] sm:h-[280px] bg-white/[0.04] flex items-end relative overflow-hidden"
-                      style={{ borderRadius: 0 }}
-                    >
-                      <div
-                        className={`w-full transition-all duration-300 ${barColor}`}
-                        style={{
-                          height: `${heightPct}%`,
-                          borderRadius: 0,
-                        }}
-                      />
-                    </div>
-
-                    {/* Category Name & 24h Window Underneath */}
-                    <div className="flex flex-col items-center text-center gap-1 w-full">
-                      <span
-                        className={`text-[9.5px] sm:text-[10.5px] font-bold tracking-wider uppercase leading-tight ${
-                          isPeak ? 'text-[#38bdf8]' : 'text-white'
-                        }`}
-                        style={{ fontFamily: "'Ubuntu', sans-serif" }}
-                      >
-                        {cat.name}
-                      </span>
-                      <span
-                        className="text-[8px] sm:text-[9px] font-medium text-[#64748b] tracking-tight whitespace-nowrap"
-                        style={{ fontFamily: "'Ubuntu', sans-serif" }}
-                      >
-                        {cat.window24}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                    {cat.name}
+                  </span>
+                  <span
+                    className="text-[8px] sm:text-[9px] font-medium text-[#64748b] tracking-tight whitespace-nowrap"
+                    style={{ fontFamily: "'Science Gothic', sans-serif" }}
+                  >
+                    {cat.window24}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <style>{`
@@ -450,54 +302,22 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
           }
           100% {
             opacity: 0;
-            transform: scale(0, 0.005);
-            filter: brightness(4);
+            transform: scale(1, 0.005);
+            filter: brightness(3) drop-shadow(0 0 24px rgba(0, 242, 254, 0.9));
           }
         }
 
-        @keyframes holoBackdropIn {
-          0% { opacity: 0; }
-          100% { opacity: 1; }
-        }
-
-        @keyframes holoBackdropOut {
-          0% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-
-        @keyframes holoDrillExit {
-          0% { opacity: 1; }
-          50% { opacity: 0.5; filter: invert(0.5); transform: translateY(-4px); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-
-        @keyframes holoDrillEnter {
-          0% { opacity: 0; transform: translateY(15px); filter: contrast(1.5) drop-shadow(0 0 10px #00f2fe); }
-          100% { opacity: 1; transform: translateY(0); filter: contrast(1); }
-        }
-
-        .animate-holo-beam-open {
-          animation: holoBeamModalOpen 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .animate-holo-beam-close {
-          animation: holoBeamModalClose 0.24s ease forwards;
-        }
-
         .animate-holo-backdrop-in {
-          animation: holoBackdropIn 0.3s ease forwards;
+          animation: fadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-
         .animate-holo-backdrop-out {
-          animation: holoBackdropOut 0.24s ease forwards;
+          animation: fadeOut 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-
-        .animate-holo-drill-exit {
-          animation: holoDrillExit 0.2s steps(3) forwards;
+        .animate-holo-beam-open {
+          animation: holoBeamModalOpen 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-
-        .animate-holo-drill-enter {
-          animation: holoDrillEnter 0.26s ease forwards;
+        .animate-holo-beam-close {
+          animation: holoBeamModalClose 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
     </div>

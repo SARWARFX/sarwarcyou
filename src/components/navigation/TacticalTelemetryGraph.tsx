@@ -19,6 +19,7 @@ export interface TacticalTelemetryGraphProps {
   onSelectDay?: (dayIndex: number, dayData: DayTelemetryData) => void;
   selectedDayIndex?: number;
   className?: string;
+  size?: 'normal' | 'large';
 }
 
 export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
@@ -26,6 +27,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
   onSelectDay,
   selectedDayIndex,
   className = '',
+  size = 'normal',
 }) => {
   const [sessionTick, setSessionTick] = useState(0);
 
@@ -90,11 +92,13 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
     }));
   }, [sessionTick]);
 
+  const isLarge = size === 'large';
+
   return (
     <aside
       aria-label="Daily screen time graph"
       onClick={!onSelectDay ? onClick : undefined}
-      className={`flex items-end gap-2.5 sm:gap-3.5 select-none bg-transparent ${
+      className={`flex items-end ${isLarge ? 'gap-3 sm:gap-4.5' : 'gap-2.5 sm:gap-3.5'} select-none bg-transparent ${
         onClick || onSelectDay ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''
       } ${className}`}
       title={onClick || onSelectDay ? 'Click any day to inspect 24-hour diurnal phase breakdown' : undefined}
@@ -127,7 +131,9 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
           >
           {/* Row containing: [Rotated 90° Anti-Clockwise Time (Left)] + [Solid Monolith Bar (Right)] */}
           <div
-            className="flex items-end gap-1 sm:gap-1.5 h-[62px] sm:h-[70px] relative"
+            className={`flex items-end gap-1 sm:gap-1.5 ${
+              isLarge ? 'h-[82px] sm:h-[92px]' : 'h-[62px] sm:h-[70px]'
+            } relative`}
             style={{
               borderRadius: 0,
               outline: 'none',
@@ -136,7 +142,9 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
           >
             {/* Rotated time text on the left side of the bar */}
             <div
-              className="w-3.5 sm:w-4 h-[62px] sm:h-[70px] flex items-center justify-center relative pointer-events-none"
+              className={`${
+                isLarge ? 'w-4 sm:w-5 h-[82px] sm:h-[92px]' : 'w-3.5 sm:w-4 h-[62px] sm:h-[70px]'
+              } flex items-center justify-center relative pointer-events-none`}
               style={{
                 borderRadius: 0,
                 outline: 'none',
@@ -144,7 +152,9 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
               }}
             >
               <span
-                className={`text-[9px] sm:text-[10px] font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${
+                className={`${
+                  isLarge ? 'text-[10px] sm:text-[11.5px]' : 'text-[9px] sm:text-[10px]'
+                } font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${
                   day.isPeak
                     ? 'text-[#38bdf8]'
                     : day.isToday
@@ -171,7 +181,9 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
 
             {/* Solid vertical monolith bar on the right side of the text */}
             <div
-              className="w-2.5 sm:w-[11px] h-[62px] sm:h-[70px] bg-white/[0.05] flex items-end relative overflow-hidden"
+              className={`${
+                isLarge ? 'w-3 sm:w-3.5 h-[82px] sm:h-[92px]' : 'w-2.5 sm:w-[11px] h-[62px] sm:h-[70px]'
+              } bg-white/[0.05] flex items-end relative overflow-hidden`}
               style={{
                 borderRadius: 0,
                 outline: 'none',
@@ -204,7 +216,9 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
           {/* Single-letter day initial at bottom (T, Y, S, S, F, T, W) */}
           <div className="flex flex-col items-center gap-0.5">
             <span
-              className={`text-[10px] sm:text-[11px] font-bold transition-colors duration-150 ${
+              className={`${
+                isLarge ? 'text-[11.5px] sm:text-[13px]' : 'text-[10px] sm:text-[11px]'
+              } font-bold transition-colors duration-150 ${
                 isSelected
                   ? 'text-[#38bdf8] font-extrabold'
                   : day.isPeak
@@ -224,7 +238,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
             </span>
             {isSelected && (
               <span
-                className="w-1.5 h-1.5 bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]"
+                className={`${isLarge ? 'w-2 h-2' : 'w-1.5 h-1.5'} bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]`}
                 style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               />
             )}
