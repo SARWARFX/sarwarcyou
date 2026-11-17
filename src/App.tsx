@@ -642,7 +642,7 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      <CyberSplash />
+      <CyberSplash items={rawFeed?.allMediaPool} />
 
       {/* Universal Animated Graphical Background (Entire Website) */}
       <CinematicBackdropCanvas isPaused={theaterState.isOpen} />

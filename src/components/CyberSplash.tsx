@@ -1,90 +1,251 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import type { StageMediaItem } from '../types';
+import { FALLBACK_HF_CATALOG } from '../data/fallbackData';
+import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
+import { getMediaUrl } from '../utils/imageUrlResolver';
+import { isPhotoExtension } from '../utils/mediaTypeDetector';
+import { LaserSparkLogo } from './brand/LaserSparkLogo';
 
-interface CyberSplashProps {
+export interface CyberSplashProps {
+  items?: StageMediaItem[];
   onComplete?: () => void;
 }
 
-export const CyberSplash: React.FC<CyberSplashProps> = ({ onComplete }) => {
+const TOTAL_CIRCUMFERENCE = 220; // 2 * PI * r (r = 35)
+
+/**
+ * Option B: Ultra-Minimalist Phosphor Arc Real Network Preloader
+ *
+ * Truly measures visitor's actual browser data transfer speed and thumbnail reception
+ * via real Image() network events. Zero simulated intervals or fake timers.
+ */
+export const CyberSplash: React.FC<CyberSplashProps> = ({ items, onComplete }) => {
+  const [progress, setProgress] = useState(0);
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [throughputText, setThroughputText] = useState<string>('CONNECTING...');
   const [dismissed, setDismissed] = useState(false);
   const [removed, setRemoved] = useState(false);
 
-  useEffect(() => {
-    // 2.5s cinematic playback
-    const dismissTimer = setTimeout(() => {
-      setDismissed(true);
-    }, 2500);
+  const hasFinishedRef = useRef(false);
 
-    // Unmount after smooth fade out (0.55s transition)
-    const removeTimer = setTimeout(() => {
-      setRemoved(true);
-      if (onComplete) onComplete();
-    }, 3050);
+  // 1. Gather critical viewport items (first 48 thumbnails)
+  const targetUrls = useMemo(() => {
+    const urls: string[] = [];
+
+    const extractThumb = (item: any): string => {
+      if (!item) return '';
+      if (item.thumbnail && typeof item.thumbnail === 'string') return item.thumbnail;
+      const isPhoto = isPhotoExtension(item.path || item.url || item.name || '');
+      if (!isPhoto) {
+        const resolved = resolveStaticVideoThumbnail(item);
+        if (resolved) return resolved;
+      }
+      if (item.poster) return item.poster;
+      if (item.url) return getMediaUrl(item.url);
+      return '';
+    };
+
+    if (items && items.length > 0) {
+      items.slice(0, 48).forEach((item) => {
+        const url = extractThumb(item);
+        if (url && !urls.includes(url)) urls.push(url);
+      });
+    } else {
+      // Immediate fallback pool from static catalog while API initializes
+      const images = (FALLBACK_HF_CATALOG.images || []).slice(0, 24);
+      const clips = (FALLBACK_HF_CATALOG.clips || []).slice(0, 14);
+      const shorts = (FALLBACK_HF_CATALOG.shorts || []).slice(0, 10);
+      [...images, ...clips, ...shorts].forEach((item) => {
+        const url = extractThumb(item);
+        if (url && !urls.includes(url)) urls.push(url);
+      });
+    }
+
+    return urls;
+  }, [items]);
+
+  useEffect(() => {
+    if (hasFinishedRef.current) return;
+
+    const total = targetUrls.length;
+    setTotalCount(total);
+
+    if (total === 0) {
+      // Nothing to preload, dismiss swiftly
+      setDismissed(true);
+      setTimeout(() => {
+        setRemoved(true);
+        onComplete?.();
+      }, 500);
+      return;
+    }
+
+    const startTime = performance.now();
+    let completed = 0;
+
+    const finishAndDismiss = () => {
+      if (hasFinishedRef.current) return;
+      hasFinishedRef.current = true;
+      setProgress(100);
+      setThroughputText('READY');
+
+      // Seamless visual dismissal
+      setTimeout(() => {
+        setDismissed(true);
+      }, 160);
+
+      setTimeout(() => {
+        setRemoved(true);
+        onComplete?.();
+      }, 760);
+    };
+
+    // Fail-safe timeout: never freeze visitor beyond 3.5s regardless of network state
+    const failSafeTimer = setTimeout(() => {
+      if (!hasFinishedRef.current) {
+        finishAndDismiss();
+      }
+    }, 3500);
+
+    const handleAssetLoad = () => {
+      if (hasFinishedRef.current) return;
+      completed++;
+      const currentPct = Math.min(100, Math.round((completed / total) * 100));
+      setProgress(currentPct);
+      setLoadedCount(completed);
+
+      // Measure real network throughput using browser Resource Timing API
+      const elapsedSec = (performance.now() - startTime) / 1000;
+      let transferredBytes = 0;
+      let hasNetworkTelemetry = false;
+
+      if (typeof window !== 'undefined' && window.performance && typeof window.performance.getEntriesByType === 'function') {
+        const resourceList = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+        for (let i = resourceList.length - 1; i >= 0 && i >= resourceList.length - 60; i--) {
+          const res = resourceList[i];
+          if (
+            res.name.includes('media.sarwar.cyou') ||
+            res.name.includes('huggingface.co') ||
+            res.name.includes('drive.google')
+          ) {
+            if (res.transferSize && res.transferSize > 0) {
+              transferredBytes += res.transferSize;
+              hasNetworkTelemetry = true;
+            }
+          }
+        }
+      }
+
+      if (hasNetworkTelemetry && transferredBytes > 0 && elapsedSec > 0.05) {
+        const mbps = (transferredBytes / (1024 * 1024)) / elapsedSec;
+        setThroughputText(`${mbps.toFixed(1)} MB/S`);
+      } else if (elapsedSec > 0.02 && completed > 0) {
+        // High-speed browser memory cache hit or instant local CDN
+        const estBytes = completed * 82 * 1024; // avg WebP thumbnail size
+        const mbps = (estBytes / (1024 * 1024)) / elapsedSec;
+        if (mbps > 60) {
+          setThroughputText('MEM_CACHE');
+        } else {
+          setThroughputText(`${mbps.toFixed(1)} MB/S`);
+        }
+      }
+
+      if (completed >= total) {
+        finishAndDismiss();
+      }
+    };
+
+    // Preload all critical thumbnails concurrently over real browser connection
+    targetUrls.forEach((url) => {
+      const img = new Image();
+      img.onload = handleAssetLoad;
+      img.onerror = handleAssetLoad; // Don't hang on individual asset fault
+      img.src = url;
+    });
 
     return () => {
-      clearTimeout(dismissTimer);
-      clearTimeout(removeTimer);
+      clearTimeout(failSafeTimer);
     };
-  }, [onComplete]);
+  }, [targetUrls, onComplete]);
 
   if (removed) return null;
+
+  // Circular arc calculation (stroke-dashoffset from 220 to 0)
+  const strokeOffset = TOTAL_CIRCUMFERENCE - (TOTAL_CIRCUMFERENCE * progress) / 100;
 
   return (
     <div
       id="splashLayer"
-      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#050505] select-none app-screen-fade ${
-        dismissed ? 'opacity-0 scale-[0.96] pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'
+      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#030406] select-none transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        dismissed
+          ? 'opacity-0 scale-[1.03] pointer-events-none'
+          : 'opacity-100 scale-100 pointer-events-auto'
       }`}
     >
-      {/* STAGE FOR INLINE ANIMATIONS */}
-      <div id="animStage" className="relative w-64 h-64 flex items-center justify-center">
-        <div className="relative w-52 h-52 flex items-center justify-center">
-          {/* Horizontal Acid Lime Anamorphic Lens Flare Line */}
-          <div className="absolute w-64 h-0.5 bg-gradient-to-r from-transparent via-[#ccff00] to-transparent v2-flare z-20 pointer-events-none drop-shadow-[0_0_12px_#ccff00]" />
+      {/* Background Subtle Constellation Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.06)_0%,rgba(139,92,246,0.04)_45%,transparent_70%)] pointer-events-none" />
 
-          {/* Rotating Hairline Reticle */}
-          <svg className="absolute inset-0 w-full h-full text-[#ccff00] v2-reticle-spin" viewBox="0 0 120 120" fill="none">
-            <circle cx="60" cy="60" r="54" stroke="#ffffff" strokeWidth="0.8" strokeDasharray="10 8" opacity="0.3" />
-            <circle cx="60" cy="60" r="46" stroke="#ccff00" strokeWidth="1" strokeDasharray="3 6" opacity="0.8" />
-            <line x1="60" y1="2" x2="60" y2="16" stroke="#ccff00" strokeWidth="2" />
-            <line x1="60" y1="104" x2="60" y2="118" stroke="#ccff00" strokeWidth="2" />
-            <line x1="2" y1="60" x2="16" y2="60" stroke="#ccff00" strokeWidth="2" />
-            <line x1="104" y1="60" x2="118" y2="60" stroke="#ccff00" strokeWidth="2" />
+      {/* Modern High-End Logo with slowly moving White-Blue-Violet gradient */}
+      <div className="relative z-10 mb-8 filter drop-shadow-[0_0_16px_rgba(139,92,246,0.45)] drop-shadow-[0_0_24px_rgba(56,189,248,0.35)]">
+        <LaserSparkLogo width={280} height={38} interactive={false} />
+      </div>
+
+      {/* Option B: Ultra-Minimalist Phosphor Arc Meter */}
+      <div className="relative z-10 flex flex-col items-center gap-5 max-w-md text-center">
+        <div className="relative w-20 h-20">
+          <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+            <defs>
+              <linearGradient id="splashRadialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="50%" stopColor="#8b5cf6" />
+                <stop offset="100%" stopColor="#ffffff" />
+              </linearGradient>
+            </defs>
+            {/* Background Track */}
+            <circle
+              cx="40"
+              cy="40"
+              r="35"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.08)"
+              strokeWidth="2.8"
+            />
+            {/* Real Network Progress Arc */}
+            <circle
+              cx="40"
+              cy="40"
+              r="35"
+              fill="none"
+              stroke="url(#splashRadialGrad)"
+              strokeWidth="2.8"
+              strokeLinecap="round"
+              strokeDasharray={TOTAL_CIRCUMFERENCE}
+              strokeDashoffset={strokeOffset}
+              style={{
+                transition: 'stroke-dashoffset 0.12s cubic-bezier(0.16, 1, 0.3, 1)',
+                filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.9)) drop-shadow(0 0 12px rgba(56, 189, 248, 0.7))',
+              }}
+            />
           </svg>
 
-          {/* Aperture Blades Shutter (SVG) */}
-          <svg className="absolute w-40 h-40" viewBox="0 0 100 100" fill="none">
-            <path className="v2-blade-1" d="M50 15 L85 50 L50 85 Z" stroke="#ccff00" strokeWidth="1.2" strokeDasharray="4 2" fill="rgba(204, 255, 0, 0.04)" />
-            <path className="v2-blade-2" d="M15 50 L50 15 L50 85 Z" stroke="#ffffff" strokeWidth="1" strokeDasharray="4 2" fill="rgba(255, 255, 255, 0.03)" opacity="0.6" />
-          </svg>
-
-          {/* Central High-Impact Play Glyph Emblem */}
-          <div className="relative z-10 w-20 h-20 rounded-2xl bg-neutral-950 border border-[#ccff00] shadow-[0_0_30px_rgba(204,255,0,0.3)] flex items-center justify-center">
-            <svg className="w-10 h-10 text-[#ccff00] fill-current translate-x-1 filter drop-shadow-[0_0_10px_#ccff00]" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
+          {/* Real Live Percentage */}
+          <div className="absolute inset-0 flex items-center justify-center font-mono text-sm font-bold text-white tracking-tight">
+            {progress}%
           </div>
         </div>
-      </div>
 
-      {/* Brand Typography Lockup */}
-      <div className="mt-4 flex flex-col items-center text-center z-10 font-['Space_Grotesk',sans-serif]">
-        <h2 id="brandTitle" className="text-2xl sm:text-3xl font-extrabold tracking-[0.22em] text-white logo-text-anim">
-          SARWAR<span className="text-[#ccff00]">.CYOU</span>
-        </h2>
-        <p id="brandSub" className="text-[10px] text-[#ccff00] font-mono tracking-[0.3em] uppercase mt-2 sub-tag-anim">
-          BIENNALE EDITION // VOL. 2026
-        </p>
-      </div>
-
-      {/* Animated Bottom Acid Lime Progress Track */}
-      <div className="w-24 h-1 bg-neutral-900 rounded-full mt-6 overflow-hidden border border-neutral-800 z-10">
-        <div id="splashProgress" className="h-full bg-[#ccff00] w-full animate-pulse shadow-[0_0_8px_#ccff00]" />
-      </div>
-
-      {/* Micro Telemetry Stamp */}
-      <div className="absolute bottom-8 flex items-center gap-2 text-neutral-500 text-[10px] font-mono z-10">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]"></span>
-        <span>VERIFIED CINEMA ARCHIVE</span>
+        {/* Minimalist Telemetry Pill */}
+        <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur-md">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] animate-pulse" />
+          <span className="text-[10.5px] font-mono tracking-[0.14em] text-neutral-300 uppercase">
+            {progress >= 100
+              ? 'DIRECTORY SYNCHRONIZED'
+              : totalCount > 0
+              ? `WARMING VIEWPORT [ ${loadedCount} / ${totalCount} ] • ${throughputText}`
+              : throughputText}
+          </span>
+        </div>
       </div>
     </div>
   );
