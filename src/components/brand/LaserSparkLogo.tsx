@@ -70,8 +70,8 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
             <animateTransform
               attributeName="gradientTransform"
               type="translate"
-              from="0,0"
-              to="-820,0"
+              from="-820,0"
+              to="0,0"
               dur="10s"
               repeatCount="indefinite"
             />
