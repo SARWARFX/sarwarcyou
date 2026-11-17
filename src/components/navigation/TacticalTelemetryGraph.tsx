@@ -74,7 +74,7 @@ export const TacticalTelemetryGraph: React.FC = () => {
     return rawList.map((item) => ({
       ...item,
       heightPercent: Math.min(100, Math.max(18, Math.round((item.minutes / maxMinutes) * 100))),
-      isPeak: item.minutes === maxMinutes && !item.isToday,
+      isPeak: item.minutes === maxMinutes,
     }));
   }, [sessionTick]);
 
@@ -119,19 +119,19 @@ export const TacticalTelemetryGraph: React.FC = () => {
             >
               <span
                 className={`text-[9px] sm:text-[10px] font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${
-                  day.isToday
-                    ? 'text-white'
-                    : day.isPeak
+                  day.isPeak
                     ? 'text-[#38bdf8]'
+                    : day.isToday
+                    ? 'text-white'
                     : 'text-[#94a3b8] group-hover:text-white'
                 }`}
                 style={{
                   transform: 'rotate(-90deg)',
                   transformOrigin: 'center center',
-                  textShadow: day.isToday
-                    ? '0 0 8px rgba(255, 255, 255, 0.7)'
-                    : day.isPeak
+                  textShadow: day.isPeak
                     ? '0 0 8px rgba(56, 189, 248, 0.6)'
+                    : day.isToday
+                    ? '0 0 8px rgba(255, 255, 255, 0.7)'
                     : 'none',
                   borderRadius: 0,
                   outline: 'none',
@@ -153,18 +153,18 @@ export const TacticalTelemetryGraph: React.FC = () => {
             >
               <div
                 className={`w-full transition-all duration-300 ${
-                  day.isToday
-                    ? 'bg-white'
-                    : day.isPeak
+                  day.isPeak
                     ? 'bg-[#38bdf8]'
+                    : day.isToday
+                    ? 'bg-white'
                     : 'bg-[#64748b] group-hover:bg-[#94a3b8]'
                 }`}
                 style={{
                   height: `${day.heightPercent}%`,
-                  boxShadow: day.isToday
-                    ? '0 0 10px rgba(255, 255, 255, 0.75)'
-                    : day.isPeak
+                  boxShadow: day.isPeak
                     ? '0 0 8px rgba(56, 189, 248, 0.6)'
+                    : day.isToday
+                    ? '0 0 10px rgba(255, 255, 255, 0.75)'
                     : 'none',
                   borderRadius: 0,
                   outline: 'none',
@@ -177,7 +177,9 @@ export const TacticalTelemetryGraph: React.FC = () => {
           {/* Single-letter day initial at bottom (T, Y, S, S, F, T, W) */}
           <span
             className={`text-[10px] sm:text-[11px] font-bold transition-colors duration-150 ${
-              day.isToday
+              day.isPeak
+                ? 'text-[#38bdf8] font-extrabold'
+                : day.isToday
                 ? 'text-white font-extrabold'
                 : 'text-[#64748b] group-hover:text-white'
             }`}
