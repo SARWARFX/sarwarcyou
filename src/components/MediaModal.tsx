@@ -62,30 +62,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
-  const [showControls, setShowControls] = useState<boolean>(true);
-  const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const scheduleAutoHide = useCallback(() => {
-    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-    hideControlsTimerRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 3000);
-  }, []);
-
-  const handleUserActivity = useCallback(() => {
-    setShowControls(true);
-    scheduleAutoHide();
-  }, [scheduleAutoHide]);
+  const [showControls, setShowControls] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
-      setShowControls(true);
-      scheduleAutoHide();
+      // Tray does not view upon opening photo; only appears on single tap on image
+      setShowControls(false);
     }
-    return () => {
-      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-    };
-  }, [isOpen, activeIdx, scheduleAutoHide]);
+  }, [isOpen, activeIdx]);
 
   const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
 
@@ -464,9 +448,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         startTouchX = touch.clientX;
         startTouchY = touch.clientY;
 
-        // Picasa-style free pan & drag at any scale
+        // Free pan & drag engages after > 8px intentional movement (allowing pure single taps to pass through)
         setAnimationClass('');
-        isPanning = true;
+        isPanning = false;
         startPanX = positionRef.current.x;
         startPanY = positionRef.current.y;
       } else if (e.touches.length === 2) {
@@ -511,6 +495,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         const touch = e.touches[0];
         const dx = touch.clientX - startTouchX;
         const dy = touch.clientY - startTouchY;
+        const dist = Math.hypot(dx, dy);
+
+        if (!isPanning && dist > 8) {
+          isPanning = true;
+        }
 
         if (isPanning) {
           e.preventDefault();
@@ -556,11 +545,13 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
 
       if (remainingTouches === 0) {
-        isPanning = false;
-        const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
-        posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
-        posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
-        commitTransform(true);
+        if (isPanning) {
+          isPanning = false;
+          const { maxPanX, maxPanY } = calculatePanLimits(scaleRef.current);
+          posX = Math.max(-maxPanX, Math.min(maxPanX, posX));
+          posY = Math.max(-maxPanY, Math.min(maxPanY, posY));
+          commitTransform(true);
+        }
       }
     };
 
@@ -714,8 +705,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       ref={mediaBoxRef}
       role="dialog"
       aria-modal="true"
-      onMouseMove={handleUserActivity}
-      onTouchStart={handleUserActivity}
       className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xl flex items-center justify-center overflow-hidden touch-none select-none overscroll-none animate-backdrop-fade"
       style={{
         touchAction: 'none',
@@ -759,12 +748,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        onMouseEnter={() => {
-          if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-        }}
-        onMouseLeave={scheduleAutoHide}
         className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
-          showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          showControls ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
         {/* Previous Photo Button */}
@@ -917,11 +902,6 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             e.stopPropagation();
             if (Date.now() - lastGestureTimeRef.current < 350) return;
             setShowControls((prev) => !prev);
-            if (!showControls) {
-              scheduleAutoHide();
-            } else if (hideControlsTimerRef.current) {
-              clearTimeout(hideControlsTimerRef.current);
-            }
           }}
           onDoubleClick={(e) => {
             e.preventDefault();
