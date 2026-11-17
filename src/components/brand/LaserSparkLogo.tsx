@@ -7,13 +7,15 @@ export interface LaserSparkLogoProps {
   width?: number | string;
   height?: number | string;
   interactive?: boolean;
+  dropShadow?: boolean;
 }
 
 /**
  * Modern High-End Living Wordmark
  * - SARWAR in wide, expansive SPARK letterforms
  * - .CYOU inside an integrated cyber-capsule badge
- * - Painted in a slowly moving White -> Blue -> Violet gradient
+ * - Painted in a slowly moving Red -> Blue gradient
+ * - Zero rectangular background boxes
  */
 export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
   className = '',
@@ -22,6 +24,7 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
   width = 280,
   height = 38,
   interactive = true,
+  dropShadow = false,
 }) => {
   return (
     <div
@@ -32,13 +35,19 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
           ? 'cursor-pointer hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200'
           : ''
       } ${className}`}
+      style={{ background: 'transparent' }}
     >
       {/* SVG Wordmark (Slowly moving Red -> Blue Gradient) */}
       <svg
         viewBox="0 0 820 70"
         width={width}
         height={height}
-        className="relative z-20 filter drop-shadow-[0_0_12px_rgba(239,68,68,0.45)] drop-shadow-[0_0_20px_rgba(59,130,246,0.35)] group-hover:drop-shadow-[0_0_18px_rgba(239,68,68,0.7)] group-hover:drop-shadow-[0_0_28px_rgba(59,130,246,0.65)] transition-all duration-200"
+        className={`relative z-20 ${
+          dropShadow
+            ? 'filter drop-shadow-[0_0_12px_rgba(239,68,68,0.45)] drop-shadow-[0_0_20px_rgba(59,130,246,0.35)] group-hover:drop-shadow-[0_0_18px_rgba(239,68,68,0.7)] group-hover:drop-shadow-[0_0_28px_rgba(59,130,246,0.65)]'
+            : ''
+        } transition-all duration-200`}
+        style={{ background: 'transparent' }}
       >
         <defs>
           {/* Slowly Moving Red -> Blue Linear Gradient */}
@@ -124,7 +133,7 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
             rx="8"
             stroke="url(#logoRedBlueGrad)"
             strokeWidth="2.2"
-            fill="rgba(59, 130, 246, 0.08)"
+            fill="none"
           />
           {/* Dot */}
           <circle cx="582" cy="33" r="3.5" fill="url(#logoRedBlueGrad)" stroke="none" />

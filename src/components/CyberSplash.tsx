@@ -47,36 +47,33 @@ export const CyberSplash: React.FC<CyberSplashProps> = ({ onComplete }) => {
       }`}
       style={{ borderRadius: 0, outline: 'none' }}
     >
-      {/* Subtle Dark Ambient Void */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.06)_0%,rgba(59,130,246,0.04)_50%,transparent_75%)] pointer-events-none" />
-
       {/* 2B. Horizontal Razor Sweep Logo Stage */}
-      <div className="relative flex items-center justify-center overflow-hidden p-8 sm:p-12 z-10 w-full max-w-[600px]">
+      <div className="relative inline-flex items-center justify-center z-10 w-[360px] h-[48px]">
         {/* Razor-Thin Vertical Hairline Light Guide */}
         <div className="cyber-sweep-line" />
 
-        {/* Clean Logo Reveal (Unmasked behind the sweep line) */}
-        <div className="cyber-sweep-logo filter drop-shadow-[0_0_16px_rgba(239,68,68,0.5)] drop-shadow-[0_0_26px_rgba(59,130,246,0.4)]">
-          <LaserSparkLogo width={360} height={48} interactive={false} />
+        {/* Clean Logo Reveal (Directly behind the sweep line with zero background boxes) */}
+        <div className="cyber-sweep-logo w-full h-full flex items-center justify-center">
+          <LaserSparkLogo width={360} height={48} interactive={false} dropShadow={false} />
         </div>
       </div>
 
       <style>{`
         @keyframes v2bSweepLine {
           0% {
-            left: 5%;
+            left: -8px;
             opacity: 0;
           }
-          15% {
-            left: 10%;
+          8% {
+            left: 0%;
             opacity: 1;
           }
-          85% {
-            left: 90%;
+          92% {
+            left: 100%;
             opacity: 1;
           }
           100% {
-            left: 95%;
+            left: calc(100% + 12px);
             opacity: 0;
           }
         }
@@ -84,26 +81,22 @@ export const CyberSplash: React.FC<CyberSplashProps> = ({ onComplete }) => {
         @keyframes v2bLogoReveal {
           0% {
             clip-path: inset(0 100% 0 0);
-            opacity: 0.3;
           }
-          15% {
-            clip-path: inset(0 90% 0 0);
-            opacity: 1;
+          8% {
+            clip-path: inset(0 100% 0 0);
           }
-          85% {
+          92% {
             clip-path: inset(0 0% 0 0);
-            opacity: 1;
           }
           100% {
             clip-path: inset(0 0% 0 0);
-            opacity: 1;
           }
         }
 
         .cyber-sweep-line {
           position: absolute;
-          top: 15%;
-          height: 70%;
+          top: -12px;
+          bottom: -12px;
           width: 2px;
           background: linear-gradient(180deg, transparent, #ef4444 30%, #ffffff 50%, #3b82f6 70%, transparent);
           box-shadow: 0 0 10px #ef4444, 0 0 20px #3b82f6;
@@ -115,6 +108,10 @@ export const CyberSplash: React.FC<CyberSplashProps> = ({ onComplete }) => {
         .cyber-sweep-logo {
           clip-path: inset(0 100% 0 0);
           animation: v2bLogoReveal 1.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          background: transparent !important;
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
         }
       `}</style>
     </div>
