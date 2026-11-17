@@ -36,7 +36,7 @@ import {
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import { trackActivityEvent } from './utils/usageTelemetry';
-import { initKeepAwake } from './utils/keepAwakeManager';
+import { initKeepAwake, acquirePlayerWakeLock, releasePlayerWakeLock } from './utils/keepAwakeManager';
 import { addRecentMediaItem } from './utils/recentHistoryManager';
 import {
   parseUrlState,
@@ -206,6 +206,21 @@ function App() {
   useEffect(() => {
     initKeepAwake();
   }, []);
+
+  // Automated Screen Wake Lock: Active when any player is open, released on pages
+  useEffect(() => {
+    const isAnyPlayerOpen =
+      theaterState.isOpen ||
+      shortsState.isOpen ||
+      lightboxState.isOpen ||
+      viewAllState.isOpen;
+
+    if (isAnyPlayerOpen) {
+      acquirePlayerWakeLock().catch(() => {});
+    } else {
+      releasePlayerWakeLock().catch(() => {});
+    }
+  }, [theaterState.isOpen, shortsState.isOpen, lightboxState.isOpen, viewAllState.isOpen]);
 
   // Universal Media Player / Lightbox Dispatcher with strict mutual exclusivity
   const openMediaItem = useCallback(

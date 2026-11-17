@@ -109,6 +109,14 @@ export function subscribeKeepScreenOn(callback: (active: boolean) => void): () =
   };
 }
 
+export async function acquirePlayerWakeLock(): Promise<boolean> {
+  return acquireLock();
+}
+
+export async function releasePlayerWakeLock(): Promise<void> {
+  releaseLock();
+}
+
 /**
  * Initialize on web startup (restores user preference from localStorage)
  */

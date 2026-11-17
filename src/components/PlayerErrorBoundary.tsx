@@ -1,5 +1,4 @@
 import React, { Component, type ReactNode } from 'react';
-import { AlertTriangle, RotateCcw, X } from 'lucide-react';
 
 export interface PlayerErrorBoundaryProps {
   children: ReactNode;
@@ -23,7 +22,7 @@ export class PlayerErrorBoundary extends Component<PlayerErrorBoundaryProps, Pla
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Player runtime error caught by PlayerErrorBoundary:', error, errorInfo);
+    console.error('Player error caught:', error, errorInfo);
   }
 
   handleRetry = () => {
@@ -36,66 +35,38 @@ export class PlayerErrorBoundary extends Component<PlayerErrorBoundaryProps, Pla
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 w-[100vw] h-[100dvh] flex items-center justify-center p-4 text-white"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            width: '100vw',
-            height: '100dvh',
-            zIndex: 50,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            background: 'rgba(3, 5, 10, 0.75)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-          }}
+          className="fixed inset-0 z-50 w-screen h-[100dvh] flex items-center justify-center p-4 text-white bg-black/85 backdrop-blur-[20px] select-none"
+          style={{ borderRadius: 0, outline: 'none', border: 'none' }}
         >
-          {/* Close button in top-right */}
-          {this.props.onClose && (
-            <button
-              type="button"
-              onClick={this.props.onClose}
-              className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white flex items-center justify-center transition-all cursor-pointer z-50"
-              aria-label="Close"
-              title="Close Player (Esc)"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-
           <div
-            className="p-6 sm:p-8 rounded-2xl max-w-md w-full flex flex-col items-center text-center gap-4 border border-white/15 bg-neutral-950/90 backdrop-blur-xl shadow-2xl font-serif"
+            className="p-8 max-w-md w-full flex flex-col gap-4 bg-[#090c12] shadow-2xl"
+            style={{ borderRadius: 0, outline: 'none', border: 'none' }}
           >
-            <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
+            <h3 className="text-base font-bold font-mono tracking-tight text-[#ef4444] uppercase">
+              // PLAYBACK ERROR
+            </h3>
 
-            <div className="flex flex-col gap-1.5">
-              <h3 className="text-lg font-bold text-white tracking-wide font-serif">
-                {this.props.fallbackTitle || 'Unable to Load Media'}
-              </h3>
-              <p className="text-xs text-zinc-300 font-serif leading-relaxed">
-                A playback or resolution issue occurred. You can retry loading or return to the directory explorer.
-              </p>
-            </div>
+            <p className="text-xs text-neutral-300 font-sans leading-relaxed">
+              {this.props.fallbackTitle || 'Unable to decode media stream. A network interruption or codec stall occurred.'}
+            </p>
 
-            <div className="flex items-center gap-3 mt-2 w-full">
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={this.handleRetry}
-                className="flex-1 py-2 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-serif font-semibold flex items-center justify-center gap-2 border border-white/15 transition-all cursor-pointer"
+                className="py-2 px-4 bg-transparent text-neutral-300 hover:text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               >
-                <RotateCcw className="w-3.5 h-3.5" />
                 Retry
               </button>
               {this.props.onClose && (
                 <button
                   type="button"
                   onClick={this.props.onClose}
-                  className="flex-1 py-2 px-4 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-serif font-bold flex items-center justify-center border border-white transition-all cursor-pointer"
+                  className="py-2 px-4 bg-[#ef4444] text-white font-mono font-bold text-xs uppercase tracking-wider hover:bg-white hover:text-black transition-colors cursor-pointer"
+                  style={{ borderRadius: 0, outline: 'none', border: 'none' }}
                 >
-                  Return to Explorer
+                  Close
                 </button>
               )}
             </div>

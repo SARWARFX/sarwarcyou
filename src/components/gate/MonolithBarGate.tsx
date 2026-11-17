@@ -2,31 +2,21 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
-import { MAJOR_FOLDERS } from '../navigation/SidebarAccordionNav';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
-import { type DirectoryNode } from '../DeepSpaceTreeExplorer';
-import { useBackButton } from '../../utils/backButtonManager';
-import { VaultDrawer } from '../VaultDrawer';
 import { hapticMedium } from '../../utils/hapticsManager';
-import { trackActivityEvent, getRolling7DayDisplayData } from '../../utils/usageTelemetry';
+import { trackActivityEvent } from '../../utils/usageTelemetry';
 import {
-  parseIdRoute,
   parseAppPathname,
   updateBrowserUrl,
   findMediaByShortId,
 } from '../../utils/urlRouter';
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { LivingMediaCard } from './LivingMediaCard';
-import { QuickSearchModal } from '../QuickSearchModal';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
-import { LogoDropUpNav, type MainDirectoryTab } from '../navigation/LogoDropUpNav';
-import { subscribeDockNotification, triggerDockNotification } from '../../utils/dockNotificationManager';
-import {
-  toggleKeepScreenOn,
-  getKeepScreenOnState,
-  subscribeKeepScreenOn,
-} from '../../utils/keepAwakeManager';
+import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
+import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
+import { HomepageSlidingShorts } from './HomepageSlidingShorts';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -51,7 +41,6 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   let root = dirParts.length > 0 ? dirParts[0] : '';
   let sub = dirParts.slice(1);
 
-  // 1. Bandhobi: Completely independent 4th main directory (never mixed with other collections)
   if (/^(?:bandhobi|realtube)$/i.test(root) || clean.toLowerCase().startsWith('bandhobi/') || clean.toLowerCase().startsWith('realtube/')) {
     root = 'Bandhobi';
     let subName = sub.length > 0 ? sub[0] : '';
@@ -69,7 +58,6 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
     return { root, subfolders: sub };
   }
 
-  // 2. Photographs
   if (/^(?:photographs|images|photography)$/i.test(root) || isPhotoExtension(clean)) {
     root = 'Photographs';
     let subName = sub.length > 0 ? sub[0] : '';
@@ -81,7 +69,6 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
     return { root, subfolders: [subName] };
   }
 
-  // 3. Shorts
   if (/^(?:reels\/shorts|shorts|reels)$/i.test(root) || item.mediaType === 'short' || clean.toLowerCase().includes('/shorts/')) {
     root = 'Shorts';
     let subName = sub.length > 0 ? sub[0] : '';
@@ -90,7 +77,6 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
     return { root, subfolders: [subName] };
   }
 
-  // 4. Video Clips
   root = 'Video Clips';
   let subName = sub.length > 0 ? sub[0] : '';
   if (/fav/i.test(subName)) subName = 'Favorite';
@@ -102,6 +88,11 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   return { root, subfolders: [subName] };
 }
 
+const PHOTO_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', '2025', 'Older'];
+const SHORTS_SUBFOLDERS = ['ALL', '2027', 'Older'];
+const CLIPS_SUBFOLDERS = ['ALL', '4K Cinema', '2027', '2026', 'Older', 'Favorite'];
+const BANDHOBI_SUBFOLDERS = ['ALL', 'Photographs', 'Video Clips', 'Shorts'];
+
 export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   items,
   onOpenPhoto,
@@ -110,10 +101,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   initialAlbum: _initialAlbum,
   isModalOpen = false,
 }) => {
-  // 0. Parse initial route from short ID URL (?id=..., ?v=..., ?star=..., etc.)
-  const initialRoute = useMemo(() => parseIdRoute(), []);
+  const initialRoute = useMemo(() => parseAppPathname(), []);
 
-  // 5 Panoramic Slides: 0: Home (Living Wall), 1: Photographs, 2: Shorts, 3: Video Clips, 4: Bandhobi
+  // 0: Homepage (Right-to-Left Sliding Shorts), 1: Photographs, 2: Shorts, 3: Video Clips, 4: Bandhobi
   const [tabIndex, setTabIndex] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     const parsed = parseAppPathname();
@@ -121,242 +111,59 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     if (parsed.tab === 'SHORTS') return 2;
     if (parsed.tab === 'CLIPS') return 3;
     if (parsed.tab === 'BANDHOBI') return 4;
-    return 0; // Default Home living wall
+    return 0;
   });
 
-  const [_activeVideoId, setActiveVideoId] = useState<string | null>(initialRoute.videoId);
+  const [photosSubfolder, setPhotosSubfolder] = useState<string>('ALL');
+  const [shortsSubfolder, setShortsSubfolder] = useState<string>('ALL');
+  const [clipsSubfolder, setClipsSubfolder] = useState<string>('ALL');
+  const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('ALL');
 
-  // Active Main Directory Tab inside Logo Drop-Up Nav (initialized from route)
-  const [activeMainTab, setActiveMainTab] = useState<MainDirectoryTab>(() => {
-    if (typeof window === 'undefined') return 'Photographs';
-    const parsed = parseAppPathname();
-    if (parsed.tab === 'BANDHOBI') return 'Bandhobi';
-    if (parsed.tab === 'SHORTS') return 'Shorts';
-    if (parsed.tab === 'CLIPS') return 'Video Clips';
-    return 'Photographs';
-  });
-
-  // Logo Drop-Up Navigation Menu Open State
-  // Navigation dock is always closed initially for a clean, distraction-free experience
-  const [isNavTrayOpen, setIsNavTrayOpen] = useState<boolean>(false);
-
-  // Track whether a 10s dock notification is active so idle timers don't dismiss the dock prematurely
-  const isNotificationActiveRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    return subscribeDockNotification((notif) => {
-      if (notif) {
-        isNotificationActiveRef.current = true;
-        setIsNavTrayOpen(true);
-      } else {
-        isNotificationActiveRef.current = false;
-        // When notification expires after 10 seconds, smoothly dismiss the dock
-        setIsNavTrayOpen(false);
-      }
-    });
-  }, []);
-
-  // Screen Aspect Ratio Detector:
-  // - Portrait screens (mobile phone): scroll strictly up-down
-  // - Wide screen devices (desktop, tablet, mobile landscape): scroll strictly left-right, not up-down
-  const [isWideScreen, setIsWideScreen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return window.innerWidth > window.innerHeight;
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsWideScreen(window.innerWidth > window.innerHeight);
-    };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
-
-  // Track whether visitor is scrolling
-  const isScrollingRef = useRef<boolean>(false);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Global scroll detector:
-  // When scrolling, dock must immediately disappear and NOT appear
-  useEffect(() => {
-    const markScrolling = () => {
-      isScrollingRef.current = true;
-      // Hide dock when user scrolls
-      setIsNavTrayOpen(false);
-
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      scrollTimeoutRef.current = setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 800);
-    };
-
-    window.addEventListener('scroll', markScrolling, { passive: true, capture: true });
-    window.addEventListener('wheel', markScrolling, { passive: true, capture: true });
-    window.addEventListener('touchmove', markScrolling, { passive: true, capture: true });
-
-    return () => {
-      window.removeEventListener('scroll', markScrolling, { capture: true });
-      window.removeEventListener('wheel', markScrolling, { capture: true });
-      window.removeEventListener('touchmove', markScrolling, { capture: true });
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // 8-second Dock Auto-Dismissal and Mouse Movement Detector:
-  // 1. Dock auto-dismisses after 8 seconds of inactivity.
-  // 2. In player pages (video player, shorts player, image viewer), the dock will NOT appear unless clicked.
-  // 3. During scrolling (left-right or up-down), the dock will NOT appear.
-  // 4. If moving mouse cursor but not scrolling (on homepage or media pages): dock appears for 8 seconds.
-  // 5. Clicking the website logo on any screen (homepage, media card page, player) appears the dock for 8 seconds.
-  useEffect(() => {
-    let idleTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const resetIdleTimer = () => {
-      if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        // If dock notification is currently active (e.g. 10s offline alert), do not auto-close early!
-        if (isNotificationActiveRef.current) return;
-        const dockEl = document.querySelector('aside[aria-label="Tactical Navigation Dock"]');
-        if (dockEl && dockEl.matches(':hover')) {
-          resetIdleTimer();
-          return;
-        }
-        setIsNavTrayOpen(false);
-      }, 8000);
-    };
-
-    const handleMouseMove = () => {
-      // If dock is already open, any mouse movement (or hover) resets the 8s countdown
-      if (isNavTrayOpen) {
-        resetIdleTimer();
-        return;
-      }
-
-      // If dock is closed:
-      // STRICT RULES:
-      // - In the player pages (video player, shorts player, image viewer): dock will NOT appear on mouse movement
-      if (isModalOpen) {
-        return;
-      }
-
-      // - During scrolling (left-right or up-down): dock will NOT appear
-      if (isScrollingRef.current) {
-        return;
-      }
-
-      // Visitor is moving the mouse cursor but not scrolling: reveal dock and start 8s countdown
-      setIsNavTrayOpen(true);
-      resetIdleTimer();
-    };
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-
-    // If dock is open (e.g. opened via logo click), start the 8s countdown immediately
-    if (isNavTrayOpen) {
-      resetIdleTimer();
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (idleTimer) clearTimeout(idleTimer);
-    };
-  }, [isNavTrayOpen, isModalOpen]);
-
-  // Listen for global logo click dock reveal event (from CyberVideoPlayer, MediaModal, ShortsFeedModal, etc.)
-  useEffect(() => {
-    const handleOpenDock = () => {
-      setIsNavTrayOpen(true);
-    };
-    window.addEventListener('streamvault_open_dock', handleOpenDock);
-    return () => {
-      window.removeEventListener('streamvault_open_dock', handleOpenDock);
-    };
-  }, []);
-
-  // Individual section subfolder filters (ordered per strict specs)
-  const [photosSubfolder, setPhotosSubfolder] = useState<string>('Favorite');
-  const [shortsSubfolder, setShortsSubfolder] = useState<string>('2027');
-  const [clipsSubfolder, setClipsSubfolder] = useState<string>('Favorite');
-  const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Photographs');
-
-  // Progressive batch visibility for each section
-  const [visiblePhotos, setVisiblePhotos] = useState<number>(24);
-  const [visibleShorts, setVisibleShorts] = useState<number>(24);
-  const [visibleClips, setVisibleClips] = useState<number>(16);
-  const [visibleBandhobi, setVisibleBandhobi] = useState<number>(24);
-
-  // Dropdown open states for the tabs: null
-  const [activeDropdown, setActiveDropdown] = useState<'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | null>(null);
-
-  // Keep screen on state
-  const [keepAwakeOn, setKeepAwakeOn] = useState(() => getKeepScreenOnState());
-
-  const handleHorizontalWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
-      if (isWideScreen) {
-        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-        if (delta !== 0) {
-          if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) && e.deltaY !== 0) {
-            e.currentTarget.scrollLeft += e.deltaY;
-          }
-          setIsNavTrayOpen(false);
-          isScrollingRef.current = true;
-          if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-          scrollTimeoutRef.current = setTimeout(() => {
-            isScrollingRef.current = false;
-          }, 800);
-        }
-      }
-    },
-    [isWideScreen]
-  );
-
-
-  // 404 Media / Route Not Found Dialog State
   const [notFoundInfo, setNotFoundInfo] = useState<{
     isOpen: boolean;
     path: string;
     tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER';
-  }>({
-    isOpen: false,
-    path: '',
-    tab: 'TRAILER',
-  });
+  }>({ isOpen: false, path: '' });
 
-  // Direct Short ID or Invalid URL validation on initial load
+  const switchTab = useCallback((index: number) => {
+    setTabIndex(index);
+    if (typeof window !== 'undefined') {
+      let route = '/';
+      if (index === 1) route = '/photographs';
+      else if (index === 2) route = '/shorts';
+      else if (index === 3) route = '/clips';
+      else if (index === 4) route = '/bandhobi';
+      updateBrowserUrl(route);
+    }
+  }, []);
+
+  // Synchronize state when browser Back / Forward (popstate) is clicked
+  useEffect(() => {
+    const handlePopState = () => {
+      const parsed = parseAppPathname();
+      if (parsed.isNotFound) {
+        setNotFoundInfo({ isOpen: true, path: window.location.pathname });
+        return;
+      }
+      if (parsed.tab === 'PHOTOGRAPHY') setTabIndex(1);
+      else if (parsed.tab === 'SHORTS') setTabIndex(2);
+      else if (parsed.tab === 'CLIPS') setTabIndex(3);
+      else if (parsed.tab === 'BANDHOBI') setTabIndex(4);
+      else setTabIndex(0);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Deep Link Synchronizer on load
   const hasAutoLaunchedRef = useRef(false);
   useEffect(() => {
     if (hasAutoLaunchedRef.current || !items || items.length === 0) return;
 
-    const parsed = parseAppPathname();
-
-    // 1. If path is an unrecognized root path (e.g. /unknown-page) -> Open homepage & display dock notification
-    if (parsed.isNotFound) {
+    if (initialRoute.shortId) {
       hasAutoLaunchedRef.current = true;
-      switchTab(0);
-      window.history.replaceState(null, '', '/');
-      triggerDockNotification({
-        type: 'broken_link',
-        title: 'RESOURCE NOT FOUND',
-        message: 'The requested link does not exist. Redirected to vault homepage.',
-        attemptedPath: '/' + parsed.rawPath,
-        durationMs: 10000,
-      });
-      return;
-    }
-
-    // 2. If path has a media short ID (e.g. /shorts/7mK9 or /photographs/v9Q1)
-    if (parsed.shortId) {
-      hasAutoLaunchedRef.current = true;
-      const matched = findMediaByShortId(items, parsed.shortId);
+      const matched = findMediaByShortId(items, initialRoute.shortId);
       if (matched) {
         const item = matched.item;
         const isPhoto =
@@ -367,178 +174,64 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           item.url?.toLowerCase().includes('short');
 
         if (isPhoto) {
-          setTabIndex(1);
+          switchTab(1);
           onOpenPhoto(item, [item], 0);
         } else if (isShort) {
-          setTabIndex(2);
+          switchTab(2);
           onOpenShort(item, [item], 0);
         } else {
-          setTabIndex(3);
+          switchTab(3);
           onOpenVideo(item, [item]);
         }
       } else {
-        // Short ID not found in library -> Open homepage & display dock notification
-        switchTab(0);
-        window.history.replaceState(null, '', '/');
-        triggerDockNotification({
-          type: 'broken_link',
-          title: 'MEDIA NOT FOUND',
-          message: 'The requested media item does not exist. Redirected to vault homepage.',
-          attemptedPath: '/' + parsed.rawPath,
-          durationMs: 10000,
+        setNotFoundInfo({ isOpen: true, path: window.location.pathname });
+      }
+      return;
+    }
+
+    const parsed = parseAppPathname();
+    if (parsed.isNotFound) {
+      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath });
+    }
+  }, [items, initialRoute, onOpenPhoto, onOpenShort, onOpenVideo, switchTab]);
+
+  // Catalog indexation by directory
+  const rootMap = useMemo(() => {
+    const map = new Map<string, any>();
+    const getOrCreate = (name: string) => {
+      if (!map.has(name)) {
+        map.set(name, {
+          name,
+          fullPath: name,
+          subfolders: new Map(),
+          files: [],
         });
       }
-    }
-  }, [items, onOpenPhoto, onOpenShort, onOpenVideo]);
-
-  // Universal Command Palette / Fast-Find Search state
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  // Concealed Option A Terminal Drawer State
-  const [isVaultDrawerOpen, setVaultDrawerOpen] = useState(false);
-
-  // Sync wake lock state
-  useEffect(() => {
-    const unsub = subscribeKeepScreenOn((active) => {
-      setKeepAwakeOn(active);
-    });
-    return unsub;
-  }, []);
-
-  // Keyboard shortcut listener: '/' focuses inline search in dock, Escape dismisses
-  // User explicitly requested Ctrl+K must not work; only '/' focuses dock search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === '/' &&
-        document.activeElement?.tagName !== 'INPUT' &&
-        document.activeElement?.tagName !== 'TEXTAREA'
-      ) {
-        e.preventDefault();
-        setIsNavTrayOpen(true);
-        setTimeout(() => {
-          const el = document.getElementById('dockSearchInput') as HTMLInputElement | null;
-          if (el) el.focus();
-        }, 60);
-      } else if (e.key === 'Escape') {
-        setActiveDropdown(null);
-        setIsNavTrayOpen(false);
-      } else if (e.key === 'ArrowRight' && !isModalOpen && !isNavTrayOpen) {
-        setTabIndex((prev) => Math.min(4, prev + 1));
-      } else if (e.key === 'ArrowLeft' && !isModalOpen && !isNavTrayOpen) {
-        setTabIndex((prev) => Math.max(0, prev - 1));
-      }
+      return map.get(name)!;
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen, isNavTrayOpen]);
-
-  // Synchronize state when browser Back / Forward (popstate) is clicked
-  useEffect(() => {
-    const handlePopState = () => {
-      const parsed = parseAppPathname();
-      if (parsed.isNotFound) {
-        setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
-        return;
-      }
-      if (parsed.tab === 'PHOTOGRAPHY') setTabIndex(1);
-      else if (parsed.tab === 'SHORTS') setTabIndex(2);
-      else if (parsed.tab === 'CLIPS') setTabIndex(3);
-      else if (parsed.tab === 'BANDHOBI') setTabIndex(4);
-      else setTabIndex(0);
-      setActiveVideoId(parsed.shortId);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  // Sync tab navigation to browser URL
-  const switchTab = useCallback((idx: number) => {
-    setTabIndex(idx);
-    setActiveDropdown(null);
-    hapticMedium();
-
-    const targetPath =
-      idx === 1 ? '/photographs'
-      : idx === 2 ? '/shorts'
-      : idx === 3 ? '/clips'
-      : idx === 4 ? '/bandhobi'
-      : '/';
-    updateBrowserUrl(targetPath, false);
-  }, []);
-
-  // Group media into hierarchical directory nodes
-  const rootMap = useMemo(() => {
-    const map = new Map<string, DirectoryNode>();
-    for (const folder of MAJOR_FOLDERS) {
-      map.set(folder.rawName, {
-        name: folder.rawName,
-        fullPath: folder.rawName,
-        subfolders: new Map(),
-        files: [],
-      });
-    }
-
-    if (!items || items.length === 0) return map;
 
     for (const item of items) {
       const { root, subfolders } = getFolderSegments(item);
-      const rootNode = map.get(root);
-      if (!rootNode) continue;
-
-      rootNode.files.push(item);
-
-      let currentNode = rootNode;
-      for (const sub of subfolders) {
-        if (!currentNode.subfolders.has(sub)) {
-          currentNode.subfolders.set(sub, {
-            name: sub,
-            fullPath: `${currentNode.fullPath}/${sub}`,
+      const rootNode = getOrCreate(root);
+      if (subfolders.length === 0) {
+        rootNode.files.push(item);
+      } else {
+        const subName = subfolders[0];
+        if (!rootNode.subfolders.has(subName)) {
+          rootNode.subfolders.set(subName, {
+            name: subName,
+            fullPath: `${root}/${subName}`,
             subfolders: new Map(),
             files: [],
           });
         }
-        currentNode = currentNode.subfolders.get(sub)!;
-      }
-      currentNode.files.push(item);
-    }
-
-    const ensureSubfolders = (rootKey: string, defaultNames: string[]) => {
-      const node = map.get(rootKey);
-      if (!node) return;
-      if (node.subfolders.size === 0 && node.files.length > 0) {
-        const chunkSize = Math.ceil(node.files.length / defaultNames.length);
-        defaultNames.forEach((name, i) => {
-          const slice = node.files.slice(i * chunkSize, (i + 1) * chunkSize);
-          if (slice.length > 0 || i === 0) {
-            node.subfolders.set(name, {
-              name,
-              fullPath: `${node.fullPath}/${name}`,
-              subfolders: new Map(),
-              files: slice,
-            });
-          }
-        });
-      }
-    };
-
-    ensureSubfolders('Photographs', ['Favorite', '2027', '2026', '2025', 'Older']);
-    ensureSubfolders('Shorts', ['2027', 'Older']);
-    ensureSubfolders('Video Clips', ['Favorite', '2027', '2026', '2025', 'Older']);
-    ensureSubfolders('Bandhobi', ['Photographs', 'Shorts', 'Video Clips']);
-
-    for (const rootNode of map.values()) {
-      rootNode.files = sortMediaItemsDescending(rootNode.files);
-      for (const sub of rootNode.subfolders.values()) {
-        sub.files = sortMediaItemsDescending(sub.files);
+        rootNode.subfolders.get(subName)!.files.push(item);
       }
     }
 
     return map;
   }, [items]);
 
-  // Deep collections for each section
   const allPhotosFiles = useMemo(() => {
     const node = rootMap.get('Photographs');
     if (!node) return [];
@@ -611,15 +304,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return sortMediaItemsDescending(list);
   }, [rootMap]);
 
-  // 5 Living Wall Videos for Homepage (Zero space wall)
-  const homeWallVideos = useMemo(() => {
-    if (allShortsFiles.length >= 5) {
-      return allShortsFiles.slice(0, 5);
-    }
-    return allShortsFiles;
-  }, [allShortsFiles]);
-
-  // Filtered active media lists (ordered per specs)
+  // Active subfolder-filtered lists
   const activePhotosList = useMemo(() => {
     if (photosSubfolder === 'ALL') return allPhotosFiles;
     const node = rootMap.get('Photographs')?.subfolders.get(photosSubfolder);
@@ -644,19 +329,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return node && node.files.length > 0 ? node.files : allBandhobiFiles;
   }, [allBandhobiFiles, rootMap, bandhobiSubfolder]);
 
-  // Subfolder label resolver for LivingMediaCard
-  const getItemSubfolderLabel = useCallback(
-    (item: StageMediaItem): string => {
-      const { subfolders } = getFolderSegments(item);
-      return subfolders.length > 0 ? subfolders[0] : item.category || 'Archive';
-    },
-    []
-  );
-
-  // Universal Media Open Handlers
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {
-      setIsNavTrayOpen(false);
       hapticMedium();
       trackActivityEvent(1);
 
@@ -670,7 +344,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         if (isPhoto) {
           onOpenPhoto(item, activeBandhobiList, index);
         } else if (isShort) {
-          onOpenShort(item, activeBandhobiList, index, getItemSubfolderLabel(item));
+          onOpenShort(item, activeBandhobiList, index, 'Bandhobi');
         } else {
           onOpenVideo(item, activeBandhobiList);
         }
@@ -680,195 +354,63 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       if (isPhoto) {
         onOpenPhoto(item, activePhotosList, index);
       } else if (isShort) {
-        onOpenShort(item, activeShortsList, index, getItemSubfolderLabel(item));
+        onOpenShort(item, activeShortsList, index, 'Shorts');
       } else {
         onOpenVideo(item, activeClipsList);
       }
     },
-    [tabIndex, activeBandhobiList, activePhotosList, activeShortsList, activeClipsList, getItemSubfolderLabel, onOpenPhoto, onOpenShort, onOpenVideo]
+    [tabIndex, activeBandhobiList, activePhotosList, activeShortsList, activeClipsList, onOpenPhoto, onOpenShort, onOpenVideo]
   );
 
-  // Handler for opening media selected directly from the dock's inline search
-  const handleSelectMediaItem = useCallback(
-    (item: StageMediaItem) => {
-      setIsNavTrayOpen(false);
-      const isPhoto = isPhotoExtension(item.path || item.url || item.name || '');
-      const isShort = item.mediaType === 'short';
-      if (isShort) {
-        onOpenShort(item, items, 0, getItemSubfolderLabel(item));
-      } else if (isPhoto) {
-        onOpenPhoto(item, [item], 0);
-      } else {
-        onOpenVideo(item, [item]);
-      }
-    },
-    [items, getItemSubfolderLabel, onOpenPhoto, onOpenShort, onOpenVideo]
-  );
+  // Active list & subfolder list resolution
+  const currentActiveList =
+    tabIndex === 1
+      ? activePhotosList
+      : tabIndex === 2
+      ? activeShortsList
+      : tabIndex === 3
+      ? activeClipsList
+      : activeBandhobiList;
 
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('.tab-dropdown-wrap')) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener('click', handleGlobalClick);
-    return () => document.removeEventListener('click', handleGlobalClick);
-  }, []);
+  const currentSubfolderList =
+    tabIndex === 1
+      ? PHOTO_SUBFOLDERS
+      : tabIndex === 2
+      ? SHORTS_SUBFOLDERS
+      : tabIndex === 3
+      ? CLIPS_SUBFOLDERS
+      : BANDHOBI_SUBFOLDERS;
 
-  // Back button closes active modal/drawer/dropdown/nav-tray or returns home
-  useBackButton(
-    useCallback(() => {
-      if (isNavTrayOpen) {
-        setIsNavTrayOpen(false);
-        return true;
-      }
-      if (isSearchOpen) {
-        setIsSearchOpen(false);
-        return true;
-      }
-      if (activeDropdown) {
-        setActiveDropdown(null);
-        return true;
-      }
-      if (isVaultDrawerOpen) {
-        setVaultDrawerOpen(false);
-        return true;
-      }
-      if (tabIndex !== 0) {
-        switchTab(0);
-        return true;
-      }
-      return false;
-    }, [isNavTrayOpen, isSearchOpen, activeDropdown, isVaultDrawerOpen, tabIndex, switchTab]),
-    Boolean(isNavTrayOpen || isSearchOpen || activeDropdown || isVaultDrawerOpen || tabIndex !== 0)
-  );
+  const currentSubfolder =
+    tabIndex === 1
+      ? photosSubfolder
+      : tabIndex === 2
+      ? shortsSubfolder
+      : tabIndex === 3
+      ? clipsSubfolder
+      : bandhobiSubfolder;
 
-  // 7-day rolling session telemetry metrics (zero suppression: days with 0 data are excluded)
-  const telemetry7DayData = useMemo(() => {
-    return getRolling7DayDisplayData();
-  }, [isNavTrayOpen]);
-
-  // Infinite scroll handlers for each media tab (automatic progressive loading)
-  const handleShortsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const isNearEnd = isWideScreen
-      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
-      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
-
-    if (isNearEnd) {
-      setVisibleShorts((prev) => {
-        if (prev < activeShortsList.length) {
-          return Math.min(prev + 18, activeShortsList.length);
-        }
-        return prev;
-      });
-    }
-  }, [activeShortsList.length, isWideScreen]);
-
-  const handleClipsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const isNearEnd = isWideScreen
-      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
-      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
-
-    if (isNearEnd) {
-      setVisibleClips((prev) => {
-        if (prev < activeClipsList.length) {
-          return Math.min(prev + 12, activeClipsList.length);
-        }
-        return prev;
-      });
-    }
-  }, [activeClipsList.length, isWideScreen]);
-
-  const handlePhotosScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const isNearEnd = isWideScreen
-      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
-      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
-
-    if (isNearEnd) {
-      setVisiblePhotos((prev) => {
-        if (prev < activePhotosList.length) {
-          return Math.min(prev + 16, activePhotosList.length);
-        }
-        return prev;
-      });
-    }
-  }, [activePhotosList.length, isWideScreen]);
-
-  const handleBandhobiScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const isNearEnd = isWideScreen
-      ? target.scrollWidth - target.scrollLeft - target.clientWidth < 800
-      : target.scrollHeight - target.scrollTop - target.clientHeight < 600;
-
-    if (isNearEnd) {
-      setVisibleBandhobi((prev) => {
-        if (prev < activeBandhobiList.length) {
-          return Math.min(prev + 16, activeBandhobiList.length);
-        }
-        return prev;
-      });
-    }
-  }, [activeBandhobiList.length, isWideScreen]);
-
-  // Reset pagination count when subfolders change
-  useEffect(() => {
-    setVisibleShorts(24);
-  }, [shortsSubfolder]);
-
-  useEffect(() => {
-    setVisibleClips(16);
-  }, [clipsSubfolder]);
-
-  useEffect(() => {
-    setVisiblePhotos(24);
-  }, [photosSubfolder]);
-
-  useEffect(() => {
-    setVisibleBandhobi(24);
-  }, [bandhobiSubfolder]);
+  const handleSelectSubfolder = (sub: string) => {
+    if (tabIndex === 1) setPhotosSubfolder(sub);
+    else if (tabIndex === 2) setShortsSubfolder(sub);
+    else if (tabIndex === 3) setClipsSubfolder(sub);
+    else if (tabIndex === 4) setBandhobiSubfolder(sub);
+  };
 
   return (
     <div
-      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-transparent relative select-none font-['Roboto_Condensed'] font-sans text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-transparent relative select-none font-sans text-white"
       style={{
         isolation: 'isolate',
-        backgroundColor: 'transparent',
+        borderRadius: 0,
+        outline: 'none',
+        border: 'none',
       }}
     >
       {/* Permanent Midnight Obsidian Backdrop Canvas */}
       <CinematicBackdropCanvas theme={MIDNIGHT_OBSIDIAN_THEME} isPaused={isModalOpen} />
 
-      {/* Option A: Concealed Left Navigation Drawer */}
-      <VaultDrawer
-        isOpen={isVaultDrawerOpen}
-        onClose={() => setVaultDrawerOpen(false)}
-        onSelectFolder={(folderId, subfolderName) => {
-          if (folderId === 'photography') {
-            if (subfolderName) setPhotosSubfolder(subfolderName);
-            switchTab(1);
-          } else if (folderId === 'shorts') {
-            if (subfolderName) setShortsSubfolder(subfolderName);
-            switchTab(2);
-          } else if (folderId === 'clips') {
-            if (subfolderName) setClipsSubfolder(subfolderName);
-            switchTab(3);
-          } else if (folderId === 'realtube') {
-            if (subfolderName) setBandhobiSubfolder(subfolderName);
-            switchTab(4);
-          }
-          setVaultDrawerOpen(false);
-        }}
-        onSelectHome={() => switchTab(0)}
-        rootMap={rootMap}
-        onOpenPhoto={onOpenPhoto}
-        onOpenVideo={(item) => onOpenVideo(item, [item])}
-      />
-
-      {/* 404 Media / Route Not Found Modal */}
+      {/* 404 Route Not Found Dialog (Centered with 20px blur) */}
       <MediaNotFoundDialog
         isOpen={notFoundInfo.isOpen}
         attemptedPath={notFoundInfo.path}
@@ -884,351 +426,149 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         }}
       />
 
-      {/* 1. TOP KINETIC MARQUEE TICKER (INTER / GLOBAL HIGH-END SANS) */}
-      <div
-        className="eulo-marquee-ticker w-full h-[28px] overflow-hidden bg-[#ccff00] text-black font-bold text-[10.5px] uppercase tracking-[0.16em] select-none shrink-0 z-50 shadow-md flex items-center"
-        style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
+      {/* TOP HEADER: LOGO (LEFT) + NOTIF (CENTER) + GRAPH (RIGHT) */}
+      <header
+        className="w-full flex justify-between items-start pt-6 sm:pt-7 pb-2 px-6 sm:px-10 shrink-0 z-30 bg-transparent gap-4"
+        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        <div className="eulo-marquee-ticker animate-marquee whitespace-nowrap flex gap-8 items-center" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
-          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded-none text-[9px] font-bold tracking-wider" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>INDEX NOTICE</span>
-          <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
-          <span>•</span>
-          <span>SARWARCYOU ARCHIVE 2026</span>
-          <span>•</span>
-          <span>CELEBRITY PORTRAITS</span>
-          <span>•</span>
-          <span>CINEMA REELS 4K</span>
-          <span>•</span>
-          <span>STRICT VERIFIED FEED</span>
-          <span>•</span>
-          <span>BIENNALE EDITION // VOL. 2026</span>
-          <span>•</span>
-          <span className="bg-black text-[#ccff00] px-2 py-0.5 rounded-none text-[9px] font-bold tracking-wider" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>INDEX NOTICE</span>
-          <span>ALL CONTENT INDEXED ON THIS ARCHIVE IS AGGREGATED FROM PUBLIC INTERNET SOURCES • SARWAR.CYOU DOES NOT INDEPENDENTLY HOST OR PUBLISH PROPRIETARY MEDIA</span>
-          <span>•</span>
-          <span>SARWARCYOU ARCHIVE 2026</span>
-          <span>•</span>
-          <span>CELEBRITY PORTRAITS</span>
-          <span>•</span>
-          <span>CINEMA REELS 4K</span>
-          <span>•</span>
-          <span>STRICT VERIFIED FEED</span>
-          <span>•</span>
-          <span>BIENNALE EDITION // VOL. 2026</span>
+        {/* Left: Logo (clicking acts as Home) + Major Folders Bar directly underneath */}
+        <div className="flex flex-col gap-3 sm:gap-4 shrink-0">
+          <button
+            type="button"
+            onClick={() => switchTab(0)}
+            className="inline-flex items-center cursor-pointer transition-opacity hover:opacity-85 bg-transparent p-0"
+            title="SARWAR.CYOU"
+            style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+          >
+            <LaserSparkLogo width={250} height={34} interactive={false} />
+          </button>
+
+          {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}
+          <nav className="flex items-center gap-5 sm:gap-6">
+            <button
+              type="button"
+              onClick={() => switchTab(1)}
+              className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
+                tabIndex === 1 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+              }`}
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              Photographs
+            </button>
+            <button
+              type="button"
+              onClick={() => switchTab(3)}
+              className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
+                tabIndex === 3 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+              }`}
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              Video Clips
+            </button>
+            <button
+              type="button"
+              onClick={() => switchTab(2)}
+              className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
+                tabIndex === 2 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+              }`}
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              Shorts
+            </button>
+            <button
+              type="button"
+              onClick={() => switchTab(4)}
+              className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
+                tabIndex === 4 ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+              }`}
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              Bandhobi
+            </button>
+          </nav>
         </div>
-      </div>
 
-      {/* 2. BOTTOM-LEFT CORNER: WEBSITE LOGO (Slides left outside when dock opens, slides back in from left when dock closes) */}
-      <div
-        className={`fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 select-none transition-all duration-300 ease-out ${
-          !isNavTrayOpen
-            ? 'translate-x-0 opacity-100 pointer-events-auto'
-            : '-translate-x-[180%] opacity-0 pointer-events-none'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            hapticMedium();
-            setIsNavTrayOpen(true);
-          }}
-          className="inline-flex items-center cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none bg-transparent border-0 p-0"
-          title="Open Directory Navigation Menu"
-        >
-          <LaserSparkLogo
-            width={270}
-            height={38}
-            interactive={false}
-          />
-        </button>
-      </div>
+        {/* Center: Top-Middle Network Status (Silent on Wi-Fi) */}
+        <div className="flex-1 flex justify-center pt-1">
+          <TopMiddleNetworkStatus />
+        </div>
 
-      {/* 3. MIDDLE-LEFT: UNIFIED TALL NAVIGATION DOCK (Shown ONLY when dock is open) */}
-      <LogoDropUpNav
-        isOpen={isNavTrayOpen}
-        onClose={() => setIsNavTrayOpen(false)}
-        onToggleOpen={() => setIsNavTrayOpen((prev) => !prev)}
-        activeMainTab={activeMainTab}
-        onSelectMainTab={(tab) => {
-          setActiveMainTab(tab);
-          // DO NOT switch tab or show media cards when clicking major tab!
-        }}
-        activeSubfolder={
-          activeMainTab === 'Photographs'
-            ? photosSubfolder
-            : activeMainTab === 'Shorts'
-            ? shortsSubfolder
-            : activeMainTab === 'Video Clips'
-            ? clipsSubfolder
-            : bandhobiSubfolder
-        }
-        onSelectSubfolder={(tab, subfolder) => {
-          setActiveMainTab(tab);
-          // Close dock when going to media pages so only the website logo is found
-          setIsNavTrayOpen(false);
-          if (isModalOpen) {
-            window.dispatchEvent(new CustomEvent('streamvault_close_modal'));
-          }
-          // ONLY clicking a subfolder switches the page and shows media cards
-          if (tab === 'Photographs') {
-            setPhotosSubfolder(subfolder);
-            switchTab(1);
-          } else if (tab === 'Shorts') {
-            setShortsSubfolder(subfolder);
-            switchTab(2);
-          } else if (tab === 'Video Clips') {
-            setClipsSubfolder(subfolder);
-            switchTab(3);
-          } else if (tab === 'Bandhobi') {
-            setBandhobiSubfolder(subfolder);
-            switchTab(4);
-          }
-        }}
-        onSelectHome={() => {
-          setIsNavTrayOpen(false);
-          if (isModalOpen) {
-            window.dispatchEvent(new CustomEvent('streamvault_close_modal'));
-          }
-          switchTab(0);
-        }}
-        telemetryData={telemetry7DayData}
-        keepAwakeOn={keepAwakeOn}
-        onToggleKeepAwake={toggleKeepScreenOn}
-        items={items}
-        onSelectItem={handleSelectMediaItem}
-      />
+        {/* Right: Clean Tactical Telemetry Graph (Zero Text Noise) */}
+        <div className="shrink-0">
+          <TacticalTelemetryGraph />
+        </div>
+      </header>
 
-      {/* 3. 5-PANEL HORIZONTAL PANORAMIC SLIDING VIEWPORT */}
+      {/* MIDDLE PAGE SPACE: HOMEPAGE SLIDING SHORTS OR RECTANGULAR MEDIA GRID */}
       <main
-        className="flex-1 w-full min-h-0 relative overflow-hidden"
-        style={{
-          height: 'calc(100dvh - 28px)',
-        }}
+        className="flex-1 overflow-y-auto overflow-x-hidden px-6 sm:px-10 py-4 relative z-10 scrollbar-none flex flex-col"
+        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        <div
-          className="panoramic-viewport"
-          style={{
-            transform: `translate3d(calc(-100vw * ${tabIndex}), 0, 0)`,
-          }}
-        >
-          {/* ================================================================= */}
-          {/* PANEL 0: HOMEPAGE LIVING MULTI-SHORT VIDEO WALL                   */}
-          {/* ZERO SPACE: NO SPACE BETWEEN, ABOVE, OR BELOW SHORTS             */}
-          {/* ================================================================= */}
-          <section className="panoramic-panel panel-home-seamless">
-            <div className="seamless-shorts-row">
-              {homeWallVideos.map((short, idx) => {
-                return (
-                  <div
-                    key={short.id || short.url || idx}
-                    onClick={() => handleOpenItem(short, idx)}
-                    className="seamless-short-col group"
-                    title={`Play ${short.name || short.title || 'Short'}`}
-                  >
-                    <video
-                      src={short.url}
-                      poster={short.thumbnail}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      preload="auto"
-                      ref={(el) => {
-                        if (el) el.muted = true;
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* ================================================================= */}
-          {/* PANEL 1: PHOTOGRAPHS TAB PAGE                                     */}
-          {/* Widescreen: 2-Row Horizontal Strip (Fits screen height, tight gap) */}
-          {/* Portrait: Vertical Up-Down Grid                                   */}
-          {/* ================================================================= */}
-          <section className="panoramic-panel">
-            <div
-              onScroll={handlePhotosScroll}
-              onWheel={handleHorizontalWheel}
-              className={`w-full h-full space-scrollbar p-0 m-0 ${
-                isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-6'
-                  : 'overflow-y-auto overflow-x-hidden pb-28'
-              }`}
-            >
-              <div
-                className={
-                  isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
-                    : 'grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 max-w-[1200px] mx-auto'
+        {tabIndex === 0 ? (
+          /* Homepage: Latest Shorts Auto-Playing and Sliding Right-to-Left */
+          <div className="w-full h-full flex items-center justify-center">
+            <HomepageSlidingShorts
+              shorts={allShortsFiles}
+              onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenShort(item, playlist, idx, 'Shorts')}
+            />
+          </div>
+        ) : (
+          /* Media Pages: Monolith Rectangular Grid (Zero Text, Enlarges on Hover) */
+          <div
+            className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-6"
+            style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+          >
+            {currentActiveList.map((item: StageMediaItem, idx: number) => (
+              <LivingMediaCard
+                key={`${item.id || item.url || item.name}-${idx}`}
+                item={item}
+                aspectRatio={
+                  tabIndex === 1
+                    ? '3/4'
+                    : tabIndex === 2
+                    ? '9/16'
+                    : tabIndex === 3
+                    ? '16/9'
+                    : item.mediaType === 'short'
+                    ? '9/16'
+                    : isPhotoExtension(item.path || item.url || item.name || '')
+                    ? '3/4'
+                    : '16/9'
                 }
-              >
-                {activePhotosList.slice(0, visiblePhotos).map((item, idx) => (
-                  <div
-                    key={`${photosSubfolder}-${item.id || item.url || idx}`}
-                    className={isWideScreen ? 'h-full min-h-0 aspect-[3/4] shrink-0' : 'w-full'}
-                  >
-                    <LivingMediaCard
-                      item={item}
-                      aspectRatio="3/4"
-                      delayIdx={idx}
-                      onClick={() => handleOpenItem(item, idx)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ================================================================= */}
-          {/* PANEL 2: SHORTS TAB PAGE                                          */}
-          {/* Widescreen: 2-Row Horizontal Strip (Fits screen height, tight gap) */}
-          {/* Portrait: Vertical Up-Down Grid                                   */}
-          {/* ================================================================= */}
-          <section className="panoramic-panel">
-            <div
-              onScroll={handleShortsScroll}
-              onWheel={handleHorizontalWheel}
-              className={`w-full h-full space-scrollbar p-0 m-0 ${
-                isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-6'
-                  : 'overflow-y-auto overflow-x-hidden pb-28'
-              }`}
-            >
-              <div
-                className={
-                  isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
-                    : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 max-w-[1400px] mx-auto'
-                }
-              >
-                {activeShortsList.slice(0, visibleShorts).map((item, idx) => (
-                  <div
-                    key={`${shortsSubfolder}-${item.id || item.url || idx}`}
-                    className={isWideScreen ? 'h-full min-h-0 aspect-[9/16] shrink-0' : 'w-full'}
-                  >
-                    <LivingMediaCard
-                      item={item}
-                      aspectRatio="9/16"
-                      delayIdx={idx}
-                      onClick={() => handleOpenItem(item, idx)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ================================================================= */}
-          {/* PANEL 3: VIDEO CLIPS TAB PAGE                                     */}
-          {/* Widescreen: Cinema-scale Large Horizontal Cards                   */}
-          {/* Portrait: 1-Column Full-width Large Cards                         */}
-          {/* ================================================================= */}
-          <section className="panoramic-panel">
-            <div
-              onScroll={handleClipsScroll}
-              onWheel={handleHorizontalWheel}
-              className={`w-full h-full space-scrollbar p-0 m-0 ${
-                isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-8'
-                  : 'overflow-y-auto overflow-x-hidden pb-28'
-              }`}
-            >
-              <div
-                className={
-                  isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
-                    : 'grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 max-w-[1200px] mx-auto'
-                }
-              >
-                {activeClipsList.slice(0, visibleClips).map((item, idx) => (
-                  <div
-                    key={`${clipsSubfolder}-${item.id || item.url || idx}`}
-                    className={isWideScreen ? 'h-full min-h-0 aspect-video shrink-0' : 'w-full'}
-                  >
-                    <LivingMediaCard
-                      item={item}
-                      aspectRatio="16/9"
-                      delayIdx={idx}
-                      onClick={() => handleOpenItem(item, idx)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ================================================================= */}
-          {/* PANEL 4: BANDHOBI TAB PAGE                                        */}
-          {/* Widescreen: 2-Row or Grand Single Row (Tight gaps, proper height) */}
-          {/* Portrait: Vertical Up-Down Grid                                   */}
-          {/* ================================================================= */}
-          <section className="panoramic-panel">
-            <div
-              onScroll={handleBandhobiScroll}
-              onWheel={handleHorizontalWheel}
-              className={`w-full h-full space-scrollbar p-0 m-0 ${
-                isWideScreen
-                  ? 'overflow-x-auto overflow-y-hidden flex items-center px-4 sm:px-6'
-                  : 'overflow-y-auto overflow-x-hidden pb-28'
-              }`}
-            >
-              <div
-                className={
-                  isWideScreen
-                    ? 'grid grid-rows-2 grid-flow-col auto-cols-max gap-2 sm:gap-2.5 h-[calc(100dvh-56px)] py-1 shrink-0'
-                    : `grid gap-3 p-3 max-w-[1400px] mx-auto ${
-                        bandhobiSubfolder === 'Video Clips'
-                          ? 'grid-cols-1 sm:grid-cols-2'
-                          : 'grid-cols-2 sm:grid-cols-3'
-                      }`
-                }
-              >
-                {activeBandhobiList.slice(0, visibleBandhobi).map((item, idx) => {
-                  const aspect =
-                    bandhobiSubfolder === 'Shorts'
-                      ? '9/16'
-                      : bandhobiSubfolder === 'Video Clips'
-                      ? '16/9'
-                      : '3/4';
-                  const aspectClass =
-                    aspect === '9/16'
-                      ? 'aspect-[9/16]'
-                      : aspect === '16/9'
-                      ? 'aspect-video'
-                      : 'aspect-[3/4]';
-                  return (
-                    <div
-                      key={`${bandhobiSubfolder}-${item.id || item.url || idx}`}
-                      className={isWideScreen ? `h-full min-h-0 ${aspectClass} shrink-0` : 'w-full'}
-                    >
-                      <LivingMediaCard
-                        item={item}
-                        aspectRatio={aspect}
-                        delayIdx={idx}
-                        onClick={() => handleOpenItem(item, idx)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-        </div>
+                delayIdx={idx}
+                onClick={() => handleOpenItem(item, idx)}
+              />
+            ))}
+          </div>
+        )}
       </main>
 
-      {/* Universal Instant Command Search Palette */}
-      <QuickSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        items={items}
-        onOpenPhoto={onOpenPhoto}
-        onOpenVideo={onOpenVideo}
-        onOpenShort={onOpenShort}
-      />
+      {/* BOTTOM NAVIGATION BAR: DYNAMIC SUBFOLDERS (Pure text, zero borders, zero outlines) */}
+      <footer
+        className="w-full px-6 sm:px-10 py-3 sm:py-4 shrink-0 z-20 flex items-center bg-transparent min-h-[44px]"
+        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+      >
+        {tabIndex !== 0 && (
+          <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto scrollbar-none">
+            {currentSubfolderList.map((sub) => {
+              const isActive = currentSubfolder === sub;
+              return (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => handleSelectSubfolder(sub)}
+                  className={`text-[11.5px] sm:text-[12px] tracking-wide transition-colors cursor-pointer whitespace-nowrap p-0 bg-transparent ${
+                    isActive ? 'text-white font-bold' : 'text-[#475569] font-medium hover:text-[#94a3b8]'
+                  }`}
+                  style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+                >
+                  {sub}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </footer>
     </div>
   );
 };

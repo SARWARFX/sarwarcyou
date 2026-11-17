@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertCircle, ArrowRight, Home, Compass } from 'lucide-react';
 import { hapticLight, hapticMedium } from '../../utils/hapticsManager';
 
 export interface MediaNotFoundDialogProps {
@@ -11,11 +10,11 @@ export interface MediaNotFoundDialogProps {
 }
 
 /**
- * 404 Cyber Not Found Error Screen
- * - 100% Square Geometry (zero rounded corners)
- * - Corner L-brackets (Cyan #00f0ff top-left, Pink #ff2bd6 bottom-right)
- * - White & Electric Cyan color palette
- * - Zero backdrop blur to keep background crisp
+ * 404 Route Not Found Dialog
+ * - Centered at the middle of the website
+ * - 20px Backdrop Blur
+ * - 100% Rectangular Geometry (0px border-radius, zero outlines)
+ * - Deep Obsidian Color Scheme
  */
 export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
   isOpen,
@@ -31,47 +30,27 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
       role="dialog"
       aria-modal="true"
       onClick={onClose}
-      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/75 transition-opacity duration-200 cursor-pointer select-none"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-[20px] transition-opacity duration-200 cursor-pointer select-none"
+      style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md rounded-none bg-[rgba(5,7,12,0.98)] border border-white/30 p-6 shadow-[0_0_50px_rgba(255,255,255,0.12),inset_0_0_25px_rgba(255,255,255,0.03)] cursor-default animate-hacker-dock-deploy"
+        className="relative w-full max-w-md bg-[#090c12] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.95)] cursor-default text-white flex flex-col gap-4"
+        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        {/* Top-Left White L-Bracket */}
-        <div className="cyber-dock-corner-tl" />
+        <h3 className="text-lg font-bold tracking-tight text-[#38bdf8] uppercase font-mono">
+          // ITEM NOT FOUND
+        </h3>
 
-        {/* Bottom-Right White L-Bracket */}
-        <div className="cyber-dock-corner-br" />
-
-        {/* 1-shot laser beam sweep */}
-        <div className="absolute left-0 right-0 bg-white shadow-[0_0_14px_#ffffff] pointer-events-none z-40 animate-hacker-beam-sweep" />
-
-        {/* Header Icon with Neon Pulse */}
-        <div className="flex items-center gap-3.5 mb-4 border-b border-white/10 pb-4">
-          <div className="w-11 h-11 rounded-none bg-white/10 border border-white flex items-center justify-center text-white shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-            <AlertCircle className="w-6 h-6 animate-pulse" />
-          </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-['Michroma',sans-serif] font-bold tracking-wider uppercase text-white">
-              LINK DOES NOT EXIST
-            </h3>
-            <p className="text-[10px] font-['Michroma',sans-serif] text-neutral-400 tracking-widest uppercase">
-              ARCHIVE NOTIFICATION // ERROR 404
-            </p>
-          </div>
-        </div>
-
-        {/* Message */}
-        <p className="text-xs sm:text-sm text-neutral-300 font-mono leading-relaxed mb-6">
-          The requested media link{' '}
-          <code className="px-2 py-0.5 rounded-none bg-white/10 text-white font-mono text-xs border border-white/30">
-            {attemptedPath}
-          </code>{' '}
-          does not exist, has expired, or was removed from this vault.
+        <p className="text-xs text-neutral-300 font-sans leading-relaxed">
+          The requested media item does not exist in the vault or the route has been removed.
         </p>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2">
+        <div className="bg-[#030406] p-2.5 text-[11px] font-mono text-neutral-300 break-all select-text">
+          {attemptedPath}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-3">
           {suggestedTab && suggestedTab !== 'TRAILER' && (
             <button
               type="button"
@@ -80,11 +59,10 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
                 onNavigateTab(suggestedTab);
                 onClose();
               }}
-              className="flex-1 py-2.5 px-4 rounded-none bg-white text-black font-['Michroma',sans-serif] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_18px_rgba(255,255,255,0.4)] hover:bg-neutral-200 active:scale-95 transition-all cursor-pointer"
+              className="py-2 px-4 bg-transparent text-neutral-300 hover:text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
-              <Compass className="w-4 h-4" />
-              <span>&gt; BROWSE {suggestedTab}</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-auto sm:ml-0" />
+              Browse {suggestedTab}
             </button>
           )}
 
@@ -95,10 +73,10 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
               onNavigateTab('TRAILER');
               onClose();
             }}
-            className="flex-1 py-2.5 px-4 rounded-none bg-white/5 hover:bg-white/10 text-neutral-200 hover:text-white border border-white/20 font-['Michroma',sans-serif] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 hover:border-white"
+            className="py-2 px-4 bg-[#38bdf8] text-black font-mono font-bold text-xs uppercase tracking-wider hover:bg-white transition-colors cursor-pointer"
+            style={{ borderRadius: 0, outline: 'none', border: 'none' }}
           >
-            <Home className="w-4 h-4" />
-            <span>&gt; RETURN HOME</span>
+            Return Home
           </button>
         </div>
       </div>
