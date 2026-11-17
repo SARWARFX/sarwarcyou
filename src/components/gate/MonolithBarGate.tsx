@@ -151,7 +151,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   });
 
   const [photosSubfolder, setPhotosSubfolder] = useState<string>('ALL');
-  const [shortsSubfolder, setShortsSubfolder] = useState<string>('Featured');
+  const [shortsSubfolder, setShortsSubfolder] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'Featured';
+    const parsed = parseAppPathname();
+    if (parsed.tab === 'SHORTS') return '2027';
+    return 'Featured';
+  });
   const [clipsSubfolder, setClipsSubfolder] = useState<string>('ALL');
   const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Featured');
   const [shuffleTrigger, setShuffleTrigger] = useState<number>(0);
@@ -159,7 +164,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Content display state (synchronized with Quantum 0.25x speed directional transitions)
   const [displayedTab, setDisplayedTab] = useState<number>(() => tabIndex);
   const [displayedPhotosSub, setDisplayedPhotosSub] = useState<string>('ALL');
-  const [displayedShortsSub, setDisplayedShortsSub] = useState<string>('Featured');
+  const [displayedShortsSub, setDisplayedShortsSub] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'Featured';
+    const parsed = parseAppPathname();
+    if (parsed.tab === 'SHORTS') return '2027';
+    return 'Featured';
+  });
   const [displayedClipsSub, setDisplayedClipsSub] = useState<string>('ALL');
   const [displayedBandhobiSub, setDisplayedBandhobiSub] = useState<string>('Featured');
   const [quantumAnimClass, setQuantumAnimClass] = useState<string>('');
@@ -239,7 +249,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     // Instantly highlight target nav button and update route
     setTabIndex(targetIndex);
     if (targetIndex === 1) setPhotosSubfolder('ALL');
-    else if (targetIndex === 2) setShortsSubfolder('Featured');
+    else if (targetIndex === 2) setShortsSubfolder('2027');
     else if (targetIndex === 3) setClipsSubfolder('ALL');
     else if (targetIndex === 4) setBandhobiSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
@@ -259,7 +269,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     transitionTimerRef.current.t1 = setTimeout(() => {
       setDisplayedTab(targetIndex);
       if (targetIndex === 1) setDisplayedPhotosSub('ALL');
-      else if (targetIndex === 2) setDisplayedShortsSub('Featured');
+      else if (targetIndex === 2) setDisplayedShortsSub('2027');
       else if (targetIndex === 3) setDisplayedClipsSub('ALL');
       else if (targetIndex === 4) setDisplayedBandhobiSub('Featured');
 
@@ -291,8 +301,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setTabIndex(1);
         setDisplayedTab(1);
       } else if (parsed.tab === 'SHORTS') {
-        setShortsSubfolder('Featured');
-        setDisplayedShortsSub('Featured');
+        setShortsSubfolder('2027');
+        setDisplayedShortsSub('2027');
         setTabIndex(2);
         setDisplayedTab(2);
       } else if (parsed.tab === 'CLIPS') {
@@ -648,8 +658,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <button
             type="button"
             onClick={() => {
-              switchTab(2);
-              setShortsSubfolder('Featured');
+              if (tabIndex === 2 && shortsSubfolder === 'Featured' && displayedShortsSub === 'Featured') {
+                return;
+              }
+              if (tabIndex === 2) {
+                handleSelectSubfolder('Featured');
+              } else {
+                setTabIndex(2);
+                setShortsSubfolder('Featured');
+                setDisplayedTab(2);
+                setDisplayedShortsSub('Featured');
+              }
               if (typeof window !== 'undefined') {
                 updateBrowserUrl('/');
               }
@@ -685,7 +704,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => switchTab(2)}
+              onClick={() => {
+                if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
+                  handleSelectSubfolder('2027');
+                } else {
+                  switchTab(2);
+                }
+              }}
               className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent ${
                 tabIndex === 2 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
               }`}
