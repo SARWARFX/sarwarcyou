@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Repeat,
@@ -91,6 +91,19 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isPortrait, setIsPortrait] = useState(() => typeof window !== 'undefined' && window.innerHeight > window.innerWidth);
   const [isFullscreen, setIsFullscreen] = useState(() => typeof document !== 'undefined' && Boolean(document.fullscreenElement));
   const isOutsideTop = isDesktop || (isPortrait && !isFullscreen);
+
+  // Shuffle photo pool: pick 20 random images from directory for background slideshow
+  const shuffledBackgroundPhotos = useMemo(() => {
+    if (!photoPool || photoPool.length === 0) return [];
+    const pool = [...photoPool];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const selected20 = pool.slice(0, 20);
+    // Duplicate once so continuous CSS animation loop (0% to -50%) remains perfectly seamless
+    return [...selected20, ...selected20];
+  }, [photoPool, item?.id, item?.url, isOpen]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1179,13 +1192,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
 
       {/* Photographic Background Tapestry on Desktop & Portrait Screens (Hidden when in Fullscreen) */}
-      {!isFullscreen && photoPool && photoPool.length > 0 && (
+      {!isFullscreen && shuffledBackgroundPhotos.length > 0 && (
         <div
           className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none opacity-30"
           aria-hidden="true"
         >
           <div className="shorts-stream-track">
-            {[...photoPool, ...photoPool, ...photoPool].slice(0, 48).map((photo, pIdx) => (
+            {shuffledBackgroundPhotos.map((photo, pIdx) => (
               <div
                 key={`bg-photo-${photo.id || photo.url}-${pIdx}`}
                 className="shorts-stream-card aspect-[3/4] h-full overflow-hidden flex-shrink-0"
