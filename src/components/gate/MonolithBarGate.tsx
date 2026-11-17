@@ -137,16 +137,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   });
 
   // Logo Drop-Up Navigation Menu Open State
-  // On wide screen devices on homepage, automatically hidden so homepage is an uninterrupted living showcase
-  const [isNavTrayOpen, setIsNavTrayOpen] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const isWide = window.innerWidth > window.innerHeight;
-      const parsed = parseAppPathname();
-      const isHome = parsed.tab === 'TRAILER';
-      if (isWide && isHome) return false;
-    }
-    return true;
-  });
+  // Navigation dock is always closed initially for a clean, distraction-free experience
+  const [isNavTrayOpen, setIsNavTrayOpen] = useState<boolean>(false);
 
   // Track whether a 10s dock notification is active so idle timers don't dismiss the dock prematurely
   const isNotificationActiveRef = useRef<boolean>(false);
@@ -220,12 +212,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   // 8-second Dock Auto-Dismissal and Mouse Movement Detector:
   // 1. Dock auto-dismisses after 8 seconds of inactivity.
-  // 2. Dock reappears on mouse movement ONLY IF:
-  //    - Visitor is NOT scrolling (isScrollingRef.current is false)
-  //    - Visitor is NOT watching something (isModalOpen is false)
-  //    - Visitor is on homepage (tabIndex === 0)
-  // 3. If visitor is scrolling media pages or watching something, mouse movement NEVER opens the dock.
-  // 4. On any screen (homepage, media card page, player), clicking the website logo opens the dock.
+  // 2. In player pages (video player, shorts player, image viewer), the dock will NOT appear unless clicked.
+  // 3. During scrolling (left-right or up-down), the dock will NOT appear.
+  // 4. If moving mouse cursor but not scrolling (on homepage or media pages): dock appears for 8 seconds.
+  // 5. Clicking the website logo on any screen (homepage, media card page, player) appears the dock for 8 seconds.
   useEffect(() => {
     let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -252,21 +242,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
       // If dock is closed:
       // STRICT RULES:
-      // - If visitor is scrolling media pages -> DO NOT appear
-      // - If visitor is watching something (video, shorts, image) -> DO NOT appear
-      // - If visitor is on media card pages (tabIndex !== 0) -> DO NOT appear
-      if (isScrollingRef.current || isModalOpen || tabIndex !== 0) {
+      // - In the player pages (video player, shorts player, image viewer): dock will NOT appear on mouse movement
+      if (isModalOpen) {
         return;
       }
 
-      // Visitor is on homepage, not scrolling, and not watching anything: reveal dock and start 8s countdown
+      // - During scrolling (left-right or up-down): dock will NOT appear
+      if (isScrollingRef.current) {
+        return;
+      }
+
+      // Visitor is moving the mouse cursor but not scrolling: reveal dock and start 8s countdown
       setIsNavTrayOpen(true);
       resetIdleTimer();
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
-    // If dock is open, start the 8s countdown immediately
+    // If dock is open (e.g. opened via logo click), start the 8s countdown immediately
     if (isNavTrayOpen) {
       resetIdleTimer();
     }
@@ -275,7 +268,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       if (idleTimer) clearTimeout(idleTimer);
     };
-  }, [isNavTrayOpen, isModalOpen, tabIndex]);
+  }, [isNavTrayOpen, isModalOpen]);
 
   // Listen for global logo click dock reveal event (from CyberVideoPlayer, MediaModal, ShortsFeedModal, etc.)
   useEffect(() => {
@@ -663,6 +656,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Universal Media Open Handlers
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {
+      setIsNavTrayOpen(false);
       hapticMedium();
       trackActivityEvent(1);
 
@@ -697,6 +691,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   // Handler for opening media selected directly from the dock's inline search
   const handleSelectMediaItem = useCallback(
     (item: StageMediaItem) => {
+      setIsNavTrayOpen(false);
       const isPhoto = isPhotoExtension(item.path || item.url || item.name || '');
       const isShort = item.mediaType === 'short';
       if (isShort) {
@@ -969,6 +964,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         }
         onSelectSubfolder={(tab, subfolder) => {
           setActiveMainTab(tab);
+          // Close dock when going to media pages so only the website logo is found
+          setIsNavTrayOpen(false);
           if (isModalOpen) {
             window.dispatchEvent(new CustomEvent('streamvault_close_modal'));
           }
@@ -988,6 +985,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           }
         }}
         onSelectHome={() => {
+          setIsNavTrayOpen(false);
           if (isModalOpen) {
             window.dispatchEvent(new CustomEvent('streamvault_close_modal'));
           }
