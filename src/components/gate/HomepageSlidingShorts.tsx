@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import type { StageMediaItem } from '../../types';
 import { getVideoStreamUrl, getMediaUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
@@ -11,13 +11,13 @@ export interface HomepageSlidingShortsProps {
 
 /**
  * Shorts Featured Showcase: 10 Randomly Selected Shorts
- * - Shows 10 randomly selected shorts on the page
- * - All playing automatically (muted) all at once
- * - Starts directly on screen (filling from the left as many cards as fit)
- * - Slowly glides continuously from right to left
- * - Zero rounded corners, zero outlines, zero text
- * - Enlarges slightly on hover
- * - Click launches the real shorts player
+ * - 10 randomly selected shorts
+ * - Buffer-free synchronization: stays in high-tech loading state until >= 6 shorts are ready
+ * - Plays buffer-free simultaneously from frame 0
+ * - Continuous right-to-left glide animation starts only when ready
+ * - Remaining shorts continue caching/buffering in the background before sliding into view
+ * - Zero rounded corners, zero outlines, zero border strokes
+ * - Font: Science Gothic
  */
 export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   shorts,
@@ -25,9 +25,10 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   randomSeed,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   // 10 randomly selected shorts
-  const selected10 = React.useMemo(() => {
+  const selected10 = useMemo(() => {
     if (!shorts || shorts.length === 0) return [];
     const pool = [...shorts];
     for (let i = pool.length - 1; i > 0; i--) {
@@ -38,30 +39,143 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   }, [shorts, randomSeed]);
 
   // Duplicate the 10 shorts once to create an infinite, seamless loop
-  const displayList = React.useMemo(() => {
+  const displayList = useMemo(() => {
     if (selected10.length === 0) return [];
     return [...selected10, ...selected10];
   }, [selected10]);
 
-  // Ensure all videos play simultaneously (muted) without autoplay lock
-  const setVideoRef = (el: HTMLVideoElement | null) => {
-    if (el) {
-      el.muted = true;
-      el.defaultMuted = true;
-      el.play().catch(() => {});
+  // Buffer synchronization states
+  const [readyIndices, setReadyIndices] = useState<Set<number>>(new Set());
+  const [isPlaybackReady, setIsPlaybackReady] = useState(false);
+  const isPlaybackReadyRef = useRef(false);
+
+  // Target threshold: minimum 6 media (or selected10.length if fewer available)
+  const targetThreshold = useMemo(() => {
+    return Math.min(6, selected10.length);
+  }, [selected10.length]);
+
+  // Reset buffering state whenever the selected shorts change
+  useEffect(() => {
+    setReadyIndices(new Set());
+    setIsPlaybackReady(false);
+    isPlaybackReadyRef.current = false;
+    videoRefs.current = [];
+  }, [selected10]);
+
+  // Sync ref with state
+  useEffect(() => {
+    isPlaybackReadyRef.current = isPlaybackReady;
+  }, [isPlaybackReady]);
+
+  // Check if minimum required media are buffered/playable
+  useEffect(() => {
+    if (!isPlaybackReady && targetThreshold > 0 && readyIndices.size >= targetThreshold) {
+      setIsPlaybackReady(true);
+      isPlaybackReadyRef.current = true;
+    }
+  }, [readyIndices.size, targetThreshold, isPlaybackReady]);
+
+  // Handle a single video reaching playable state
+  const handleMediaReady = useCallback(
+    (itemIndex: number) => {
+      setReadyIndices((prev) => {
+        if (prev.has(itemIndex)) return prev;
+        const next = new Set(prev);
+        next.add(itemIndex);
+        return next;
+      });
+
+      // If showcase already started, ensure newly ready videos start playing immediately
+      if (isPlaybackReadyRef.current && selected10.length > 0) {
+        const v1 = videoRefs.current[itemIndex];
+        const v2 = videoRefs.current[itemIndex + selected10.length];
+        [v1, v2].forEach((v) => {
+          if (v && v.paused) {
+            v.muted = true;
+            v.defaultMuted = true;
+            v.play().catch(() => {});
+          }
+        });
+      }
+    },
+    [selected10.length]
+  );
+
+  // When playback threshold is met, simultaneously start all buffered videos from 0
+  useEffect(() => {
+    if (isPlaybackReady) {
+      videoRefs.current.forEach((v) => {
+        if (v) {
+          v.muted = true;
+          v.defaultMuted = true;
+          try {
+            v.currentTime = 0;
+          } catch (_) {}
+          v.play().catch(() => {});
+        }
+      });
+    }
+  }, [isPlaybackReady]);
+
+  const handleVideoRef = (el: HTMLVideoElement | null, idx: number) => {
+    videoRefs.current[idx] = el;
+    if (!el || selected10.length === 0) return;
+
+    el.muted = true;
+    el.defaultMuted = true;
+    el.playsInline = true;
+
+    const actualIndex = idx % selected10.length;
+
+    // If browser already buffered the video (e.g. cached or fast connection)
+    if (el.readyState >= 3) {
+      handleMediaReady(actualIndex);
     }
   };
 
   if (selected10.length === 0) return null;
 
+  const readyCount = readyIndices.size;
+  const progressPercent = targetThreshold > 0 ? Math.min(100, Math.round((readyCount / targetThreshold) * 100)) : 0;
+
   return (
     <div
       ref={containerRef}
-      className="w-full h-full flex items-center justify-start overflow-hidden relative select-none pl-6 sm:pl-10"
+      className="w-full h-full flex items-center justify-start overflow-hidden relative select-none pl-6 sm:pl-10 min-h-[300px] sm:min-h-[380px] md:min-h-[480px]"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
+      {/* High-Tech Cybernetic Buffering Loader */}
+      {!isPlaybackReady && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none">
+          <div className="flex flex-col items-center gap-2 px-6 py-3.5 bg-[#07090e]/95 border border-[#38bdf8]/40 shadow-[0_0_30px_rgba(0,0,0,0.85)] backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-2.5 bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] animate-pulse" />
+              <span
+                className="text-xs sm:text-sm font-bold tracking-[0.18em] uppercase text-white"
+                style={{ fontFamily: "'Science Gothic', sans-serif" }}
+              >
+                <span className="text-[#38bdf8]">LOADING MEDIA //</span> BUFFERING ({readyCount}/{targetThreshold})
+              </span>
+            </div>
+
+            {/* Tactical 1px progress track */}
+            <div className="w-full h-[2px] bg-[#38bdf8]/20 overflow-hidden mt-1 relative">
+              <div
+                className="h-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-300 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sliding Shorts Strip */}
       <div
-        className="flex gap-4 sm:gap-6 w-max animate-homepage-slow-slide hover:[animation-play-state:paused]"
+        className={`flex gap-4 sm:gap-6 w-max transition-opacity duration-700 ${
+          isPlaybackReady
+            ? 'opacity-100 animate-homepage-slow-slide hover:[animation-play-state:paused]'
+            : 'opacity-0 pointer-events-none'
+        }`}
         style={{
           borderRadius: 0,
           outline: 'none',
@@ -86,14 +200,21 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
               <video
-                ref={setVideoRef}
+                ref={(el) => handleVideoRef(el, idx)}
                 src={videoSrc}
                 poster={imageSrc}
-                autoPlay
                 loop
                 muted
                 playsInline
-                preload="metadata"
+                preload="auto"
+                onCanPlay={() => handleMediaReady(actualIndex)}
+                onCanPlayThrough={() => handleMediaReady(actualIndex)}
+                onLoadedData={(e) => {
+                  if (e.currentTarget.readyState >= 3) {
+                    handleMediaReady(actualIndex);
+                  }
+                }}
+                onError={() => handleMediaReady(actualIndex)}
                 className="w-full h-full object-cover block filter saturate-[0.95] contrast-[1.05]"
                 style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               />
