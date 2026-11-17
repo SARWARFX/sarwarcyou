@@ -1,71 +1,70 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+export type NetworkType = 'offline' | 'cellular' | 'wifi';
+
+function getNetworkType(): NetworkType {
+  if (typeof navigator === 'undefined') return 'wifi';
+  if (!navigator.onLine) return 'offline';
+  const conn =
+    (navigator as any).connection ||
+    (navigator as any).mozConnection ||
+    (navigator as any).webkitConnection;
+  if (!conn) return 'wifi';
+  if (conn.saveData === true || conn.type === 'cellular') return 'cellular';
+  return 'wifi';
+}
 
 /**
  * NetworkStatusDialog
- * - Displays cybernetic HUD dialogs for:
- *   1. Red Alert: Internet Disconnection (Offline)
- *   2. Amber Warning: Metered / Cellular Connection Data Warning
- * - Exact 1:1 visual architecture as MediaNotFoundDialog & PlayerErrorBoundary:
- *   - 20px backdrop blur
- *   - Obsidian #090c12 card background
- *   - 0px border-radius, zero outlines, zero rounded corners
- *   - Science Gothic / Mono cybernetic typography
+ * - Real-time network telemetry modal matching MediaNotFoundDialog & PlayerErrorBoundary:
+ *   1. Red Alert: Disconnected from the Internet (Offline)
+ *   2. Amber Warning: Metered / Cellular Connection (Alerts on each switch to cellular)
+ *   3. Green Signal: Unmetered Wi-Fi Connection ("Good to go with no worry")
  */
 export const NetworkStatusDialog: React.FC = () => {
-  const [isOnline, setIsOnline] = useState<boolean>(() => {
-    if (typeof navigator === 'undefined') return true;
-    return typeof navigator.onLine === 'boolean' ? navigator.onLine : true;
-  });
-
+  const [currentNetwork, setCurrentNetwork] = useState<NetworkType>(() => getNetworkType());
+  const [showMeteredModal, setShowMeteredModal] = useState<boolean>(() => getNetworkType() === 'cellular');
+  const [showWifiModal, setShowWifiModal] = useState<boolean>(() => getNetworkType() === 'wifi');
   const [isChecking, setIsChecking] = useState<boolean>(false);
+  const prevNetworkRef = useRef<NetworkType>(getNetworkType());
 
-  const [isMetered, setIsMetered] = useState<boolean>(() => {
-    if (typeof navigator === 'undefined') return false;
-    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    if (!conn) return false;
-    return Boolean(conn.saveData === true || conn.type === 'cellular');
-  });
-
-  const [isMeteredDismissed, setIsMeteredDismissed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return sessionStorage.getItem('sarwar_metered_dismissed') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  // Monitor online / offline status
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setIsChecking(false);
-    };
+    const updateStatus = () => {
+      const next = getNetworkType();
+      const prev = prevNetworkRef.current;
+      setCurrentNetwork(next);
 
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Network Information API change listener
-    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    const handleConnChange = () => {
-      if (conn) {
-        setIsMetered(Boolean(conn.saveData === true || conn.type === 'cellular'));
+      if (next !== prev) {
+        prevNetworkRef.current = next;
+        if (next === 'cellular') {
+          setShowMeteredModal(true);
+          setShowWifiModal(false);
+        } else if (next === 'wifi') {
+          setShowWifiModal(true);
+          setShowMeteredModal(false);
+        } else if (next === 'offline') {
+          setShowMeteredModal(false);
+          setShowWifiModal(false);
+        }
       }
     };
 
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+
+    const conn =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
     if (conn && conn.addEventListener) {
-      conn.addEventListener('change', handleConnChange);
+      conn.addEventListener('change', updateStatus);
     }
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', updateStatus);
+      window.removeEventListener('offline', updateStatus);
       if (conn && conn.removeEventListener) {
-        conn.removeEventListener('change', handleConnChange);
+        conn.removeEventListener('change', updateStatus);
       }
     };
   }, []);
@@ -74,30 +73,28 @@ export const NetworkStatusDialog: React.FC = () => {
     setIsChecking(true);
     if (navigator.onLine) {
       try {
-        await fetch(window.location.origin + window.location.pathname, { method: 'HEAD', cache: 'no-store' });
-        setIsOnline(true);
+        await fetch(window.location.origin + window.location.pathname, {
+          method: 'HEAD',
+          cache: 'no-store',
+        });
+        const net = getNetworkType();
+        setCurrentNetwork(net);
+        prevNetworkRef.current = net;
+        if (net === 'wifi') setShowWifiModal(true);
+        else if (net === 'cellular') setShowMeteredModal(true);
       } catch {
-        setIsOnline(false);
+        setCurrentNetwork('offline');
       }
     } else {
-      setIsOnline(false);
+      setCurrentNetwork('offline');
     }
     setTimeout(() => {
       setIsChecking(false);
     }, 600);
   }, []);
 
-  const handleDismissMetered = useCallback(() => {
-    setIsMeteredDismissed(true);
-    try {
-      sessionStorage.setItem('sarwar_metered_dismissed', 'true');
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  // 1. Offline Disconnection takes top priority (Red Alert)
-  if (!isOnline) {
+  // 1. Red Alert: Disconnected from the Internet
+  if (currentNetwork === 'offline') {
     return (
       <div
         role="alertdialog"
@@ -140,13 +137,14 @@ export const NetworkStatusDialog: React.FC = () => {
     );
   }
 
-  // 2. Metered / Cellular Connection Warning (Amber Alert)
-  if (isMetered && !isMeteredDismissed) {
+  // 2. Amber Warning: Metered / Cellular Connection Alert
+  if (currentNetwork === 'cellular' && showMeteredModal) {
     return (
       <div
         role="alertdialog"
         aria-modal="true"
-        className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/85 backdrop-blur-[20px] transition-opacity duration-200 select-none"
+        onClick={() => setShowMeteredModal(false)}
+        className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/85 backdrop-blur-[20px] transition-opacity duration-200 select-none cursor-pointer"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         <div
@@ -160,7 +158,7 @@ export const NetworkStatusDialog: React.FC = () => {
           </h3>
 
           <p className="text-xs text-neutral-300 font-sans leading-relaxed">
-            Your device is connected via a metered or cellular data network. Streaming high-bitrate video clips and shorts transfers significant data volume and may rapidly consume your cellular plan allowance.
+            Your device is connected via a metered cellular data network. Streaming high-bitrate video clips and shorts transfers significant data volume and may rapidly consume your cellular plan allowance.
           </p>
 
           <div className="bg-[#030406] p-2.5 text-[11px] font-mono text-neutral-400 select-text flex items-center justify-between">
@@ -171,11 +169,55 @@ export const NetworkStatusDialog: React.FC = () => {
           <div className="flex items-center justify-end gap-3 pt-3">
             <button
               type="button"
-              onClick={handleDismissMetered}
+              onClick={() => setShowMeteredModal(false)}
               className="py-2 px-4 bg-[#f59e0b] text-black font-mono font-bold text-xs uppercase tracking-wider hover:bg-white transition-colors cursor-pointer"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
               Acknowledge & Proceed
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Green Signal: Unmetered Wi-Fi Connected
+  if (currentNetwork === 'wifi' && showWifiModal) {
+    return (
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        onClick={() => setShowWifiModal(false)}
+        className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/85 backdrop-blur-[20px] transition-opacity duration-200 select-none cursor-pointer"
+        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+      >
+        <div
+          className="relative w-full max-w-md bg-[#090c12] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.95)] cursor-default text-white flex flex-col gap-4 animate-fade-in"
+          style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-base font-bold font-mono tracking-tight text-[#10b981] uppercase flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-[#10b981] inline-block" />
+            // UNMETERED WI-FI CONNECTED
+          </h3>
+
+          <p className="text-xs text-neutral-300 font-sans leading-relaxed">
+            Your device is connected to an unmetered high-speed Wi-Fi network. High-bitrate media streaming, shorts, and video playback are fully optimized with unlimited data allowance. You are good to go with no worries.
+          </p>
+
+          <div className="bg-[#030406] p-2.5 text-[11px] font-mono text-neutral-400 select-text flex items-center justify-between">
+            <span className="text-[#10b981] font-bold">PROTOCOL // WI-FI ONLINE</span>
+            <span className="text-neutral-500">UNRESTRICTED BANDWIDTH</span>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => setShowWifiModal(false)}
+              className="py-2 px-4 bg-[#10b981] text-black font-mono font-bold text-xs uppercase tracking-wider hover:bg-white transition-colors cursor-pointer"
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              Good to Go
             </button>
           </div>
         </div>
