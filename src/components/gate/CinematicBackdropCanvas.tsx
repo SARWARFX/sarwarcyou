@@ -225,18 +225,18 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
         ctx.fill();
       }
 
-      // 6. Perimeter Edge Vignette (Blends into #050608)
+      // 6. Perimeter Edge Vignette (Soft subtle atmospheric depth, seamless coverage)
       const vignette = ctx.createRadialGradient(
         width * 0.5,
         height * 0.5,
-        Math.min(width, height) * 0.35,
+        Math.min(width, height) * 0.45,
         width * 0.5,
         height * 0.5,
-        Math.max(width, height) * 0.78
+        Math.max(width, height) * 0.85
       );
       vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      vignette.addColorStop(0.7, 'rgba(5, 6, 8, 0.35)');
-      vignette.addColorStop(1, '#050608');
+      vignette.addColorStop(0.8, 'rgba(3, 4, 6, 0.2)');
+      vignette.addColorStop(1, 'rgba(3, 4, 6, 0.45)');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, width, height);
 

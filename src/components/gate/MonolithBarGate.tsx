@@ -427,7 +427,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
       {/* TOP HEADER: LOGO (LEFT) + NOTIF (CENTER) + GRAPH (RIGHT) */}
       <header
-        className="w-full flex justify-between items-start pt-6 sm:pt-7 pb-3 px-6 sm:px-10 shrink-0 z-30 bg-black/85 backdrop-blur-md border-b border-white/[0.05] shadow-[0_10px_40px_rgba(0,0,0,0.95)] gap-4"
+        className="w-full flex justify-between items-start pt-6 sm:pt-7 pb-2 px-6 sm:px-10 shrink-0 z-30 bg-transparent gap-4"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         {/* Left: Logo (clicking acts as Home) + Major Folders Bar directly underneath */}
