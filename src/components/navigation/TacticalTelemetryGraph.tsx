@@ -99,7 +99,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({ 
       {daysData.map((day) => (
         <div
           key={day.key}
-          className="group flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer relative"
+          className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer relative"
           style={{
             borderRadius: 0,
             outline: 'none',
@@ -107,64 +107,85 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({ 
           }}
           title={`${day.isToday ? 'Today' : day.dayLetter}: ${day.timeFormatted}`}
         >
-          {/* Hours count at top of bar (numbers only, e.g. 1, 4, 6, 0) */}
-          <span
-            className={`text-[9.5px] sm:text-[10px] font-bold leading-none transition-colors duration-150 ${
-              day.isPeak
-                ? 'text-[#38bdf8]'
-                : day.isToday
-                ? 'text-white'
-                : 'text-[#94a3b8] group-hover:text-white'
-            }`}
-            style={{
-              fontFamily: "'Ubuntu', sans-serif",
-              textShadow: day.isPeak
-                ? '0 0 6px rgba(56, 189, 248, 0.7)'
-                : day.isToday
-                ? '0 0 6px rgba(255, 255, 255, 0.7)'
-                : 'none',
-              borderRadius: 0,
-              outline: 'none',
-              border: 'none',
-            }}
-          >
-            {Math.floor(day.minutes / 60)}
-          </span>
-
-          {/* Solid vertical monolith bar */}
+          {/* Row containing: [Rotated 90° Anti-Clockwise Time (Left)] + [Solid Monolith Bar (Right)] */}
           <div
-            className="w-2 sm:w-2.5 h-[50px] sm:h-[58px] bg-white/[0.05] flex items-end relative overflow-hidden"
+            className="flex items-end gap-1 sm:gap-1.5 h-[62px] sm:h-[70px] relative"
             style={{
               borderRadius: 0,
               outline: 'none',
               border: 'none',
             }}
           >
+            {/* Rotated time text on the left side of the bar */}
             <div
-              className={`w-full transition-all duration-300 ${
-                day.isPeak
-                  ? 'bg-[#38bdf8]'
-                  : day.isToday
-                  ? 'bg-white'
-                  : 'bg-[#64748b] group-hover:bg-[#94a3b8]'
-              }`}
+              className="w-3.5 sm:w-4 h-[62px] sm:h-[70px] flex items-center justify-center relative pointer-events-none"
               style={{
-                height: `${day.heightPercent}%`,
-                boxShadow: day.isPeak
-                  ? '0 0 8px rgba(56, 189, 248, 0.6)'
-                  : day.isToday
-                  ? '0 0 10px rgba(255, 255, 255, 0.75)'
-                  : 'none',
                 borderRadius: 0,
                 outline: 'none',
                 border: 'none',
               }}
-            />
+            >
+              <span
+                className={`text-[9px] sm:text-[10px] font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${
+                  day.isPeak
+                    ? 'text-[#38bdf8]'
+                    : day.isToday
+                    ? 'text-white'
+                    : 'text-[#94a3b8] group-hover:text-white'
+                }`}
+                style={{
+                  fontFamily: "'Ubuntu', sans-serif",
+                  transform: 'rotate(-90deg)',
+                  transformOrigin: 'center center',
+                  textShadow: day.isPeak
+                    ? '0 0 8px rgba(56, 189, 248, 0.6)'
+                    : day.isToday
+                    ? '0 0 8px rgba(255, 255, 255, 0.7)'
+                    : 'none',
+                  borderRadius: 0,
+                  outline: 'none',
+                  border: 'none',
+                }}
+              >
+                {day.timeFormatted}
+              </span>
+            </div>
+
+            {/* Solid vertical monolith bar on the right side of the text */}
+            <div
+              className="w-2.5 sm:w-[11px] h-[62px] sm:h-[70px] bg-white/[0.05] flex items-end relative overflow-hidden"
+              style={{
+                borderRadius: 0,
+                outline: 'none',
+                border: 'none',
+              }}
+            >
+              <div
+                className={`w-full transition-all duration-300 ${
+                  day.isPeak
+                    ? 'bg-[#38bdf8]'
+                    : day.isToday
+                    ? 'bg-white'
+                    : 'bg-[#64748b] group-hover:bg-[#94a3b8]'
+                }`}
+                style={{
+                  height: `${day.heightPercent}%`,
+                  boxShadow: day.isPeak
+                    ? '0 0 8px rgba(56, 189, 248, 0.6)'
+                    : day.isToday
+                    ? '0 0 10px rgba(255, 255, 255, 0.75)'
+                    : 'none',
+                  borderRadius: 0,
+                  outline: 'none',
+                  border: 'none',
+                }}
+              />
+            </div>
           </div>
 
           {/* Single-letter day initial at bottom (T, Y, S, S, F, T, W) */}
           <span
-            className={`text-[10px] sm:text-[11px] font-bold leading-none transition-colors duration-150 ${
+            className={`text-[10px] sm:text-[11px] font-bold transition-colors duration-150 ${
               day.isPeak
                 ? 'text-[#38bdf8] font-extrabold'
                 : day.isToday
