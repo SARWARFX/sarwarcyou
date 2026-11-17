@@ -10,6 +10,7 @@ import {
   parseAppPathname,
   updateBrowserUrl,
   findMediaByShortId,
+  getMediaShortId,
 } from '../../utils/urlRouter';
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { LivingMediaCard } from './LivingMediaCard';
@@ -93,8 +94,21 @@ const SHORTS_SUBFOLDERS = ['ALL', '2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
 const BANDHOBI_SUBFOLDERS = ['Featured', 'Photographs', 'Video Clips', 'Shorts'];
 
-// Selected photo filenames/identifiers to showcase under Bandhobi -> Featured
-export const BANDHOBI_FEATURED_PHOTO_NAMES: string[] = [];
+// Selected photo identifiers to showcase under Bandhobi -> Featured in user's exact order
+export const BANDHOBI_FEATURED_PHOTO_KEYS: string[] = [
+  'hs0c', // webmedia-serial-254.jpeg
+  'cKsr', // Farhana2.png
+  '1uZH', // Farhana.jpg
+  'xMUf', // f26140392.jpg
+  'X6jY', // Eva8.jpg
+  'ky2w', // Eva6.jpg
+  'Aiox', // Eva5.jpg
+  'Hr06', // Eva4.jpg
+  'GMBe', // Asha5.jpg
+  'GVKR', // Asha2.jpg
+  '300N', // Anamika7.jpg
+  'c4LO', // Anamika4.jpg
+];
 
 function shuffleArray<T>(list: T[]): T[] {
   const result = [...list];
@@ -338,20 +352,34 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const activeBandhobiList: StageMediaItem[] = useMemo(() => {
     if (bandhobiSubfolder === 'Featured') {
       const photosNode = rootMap.get('Bandhobi')?.subfolders.get('Photographs');
-      const allPhotos = photosNode ? sortMediaItemsDescending<StageMediaItem>(photosNode.files) : [];
-      if (BANDHOBI_FEATURED_PHOTO_NAMES.length > 0) {
-        const selected = allPhotos.filter((p) =>
-          BANDHOBI_FEATURED_PHOTO_NAMES.some((name) =>
-            (p.name || p.path || p.id || '').toLowerCase().includes(name.toLowerCase())
-          )
-        );
-        return selected.length > 0 ? selected : allPhotos.slice(0, 10);
+      const allPhotos = photosNode ? photosNode.files : [];
+      // Build lookup map by shortId and filename
+      const itemMap = new Map<string, StageMediaItem>();
+      for (const item of allPhotos) {
+        const sid = getMediaShortId(item);
+        if (sid) itemMap.set(sid.toLowerCase(), item);
+        const name = (item.name || '').toLowerCase();
+        if (name) itemMap.set(name, item);
+        const pathPart = (item.path || '').split('/').pop()?.toLowerCase();
+        if (pathPart) itemMap.set(pathPart, item);
       }
-      return allPhotos.slice(0, 10);
+      for (const item of items) {
+        const sid = getMediaShortId(item);
+        if (sid && !itemMap.has(sid.toLowerCase())) itemMap.set(sid.toLowerCase(), item);
+      }
+
+      const selected: StageMediaItem[] = [];
+      for (const key of BANDHOBI_FEATURED_PHOTO_KEYS) {
+        const match = itemMap.get(key.toLowerCase());
+        if (match) {
+          selected.push(match);
+        }
+      }
+      return selected.length > 0 ? selected : sortMediaItemsDescending<StageMediaItem>(allPhotos).slice(0, 12);
     }
     const node = rootMap.get('Bandhobi')?.subfolders.get(bandhobiSubfolder);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
-  }, [rootMap, bandhobiSubfolder]);
+  }, [items, rootMap, bandhobiSubfolder]);
 
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {

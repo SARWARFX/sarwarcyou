@@ -9,10 +9,10 @@ export interface BandhobiSlidingFeaturedPhotosProps {
 
 /**
  * Bandhobi Featured Showcase
- * - Displays user-selected photos sliding smoothly from right to left
+ * - Displays user's selected photos sliding smoothly and infinitely from right to left
  * - Starts directly on screen (filling from the left edge)
  * - Zero rounded corners, zero outlines, zero text
- * - Enlarges slightly on hover
+ * - Enlarges slightly on hover, pauses slide on hover
  * - Click launches the full photo viewer
  */
 export const BandhobiSlidingFeaturedPhotos: React.FC<BandhobiSlidingFeaturedPhotosProps> = ({
@@ -21,11 +21,11 @@ export const BandhobiSlidingFeaturedPhotos: React.FC<BandhobiSlidingFeaturedPhot
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Duplicate list if needed for continuous, seamless sliding loop
+  // Seamless infinite loop: duplicate list exactly once
   const displayList = React.useMemo(() => {
     if (!photos || photos.length === 0) return [];
-    if (photos.length < 10) {
-      return [...photos, ...photos, ...photos];
+    if (photos.length < 6) {
+      return [...photos, ...photos, ...photos, ...photos];
     }
     return [...photos, ...photos];
   }, [photos]);
@@ -39,7 +39,7 @@ export const BandhobiSlidingFeaturedPhotos: React.FC<BandhobiSlidingFeaturedPhot
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
       <div
-        className="flex gap-4 sm:gap-6 w-max animate-homepage-slow-slide hover:[animation-play-state:paused]"
+        className="flex gap-4 sm:gap-6 w-max animate-bandhobi-slow-slide hover:[animation-play-state:paused]"
         style={{
           borderRadius: 0,
           outline: 'none',
@@ -58,13 +58,13 @@ export const BandhobiSlidingFeaturedPhotos: React.FC<BandhobiSlidingFeaturedPhot
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
               onClick={() => onOpenPhoto(item, photos, actualIndex)}
-              className="w-[210px] sm:w-[250px] md:w-[280px] h-[280px] sm:h-[333px] md:h-[373px] aspect-[3/4] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
+              className="w-[220px] sm:w-[260px] md:w-[290px] h-[293px] sm:h-[347px] md:h-[387px] aspect-[3/4] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
               <img
                 src={imageSrc}
                 alt=""
-                loading="lazy"
+                loading={idx < 8 ? 'eager' : 'lazy'}
                 className="w-full h-full object-cover block filter saturate-[0.98] contrast-[1.03]"
                 style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               />
@@ -72,6 +72,21 @@ export const BandhobiSlidingFeaturedPhotos: React.FC<BandhobiSlidingFeaturedPhot
           );
         })}
       </div>
+
+      <style>{`
+        @keyframes bandhobiSlowSlide {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .animate-bandhobi-slow-slide {
+          animation: bandhobiSlowSlide 100s linear infinite;
+          will-change: transform;
+        }
+      `}</style>
     </div>
   );
 };
