@@ -20,6 +20,7 @@ import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { HomepageSlidingShorts } from './HomepageSlidingShorts';
 import { BandhobiSlidingFeaturedPhotos } from './BandhobiSlidingFeaturedPhotos';
 import { DeepDiurnalTelemetryView } from '../telemetry/DeepDiurnalTelemetryView';
+import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -164,22 +165,55 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [quantumAnimClass, setQuantumAnimClass] = useState<string>('');
   const transitionTimerRef = useRef<{ t1?: ReturnType<typeof setTimeout>; t2?: ReturnType<typeof setTimeout> }>({});
 
+  // Screen orientation detection for portrait layout
+  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerHeight > window.innerWidth;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  // Selected day for in-page portrait telemetry (0 = Today, 1 = Yesterday, etc.)
+  const [portraitSelectedDay, setPortraitSelectedDay] = useState<number>(0);
+
   const [showTelemetry, setShowTelemetry] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return parseAppPathname().tab === 'TELEMETRY';
   });
+  const [telemetryInitialDay, setTelemetryInitialDay] = useState<number | null>(null);
   const previousRouteRef = useRef<string>('/');
+
+  const handleOpenTelemetryWithDay = useCallback((dayIdx: number) => {
+    if (typeof window !== 'undefined') {
+      previousRouteRef.current = window.location.pathname;
+    }
+    setTelemetryInitialDay(dayIdx);
+    setShowTelemetry(true);
+    updateBrowserUrl('/telemetry');
+  }, []);
 
   const handleOpenTelemetry = useCallback(() => {
     if (typeof window !== 'undefined') {
       previousRouteRef.current = window.location.pathname;
     }
+    setTelemetryInitialDay(null);
     setShowTelemetry(true);
     updateBrowserUrl('/telemetry');
   }, []);
 
   const handleCloseTelemetry = useCallback(() => {
     setShowTelemetry(false);
+    setTelemetryInitialDay(null);
     updateBrowserUrl(previousRouteRef.current || '/');
   }, []);
 
@@ -677,10 +711,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <TopMiddleNetworkStatus />
         </div>
 
-        {/* Right: Clean Tactical Telemetry Graph (Zero Text Noise) */}
-        <div className="shrink-0">
-          <TacticalTelemetryGraph onClick={handleOpenTelemetry} />
-        </div>
+        {/* Right: Clean Tactical Telemetry Graph (Desktop Only - Zero Text Noise) */}
+        {!isPortrait && (
+          <div className="shrink-0">
+            <TacticalTelemetryGraph
+              onSelectDay={handleOpenTelemetryWithDay}
+              onClick={handleOpenTelemetry}
+            />
+          </div>
+        )}
       </header>
 
       {/* MIDDLE PAGE SPACE: HOMEPAGE SLIDING SHORTS OR RECTANGULAR MEDIA GRID */}
@@ -693,14 +732,48 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           style={{ borderRadius: 0, outline: 'none', border: 'none' }}
         >
           {displayedTab === 2 && displayedShortsSub === 'Featured' ? (
-            /* Shorts Featured: 10 Randomly Selected Shorts Playing & Sliding Right-to-Left */
-            <div className="w-full h-full flex items-center justify-start overflow-hidden">
-              <HomepageSlidingShorts
-                shorts={allShortsFiles}
-                randomSeed={shuffleTrigger}
-                onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenShort(item, playlist, idx, 'Shorts')}
-              />
-            </div>
+            isPortrait ? (
+              /* Portrait Screen Homepage: Mini Graph (Top) -> Sliding Media Cards (Center) -> 24h Statistic (Bottom) */
+              <div
+                className="w-full h-full flex flex-col justify-between items-center overflow-hidden py-1 gap-2"
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              >
+                {/* 1. First Graph: Mini Graph (Above Media Cards) */}
+                <div className="w-full flex justify-center shrink-0 pt-1 pb-1">
+                  <TacticalTelemetryGraph
+                    selectedDayIndex={portraitSelectedDay}
+                    onSelectDay={(dayIdx) => setPortraitSelectedDay(dayIdx)}
+                  />
+                </div>
+
+                {/* 2. Center: 10 Randomly Selected Shorts Playing & Sliding Right-to-Left */}
+                <div className="w-full flex-1 flex items-center justify-start overflow-hidden min-h-[220px]">
+                  <HomepageSlidingShorts
+                    shorts={allShortsFiles}
+                    randomSeed={shuffleTrigger}
+                    onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) =>
+                      onOpenShort(item, playlist, idx, 'Shorts')
+                    }
+                  />
+                </div>
+
+                {/* 3. Second Graph: 24-Hour Diurnal Statistics (Underneath Media Cards) */}
+                <div className="w-full flex justify-center shrink-0 pt-1 pb-1">
+                  <DiurnalPhase24hSummary dayIndex={portraitSelectedDay} />
+                </div>
+              </div>
+            ) : (
+              /* Desktop Screen Homepage: Full Middle Sliding Media Cards */
+              <div className="w-full h-full flex items-center justify-start overflow-hidden">
+                <HomepageSlidingShorts
+                  shorts={allShortsFiles}
+                  randomSeed={shuffleTrigger}
+                  onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) =>
+                    onOpenShort(item, playlist, idx, 'Shorts')
+                  }
+                />
+              </div>
+            )
           ) : displayedTab === 4 && displayedBandhobiSub === 'Featured' ? (
             /* Bandhobi Featured: Selected Photos Sliding Right-to-Left */
             <div className="w-full h-full flex items-center justify-start overflow-hidden">
@@ -774,7 +847,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
       {/* 24-HOUR DEEP DIURNAL TELEMETRY MATRIX VIEW */}
       {showTelemetry && (
-        <DeepDiurnalTelemetryView onClose={handleCloseTelemetry} />
+        <DeepDiurnalTelemetryView
+          initialDayIndex={telemetryInitialDay}
+          onClose={handleCloseTelemetry}
+        />
       )}
 
       {/* QUANTUM 0.25X SPEED DIRECTIONAL NAVIGATION KEYFRAMES */}

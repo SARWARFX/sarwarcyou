@@ -82,7 +82,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
               onClick={() => onOpenShort(item, selected10, actualIndex)}
-              className="w-[200px] sm:w-[240px] md:w-[260px] h-[356px] sm:h-[426px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
+              className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
               <video

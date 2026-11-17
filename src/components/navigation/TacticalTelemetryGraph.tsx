@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getRolling7DayUsage, addSessionMinutes } from '../../utils/usageTelemetry';
 
-interface DayTelemetryData {
+export interface DayTelemetryData {
   key: string;
   dayLetter: string;
   timeFormatted: string;
@@ -16,9 +16,17 @@ const DEFAULT_BASELINE_MINUTES = [112, 48, 24, 75, 125, 38, 62]; // 1H 52M, 0H 4
 
 export interface TacticalTelemetryGraphProps {
   onClick?: () => void;
+  onSelectDay?: (dayIndex: number, dayData: DayTelemetryData) => void;
+  selectedDayIndex?: number;
+  className?: string;
 }
 
-export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({ onClick }) => {
+export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
+  onClick,
+  onSelectDay,
+  selectedDayIndex,
+  className = '',
+}) => {
   const [sessionTick, setSessionTick] = useState(0);
 
   // Periodically increment session time (1 minute intervals) and update state
@@ -85,28 +93,38 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({ 
   return (
     <aside
       aria-label="Daily screen time graph"
-      onClick={onClick}
+      onClick={!onSelectDay ? onClick : undefined}
       className={`flex items-end gap-2.5 sm:gap-3.5 select-none bg-transparent ${
-        onClick ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''
-      }`}
-      title={onClick ? 'Click to inspect 24-hour diurnal phase breakdown' : undefined}
+        onClick || onSelectDay ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''
+      } ${className}`}
+      title={onClick || onSelectDay ? 'Click any day to inspect 24-hour diurnal phase breakdown' : undefined}
       style={{
         borderRadius: 0,
         outline: 'none',
         border: 'none',
       }}
     >
-      {daysData.map((day) => (
-        <div
-          key={day.key}
-          className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer relative"
-          style={{
-            borderRadius: 0,
-            outline: 'none',
-            border: 'none',
-          }}
-          title={`${day.isToday ? 'Today' : day.dayLetter}: ${day.timeFormatted}`}
-        >
+      {daysData.map((day, idx) => {
+        const isSelected = selectedDayIndex !== undefined && selectedDayIndex === idx;
+        return (
+          <div
+            key={day.key}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSelectDay) {
+                onSelectDay(idx, day);
+              } else if (onClick) {
+                onClick();
+              }
+            }}
+            className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer relative"
+            style={{
+              borderRadius: 0,
+              outline: 'none',
+              border: 'none',
+            }}
+            title={`${day.isToday ? 'Today' : day.dayLetter}: ${day.timeFormatted} (Click to inspect 24h statistic)`}
+          >
           {/* Row containing: [Rotated 90° Anti-Clockwise Time (Left)] + [Solid Monolith Bar (Right)] */}
           <div
             className="flex items-end gap-1 sm:gap-1.5 h-[62px] sm:h-[70px] relative"
@@ -184,25 +202,36 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({ 
           </div>
 
           {/* Single-letter day initial at bottom (T, Y, S, S, F, T, W) */}
-          <span
-            className={`text-[10px] sm:text-[11px] font-bold transition-colors duration-150 ${
-              day.isPeak
-                ? 'text-[#38bdf8] font-extrabold'
-                : day.isToday
-                ? 'text-white font-extrabold'
-                : 'text-[#64748b] group-hover:text-white'
-            }`}
-            style={{
-              fontFamily: "'Science Gothic', sans-serif",
-              borderRadius: 0,
-              outline: 'none',
-              border: 'none',
-            }}
-          >
-            {day.dayLetter}
-          </span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span
+              className={`text-[10px] sm:text-[11px] font-bold transition-colors duration-150 ${
+                isSelected
+                  ? 'text-[#38bdf8] font-extrabold'
+                  : day.isPeak
+                  ? 'text-[#38bdf8] font-extrabold'
+                  : day.isToday
+                  ? 'text-white font-extrabold'
+                  : 'text-[#64748b] group-hover:text-white'
+              }`}
+              style={{
+                fontFamily: "'Science Gothic', sans-serif",
+                borderRadius: 0,
+                outline: 'none',
+                border: 'none',
+              }}
+            >
+              {day.dayLetter}
+            </span>
+            {isSelected && (
+              <span
+                className="w-1.5 h-1.5 bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]"
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              />
+            )}
+          </div>
         </div>
-      ))}
+      );
+    })}
     </aside>
   );
 };

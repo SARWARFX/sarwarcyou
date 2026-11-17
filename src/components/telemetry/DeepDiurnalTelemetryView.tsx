@@ -8,6 +8,7 @@ import { LaserCloseIcon } from '../brand/LaserIcons';
 
 export interface DeepDiurnalTelemetryViewProps {
   onClose: () => void;
+  initialDayIndex?: number | null;
 }
 
 const DEFAULT_BASELINE_MINUTES = [112, 48, 24, 75, 125, 38, 62];
@@ -42,9 +43,9 @@ const DIURNAL_CATEGORIES_24: DiurnalCategory24[] = [
  * - Screen 2: Pure 8-diurnal categories graph with time on top, 24h format below, back at top-left, close at top-right
  * - Rendered in a semi-transparent floating window over the page
  */
-export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> = ({ onClose }) => {
+export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> = ({ onClose, initialDayIndex = null }) => {
   // null = Screen 1 (7-Day Graph); number = Screen 2 (Clicked Day's 8 Categories)
-  const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
+  const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(() => initialDayIndex ?? null);
   const [isClosing, setIsClosing] = useState<boolean>(false);
   const [screenTransition, setScreenTransition] = useState<{
     phase: 'idle' | 'exiting_to_screen2' | 'entering_screen2' | 'exiting_to_screen1' | 'entering_screen1';
