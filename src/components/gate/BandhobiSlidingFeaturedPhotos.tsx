@@ -58,7 +58,7 @@ export const BandhobiSlidingFeaturedPhotos: React.FC<BandhobiSlidingFeaturedPhot
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
               onClick={() => onOpenPhoto(item, photos, actualIndex)}
-              className="w-[220px] sm:w-[260px] md:w-[290px] h-[293px] sm:h-[347px] md:h-[387px] aspect-[3/4] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
+              className="w-[330px] sm:w-[390px] md:w-[435px] h-[440px] sm:h-[520px] md:h-[580px] aspect-[3/4] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
               <img

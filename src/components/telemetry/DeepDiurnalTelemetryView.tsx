@@ -189,6 +189,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                     className={`text-xs sm:text-sm font-bold tracking-wider ${
                       isActive ? 'text-white' : 'text-[#94a3b8]'
                     }`}
+                    style={{ fontFamily: "'Firjar', sans-serif" }}
                   >
                     {day.dayLetter}
                   </span>
@@ -213,7 +214,10 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                     />
                   </div>
 
-                  <span className="text-[10px] sm:text-[11px] font-bold text-[#cbd5e1] tracking-tight whitespace-nowrap">
+                  <span
+                    className="text-[10px] sm:text-[11px] font-bold text-[#cbd5e1] tracking-tight whitespace-nowrap"
+                    style={{ fontFamily: "'Firjar', sans-serif" }}
+                  >
                     {formatTime(day.totalMins)}
                   </span>
 
@@ -240,7 +244,10 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
               <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#38bdf8] mb-1">
                 {activeDay.title.toUpperCase()} // {activeDay.isToday ? 'ACTIVE TELEMETRY' : 'RECORDED ARCHIVE'}
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-[0.04em]">
+              <div
+                className="text-2xl sm:text-3xl font-extrabold text-white tracking-[0.04em]"
+                style={{ fontFamily: "'Firjar', sans-serif" }}
+              >
                 {formatTime(activeDay.totalMins)} TOTAL TIME
               </div>
             </div>
@@ -329,6 +336,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                       <span
                         className={`text-[10px] sm:text-[11px] font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${textColor}`}
                         style={{
+                          fontFamily: "'Firjar', sans-serif",
                           transform: 'rotate(-90deg)',
                           transformOrigin: 'center center',
                           borderRadius: 0,

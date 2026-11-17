@@ -10,6 +10,7 @@ import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { CyberSplash } from './components/CyberSplash';
+import { BackgroundThumbnailCacheToast } from './components/common/BackgroundThumbnailCacheToast';
 import { AmbientWallpaper } from './components/AmbientWallpaper';
 import { WinXPDesktop } from './components/winxp/WinXPDesktop';
 import { SilentHillShell } from './components/silenthill/SilentHillShell';
@@ -81,6 +82,7 @@ function buildAlbumUrl(albumNameOrSlug: string): string {
 
 function App() {
   const { data, isLoading, isDynamicReady } = useMediaData();
+  const [isSplashComplete, setIsSplashComplete] = useState(false);
 
   const [sortOrder] = useState<SortOrder>(() => {
     const { sortQuery } = parseUrlState();
@@ -657,7 +659,8 @@ function App() {
       className="relative w-full h-[100dvh] overflow-hidden select-none text-white bg-transparent"
       style={{ isolation: 'isolate' }}
     >
-      <CyberSplash items={rawFeed?.allMediaPool} />
+      <CyberSplash onComplete={() => setIsSplashComplete(true)} />
+      <BackgroundThumbnailCacheToast items={rawFeed?.allMediaPool} enabled={isSplashComplete} />
 
       {/* Universal Animated Graphical Background (Entire Website) */}
       <CinematicBackdropCanvas isPaused={theaterState.isOpen} />
