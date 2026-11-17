@@ -51,18 +51,17 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-3">
-          {suggestedTab && suggestedTab !== 'TRAILER' && (
+          {suggestedTab && suggestedTab !== 'TRAILER' && suggestedTab !== 'HOME' && suggestedTab !== 'TELEMETRY' && (
             <button
               type="button"
               onClick={() => {
                 hapticMedium();
                 onNavigateTab(suggestedTab);
-                onClose();
               }}
               className="py-2 px-4 bg-transparent text-neutral-300 hover:text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
-              Browse {suggestedTab}
+              Browse {suggestedTab === 'CLIPS' ? 'Video Clips' : suggestedTab === 'PHOTOGRAPHY' ? 'Photographs' : suggestedTab}
             </button>
           )}
 
@@ -71,7 +70,6 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
             onClick={() => {
               hapticLight();
               onNavigateTab('HOME');
-              onClose();
             }}
             className="py-2 px-4 bg-[#38bdf8] text-black font-mono font-bold text-xs uppercase tracking-wider hover:bg-white transition-colors cursor-pointer"
             style={{ borderRadius: 0, outline: 'none', border: 'none' }}
