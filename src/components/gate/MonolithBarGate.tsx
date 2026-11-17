@@ -439,7 +439,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             title="SARWAR.CYOU"
             style={{ borderRadius: 0, outline: 'none', border: 'none' }}
           >
-            <LaserSparkLogo width={240} height={32} interactive={false} />
+            <LaserSparkLogo width={250} height={34} interactive={false} />
           </button>
 
           {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}

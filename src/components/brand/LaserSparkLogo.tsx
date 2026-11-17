@@ -10,18 +10,17 @@ export interface LaserSparkLogoProps {
 }
 
 /**
- * Modern Laser Spark Wordmark
- * - SARWAR in wide, expansive SPARK letterforms with laser-sharp miter stroke (4.5px)
- * - .CYOU inside a clean rectangular cyber badge (0px border-radius)
- * - Smooth Left-to-Right animated White -> Cyan -> Blue -> Violet gradient
- * - Specular cyan and violet double drop-shadow aura
+ * Modern High-End Living Wordmark
+ * - SARWAR in wide, expansive SPARK letterforms
+ * - .CYOU inside an integrated cyber-capsule badge
+ * - Painted in a slowly moving White -> Blue -> Violet gradient
  */
 export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
   className = '',
   onClick,
   title = 'SARWAR.CYOU',
-  width = 240,
-  height = 32,
+  width = 280,
+  height = 38,
   interactive = true,
 }) => {
   return (
@@ -30,26 +29,19 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
       title={title}
       className={`relative inline-flex items-center select-none group ${
         interactive
-          ? 'cursor-pointer hover:opacity-90 hover:brightness-110 transition-all duration-200'
+          ? 'cursor-pointer hover:-translate-y-0.5 hover:brightness-110 transition-all duration-200'
           : ''
       } ${className}`}
-      style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
+      {/* SVG Wordmark (Slowly moving White -> Blue -> Violet Gradient) */}
       <svg
         viewBox="0 0 820 70"
         width={width}
         height={height}
-        className="relative z-20 transition-all duration-200"
-        style={{
-          filter:
-            'drop-shadow(0 0 16px rgba(139, 92, 246, 0.35)) drop-shadow(0 0 24px rgba(56, 189, 248, 0.25))',
-          borderRadius: 0,
-          outline: 'none',
-          border: 'none',
-        }}
+        className="relative z-20 filter drop-shadow-[0_0_12px_rgba(139,92,246,0.45)] drop-shadow-[0_0_20px_rgba(56,189,248,0.35)] group-hover:drop-shadow-[0_0_18px_rgba(139,92,246,0.8)] group-hover:drop-shadow-[0_0_28px_rgba(56,189,248,0.65)] transition-all duration-200"
       >
         <defs>
-          {/* Left-to-Right Animated White -> Cyan -> Blue -> Violet Linear Gradient */}
+          {/* Slowly Moving White -> Blue -> Violet Linear Gradient */}
           <linearGradient
             id="logoWhiteBlueVioletGrad"
             x1="0"
@@ -84,56 +76,70 @@ export const LaserSparkLogo: React.FC<LaserSparkLogoProps> = ({
               repeatCount="indefinite"
             />
           </linearGradient>
+
+          <filter id="logoGradientGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2.8" result="glow" />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        {/* 1. SARWAR Hero Wordmark (Laser Sharp 4.5px Stroke, Miter Join) */}
+        {/* 1. SARWAR Hero Wordmark */}
         <g
           stroke="url(#logoWhiteBlueVioletGrad)"
-          strokeWidth="4.5"
+          strokeWidth="8.5"
           strokeLinecap="butt"
-          strokeLinejoin="miter"
+          strokeLinejoin="round"
           fill="none"
+          filter="url(#logoGradientGlow)"
         >
-          {/* S */}
-          <path d="M 64 12 L 20 12 A 10.5 10.5 0 0 0 9.5 22.5 L 9.5 22.5 A 10.5 10.5 0 0 0 20 33 L 53.5 33 A 10.5 10.5 0 0 1 64 43.5 L 64 43.5 A 10.5 10.5 0 0 1 53.5 54 L 9.5 54" />
-          {/* A1 */}
-          <path d="M 94 54 L 118 12 L 142 54" />
-          <line x1="104" y1="38" x2="132" y2="38" strokeWidth="3.5" />
-          {/* R1 */}
-          <path d="M 172 54 L 172 12 L 198 12 A 10.5 10.5 0 0 1 208.5 22.5 L 208.5 22.5 A 10.5 10.5 0 0 1 198 33 L 172 33" />
-          <path d="M 194 33 L 216 54" />
-          {/* W */}
-          <path d="M 246 12 L 258 54 L 272 26 L 286 54 L 298 12" />
-          {/* A2 */}
-          <path d="M 328 54 L 352 12 L 376 54" />
-          <line x1="338" y1="38" x2="366" y2="38" strokeWidth="3.5" />
-          {/* R2 */}
-          <path d="M 406 54 L 406 12 L 432 12 A 10.5 10.5 0 0 1 442.5 22.5 L 442.5 22.5 A 10.5 10.5 0 0 1 432 33 L 406 33" />
-          <path d="M 428 33 L 450 54" />
+          {/* S (x: 10 to 86) */}
+          <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+          {/* A1 (x: 104 to 174) */}
+          <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+          {/* R1 (x: 192 to 260) */}
+          <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+          <path d="M 228 33 L 260 54" />
+          {/* W (x: 278 to 362) */}
+          <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+          {/* A2 (x: 380 to 450) */}
+          <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+          {/* R2 (x: 468 to 536) */}
+          <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+          <path d="M 504 33 L 536 54" />
         </g>
 
-        {/* 2. .CYOU Rectangular Badge (Zero Radius, Precision Lines) */}
-        <g stroke="url(#logoWhiteBlueVioletGrad)" fill="none">
-          {/* Outer rectangular badge (rx=0, strokeWidth=2) */}
+        {/* 2. .CYOU Cyber Tag Pill */}
+        <g
+          stroke="url(#logoWhiteBlueVioletGrad)"
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+          fill="none"
+          filter="url(#logoGradientGlow)"
+        >
+          {/* Cyber Pill Capsule */}
           <rect
-            x="475"
-            y="15"
-            width="200"
-            height="35"
+            x="560"
+            y="16"
+            width="210"
+            height="34"
+            rx="8"
             stroke="url(#logoWhiteBlueVioletGrad)"
-            strokeWidth="2"
+            strokeWidth="2.2"
             fill="rgba(139, 92, 246, 0.08)"
           />
           {/* Dot */}
-          <circle cx="495" cy="32.5" r="3" fill="url(#logoWhiteBlueVioletGrad)" stroke="none" />
+          <circle cx="582" cy="33" r="3.5" fill="url(#logoWhiteBlueVioletGrad)" stroke="none" />
           {/* C */}
-          <path d="M 535 23 L 515 23 L 515 42 L 535 42" strokeWidth="3" />
+          <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" strokeWidth="3.2" />
           {/* Y */}
-          <path d="M 545 23 L 558 32 L 558 42 M 571 23 L 558 32" strokeWidth="3" />
+          <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" strokeWidth="3.2" />
           {/* O */}
-          <rect x="585" y="23" width="18" height="19" strokeWidth="3" />
+          <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" strokeWidth="3.2" />
           {/* U */}
-          <path d="M 618 23 L 618 42 L 638 42 L 638 23" strokeWidth="3" />
+          <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" strokeWidth="3.2" />
         </g>
       </svg>
     </div>
