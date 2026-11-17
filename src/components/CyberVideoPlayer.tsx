@@ -90,6 +90,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [isPortrait, setIsPortrait] = useState(() => typeof window !== 'undefined' && window.innerHeight > window.innerWidth);
   const [isFullscreen, setIsFullscreen] = useState(() => typeof document !== 'undefined' && Boolean(document.fullscreenElement));
+  const isOutsideTop = isDesktop || (isPortrait && !isFullscreen);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1048,17 +1049,20 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       onMouseEnter={handleSeekMouseEnter}
       onMouseMove={handleSeekMouseMove}
       onMouseLeave={handleSeekMouseLeave}
-      className="group/seek relative w-full pt-1 pb-1.5 cursor-pointer select-none overflow-visible"
+      className="group/seek relative w-full pt-1.5 pb-1.5 cursor-pointer select-none overflow-visible"
     >
-      {/* Floating Hover Preview Tooltip Card (YouTube Style with Live Frame) */}
+      {/* Floating Hover Preview Tooltip Card (Positioned below top scrubber) */}
       <div
-        className={`absolute bottom-6 -translate-x-1/2 pointer-events-none transition-all duration-150 ease-out z-50 flex flex-col items-center ${
+        className={`absolute top-6 sm:top-7 -translate-x-1/2 pointer-events-none transition-all duration-150 ease-out z-50 flex flex-col items-center ${
           seekHover.isHovering && duration > 0
             ? 'opacity-100 scale-100'
             : 'opacity-0 scale-90 pointer-events-none'
         }`}
         style={{ left: `${clampedX}px` }}
       >
+        {/* Pointer Arrow pointing UP to track */}
+        <div className="w-2.5 h-2.5 bg-black border-l border-t border-white/20 transform rotate-45 -mb-1 z-10 shadow-lg" />
+
         <div className="w-40 sm:w-48 aspect-video rounded-none overflow-hidden border border-white/20 bg-black/95 shadow-[0_12px_40px_rgba(0,0,0,0.95),0_0_20px_rgba(56,189,248,0.3)] flex flex-col items-center relative">
           {/* Live Video Frame Preview */}
           <video
@@ -1079,9 +1083,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Pointer Arrow */}
-        <div className="w-2.5 h-2.5 bg-black border-r border-b border-white/20 transform rotate-45 -mt-1 shadow-lg" />
       </div>
 
       {/* Visual Track: Slim 3px timeline track expanding to 5px on hover */}
@@ -1352,23 +1353,56 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         <div
           className={
             isDesktop
-              ? "pointer-events-auto relative w-full max-w-[min(84vw,calc(72vh*(16/9)))] max-h-[72vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none shrink-0 z-20"
+              ? "pointer-events-auto relative w-full max-w-[min(84vw,calc(72vh*(16/9)))] flex flex-col items-center justify-center cursor-default select-none shrink-0 z-20"
               : isPortrait && !isFullscreen
-              ? "pointer-events-auto relative w-full aspect-[16/9] max-h-[75vh] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center cursor-default select-none shrink-0 z-20"
+              ? "pointer-events-auto relative w-full flex flex-col items-center justify-center cursor-default select-none shrink-0 z-20"
               : "relative w-full h-full flex items-center justify-center overflow-hidden"
           }
           onClick={(e) => {
             e.stopPropagation();
           }}
-          onPointerDown={handleStagePointerDown}
-          onPointerMove={handleStagePointerMove}
-          onPointerUp={handleStagePointerUp}
-          onPointerCancel={handleStagePointerCancel}
-          onTouchStart={handleStageTouchStart}
-          onTouchMove={handleStageTouchMove}
-          onTouchEnd={handleStageTouchEnd}
-          onTouchCancel={handleStageTouchEnd}
         >
+          {/* Outside Top Time Slider (Desktop and Unrotated Portrait Screens) */}
+          {isOutsideTop && (
+            <div
+              className={`w-full mb-2 sm:mb-2.5 z-30 cursor-pointer select-none transition-all duration-300 ${
+                showHud ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {renderScrubberBar()}
+            </div>
+          )}
+
+          {/* Video Player Box with overflow-hidden */}
+          <div
+            className={
+              isDesktop
+                ? "relative w-full max-h-[72vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center"
+                : isPortrait && !isFullscreen
+                ? "relative w-full aspect-[16/9] max-h-[75vh] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black overflow-hidden flex items-center justify-center"
+                : "relative w-full h-full flex items-center justify-center overflow-hidden"
+            }
+            onPointerDown={handleStagePointerDown}
+            onPointerMove={handleStagePointerMove}
+            onPointerUp={handleStagePointerUp}
+            onPointerCancel={handleStagePointerCancel}
+            onTouchStart={handleStageTouchStart}
+            onTouchMove={handleStageTouchMove}
+            onTouchEnd={handleStageTouchEnd}
+            onTouchCancel={handleStageTouchEnd}
+          >
+            {/* Inside Top Time Slider (Rotated Mobile Screen / Landscape / Fullscreen) */}
+            {!isOutsideTop && (
+              <div
+                className={`absolute top-0 inset-x-0 pt-2 pb-3 px-4 z-30 cursor-pointer select-none bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-all duration-300 ${
+                  showHud ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {renderScrubberBar()}
+              </div>
+            )}
           <video
             ref={videoRef}
             src={streamUrl}
@@ -1524,16 +1558,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </div>
           )}
 
-          {/* Embedded Scrubber Bar at Bottom of Video Stage (Globally for Any Screen) */}
-          <div
-            className={`absolute bottom-0 inset-x-0 pt-4 pb-2.5 px-4 z-30 cursor-pointer select-none bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 ${
-              showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {renderScrubberBar()}
-          </div>
         </div>
+      </div>
 
         {/* Lower Empty Space on Portrait Screens: Tap to Close */}
         {isPortrait && !isFullscreen && (
