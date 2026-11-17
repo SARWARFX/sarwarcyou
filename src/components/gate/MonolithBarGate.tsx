@@ -17,6 +17,7 @@ import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { HomepageSlidingShorts } from './HomepageSlidingShorts';
+import { BandhobiSlidingFeaturedPhotos } from './BandhobiSlidingFeaturedPhotos';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -90,7 +91,10 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
 const PHOTO_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', '2025', 'Older'];
 const SHORTS_SUBFOLDERS = ['ALL', '2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
-const BANDHOBI_SUBFOLDERS = ['ALL', 'Photographs', 'Video Clips', 'Shorts'];
+const BANDHOBI_SUBFOLDERS = ['Featured', 'Photographs', 'Video Clips', 'Shorts'];
+
+// Selected photo filenames/identifiers to showcase under Bandhobi -> Featured
+export const BANDHOBI_FEATURED_PHOTO_NAMES: string[] = [];
 
 function shuffleArray<T>(list: T[]): T[] {
   const result = [...list];
@@ -125,7 +129,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [photosSubfolder, setPhotosSubfolder] = useState<string>('ALL');
   const [shortsSubfolder, setShortsSubfolder] = useState<string>('ALL');
   const [clipsSubfolder, setClipsSubfolder] = useState<string>('ALL');
-  const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('ALL');
+  const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Featured');
   const [shuffleTrigger, setShuffleTrigger] = useState<number>(0);
 
   const [notFoundInfo, setNotFoundInfo] = useState<{
@@ -139,7 +143,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     if (index === 1) setPhotosSubfolder('ALL');
     else if (index === 2) setShortsSubfolder('ALL');
     else if (index === 3) setClipsSubfolder('ALL');
-    else if (index === 4) setBandhobiSubfolder('ALL');
+    else if (index === 4) setBandhobiSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
 
     if (typeof window !== 'undefined') {
@@ -171,7 +175,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setClipsSubfolder('ALL');
         setTabIndex(3);
       } else if (parsed.tab === 'BANDHOBI') {
-        setBandhobiSubfolder('ALL');
+        setBandhobiSubfolder('Featured');
         setTabIndex(4);
       } else {
         setTabIndex(0);
@@ -312,24 +316,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return sortMediaItemsDescending(list);
   }, [rootMap]);
 
-  const allBandhobiFiles = useMemo(() => {
-    const node = rootMap.get('Bandhobi');
-    if (!node) return [];
-    const seen = new Set<string>();
-    const list: StageMediaItem[] = [];
-    for (const f of node.files) {
-      const k = f.id || f.url || f.path || f.name;
-      if (k && !seen.has(k)) { seen.add(k); list.push(f); }
-    }
-    for (const sub of node.subfolders.values()) {
-      for (const f of sub.files) {
-        const k = f.id || f.url || f.path || f.name;
-        if (k && !seen.has(k)) { seen.add(k); list.push(f); }
-      }
-    }
-    return sortMediaItemsDescending(list);
-  }, [rootMap]);
-
   // Active subfolder-filtered lists (ALL is shuffled, subfolders are strictly newest first)
   const activePhotosList: StageMediaItem[] = useMemo(() => {
     if (photosSubfolder === 'ALL') return shuffleArray(allPhotosFiles);
@@ -350,10 +336,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   }, [allClipsFiles, rootMap, clipsSubfolder, shuffleTrigger]);
 
   const activeBandhobiList: StageMediaItem[] = useMemo(() => {
-    if (bandhobiSubfolder === 'ALL') return shuffleArray(allBandhobiFiles);
+    if (bandhobiSubfolder === 'Featured') {
+      const photosNode = rootMap.get('Bandhobi')?.subfolders.get('Photographs');
+      const allPhotos = photosNode ? sortMediaItemsDescending<StageMediaItem>(photosNode.files) : [];
+      if (BANDHOBI_FEATURED_PHOTO_NAMES.length > 0) {
+        const selected = allPhotos.filter((p) =>
+          BANDHOBI_FEATURED_PHOTO_NAMES.some((name) =>
+            (p.name || p.path || p.id || '').toLowerCase().includes(name.toLowerCase())
+          )
+        );
+        return selected.length > 0 ? selected : allPhotos.slice(0, 10);
+      }
+      return allPhotos.slice(0, 10);
+    }
     const node = rootMap.get('Bandhobi')?.subfolders.get(bandhobiSubfolder);
-    return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allBandhobiFiles;
-  }, [allBandhobiFiles, rootMap, bandhobiSubfolder, shuffleTrigger]);
+    return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
+  }, [rootMap, bandhobiSubfolder]);
 
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {
@@ -541,6 +539,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenShort(item, playlist, idx, 'Shorts')}
             />
           </div>
+        ) : tabIndex === 4 && bandhobiSubfolder === 'Featured' ? (
+          /* Bandhobi Featured: Selected Photos Sliding Right-to-Left */
+          <div className="w-full h-full flex items-center justify-start overflow-hidden">
+            <BandhobiSlidingFeaturedPhotos
+              photos={activeBandhobiList}
+              onOpenPhoto={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenPhoto(item, playlist, idx)}
+            />
+          </div>
         ) : (
           /* Media Pages: Monolith Rectangular Grid (Zero Text, Enlarges on Hover) */
           <div
@@ -557,6 +563,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                     : tabIndex === 2
                     ? '9/16'
                     : tabIndex === 3
+                    ? '16/9'
+                    : tabIndex === 4 && bandhobiSubfolder === 'Photographs'
+                    ? '3/4'
+                    : tabIndex === 4 && bandhobiSubfolder === 'Shorts'
+                    ? '9/16'
+                    : tabIndex === 4 && bandhobiSubfolder === 'Video Clips'
                     ? '16/9'
                     : item.mediaType === 'short'
                     ? '9/16'
