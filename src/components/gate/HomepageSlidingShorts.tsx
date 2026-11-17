@@ -137,7 +137,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
           v.defaultMuted = true;
           try {
             v.currentTime = 0;
-          } catch (_) {}
+          } catch {}
           v.play().catch(() => {});
         }
       });

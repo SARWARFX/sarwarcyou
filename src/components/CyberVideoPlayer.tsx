@@ -120,13 +120,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   }, []);
 
   // Picture-in-Picture State
-  const [isPiPSupported, setIsPiPSupported] = useState(false);
-
-  useEffect(() => {
-    if (typeof document !== 'undefined' && 'pictureInPictureEnabled' in document) {
-      setIsPiPSupported(Boolean(document.pictureInPictureEnabled));
-    }
-  }, []);
+  const [isPiPSupported] = useState(() => typeof document !== 'undefined' && Boolean((document as any).pictureInPictureEnabled));
 
   const handleTogglePiP = async () => {
     try {
@@ -159,11 +153,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     hoverX: number;
     hoverPct: number;
     hoverTime: number;
+    barWidth: number;
   }>({
     isHovering: false,
     hoverX: 0,
     hoverPct: 0,
     hoverTime: 0,
+    barWidth: 300,
   });
 
   // A-B Loop State
@@ -722,6 +718,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       hoverX: x,
       hoverPct: pct,
       hoverTime: time,
+      barWidth: rect.width,
     });
 
     // Lazily mount timeslider hover preview video frame on demand
@@ -1049,7 +1046,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const bufferPct = duration > 0 ? (buffered / duration) * 100 : 0;
 
   // Clamped position for Seek Hover Tooltip
-  const barWidth = progressBarRef.current?.getBoundingClientRect().width || 300;
+  const barWidth = seekHover.barWidth || 300;
   const tooltipWidth = 192;
   const halfTooltip = tooltipWidth / 2;
   const clampedX = barWidth > tooltipWidth + 16

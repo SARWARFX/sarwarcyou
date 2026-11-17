@@ -24,7 +24,7 @@ function getNetworkType(): NetworkType {
 export const NetworkStatusDialog: React.FC = () => {
   const [currentNetwork, setCurrentNetwork] = useState<NetworkType>(() => getNetworkType());
   const [showMeteredModal, setShowMeteredModal] = useState<boolean>(() => getNetworkType() === 'cellular');
-  const [showWifiModal, setShowWifiModal] = useState<boolean>(() => getNetworkType() === 'wifi');
+  const [showWifiModal, setShowWifiModal] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const prevNetworkRef = useRef<NetworkType>(getNetworkType());
 
@@ -40,7 +40,10 @@ export const NetworkStatusDialog: React.FC = () => {
           setShowMeteredModal(true);
           setShowWifiModal(false);
         } else if (next === 'wifi') {
-          setShowWifiModal(true);
+          // Alert user when switching back to Wi-Fi from cellular or recovering from offline
+          if (prev === 'cellular' || prev === 'offline') {
+            setShowWifiModal(true);
+          }
           setShowMeteredModal(false);
         } else if (next === 'offline') {
           setShowMeteredModal(false);

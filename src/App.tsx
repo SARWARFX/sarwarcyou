@@ -6,24 +6,24 @@ const CyberVideoPlayer = lazy(() => import('./components/CyberVideoPlayer'));
 const ShortsFeedModal = lazy(() => import('./components/ShortsFeedModal'));
 const MediaModal = lazy(() => import('./components/MediaModal'));
 const FullAlbumViewModal = lazy(() => import('./components/FullAlbumViewModal'));
-import { DeepSpaceTreeExplorer } from './components/DeepSpaceTreeExplorer';
+const DeepSpaceTreeExplorer = lazy(() => import('./components/DeepSpaceTreeExplorer').then(m => ({ default: m.DeepSpaceTreeExplorer })));
+const WinXPDesktop = lazy(() => import('./components/winxp/WinXPDesktop').then(m => ({ default: m.WinXPDesktop })));
+const SilentHillShell = lazy(() => import('./components/silenthill/SilentHillShell').then(m => ({ default: m.SilentHillShell })));
+const ModernCascadeExplorer = lazy(() => import('./components/ModernCascadeExplorer').then(m => ({ default: m.ModernCascadeExplorer })));
+const AmbientFogCanvas = lazy(() => import('./components/AmbientFogCanvas').then(m => ({ default: m.AmbientFogCanvas })));
+const FrostedSnowCanvas = lazy(() => import('./components/FrostedSnowCanvas').then(m => ({ default: m.FrostedSnowCanvas })));
+const AuraCanvas = lazy(() => import('./components/aura/AuraCanvas').then(m => ({ default: m.AuraCanvas })));
+const AuraCascadeExplorer = lazy(() => import('./components/aura/AuraCascadeExplorer').then(m => ({ default: m.AuraCascadeExplorer })));
+const PurePhotographyTrailerGate = lazy(() => import('./components/gate/PurePhotographyTrailerGate').then(m => ({ default: m.PurePhotographyTrailerGate })));
+const CsprShowcaseShell = lazy(() => import('./components/cspr/CsprShowcaseShell').then(m => ({ default: m.CsprShowcaseShell })));
+const AmbientWallpaper = lazy(() => import('./components/AmbientWallpaper').then(m => ({ default: m.AmbientWallpaper })));
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { CyberSplash } from './components/CyberSplash';
 import { BackgroundThumbnailCacheToast } from './components/common/BackgroundThumbnailCacheToast';
 import { NetworkStatusDialog } from './components/common/NetworkStatusDialog';
-import { AmbientWallpaper } from './components/AmbientWallpaper';
-import { WinXPDesktop } from './components/winxp/WinXPDesktop';
-import { SilentHillShell } from './components/silenthill/SilentHillShell';
-import { ModernCascadeExplorer } from './components/ModernCascadeExplorer';
-import { AmbientFogCanvas } from './components/AmbientFogCanvas';
-import { FrostedSnowCanvas } from './components/FrostedSnowCanvas';
-import { AuraCanvas } from './components/aura/AuraCanvas';
-import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
 import { CinematicBackdropCanvas } from './components/gate/CinematicBackdropCanvas';
 import { MonolithBarGate } from './components/gate/MonolithBarGate';
-import { PurePhotographyTrailerGate } from './components/gate/PurePhotographyTrailerGate';
-import { CsprShowcaseShell } from './components/cspr/CsprShowcaseShell';
 import {
   ACTIVE_INTERFACE,
   ENABLE_CSPR_SHOWCASE,
@@ -667,7 +667,8 @@ function App() {
       {/* Universal Animated Graphical Background (Entire Website) */}
       <CinematicBackdropCanvas isPaused={theaterState.isOpen} />
 
-      {ENABLE_CSPR_SHOWCASE || ACTIVE_INTERFACE === 'CSPR_SHOWCASE' ? (
+      <Suspense fallback={null}>
+        {ENABLE_CSPR_SHOWCASE || ACTIVE_INTERFACE === 'CSPR_SHOWCASE' ? (
         <>
           {/* 1. CSPR Border-Attached Navigation and Curated Horizontal Carousel Home Page */}
           <CsprShowcaseShell
@@ -816,6 +817,7 @@ function App() {
           )}
         </>
       )}
+      </Suspense>
 
       {/* 3. Single Global Video Player (Clips) - Completely unmounted when closed */}
       {theaterState.isOpen && theaterState.item && (
