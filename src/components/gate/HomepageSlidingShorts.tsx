@@ -6,11 +6,12 @@ import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 export interface HomepageSlidingShortsProps {
   shorts: StageMediaItem[];
   onOpenShort: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
+  randomSeed?: number;
 }
 
 /**
- * Homepage Showcase: Latest 10 Shorts
- * - Shows the latest 10 shorts
+ * Shorts Featured Showcase: 10 Randomly Selected Shorts
+ * - Shows 10 randomly selected shorts on the page
  * - All playing automatically (muted) all at once
  * - Starts directly on screen (filling from the left as many cards as fit)
  * - Slowly glides continuously from right to left
@@ -21,20 +22,26 @@ export interface HomepageSlidingShortsProps {
 export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   shorts,
   onOpenShort,
+  randomSeed,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Strictly pick the latest 10 shorts
-  const latest10 = React.useMemo(() => {
+  // 10 randomly selected shorts
+  const selected10 = React.useMemo(() => {
     if (!shorts || shorts.length === 0) return [];
-    return shorts.slice(0, 10);
-  }, [shorts]);
+    const pool = [...shorts];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 10);
+  }, [shorts, randomSeed]);
 
   // Duplicate the 10 shorts once to create an infinite, seamless loop
   const displayList = React.useMemo(() => {
-    if (latest10.length === 0) return [];
-    return [...latest10, ...latest10];
-  }, [latest10]);
+    if (selected10.length === 0) return [];
+    return [...selected10, ...selected10];
+  }, [selected10]);
 
   // Ensure all videos play simultaneously (muted) without autoplay lock
   const setVideoRef = (el: HTMLVideoElement | null) => {
@@ -45,7 +52,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     }
   };
 
-  if (latest10.length === 0) return null;
+  if (selected10.length === 0) return null;
 
   return (
     <div
@@ -69,12 +76,12 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
             item.poster ||
             getMediaUrl(item.url || '');
 
-          const actualIndex = idx % latest10.length;
+          const actualIndex = idx % selected10.length;
 
           return (
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
-              onClick={() => onOpenShort(item, latest10, actualIndex)}
+              onClick={() => onOpenShort(item, selected10, actualIndex)}
               className="w-[200px] sm:w-[240px] md:w-[260px] h-[356px] sm:h-[426px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >

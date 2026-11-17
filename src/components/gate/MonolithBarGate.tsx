@@ -91,7 +91,7 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
 }
 
 const PHOTO_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', '2025', 'Older'];
-const SHORTS_SUBFOLDERS = ['ALL', '2027', 'Older'];
+const SHORTS_SUBFOLDERS = ['Featured', '2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
 const BANDHOBI_SUBFOLDERS = ['Featured', 'Photographs', 'Video Clips', 'Shorts'];
 
@@ -130,19 +130,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 }) => {
   const initialRoute = useMemo(() => parseAppPathname(), []);
 
-  // 0: Homepage (Right-to-Left Sliding Shorts), 1: Photographs, 2: Shorts, 3: Video Clips, 4: Bandhobi
+  // 1: Photographs, 2: Shorts (Homepage Landing), 3: Video Clips, 4: Bandhobi
   const [tabIndex, setTabIndex] = useState<number>(() => {
-    if (typeof window === 'undefined') return 0;
+    if (typeof window === 'undefined') return 2;
     const parsed = parseAppPathname();
     if (parsed.tab === 'PHOTOGRAPHY') return 1;
     if (parsed.tab === 'SHORTS') return 2;
     if (parsed.tab === 'CLIPS') return 3;
     if (parsed.tab === 'BANDHOBI') return 4;
-    return 0;
+    return 2;
   });
 
   const [photosSubfolder, setPhotosSubfolder] = useState<string>('ALL');
-  const [shortsSubfolder, setShortsSubfolder] = useState<string>('ALL');
+  const [shortsSubfolder, setShortsSubfolder] = useState<string>('Featured');
   const [clipsSubfolder, setClipsSubfolder] = useState<string>('ALL');
   const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>('Featured');
   const [shuffleTrigger, setShuffleTrigger] = useState<number>(0);
@@ -175,7 +175,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const switchTab = useCallback((index: number) => {
     setTabIndex(index);
     if (index === 1) setPhotosSubfolder('ALL');
-    else if (index === 2) setShortsSubfolder('ALL');
+    else if (index === 2) setShortsSubfolder('Featured');
     else if (index === 3) setClipsSubfolder('ALL');
     else if (index === 4) setBandhobiSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
@@ -208,7 +208,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setPhotosSubfolder('ALL');
         setTabIndex(1);
       } else if (parsed.tab === 'SHORTS') {
-        setShortsSubfolder('ALL');
+        setShortsSubfolder('Featured');
         setTabIndex(2);
       } else if (parsed.tab === 'CLIPS') {
         setClipsSubfolder('ALL');
@@ -217,7 +217,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setBandhobiSubfolder('Featured');
         setTabIndex(4);
       } else {
-        setTabIndex(0);
+        setShortsSubfolder('Featured');
+        setTabIndex(2);
       }
     };
 
@@ -363,10 +364,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   }, [allPhotosFiles, rootMap, photosSubfolder, shuffleTrigger]);
 
   const activeShortsList: StageMediaItem[] = useMemo(() => {
-    if (shortsSubfolder === 'ALL') return shuffleArray(allShortsFiles);
+    if (shortsSubfolder === 'Featured') return allShortsFiles;
     const node = rootMap.get('Shorts')?.subfolders.get(shortsSubfolder);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allShortsFiles;
-  }, [allShortsFiles, rootMap, shortsSubfolder, shuffleTrigger]);
+  }, [allShortsFiles, rootMap, shortsSubfolder]);
 
   const activeClipsList: StageMediaItem[] = useMemo(() => {
     if (clipsSubfolder === 'ALL') return shuffleArray(allClipsFiles);
@@ -468,7 +469,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       : bandhobiSubfolder;
 
   const handleSelectSubfolder = (sub: string) => {
-    if (sub === 'ALL') {
+    if (sub === 'ALL' || sub === 'Featured') {
       setShuffleTrigger((prev) => prev + 1);
     }
     if (tabIndex === 1) setPhotosSubfolder(sub);
@@ -502,7 +503,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           else if (tab === 'SHORTS') switchTab(2);
           else if (tab === 'CLIPS') switchTab(3);
           else if (tab === 'BANDHOBI') switchTab(4);
-          else switchTab(0);
+          else {
+            switchTab(2);
+            setShortsSubfolder('Featured');
+          }
         }}
       />
 
@@ -515,7 +519,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         <div className="flex flex-col gap-3 sm:gap-4 shrink-0">
           <button
             type="button"
-            onClick={() => switchTab(0)}
+            onClick={() => {
+              switchTab(2);
+              setShortsSubfolder('Featured');
+              if (typeof window !== 'undefined') {
+                updateBrowserUrl('/');
+              }
+            }}
             className="inline-flex items-center cursor-pointer transition-opacity hover:opacity-85 bg-transparent p-0"
             title="SARWAR.CYOU"
             style={{ borderRadius: 0, outline: 'none', border: 'none' }}
@@ -584,11 +594,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         className="flex-1 overflow-y-auto overflow-x-hidden px-6 sm:px-10 py-4 relative z-10 scrollbar-none flex flex-col"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        {tabIndex === 0 ? (
-          /* Homepage: Latest Shorts Auto-Playing and Sliding Right-to-Left */
+        {tabIndex === 2 && shortsSubfolder === 'Featured' ? (
+          /* Shorts Featured: 10 Randomly Selected Shorts Playing & Sliding Right-to-Left */
           <div className="w-full h-full flex items-center justify-start overflow-hidden">
             <HomepageSlidingShorts
               shorts={allShortsFiles}
+              randomSeed={shuffleTrigger}
               onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenShort(item, playlist, idx, 'Shorts')}
             />
           </div>
@@ -642,26 +653,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         className="w-full px-6 sm:px-10 py-3 sm:py-4 shrink-0 z-20 flex items-center bg-transparent min-h-[44px]"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        {tabIndex !== 0 && (
-          <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto scrollbar-none">
-            {currentSubfolderList.map((sub) => {
-              const isActive = currentSubfolder === sub;
-              return (
-                <button
-                  key={sub}
-                  type="button"
-                  onClick={() => handleSelectSubfolder(sub)}
-                  className={`text-[11.5px] sm:text-[12px] tracking-wide transition-colors cursor-pointer whitespace-nowrap p-0 bg-transparent ${
-                    isActive ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
-                  }`}
-                  style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-                >
-                  {sub}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto scrollbar-none">
+          {currentSubfolderList.map((sub) => {
+            const isActive = currentSubfolder === sub;
+            return (
+              <button
+                key={sub}
+                type="button"
+                onClick={() => handleSelectSubfolder(sub)}
+                className={`text-[11.5px] sm:text-[12px] tracking-wide transition-colors cursor-pointer whitespace-nowrap p-0 bg-transparent ${
+                  isActive ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
+                }`}
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              >
+                {sub}
+              </button>
+            );
+          })}
+        </div>
       </footer>
 
       {/* 24-HOUR DEEP DIURNAL TELEMETRY MATRIX VIEW */}
