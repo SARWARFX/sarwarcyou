@@ -1,20 +1,39 @@
 import React, { useEffect, useRef } from 'react';
-import { BIENNALE_AVANT_GARDE_THEME, type CinematicTheme } from './themeManager';
+import { type CinematicTheme } from './themeManager';
 
-interface DustMote {
+interface Particle {
   x: number;
   y: number;
-  size: number;
-  speedY: number;
-  speedX: number;
-  opacity: number;
-  wobbleSpeed: number;
-  wobbleOffset: number;
-  isLime: boolean;
+  vx: number;
+  vy: number;
+  radius: number;
+  baseRadius: number;
+  alpha: number;
+  pulsePhase: number;
+  pulseSpeed: number;
+  isPulsar: boolean;
 }
 
+interface NebulaNode {
+  baseX: number;
+  baseY: number;
+  radiusMult: number;
+  color: string;
+  speed: number;
+  phaseX: number;
+  phaseY: number;
+}
+
+/**
+ * High-End Cybernetic Constellation & Living Nebula Animated Background Canvas
+ * Features:
+ * - Fluid multi-node volumetric radiant phosphor aura waves
+ * - Dynamic constellation particle web with distance-reactive geometric connecting lines
+ * - Pulsar star nodes with specular bloom halos
+ * - Subtle architectural coordinate reticles (+) for high-end digital gallery precision
+ * - Hardware-accelerated, High-DPI (Retina/4K) calibrated, and zero CPU waste when paused
+ */
 export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPaused?: boolean }> = ({
-  theme = BIENNALE_AVANT_GARDE_THEME,
   isPaused = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -27,105 +46,197 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
     if (!ctx) return;
 
     let animId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let width = (canvas.width = window.innerWidth * dpr);
+    let height = (canvas.height = window.innerHeight * dpr);
 
     const handleResize = () => {
       if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = canvas.width = window.innerWidth * dpr;
+      height = canvas.height = window.innerHeight * dpr;
     };
     window.addEventListener('resize', handleResize);
 
-    // Minimalist monochrome & acid lime gallery ambient dust motes (replaces old cyan space dust)
-    const dustMotes: DustMote[] = Array.from({ length: 35 }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      size: Math.random() * 1.2 + 0.6,
-      speedY: -(Math.random() * 0.18 + 0.08),
-      speedX: (Math.random() - 0.5) * 0.12,
-      opacity: Math.random() * 0.25 + 0.1,
-      wobbleSpeed: Math.random() * 0.01 + 0.003,
-      wobbleOffset: Math.random() * Math.PI * 2,
-      isLime: Math.random() > 0.65,
-    }));
+    // 4 Living Ambient Mesh Nebula Nodes (Noticeable soft celestial aura)
+    const nebulaNodes: NebulaNode[] = [
+      {
+        baseX: 0.22,
+        baseY: 0.32,
+        radiusMult: 0.58,
+        color: 'rgba(255, 255, 255, ',
+        speed: 0.0012,
+        phaseX: 0,
+        phaseY: 1.2,
+      },
+      {
+        baseX: 0.8,
+        baseY: 0.62,
+        radiusMult: 0.68,
+        color: 'rgba(235, 245, 255, ',
+        speed: 0.0009,
+        phaseX: 2.1,
+        phaseY: 0.7,
+      },
+      {
+        baseX: 0.48,
+        baseY: 0.88,
+        radiusMult: 0.52,
+        color: 'rgba(240, 248, 255, ',
+        speed: 0.0014,
+        phaseX: 1.4,
+        phaseY: 2.4,
+      },
+      {
+        baseX: 0.88,
+        baseY: 0.18,
+        radiusMult: 0.48,
+        color: 'rgba(255, 255, 255, ',
+        speed: 0.0008,
+        phaseX: 3.2,
+        phaseY: 1.5,
+      },
+    ];
+
+    // Constellation Specular Particles (Scales gracefully based on viewport)
+    const count = Math.floor(Math.min(window.innerWidth, 1400) / 16);
+    const particleCount = Math.max(45, Math.min(count, 90));
+
+    const particles: Particle[] = Array.from({ length: particleCount }, () => {
+      const isPulsar = Math.random() < 0.18;
+      const baseRadius = (isPulsar ? Math.random() * 2.0 + 1.8 : Math.random() * 1.3 + 0.7) * dpr;
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.42 * dpr,
+        vy: (Math.random() - 0.5) * 0.42 * dpr,
+        radius: baseRadius,
+        baseRadius,
+        alpha: Math.random() * 0.45 + 0.3,
+        pulsePhase: Math.random() * Math.PI * 2,
+        pulseSpeed: Math.random() * 0.025 + 0.015,
+        isPulsar,
+      };
+    });
 
     let time = 0;
+    const maxConnectionDistance = 145 * dpr;
 
     const render = () => {
-      time += 0.008;
+      time += 1;
 
-      // 1. Pure Obsidian Base: #050505
-      ctx.fillStyle = '#050505';
+      // 1. Deep Obsidian Base
+      ctx.fillStyle = '#050608';
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Subtle Architectural Gallery Exhibition Grid (64px interval)
-      const gridSize = 64;
-      ctx.lineWidth = 0.5;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.018)';
-      ctx.beginPath();
-      for (let x = 0; x < width; x += gridSize) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-      }
-      for (let y = 0; y < height; y += gridSize) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-      }
-      ctx.stroke();
+      // 2. Living Ambient Mesh Nebula Waves (Noticeable radiant luminescence)
+      for (let i = 0; i < nebulaNodes.length; i++) {
+        const node = nebulaNodes[i];
+        const cx = (node.baseX + Math.sin(time * node.speed + node.phaseX) * 0.14) * width;
+        const cy = (node.baseY + Math.cos(time * node.speed * 0.85 + node.phaseY) * 0.12) * height;
+        const radius = Math.max(width, height) * node.radiusMult;
 
-      // 3. Grid Crosshair Micro-Points at Intersections
-      ctx.fillStyle = 'rgba(0, 240, 255, 0.035)';
-      for (let x = 0; x < width; x += gridSize * 2) {
-        for (let y = 0; y < height; y += gridSize * 2) {
-          ctx.fillRect(x - 1, y - 1, 2, 2);
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        grad.addColorStop(0, `${node.color}0.085)`);
+        grad.addColorStop(0.35, `${node.color}0.042)`);
+        grad.addColorStop(0.7, `${node.color}0.012)`);
+        grad.addColorStop(1, 'rgba(5, 6, 8, 0)');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      // 3. Cybernetic Architectural Coordinate Crosshairs (+) at Clean Intervals
+      const gridSize = 120 * dpr;
+      ctx.lineWidth = 1 * dpr;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.045)';
+      const crossSize = 3.5 * dpr;
+      for (let x = gridSize; x < width; x += gridSize) {
+        for (let y = gridSize; y < height; y += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(x - crossSize, y);
+          ctx.lineTo(x + crossSize, y);
+          ctx.moveTo(x, y - crossSize);
+          ctx.lineTo(x, y + crossSize);
+          ctx.stroke();
         }
       }
 
-      // 4. Ambient Acid Lime Gallery Spotlight Aura (Upper-Center Subtle Radial Glow)
-      const cx = width * 0.5;
-      const cy = height * 0.28 + Math.sin(time * 0.4) * 15;
-      const spotGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(width, height) * 0.65);
-      spotGrad.addColorStop(0, 'rgba(0, 240, 255, 0.032)');
-      spotGrad.addColorStop(0.35, 'rgba(30, 36, 10, 0.02)');
-      spotGrad.addColorStop(0.75, 'rgba(8, 8, 8, 0.01)');
-      spotGrad.addColorStop(1, 'rgba(5, 5, 5, 0)');
-      ctx.fillStyle = spotGrad;
-      ctx.fillRect(0, 0, width, height);
+      // 4. Update and Draw Dynamic Geometric Constellation Web
+      const len = particles.length;
+      for (let i = 0; i < len; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
 
-      // 5. Floating Gallery Spotlight Dust Motes (Warm White + Lime)
-      for (let i = 0; i < dustMotes.length; i++) {
-        const p = dustMotes[i];
-        p.y += p.speedY;
-        p.x += Math.sin(time * p.wobbleSpeed * 60 + p.wobbleOffset) * 0.25 + p.speedX;
+        // Wrap around screen bounds seamlessly
+        if (p.x < 0) p.x = width;
+        else if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        else if (p.y > height) p.y = 0;
 
-        if (p.y < -10) {
-          p.y = height + 10;
-          p.x = Math.random() * width;
+        // Pulsar breathing effect
+        if (p.isPulsar) {
+          p.pulsePhase += p.pulseSpeed;
+          p.radius = p.baseRadius * (1 + Math.sin(p.pulsePhase) * 0.35);
         }
-        if (p.x > width + 10) p.x = -10;
-        if (p.x < -10) p.x = width + 10;
 
-        ctx.fillStyle = p.isLime
-          ? `rgba(0, 240, 255, ${p.opacity * 0.9})`
-          : `rgba(240, 240, 245, ${p.opacity * 0.8})`;
+        // Draw connections between nearby particles
+        for (let j = i + 1; j < len; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < maxConnectionDistance) {
+            const lineAlpha = (1 - dist / maxConnectionDistance) * 0.22;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${lineAlpha})`;
+            ctx.lineWidth = (1 - dist / maxConnectionDistance) * 1.25 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // 5. Draw Particles with Phosphor Specular Bloom
+      for (let i = 0; i < len; i++) {
+        const p = particles[i];
+
+        if (p.isPulsar) {
+          // Specular Bloom Halo around Pulsars
+          const glowGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 4.0);
+          glowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+          glowGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.18)');
+          glowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = glowGrad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 4.0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+        } else {
+          ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        }
+
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // 6. Seamless Perimeter Vignette (Blends into #050505)
+      // 6. Perimeter Edge Vignette (Blends into #050608)
       const vignette = ctx.createRadialGradient(
         width * 0.5,
         height * 0.5,
-        Math.min(width, height) * 0.38,
+        Math.min(width, height) * 0.35,
         width * 0.5,
         height * 0.5,
-        Math.max(width, height) * 0.75
+        Math.max(width, height) * 0.78
       );
-      vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(0.65, 'rgba(5, 5, 5, 0.45)');
-      vignette.addColorStop(1, '#050505');
+      vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      vignette.addColorStop(0.7, 'rgba(5, 6, 8, 0.35)');
+      vignette.addColorStop(1, '#050608');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, width, height);
 
@@ -140,13 +251,13 @@ export const CinematicBackdropCanvas: React.FC<{ theme?: CinematicTheme; isPause
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
     };
-  }, [theme, isPaused]);
+  }, [isPaused]);
 
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 w-full h-full pointer-events-none -z-10 select-none"
-      style={{ display: 'block' }}
+      style={{ display: 'block', width: '100vw', height: '100vh' }}
     />
   );
 };

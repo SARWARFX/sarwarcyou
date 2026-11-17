@@ -18,6 +18,7 @@ import { AmbientFogCanvas } from './components/AmbientFogCanvas';
 import { FrostedSnowCanvas } from './components/FrostedSnowCanvas';
 import { AuraCanvas } from './components/aura/AuraCanvas';
 import { AuraCascadeExplorer } from './components/aura/AuraCascadeExplorer';
+import { CinematicBackdropCanvas } from './components/gate/CinematicBackdropCanvas';
 import { MonolithBarGate } from './components/gate/MonolithBarGate';
 import { PurePhotographyTrailerGate } from './components/gate/PurePhotographyTrailerGate';
 import { CsprShowcaseShell } from './components/cspr/CsprShowcaseShell';
@@ -642,6 +643,9 @@ function App() {
       style={{ isolation: 'isolate' }}
     >
       <CyberSplash />
+
+      {/* Universal Animated Graphical Background (Entire Website) */}
+      <CinematicBackdropCanvas isPaused={theaterState.isOpen} />
 
       {ENABLE_CSPR_SHOWCASE || ACTIVE_INTERFACE === 'CSPR_SHOWCASE' ? (
         <>

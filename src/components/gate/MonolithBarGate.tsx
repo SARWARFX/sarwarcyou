@@ -833,10 +833,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   return (
     <div
-      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-black relative select-none font-['Roboto_Condensed'] font-sans text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-transparent relative select-none font-['Roboto_Condensed'] font-sans text-white"
       style={{
         isolation: 'isolate',
-        backgroundColor: '#000000',
+        backgroundColor: 'transparent',
       }}
     >
       {/* Permanent Midnight Obsidian Backdrop Canvas */}
