@@ -506,7 +506,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       >
         {tabIndex === 0 ? (
           /* Homepage: Latest Shorts Auto-Playing and Sliding Right-to-Left */
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-start overflow-hidden">
             <HomepageSlidingShorts
               shorts={allShortsFiles}
               onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) => onOpenShort(item, playlist, idx, 'Shorts')}
