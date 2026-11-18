@@ -124,11 +124,21 @@ export function formatShortDuration(minutes: number): string {
 }
 
 /**
- * Record active session minutes for the current calendar date
+ * Returns a YYYY-MM-DD date key strictly in the visitor's Pure Local Timezone.
+ */
+export function getLocalDateKey(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Record active session minutes for the current calendar date (Pure Local Time)
  */
 export const addSessionMinutes = (minutes: number = 1): void => {
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateKey();
     const raw = typeof window !== 'undefined' ? localStorage.getItem(TIME_STORAGE_KEY) : null;
     const history: Record<string, number> = raw ? JSON.parse(raw) : {};
 
@@ -154,11 +164,11 @@ export const addSessionMinutes = (minutes: number = 1): void => {
 };
 
 /**
- * Record user activity event (backwards compatible)
+ * Record user activity event (Pure Local Time, backwards compatible)
  */
 export const trackActivityEvent = (amount: number = 1): void => {
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateKey();
     const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     const history: Record<string, number> = raw ? JSON.parse(raw) : {};
 
@@ -172,7 +182,7 @@ export const trackActivityEvent = (amount: number = 1): void => {
 };
 
 /**
- * Retrieve rolling 7-day session time statistics relative to current calendar dates
+ * Retrieve rolling 7-day session time statistics relative to current calendar dates (Pure Local Time)
  */
 export const getRolling7DayUsage = (): TelemetrySummary => {
   try {
@@ -185,8 +195,9 @@ export const getRolling7DayUsage = (): TelemetrySummary => {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
-      const iso = d.toISOString().split('T')[0];
-      const mins = history[iso] || 0;
+      const iso = getLocalDateKey(d);
+      const utcFallback = d.toISOString().split('T')[0];
+      const mins = history[iso] ?? history[utcFallback] ?? 0;
 
       let label = String(d.getDate());
       if (i === 0) label = 'TODAY';

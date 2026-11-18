@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { getRolling7DayUsage, getDiurnalPhasesForDay } from '../../utils/usageTelemetry';
+import { getRolling7DayUsage, getDiurnalPhasesForDay, getLocalDateKey } from '../../utils/usageTelemetry';
 
 export interface DiurnalPhase24hSummaryProps {
   dayIndex?: number; // 0 = Today, 1 = Yesterday, 2 = S, etc.
@@ -41,7 +41,7 @@ export const DiurnalPhase24hSummary: React.FC<DiurnalPhase24hSummaryProps> = ({
     const now = new Date();
     const d = new Date();
     d.setDate(now.getDate() - dayIndex);
-    const iso = d.toISOString().split('T')[0];
+    const iso = getLocalDateKey(d);
 
     const usage = getRolling7DayUsage();
     const storedDays = usage.days || [];

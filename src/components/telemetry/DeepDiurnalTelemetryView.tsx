@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   getRolling7DayUsage,
   getDiurnalPhasesForDay,
+  getLocalDateKey,
 } from '../../utils/usageTelemetry';
 import { hapticMedium } from '../../utils/hapticsManager';
 
@@ -83,7 +84,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(now.getDate() - i);
-      const iso = d.toISOString().split('T')[0];
+      const iso = getLocalDateKey(d);
 
       let dayLetter = 'W';
       let dayFullName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();

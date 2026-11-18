@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getRolling7DayUsage, addSessionMinutes } from '../../utils/usageTelemetry';
+import { getRolling7DayUsage, addSessionMinutes, getLocalDateKey } from '../../utils/usageTelemetry';
 
 export interface DayTelemetryData {
   key: string;
@@ -75,7 +75,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
       const timeFormatted = `${hrs}H ${String(remMins).padStart(2, '0')}M`;
 
       rawList.push({
-        key: `day-${i}-${d.toISOString()}`,
+        key: `day-${i}-${getLocalDateKey(d)}`,
         dayLetter,
         timeFormatted,
         minutes: mins,
