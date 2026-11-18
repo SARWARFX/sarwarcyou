@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { AlertTriangle, Loader2, Play, Pause, Heart, FastForward } from 'lucide-react';
+import { AlertTriangle, Loader2, Heart, FastForward } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
@@ -42,8 +42,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [landscapeMap, setLandscapeMap] = useState<Record<number, boolean>>({});
   const [aspectRatioMap, setAspectRatioMap] = useState<Record<number, number>>({});
 
-  const [centerIcon, setCenterIcon] = useState<{ idx: number; type: 'play' | 'pause'; id: number } | null>(null);
-  const [showControls, setShowControls] = useState(true);
   const [slideDirection, setSlideDirection] = useState<'next' | 'prev' | null>(null);
 
   // Enhanced Shorts Experience States
@@ -67,9 +65,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const failedItemsRef = useRef(new Set<string>());
   const hasInitialScrolledRef = useRef(false);
-  const iconTimerRef = useRef<number | null>(null);
-  const hideControlsTimerRef = useRef<number | null>(null);
-  const lastTouchTimeRef = useRef<number>(0);
   const backdropClickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const pointerStartXRef = useRef<number>(0);
   const pointerStartYRef = useRef<number>(0);
@@ -80,7 +75,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
   );
   const isWideScreen = isDesktop || isScreenLandscape;
-  const isTrayVisible = isWideScreen || showControls;
+  const isTrayVisible = isDesktop ? true : !isPlaying;
 
   useEffect(() => {
     const checkOrientation = () => {
@@ -139,24 +134,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     isOpen
   );
 
-  // Initial controls state: wide screen stays appeared; portrait opens clean with tray hidden
-  useEffect(() => {
-    if (isOpen) {
-      if (!isWideScreen) {
-        setShowControls(false); // Portrait opens full screen with zero distraction (no tray)
-      } else {
-        setShowControls(true); // Wide screen tray stays appeared
-      }
-    }
-  }, [isOpen, isWideScreen]);
-
-  // When swiping to a new short on portrait, keep controls hidden while playing
-  useEffect(() => {
-    if (hasInitialScrolledRef.current && !isWideScreen) {
-      setShowControls(false);
-    }
-  }, [activeIndex, isWideScreen]);
-
   // Unified short navigation handler for cards, keys, and gestures
   const goToShortIndex = useCallback((targetIdx: number, dir: 'next' | 'prev') => {
     if (targetIdx < 0 || targetIdx >= shorts.length) return;
@@ -167,30 +144,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setCurrentTime(targetVideo?.currentTime || 0);
     setDuration(targetVideo && targetVideo.duration && !isNaN(targetVideo.duration) && targetVideo.duration > 0 ? targetVideo.duration : 0);
     onIndexChange?.(targetIdx);
-    if (!isWideScreen) {
-      setShowControls(false);
-    }
     if (shorts[targetIdx]) {
       updateBrowserUrl('/shorts/' + getMediaShortId(shorts[targetIdx]), true);
     }
     if (!isDesktop && containerRef.current) {
       slideRefs.current[targetIdx]?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
     }
-  }, [shorts, isDesktop, isWideScreen, onIndexChange]);
+  }, [shorts, isDesktop, onIndexChange]);
 
-  // Desktop mouse movement reveals HUD on wide screens
   const handleMouseMove = useCallback(() => {
-    if (Date.now() - lastTouchTimeRef.current < 800) return;
-    if (isWideScreen) {
-      setShowControls(true);
-    }
-  }, [isWideScreen]);
+    // no-op desktop handler
+  }, []);
 
-  // Screen tap handler:
-  // - Wide screen devices: Tray stays appeared at bottom-left all the time; tap toggles play/pause
-  // - Portrait devices: Immersive view with synchronized play/pause & tray toggle:
-  //     * If playing: pauses video and shows the tray
-  //     * If paused: starts playing and hides the tray
+  // Screen tap handler: toggles play/pause with tactile haptics
   const handleScreenTap = useCallback((idx: number) => {
     const v = videoRefs.current[idx] || videoRefs.current[activeIndex];
     if (!v) return;
@@ -205,20 +171,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         v.play().catch(() => {});
       });
       setIsPlaying(true);
-      if (!isWideScreen) setShowControls(false);
-      setCenterIcon({ idx, type: 'play', id: Date.now() });
       hapticLight();
     } else {
       v.pause();
       setIsPlaying(false);
-      if (!isWideScreen) setShowControls(true);
-      setCenterIcon({ idx, type: 'pause', id: Date.now() });
       hapticLight();
     }
-
-    if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
-    iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
-  }, [activeIndex, isWideScreen]);
+  }, [activeIndex]);
 
   // Video Pointer Engine: Hold-to-2x Speed, Swipe Navigation & Instant Tap Detection
   const handleVideoPointerDown = useCallback((e: React.PointerEvent, idx: number) => {
@@ -370,42 +329,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }, 200);
   }, [handleScreenTap]);
 
-  // Timeline scrub handling
-  const handleScrubSeek = useCallback((clientX: number, target: HTMLElement, idx: number) => {
-    const rect = target.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const v = videoRefs.current[idx];
-    if (v && v.duration) {
-      const targetTime = ratio * v.duration;
-      v.currentTime = targetTime;
-      setCurrentTime(targetTime);
-    }
-  }, []);
-
-  const handleScrubPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, idx: number) => {
-    e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    isScrubbingRef.current = true;
-    hapticLight();
-    handleScrubSeek(e.clientX, e.currentTarget, idx);
-  }, [handleScrubSeek]);
-
-  const handleScrubPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>, idx: number) => {
-    if (!isScrubbingRef.current) return;
-    e.stopPropagation();
-    handleScrubSeek(e.clientX, e.currentTarget, idx);
-  }, [handleScrubSeek]);
-
-  const handleScrubPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isScrubbingRef.current) return;
-    e.stopPropagation();
-    isScrubbingRef.current = false;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
-    hapticLight();
-  }, []);
-
   const togglePlay = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     hapticLight();
@@ -414,54 +337,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     if (v.paused) {
       v.play().catch(() => {});
       setIsPlaying(true);
-      setCenterIcon({ idx: activeIndex, type: 'play', id: Date.now() });
-      if (!isWideScreen) setShowControls(false);
     } else {
       v.pause();
       setIsPlaying(false);
-      setCenterIcon({ idx: activeIndex, type: 'pause', id: Date.now() });
-      if (!isWideScreen) setShowControls(true);
     }
-    if (iconTimerRef.current) clearTimeout(iconTimerRef.current);
-    iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
-  }, [activeIndex, isWideScreen]);
-
-  const renderScrubberBar = useCallback((idx: number) => {
-    const progressPct = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
-    return (
-      <div
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => handleScrubPointerDown(e, idx)}
-        onPointerMove={(e) => handleScrubPointerMove(e, idx)}
-        onPointerUp={handleScrubPointerUp}
-        onPointerCancel={handleScrubPointerUp}
-        className="group/seek relative w-full pt-1.5 pb-1.5 cursor-pointer select-none overflow-visible"
-        title="Seek playback"
-      >
-        {/* Visual Track: Slim 3px timeline track expanding to 5px on hover */}
-        <div className="relative w-full h-[3px] group-hover/seek:h-[5px] bg-white/20 rounded-full transition-all duration-150 flex items-center overflow-visible">
-          {/* Active Progress: Pure Stark White Style with Cyber Glow */}
-          <div
-            className="absolute left-0 top-0 bottom-0 rounded-full transition-all"
-            style={{
-              width: `${progressPct}%`,
-              background: '#ffffff',
-              boxShadow: '0 0 10px rgba(255, 255, 255, 0.85)',
-            }}
-          />
-
-          {/* Distinct Scrubber Dot */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border border-black/40 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
-            style={{
-              left: `${progressPct}%`,
-              boxShadow: '0 0 8px rgba(255, 255, 255, 0.9)',
-            }}
-          />
-        </div>
-      </div>
-    );
-  }, [duration, currentTime, handleScrubPointerDown, handleScrubPointerMove, handleScrubPointerUp]);
+  }, [activeIndex]);
 
   // Vertical timeline scrub handling for outside portrait short on widescreen
   const handleVerticalScrubSeek = useCallback((clientY: number, target: HTMLElement, idx: number) => {
@@ -596,14 +476,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       // On desktop, only ArrowRight navigates next; ArrowDown/PageDown are ignored
-      if (e.key === 'ArrowRight' || (!isDesktop && (e.key === 'ArrowDown' || e.key === 'PageDown'))) {
+      // Next short: ArrowRight, ArrowDown, or PageDown
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
         if (e.cancelable) e.preventDefault();
         if (activeIndex < shorts.length - 1) {
           goToShortIndex(activeIndex + 1, 'next');
         }
       }
-      // On desktop, only ArrowLeft navigates prev; ArrowUp/PageUp are ignored
-      if (e.key === 'ArrowLeft' || (!isDesktop && (e.key === 'ArrowUp' || e.key === 'PageUp'))) {
+      // Prev short: ArrowLeft, ArrowUp, or PageUp
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
         if (e.cancelable) e.preventDefault();
         if (activeIndex > 0) {
           goToShortIndex(activeIndex - 1, 'prev');
@@ -680,9 +561,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               if (shorts[idx]) {
                 updateBrowserUrl('/shorts/' + getMediaShortId(shorts[idx]), true);
               }
-              // Swiping up/down to next short on mobile: strictly keep controls hidden
-              setShowControls(false);
-              if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
               videoRefs.current.forEach((v, i) => {
                 if (!v) return;
                 if (i !== idx) { v.pause(); v.currentTime = 0; }
@@ -778,17 +656,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               loop
               muted={isMuted}
               preload={Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'none'}
-              className={`w-full h-full pointer-events-none ${
-                isDesktop
-                  ? isLandscape
-                    ? 'object-cover rounded-none'
-                    : 'object-cover'
-                  : isLandscape
-                  ? isScreenLandscape
-                    ? 'object-cover'
-                    : 'object-contain'
-                  : 'object-cover'
-              } rounded-none bg-black`}
+              className="w-full h-full pointer-events-none object-contain rounded-none bg-black"
               onLoadedMetadata={(e) => {
                 const v = e.currentTarget;
                 if (v.videoWidth && v.videoHeight) {
@@ -828,17 +696,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               onPause={() => {
                 if (idx === activeIndex) {
                   setIsPlaying(false);
-                  if (!isWideScreen) {
-                    setShowControls(true);
-                  }
                 }
               }}
               onPlay={() => {
                 if (idx === activeIndex) {
                   setIsPlaying(true);
-                  if (!isWideScreen) {
-                    setShowControls(false);
-                  }
                 }
               }}
               onError={() => handleVideoError(idx, item, streamUrl)}
@@ -861,48 +723,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               </div>
             )}
 
-            {/* Inside Top Time Slider for Mobile / Touchscreen 16:9 Cinema Mode */}
-            {isLandscape && !isDesktop && idx === activeIndex && duration > 0 && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className={`absolute top-0 inset-x-0 pt-2 pb-3 px-3 sm:px-4 z-30 cursor-pointer select-none bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-all duration-300 ${
-                  isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
-                }`}
-              >
-                {renderScrubberBar(idx)}
-              </div>
-            )}
-
-            {/* Bottom glowing scrub timeline for 9:16 Portrait Shorts Mode (ONLY on Portrait Screens) */}
-            {!isLandscape && !isWideScreen && idx === activeIndex && duration > 0 && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => handleScrubPointerDown(e, idx)}
-                onPointerMove={(e) => handleScrubPointerMove(e, idx)}
-                onPointerUp={handleScrubPointerUp}
-                onPointerCancel={handleScrubPointerUp}
-                className="absolute bottom-0 inset-x-0 h-6 flex items-end pb-1.5 px-3 z-30 cursor-pointer group"
-              >
-                <div className="w-full h-1 group-hover:h-2 bg-white/20 rounded-full overflow-hidden transition-all duration-150 relative">
-                  <div
-                    className="h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] rounded-full transition-[width] duration-75"
-                    style={{ width: `${Math.min(100, Math.max(0, (currentTime / (duration || 1)) * 100))}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {centerIcon && centerIcon.idx === idx && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-out fade-out zoom-out duration-700">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center text-white border border-neutral-700 shadow-2xl">
-                  {centerIcon.type === 'play' ? (
-                    <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current ml-1" />
-                  ) : (
-                    <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
-                  )}
-                </div>
-              </div>
-            )}
           </>
         ) : (
           <div className="w-full h-full aspect-[9/16] max-h-[85vh] flex flex-col items-center justify-center bg-neutral-950/95 rounded-none p-6 text-center border border-neutral-800">
@@ -939,20 +759,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }}
       className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-backdrop-fade cursor-pointer"
     >
-      {/* Dedicated Top-Right Cybernetic Close Button (Always reachable on all screens & orientations) */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          hapticLight();
-          onClose();
-        }}
-        className="fixed top-3 right-3 sm:top-5 sm:right-5 z-50 p-2.5 rounded-none bg-[rgba(5,7,12,0.85)] hover:bg-black backdrop-blur-xl border-0 text-white/80 hover:text-white transition-all cursor-pointer pointer-events-auto shadow-[0_4px_25px_rgba(0,0,0,0.8)]"
-        title="Close (Esc)"
-        aria-label="Close shorts player"
-      >
-        <LaserCloseIcon size={22} />
-      </button>
       {/* Universal Shorts Player Control Tray (Fixed Bottom-Left for both Landscape and Portrait) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
@@ -987,7 +793,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           </span>
         )}
 
-        {/* Previous Short Button */}
+        {/* Previous Short Button (Hidden on Mobile, Visible on Tablet / Desktop) */}
         <button
           type="button"
           onClick={(e) => {
@@ -995,7 +801,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             if (activeIndex > 0) goToShortIndex(activeIndex - 1, 'prev');
           }}
           disabled={activeIndex <= 0}
-          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+          className="reticle-btn hidden sm:inline-flex w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
           title="Previous Short (↑ or Left Arrow)"
           aria-label="Previous short"
         >
@@ -1010,7 +816,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           {activeIndex + 1} <span className="text-white/40">/</span> {shorts.length}
         </span>
 
-        {/* Next Short Button */}
+        {/* Next Short Button (Hidden on Mobile, Visible on Tablet / Desktop) */}
         <button
           type="button"
           onClick={(e) => {
@@ -1018,36 +824,25 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             if (activeIndex < shorts.length - 1) goToShortIndex(activeIndex + 1, 'next');
           }}
           disabled={activeIndex >= shorts.length - 1}
-          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+          className="reticle-btn hidden sm:inline-flex w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
           title="Next Short (↓ or Right Arrow)"
           aria-label="Next short"
         >
           <LaserNextIcon size={22} />
         </button>
 
-        {/* Aspect Ratio / Cinema Mode Toggle Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            hapticLight();
-            const currentLandscape = !!landscapeMap[activeIndex];
-            const nextState = !currentLandscape;
-            setLandscapeMap((prev) => ({ ...prev, [activeIndex]: nextState }));
-            setAspectRatioMap((prev) => ({ ...prev, [activeIndex]: nextState ? 16 / 9 : 9 / 16 }));
-          }}
-          className={`reticle-btn px-2 h-9 rounded-none font-mono text-xs font-bold tracking-wider cursor-pointer border-0 ${
-            landscapeMap[activeIndex] ? 'text-white drop-shadow-[0_0_8px_#ffffff]' : 'text-slate-400 hover:text-white'
-          }`}
-          title={
+        {/* Aspect Ratio Indicator Badge (Non-clickable, displays 16:9 or 9:16) */}
+        <div
+          className={`px-2 h-7 sm:h-8 flex items-center justify-center font-mono text-[10.5px] sm:text-xs font-bold tracking-wider select-none pointer-events-none border ${
             landscapeMap[activeIndex]
-              ? 'Cinema 16:9 Mode Active (Click for 9:16 Portrait)'
-              : 'Portrait 9:16 Mode (Click for 16:9 Cinema)'
-          }
-          aria-label="Toggle aspect ratio"
+              ? 'text-[#38bdf8] border-[#38bdf8]/40 bg-[#38bdf8]/10 shadow-[0_0_8px_rgba(56,189,248,0.3)]'
+              : 'text-white/80 border-white/20 bg-white/[0.04]'
+          }`}
+          style={{ borderRadius: 0, outline: 'none' }}
+          title={landscapeMap[activeIndex] ? '16:9 Horizontal Short' : '9:16 Vertical Short'}
         >
           {landscapeMap[activeIndex] ? '16:9' : '9:16'}
-        </button>
+        </div>
 
         {/* Volume / Mute Toggle Button */}
         <button
@@ -1129,18 +924,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               className="pointer-events-auto relative w-full max-w-[min(88vw,calc(82vh*(16/9)))] flex flex-col items-center justify-center cursor-default select-none shrink-0 z-20 transition-all duration-300"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Outside Top Time Slider */}
-              {duration > 0 && (
-                <div
-                  className={`w-full mb-2 sm:mb-2.5 z-30 cursor-pointer select-none transition-all duration-300 ${
-                    isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
-                  }`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {renderScrubberBar(activeIndex)}
-                </div>
-              )}
-
               {/* 16:9 Video Box */}
               <div className="relative w-full max-h-[82vh] aspect-[16/9] rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.85)] bg-black overflow-hidden flex items-center justify-center">
                 {renderVideoCard(shorts[activeIndex], activeIndex, true)}

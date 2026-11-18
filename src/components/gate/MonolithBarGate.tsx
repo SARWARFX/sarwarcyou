@@ -357,6 +357,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         const isPhoto =
           item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
         const isShort =
+          initialRoute.tab === 'SHORTS' ||
           item.mediaType === 'short' ||
           item.path?.toLowerCase().includes('short') ||
           item.url?.toLowerCase().includes('short');
@@ -547,10 +548,22 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         item.path?.toLowerCase().includes('short') ||
         item.url?.toLowerCase().includes('short');
 
+      if (displayedTab === 1) {
+        onOpenPhoto(item, activePhotosList, index);
+        return;
+      }
+      if (displayedTab === 2) {
+        onOpenShort(item, activeShortsList, index, 'Shorts');
+        return;
+      }
+      if (displayedTab === 3) {
+        onOpenVideo(item, activeClipsList);
+        return;
+      }
       if (displayedTab === 4) {
-        if (isPhoto) {
+        if (displayedBandhobiSub === 'Photographs' || isPhoto) {
           onOpenPhoto(item, activeBandhobiList, index);
-        } else if (isShort) {
+        } else if (displayedBandhobiSub === 'Shorts' || isShort) {
           onOpenShort(item, activeBandhobiList, index, 'Bandhobi');
         } else {
           onOpenVideo(item, activeBandhobiList);
