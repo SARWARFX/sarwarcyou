@@ -32,7 +32,6 @@ export interface ShortsFeedModalProps {
   shorts: StageMediaItem[];
   initialIndex: number;
   onIndexChange?: (newIndex: number) => void;
-  photoPool?: StageMediaItem[];
 }
 
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
@@ -41,7 +40,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   shorts,
   initialIndex = 0,
   onIndexChange,
-  photoPool = [],
 }) => {
   useLockBodyScroll(isOpen);
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0);
@@ -60,19 +58,15 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [is2XSpeed, setIs2XSpeed] = useState(false);
   const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
 
-  // Shuffle photo pool: pick 20 random images from archive for background slideshow (adapted from VideoPlayer)
-  const shuffledBackgroundPhotos = useMemo(() => {
-    const candidatePool = photoPool && photoPool.length > 0 ? photoPool : shorts;
-    if (!candidatePool || candidatePool.length === 0 || !isOpen) return [];
-    const pool = [...candidatePool];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+  // Seamless Zero-Gap Stream items list of other shorts (infinite loop at 260s Ultra Calm speed)
+  const streamItems = useMemo(() => {
+    if (!shorts || shorts.length === 0) return [];
+    let list = shorts.map((item, idx) => ({ item, originalIndex: idx }));
+    while (list.length < 30) {
+      list = [...list, ...shorts.map((item, idx) => ({ item, originalIndex: idx }))];
     }
-    const selected20 = pool.slice(0, 20);
-    // Duplicate once so continuous CSS animation loop (0% to -50%) remains perfectly seamless
-    return [...selected20, ...selected20];
-  }, [photoPool, shorts, isOpen]);
+    return [...list, ...list];
+  }, [shorts]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -672,17 +666,24 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                   maxWidth: 'calc(100vh * (9 / 16))',
                   height: '100vh',
                 }
-            : {
-                width: '100%',
-                height: '100%',
-              }),
+            : isLandscape
+              ? {
+                  width: '100%',
+                  maxWidth: 'min(100vw, calc(82vh * 1.777))',
+                  aspectRatio: `${currentRatio}`,
+                  maxHeight: '82vh',
+                }
+              : {
+                  height: '100%',
+                  maxHeight: '100vh',
+                  aspectRatio: '9 / 16',
+                  maxWidth: 'calc(100vh * (9 / 16))',
+                }),
         }}
-        className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
-          isDesktop
-            ? isLandscape
-              ? 'rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.85)] bg-black'
-              : 'h-screen rounded-none border-0 shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7)] bg-black'
-            : 'w-full h-full bg-black'
+        className={`relative z-20 flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
+          isLandscape
+            ? 'rounded-none border-0 shadow-[0_0_50px_rgba(0,0,0,0.85)] bg-black'
+            : 'h-full max-h-screen rounded-none border-0 shadow-[-20px_0_35px_rgba(0,0,0,0.7),20px_0_35px_rgba(0,0,0,0.7)] bg-black'
         } ${
           isActive
             ? slideDirection === 'next'
@@ -1062,26 +1063,42 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
 
-      {/* 2. Photographic Background Tapestry on all screens (Adapted from VideoPlayer) */}
-      {shuffledBackgroundPhotos.length > 0 && (
+      {/* 2. Seamless Zero-Gap Stream of Other Shorts (All Viewports: Desktop, Tablet, Mobile) */}
+      {streamItems.length > 0 && (
         <div
-          className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none opacity-30"
-          aria-hidden="true"
+          className={`fixed inset-0 overflow-hidden select-none bg-black flex items-stretch ${
+            isDesktop ? 'z-10 pointer-events-auto' : 'z-0 pointer-events-none'
+          }`}
+          onClick={(e) => {
+            if (isDesktop && e.target === e.currentTarget) onClose();
+          }}
+          aria-hidden={!isDesktop}
         >
           <div className="shorts-stream-track">
-            {shuffledBackgroundPhotos.map((photo, pIdx) => (
-              <div
-                key={`bg-photo-${photo.id || photo.url}-${pIdx}`}
-                className="shorts-stream-card aspect-[3/4] h-full overflow-hidden flex-shrink-0"
-              >
-                <img
-                  src={photo.thumbnail || getMediaUrl(photo.url || photo.path || '')}
-                  alt=""
-                  loading="lazy"
-                  className="w-full h-full object-cover filter brightness-75 contrast-110"
-                />
-              </div>
-            ))}
+            {streamItems.map(({ item, originalIndex }, idx) => {
+              if (!item) return null;
+              const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
+
+              return (
+                <div
+                  key={`stream-card-${originalIndex}-${idx}`}
+                  onClick={(e) => {
+                    if (!isDesktop) return;
+                    e.stopPropagation();
+                    goToShortIndex(originalIndex, originalIndex > activeIndex ? 'next' : 'prev');
+                  }}
+                  className="shorts-stream-card"
+                  title={isDesktop ? item.title || 'Play Short' : undefined}
+                >
+                  <img
+                    src={thumbUrl}
+                    alt={item.title || 'Short'}
+                    className="w-full h-full object-cover pointer-events-none select-none"
+                    loading="lazy"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1171,7 +1188,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               }
             }
           }}
-          className="w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth overscroll-y-contain flex flex-col items-center no-scrollbar"
+          className="relative z-20 w-full h-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth overscroll-y-contain flex flex-col items-center no-scrollbar"
           style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           {shorts.map((item, idx) => {
@@ -1182,6 +1199,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                 ref={(el) => { slideRefs.current[idx] = el; }}
                 data-index={idx}
                 data-reel-index={idx}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    onClose();
+                  }
+                }}
                 className="w-full h-screen shrink-0 snap-start snap-always relative flex items-center justify-center p-0 md:p-4 bg-transparent cursor-pointer"
               >
                 {renderVideoCard(item, idx, idx === activeIndex)}

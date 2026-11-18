@@ -858,9 +858,6 @@ function App() {
               onClose={() => handleCloseModal('shorts')}
               shorts={shortsState.shorts}
               initialIndex={shortsState.initialIndex}
-              photoPool={rawFeed.allMediaPool.filter(
-                (i) => i.type === 'image' || isPhotoExtension(i.path || i.url || i.name || '')
-              )}
               onIndexChange={(idx) => {
                 setShortsState((prev) => ({
                   ...prev,
