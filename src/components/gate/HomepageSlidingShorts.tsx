@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import type { StageMediaItem } from '../../types';
 import { getVideoStreamUrl, getMediaUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
+import { CryoFluidCanvas } from './CryoFluidCanvas';
 
 export interface HomepageSlidingShortsProps {
   shorts: StageMediaItem[];
@@ -45,6 +46,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 
   // Buffer synchronization states
   const [readyIndices, setReadyIndices] = useState<Set<number>>(new Set());
+  const [bufferProgressMap, setBufferProgressMap] = useState<Record<number, number>>({});
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
   const isPlaybackReadyRef = useRef(false);
 
@@ -56,6 +58,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   // Reset buffering state whenever the selected shorts change
   useEffect(() => {
     setReadyIndices(new Set());
+    setBufferProgressMap({});
     setIsPlaybackReady(false);
     isPlaybackReadyRef.current = false;
     videoRefs.current = [];
@@ -79,6 +82,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   // Mark an item as truly ready
   const handleMediaReady = useCallback(
     (itemIndex: number) => {
+      setBufferProgressMap((prev) => (prev[itemIndex] === 100 ? prev : { ...prev, [itemIndex]: 100 }));
       setReadyIndices((prev) => {
         if (prev.has(itemIndex)) return prev;
         const next = new Set(prev);
@@ -109,6 +113,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 
       // HTML5 readyState >= 4 means HAVE_ENOUGH_DATA (browser estimates buffer can play through)
       if (el.readyState >= 4) {
+        setBufferProgressMap((prev) => (prev[itemIndex] === 100 ? prev : { ...prev, [itemIndex]: 100 }));
         handleMediaReady(itemIndex);
         return;
       }
@@ -117,6 +122,17 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       if (el.buffered.length > 0) {
         const bufferedEnd = el.buffered.end(el.buffered.length - 1);
         const duration = el.duration;
+        let pct = 20;
+        if (duration && !isNaN(duration) && duration > 0) {
+          pct = Math.min(100, Math.max(20, Math.round((bufferedEnd / (duration * 0.6)) * 100)));
+        } else {
+          pct = Math.min(100, Math.max(20, Math.round((bufferedEnd / 3) * 100)));
+        }
+        setBufferProgressMap((prev) => {
+          const current = prev[itemIndex] || 0;
+          return pct > current ? { ...prev, [itemIndex]: pct } : prev;
+        });
+
         // Require at least 3 seconds of buffer, or 60% of short's total duration, or readyState >= 3
         if (
           bufferedEnd >= 3 ||
@@ -125,6 +141,11 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
         ) {
           handleMediaReady(itemIndex);
         }
+      } else if (el.readyState >= 2) {
+        setBufferProgressMap((prev) => {
+          const current = prev[itemIndex] || 0;
+          return current < 45 ? { ...prev, [itemIndex]: 45 } : prev;
+        });
       }
     },
     [handleMediaReady]
@@ -170,47 +191,18 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 
   if (selected10.length === 0) return null;
 
-  const readyCount = readyIndices.size;
-  const rawPct = targetThreshold > 0 ? (readyCount / targetThreshold) * 100 : 0;
-  const progressPercent = Math.min(100, Math.max(15, Math.round(rawPct)));
-
   return (
     <div
       ref={containerRef}
       className="w-full h-full flex items-center justify-start overflow-hidden relative select-none pl-6 sm:pl-10 min-h-[300px] sm:min-h-[380px] md:min-h-[480px]"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
-      {/* High-Tech Cybernetic Loading Screen */}
-      {!isPlaybackReady && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none">
-          <div className="flex flex-col items-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-[#07090e]/95 border border-[#38bdf8]/40 shadow-[0_0_40px_rgba(0,0,0,0.9),0_0_20px_rgba(56,189,248,0.2)] backdrop-blur-md">
-            <div className="flex items-center gap-3.5">
-              <div className="w-3 h-3 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
-              <span
-                className="text-base sm:text-lg md:text-xl font-bold tracking-[0.16em] uppercase text-white whitespace-nowrap"
-                style={{ fontFamily: "'Science Gothic', sans-serif" }}
-              >
-                <span className="text-[#38bdf8]">LOADING MEDIA //</span> PLEASE WAIT
-              </span>
-            </div>
-
-            {/* Tactical progress track */}
-            <div className="w-full h-[3px] bg-[#38bdf8]/20 overflow-hidden mt-1 relative min-w-[280px] sm:min-w-[340px] md:min-w-[400px]">
-              <div
-                className="h-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] transition-all duration-300 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sliding Shorts Strip */}
+      {/* Sliding Shorts Strip with Instant Rendering & Cryogenic Cyber Fluid Filling (Style 3) */}
       <div
-        className={`flex gap-4 sm:gap-6 w-max transition-opacity duration-700 ${
+        className={`flex gap-4 sm:gap-6 w-max transition-opacity duration-700 opacity-100 ${
           isPlaybackReady
-            ? 'opacity-100 animate-homepage-slow-slide hover:[animation-play-state:paused]'
-            : 'opacity-0 pointer-events-none'
+            ? 'animate-homepage-slow-slide hover:[animation-play-state:paused]'
+            : ''
         }`}
         style={{
           borderRadius: 0,
@@ -228,12 +220,13 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 
           const actualIndex = idx % selected10.length;
           const isPrimaryVisibleCard = idx < selected10.length;
+          const cardFillPct = isPlaybackReady ? 100 : bufferProgressMap[actualIndex] || 15;
 
           return (
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
               onClick={() => onOpenShort(item, selected10, actualIndex)}
-              className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
+              className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative select-none"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
               <video
@@ -255,6 +248,20 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
                 className="w-full h-full object-cover block filter saturate-[0.95] contrast-[1.05]"
                 style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               />
+
+              {/* Cryogenic Cyber Fluid Filling Canvas (Style 3: Bioluminescent Neon Plasma) */}
+              <CryoFluidCanvas
+                fillPercent={cardFillPct}
+                isPlaybackReady={isPlaybackReady}
+              />
+
+              {/* Optical Flash Transition upon reaching 100% full */}
+              <div
+                className={`absolute inset-0 pointer-events-none z-20 bg-white transition-opacity duration-700 ${
+                  isPlaybackReady ? 'opacity-0 animate-burst-flash' : 'opacity-0'
+                }`}
+                style={{ borderRadius: 0, outline: 'none' }}
+              />
             </div>
           );
         })}
@@ -271,6 +278,17 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
         }
         .animate-homepage-slow-slide {
           animation: homepageSlowSlide 85s linear infinite;
+        }
+        @keyframes burstFlash {
+          0% {
+            opacity: 0.75;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+        .animate-burst-flash {
+          animation: burstFlash 0.65s ease-out forwards;
         }
       `}</style>
     </div>
