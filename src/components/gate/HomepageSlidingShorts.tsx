@@ -10,11 +10,11 @@ export interface HomepageSlidingShortsProps {
 }
 
 /**
- * Shorts Featured Showcase: 10 Randomly Selected Shorts
- * - Showcases 10 curated shorts perfectly filling the homepage width
+ * Shorts Featured Showcase: 6 Randomly Selected Shorts
+ * - Showcases 6 curated shorts perfectly filling the homepage width
  * - Preloads the primary visible videos to eliminate network contention
  * - Strict buffer-depth verification (canplaythrough & deep buffer check) prevents stutter
- * - Strictly waits until ALL 10 media items are truly buffered before showing and launching playback (zero timeout ceilings)
+ * - Strictly waits until ALL 6 media items are truly buffered before showing and launching playback (zero timeout ceilings)
  * - Duplicate loop cards stay idle (preload="none") during startup to dedicate 100% bandwidth
  * - Zero rounded corners, zero outlines, zero border strokes
  * - Font: Science Gothic
@@ -28,32 +28,32 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // 10 randomly selected shorts
-  const selected10 = useMemo(() => {
+  // 6 randomly selected shorts (the optimal 6-stream hardware decoder threshold)
+  const selected6 = useMemo(() => {
     if (!shorts || shorts.length === 0) return [];
     const pool = [...shorts];
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    return pool.slice(0, 10);
+    return pool.slice(0, 6);
   }, [shorts, randomSeed]);
 
-  // Duplicate the 10 shorts once to create an infinite, seamless 20-card loop
+  // Duplicate the 6 shorts once to create an infinite, seamless 12-card loop
   const displayList = useMemo(() => {
-    if (selected10.length === 0) return [];
-    return [...selected10, ...selected10];
-  }, [selected10]);
+    if (selected6.length === 0) return [];
+    return [...selected6, ...selected6];
+  }, [selected6]);
 
   // Buffer synchronization states
   const [readyIndices, setReadyIndices] = useState<Set<number>>(new Set());
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
   const isPlaybackReadyRef = useRef(false);
 
-  // Target threshold: ALL 10 media items must be fully buffered before launching bufferless playback
+  // Target threshold: ALL 6 media items must be fully buffered before launching bufferless playback
   const targetThreshold = useMemo(() => {
-    return selected10.length;
-  }, [selected10.length]);
+    return selected6.length;
+  }, [selected6.length]);
 
   // Reset buffering state whenever the selected shorts change
   useEffect(() => {
@@ -62,7 +62,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     isPlaybackReadyRef.current = false;
     videoRefs.current = [];
     cardRefs.current = [];
-  }, [selected10]);
+  }, [selected6]);
 
   // Sync ref with state
   useEffect(() => {
@@ -80,9 +80,9 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       });
 
       // If showcase already started, ensure newly ready videos start playing immediately
-      if (isPlaybackReadyRef.current && selected10.length > 0) {
+      if (isPlaybackReadyRef.current && selected6.length > 0) {
         const v1 = videoRefs.current[itemIndex];
-        const v2 = videoRefs.current[itemIndex + selected10.length];
+        const v2 = videoRefs.current[itemIndex + selected6.length];
         [v1, v2].forEach((v) => {
           if (v && v.paused) {
             v.muted = true;
@@ -92,7 +92,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
         });
       }
     },
-    [selected10.length]
+    [selected6.length]
   );
 
   // Deep buffer inspection: confirms substantial buffer depth before marking ready
@@ -123,7 +123,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     [handleMediaReady]
   );
 
-  // Check if buffer threshold is met: ONLY show up when ALL 10 are really ready (no premature timer ceiling)
+  // Check if buffer threshold is met: ONLY show up when ALL 6 are really ready (no premature timer ceiling)
   useEffect(() => {
     if (!isPlaybackReady && targetThreshold > 0 && readyIndices.size >= targetThreshold) {
       setIsPlaybackReady(true);
@@ -133,7 +133,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 
   // Launch and synchronize playback on showcase videos once buffering completes
   useEffect(() => {
-    if (isPlaybackReady && selected10.length > 0) {
+    if (isPlaybackReady && selected6.length > 0) {
       videoRefs.current.forEach((v) => {
         if (v && v.paused) {
           v.muted = true;
@@ -142,23 +142,23 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
         }
       });
     }
-  }, [isPlaybackReady, selected10.length]);
+  }, [isPlaybackReady, selected6.length]);
 
   const handleVideoRef = (el: HTMLVideoElement | null, idx: number) => {
     videoRefs.current[idx] = el;
-    if (!el || selected10.length === 0) return;
+    if (!el || selected6.length === 0) return;
 
     el.muted = true;
     el.defaultMuted = true;
     el.playsInline = true;
 
-    const actualIndex = idx % selected10.length;
+    const actualIndex = idx % selected6.length;
 
     // Check buffer state if element is mounted
     verifyBufferDepth(el, actualIndex);
   };
 
-  if (selected10.length === 0) return null;
+  if (selected6.length === 0) return null;
 
   const readyCount = readyIndices.size;
   const rawPct = targetThreshold > 0 ? (readyCount / targetThreshold) * 100 : 0;
@@ -170,7 +170,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       className="w-full h-full flex items-center justify-start overflow-hidden relative select-none pl-6 sm:pl-10 min-h-[300px] sm:min-h-[380px] md:min-h-[480px]"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
-      {/* High-Tech Cybernetic Loading Screen: Shows while buffering until ALL 10 are truly ready */}
+      {/* High-Tech Cybernetic Loading Screen: Shows while buffering until ALL 6 are truly ready */}
       {!isPlaybackReady && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none">
           <div className="flex flex-col items-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-[#07090e]/95 border border-[#38bdf8]/40 shadow-[0_0_40px_rgba(0,0,0,0.9),0_0_20px_rgba(56,189,248,0.2)] backdrop-blur-md">
@@ -195,7 +195,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
         </div>
       )}
 
-      {/* Sliding Shorts Strip: ONLY appears when really ready (all 10 buffered) */}
+      {/* Sliding Shorts Strip: ONLY appears when really ready (all 6 buffered) */}
       <div
         className={`flex gap-4 sm:gap-6 w-max transition-opacity duration-700 ${
           isPlaybackReady
@@ -218,8 +218,8 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
             item.poster ||
             getMediaUrl(item.url || '');
 
-          const actualIndex = idx % selected10.length;
-          const isPrimaryVisibleCard = idx < selected10.length;
+          const actualIndex = idx % selected6.length;
+          const isPrimaryVisibleCard = idx < selected6.length;
 
           return (
             <div
@@ -228,7 +228,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
                 cardRefs.current[idx] = el;
               }}
               data-card-index={idx}
-              onClick={() => onOpenShort(item, selected10, actualIndex)}
+              onClick={() => onOpenShort(item, selected6, actualIndex)}
               onMouseEnter={() => {
                 const v = videoRefs.current[idx];
                 if (v && v.paused) {
@@ -286,7 +286,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
           }
         }
         .animate-homepage-slow-slide {
-          animation: homepageSlowSlide 85s linear infinite;
+          animation: homepageSlowSlide 55s linear infinite;
           will-change: transform;
           transform: translate3d(0, 0, 0);
           backface-visibility: hidden;

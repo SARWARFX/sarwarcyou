@@ -796,7 +796,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                   />
                 </div>
 
-                {/* 2. Center: 10 Randomly Selected Shorts Playing & Sliding Right-to-Left */}
+                {/* 2. Center: 6 Randomly Selected Shorts Playing & Sliding Right-to-Left */}
                 <div className="w-full flex-1 flex items-center justify-start overflow-hidden min-h-[220px]">
                   <HomepageSlidingShorts
                     shorts={allShortsFiles}
