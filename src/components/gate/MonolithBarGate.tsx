@@ -529,11 +529,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           selected.push(match);
         }
       }
-      return selected.length > 0 ? selected : sortMediaItemsDescending<StageMediaItem>(allPhotos).slice(0, 12);
+      const baseList = selected.length > 0 ? selected : sortMediaItemsDescending<StageMediaItem>(allPhotos).slice(0, 12);
+      return shuffleArray(baseList);
     }
     const node = rootMap.get('Bandhobi')?.subfolders.get(displayedBandhobiSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
-  }, [items, rootMap, displayedBandhobiSub]);
+  }, [items, rootMap, displayedBandhobiSub, shuffleTrigger]);
 
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {
