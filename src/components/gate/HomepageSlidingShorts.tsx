@@ -48,9 +48,9 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
   const isPlaybackReadyRef = useRef(false);
 
-  // Target threshold: buffer at least the first 5 visible shorts to launch playback swiftly
+  // Target threshold: ALL 10 media items must be fully buffered before launching bufferless playback
   const targetThreshold = useMemo(() => {
-    return Math.min(5, selected10.length);
+    return selected10.length;
   }, [selected10.length]);
 
   // Reset buffering state whenever the selected shorts change
@@ -61,13 +61,13 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     videoRefs.current = [];
   }, [selected10]);
 
-  // Failsafe timer: start playback after max 3.5s even if some background videos are still buffering
+  // Generous safety ceiling timer (14s): ensures if an unusual network stall occurs, visitor is never locked out indefinitely
   useEffect(() => {
     if (isPlaybackReady) return;
     const timer = setTimeout(() => {
       setIsPlaybackReady(true);
       isPlaybackReadyRef.current = true;
-    }, 3500);
+    }, 14000);
     return () => clearTimeout(timer);
   }, [isPlaybackReady, selected10]);
 
@@ -117,10 +117,11 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       if (el.buffered.length > 0) {
         const bufferedEnd = el.buffered.end(el.buffered.length - 1);
         const duration = el.duration;
-        // Require at least 5 seconds of buffer, or 75% of short's total duration
+        // Require at least 3 seconds of buffer, or 60% of short's total duration, or readyState >= 3
         if (
-          bufferedEnd >= 5 ||
-          (duration && !isNaN(duration) && duration > 0 && bufferedEnd >= duration * 0.75)
+          bufferedEnd >= 3 ||
+          (duration && !isNaN(duration) && duration > 0 && bufferedEnd >= duration * 0.6) ||
+          (el.readyState >= 3 && bufferedEnd >= 2)
         ) {
           handleMediaReady(itemIndex);
         }
