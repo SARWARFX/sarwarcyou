@@ -4,7 +4,7 @@ import type { StageMediaItem } from '../types';
 import { SmartThumbnail } from './common/SmartThumbnail';
 import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
-import { getMediaUrl } from '../utils/imageUrlResolver';
+import { getMediaUrl, getVideoStreamUrl } from '../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../utils/thumbnailResolver';
 
 export interface CyberCardProps {
@@ -140,23 +140,29 @@ export const CyberCard: React.FC<CyberCardProps> = ({
         transform: 'translateZ(0)',
       }}
     >
-      {/* 1. Visual Thumbnail Layer (Smart Thumbnail Loader) */}
+      {/* 1. Visual Thumbnail Layer (Smart Thumbnail Loader with 10%-35% Micro Hover Preview) */}
       <SmartThumbnail
         key={displayImageSrc}
         src={displayImageSrc}
+        videoSrc={isVideo ? getVideoStreamUrl(activeItem) : undefined}
+        enableHoverPreview={isVideo}
         alt={cleanTitle}
         containerClassName="absolute inset-0 w-full h-full border-0 rounded-none z-10"
         fallbackTitle={cleanTitle}
-      />
-
-      {/* 3. Center Play Icon Overlay for Videos */}
-      {isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-20">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/60 flex items-center justify-center text-white shadow-sm">
-            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-          </div>
-        </div>
-      )}
+      >
+        {({ isPreviewActive }) => (
+          <>
+            {/* 3. Center Play Icon Overlay for Videos (hidden when preview is actively playing) */}
+            {isVideo && !isPreviewActive && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-20 group-hover:opacity-0 transition-opacity">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/60 flex items-center justify-center text-white shadow-sm">
+                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </SmartThumbnail>
 
       {/* 4. Clean File Name Bar (Single-Line CSS Ellipsis Truncation, max-width: 120px) */}
       <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/85 via-black/45 to-transparent z-20 pointer-events-none flex items-center">

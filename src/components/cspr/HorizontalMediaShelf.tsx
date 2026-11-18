@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import type { StageMediaItem } from '../../types';
 import { SmartThumbnail } from '../common/SmartThumbnail';
-import { getMediaUrl, getThumbnailUrl, getImageUrl } from '../../utils/imageUrlResolver';
+import { getMediaUrl, getThumbnailUrl, getImageUrl, getVideoStreamUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { sanitizeMediaTitle } from '../../utils/titleSanitizer';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
@@ -139,6 +139,7 @@ export const HorizontalMediaShelf: React.FC<HorizontalMediaShelfProps> = ({
             isPhoto
               ? getMediaUrl(imageSrc) || imageSrc
               : getImageUrl(item) || getThumbnailUrl(item) || resolveStaticVideoThumbnail(item) || getMediaUrl(imageSrc) || imageSrc;
+          const videoSrc = isVideo ? getVideoStreamUrl(item) : undefined;
 
           return (
             <div
@@ -148,26 +149,32 @@ export const HorizontalMediaShelf: React.FC<HorizontalMediaShelfProps> = ({
               onClick={() => onOpenItem(item, items, idx)}
               className={`group/card flex-shrink-0 snap-start flex flex-col gap-1.5 cursor-pointer select-none text-left transition-all duration-300 transform hover:-translate-y-1 ${cardContainerClass}`}
             >
-              {/* Card Media Preview Container */}
+              {/* Card Media Preview Container with 10%-35% Micro Hover Video Loop */}
               <SmartThumbnail
                 src={thumb}
+                videoSrc={videoSrc}
+                enableHoverPreview={isVideo}
                 alt={cleanTitle}
                 aspectClass={cardRatioClass}
                 containerClassName="w-full rounded-2xl border-0 shadow-lg group-hover/card:shadow-2xl transition-all duration-300"
                 className="object-center group-hover/card:scale-105 transition-transform duration-500"
                 fallbackTitle={cleanTitle}
               >
-                {/* Video / Shorts Play Button Overlay */}
-                {isVideo && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 pointer-events-none bg-black/25">
-                    <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-xl transform scale-90 group-hover/card:scale-100 transition-transform">
-                      <Play className="w-4 h-4 fill-current ml-0.5" />
-                    </div>
-                  </div>
-                )}
+                {({ isPreviewActive }) => (
+                  <>
+                    {/* Video / Shorts Play Button Overlay (fades out during hover video playback) */}
+                    {isVideo && !isPreviewActive && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 pointer-events-none bg-black/25">
+                        <div className="w-10 h-10 rounded-full bg-white/90 text-black flex items-center justify-center shadow-xl transform scale-90 group-hover/card:scale-100 transition-transform">
+                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                        </div>
+                      </div>
+                    )}
 
-                {/* Subtle Bottom Vignette on Card */}
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                    {/* Subtle Bottom Vignette on Card */}
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                  </>
+                )}
               </SmartThumbnail>
 
               {/* Title Label */}
