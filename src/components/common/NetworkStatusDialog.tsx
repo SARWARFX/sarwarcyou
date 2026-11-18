@@ -23,25 +23,48 @@ function getNetworkType(): NetworkType {
  */
 export const NetworkStatusDialog: React.FC = () => {
   const [currentNetwork, setCurrentNetwork] = useState<NetworkType>(() => getNetworkType());
-  const [showMeteredModal, setShowMeteredModal] = useState<boolean>(() => getNetworkType() === 'cellular');
+  const [showMeteredModal, setShowMeteredModal] = useState<boolean>(false);
   const [showWifiModal, setShowWifiModal] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const prevNetworkRef = useRef<NetworkType>(getNetworkType());
+  const isMountedRef = useRef<boolean>(false);
+
+  // Auto-dismiss the green Wi-Fi signal after 4 seconds so it never traps the visitor
+  useEffect(() => {
+    if (!showWifiModal) return;
+    const timer = setTimeout(() => {
+      setShowWifiModal(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [showWifiModal]);
 
   useEffect(() => {
+    // Grace period on initial load: browser startup / connection blips never trigger false alerts
+    const timer = setTimeout(() => {
+      isMountedRef.current = true;
+      prevNetworkRef.current = getNetworkType();
+    }, 1200);
+
     const updateStatus = () => {
       const next = getNetworkType();
       const prev = prevNetworkRef.current;
       setCurrentNetwork(next);
 
+      // On initial boot / early startup, cleanly sync without triggering any alert modals
+      if (!isMountedRef.current) {
+        prevNetworkRef.current = next;
+        return;
+      }
+
       if (next !== prev) {
         prevNetworkRef.current = next;
         if (next === 'cellular') {
+          // Alert user when switching into metered mobile data
           setShowMeteredModal(true);
           setShowWifiModal(false);
         } else if (next === 'wifi') {
-          // Alert user when switching back to Wi-Fi from cellular or recovering from offline
-          if (prev === 'cellular' || prev === 'offline') {
+          // Alert user ONLY when actively switching from cellular mobile data to Wi-Fi
+          if (prev === 'cellular') {
             setShowWifiModal(true);
           }
           setShowMeteredModal(false);
@@ -64,6 +87,7 @@ export const NetworkStatusDialog: React.FC = () => {
     }
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('online', updateStatus);
       window.removeEventListener('offline', updateStatus);
       if (conn && conn.removeEventListener) {
@@ -83,8 +107,8 @@ export const NetworkStatusDialog: React.FC = () => {
         const net = getNetworkType();
         setCurrentNetwork(net);
         prevNetworkRef.current = net;
-        if (net === 'wifi') setShowWifiModal(true);
-        else if (net === 'cellular') setShowMeteredModal(true);
+        // Cleanly resume session without popup interruptions
+        if (net === 'cellular') setShowMeteredModal(true);
       } catch {
         setCurrentNetwork('offline');
       }
