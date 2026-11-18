@@ -27,11 +27,21 @@ function formatTime(seconds: number): string {
 }
 
 export interface ShortsFeedModalProps {
-  isOpen: boolean; onClose: () => void; shorts: StageMediaItem[]; initialIndex: number; onIndexChange?: (newIndex: number) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  shorts: StageMediaItem[];
+  initialIndex: number;
+  onIndexChange?: (newIndex: number) => void;
+  photoPool?: StageMediaItem[];
 }
 
 export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
-  isOpen, onClose, shorts, initialIndex = 0, onIndexChange,
+  isOpen,
+  onClose,
+  shorts,
+  initialIndex = 0,
+  onIndexChange,
+  photoPool = [],
 }) => {
   useLockBodyScroll(isOpen);
   const [activeIndex, setActiveIndex] = useState(initialIndex || 0);
@@ -50,15 +60,19 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [is2XSpeed, setIs2XSpeed] = useState(false);
   const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
 
-  // Seamless Zero-Gap Stream items list (infinite loop at 85s Ultra Calm speed)
-  const streamItems = useMemo(() => {
-    if (!shorts || shorts.length === 0) return [];
-    let list = shorts.map((item, idx) => ({ item, originalIndex: idx }));
-    while (list.length < 30) {
-      list = [...list, ...shorts.map((item, idx) => ({ item, originalIndex: idx }))];
+  // Shuffle photo pool: pick 20 random images from archive for background slideshow (adapted from VideoPlayer)
+  const shuffledBackgroundPhotos = useMemo(() => {
+    const candidatePool = photoPool && photoPool.length > 0 ? photoPool : shorts;
+    if (!candidatePool || candidatePool.length === 0 || !isOpen) return [];
+    const pool = [...candidatePool];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    return [...list, ...list];
-  }, [shorts]);
+    const selected20 = pool.slice(0, 20);
+    // Duplicate once so continuous CSS animation loop (0% to -50%) remains perfectly seamless
+    return [...selected20, ...selected20];
+  }, [photoPool, shorts, isOpen]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -1045,38 +1059,29 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         </div>
       )}
 
-      {/* ===== SEAMLESS ZERO-GAP STREAM (100VH FULL HEIGHT, 0PX GAP, 85S ULTRA CALM) ===== */}
-      {isDesktop && streamItems.length > 0 && (
+      {/* 1. Ambient CSS Glow (Zero extra video decoders) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,240,255,0.06)_0%,_transparent_70%)]" />
+
+      {/* 2. Photographic Background Tapestry on all screens (Adapted from VideoPlayer) */}
+      {shuffledBackgroundPhotos.length > 0 && (
         <div
-          className="fixed inset-0 z-10 overflow-hidden pointer-events-auto flex items-stretch bg-black select-none"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
-          }}
+          className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none opacity-30"
+          aria-hidden="true"
         >
           <div className="shorts-stream-track">
-            {streamItems.map(({ item, originalIndex }, idx) => {
-              if (!item) return null;
-              const thumbUrl = getThumbnailUrl(item) || (item.thumbnail ? getMediaUrl(item.thumbnail) : '');
-
-              return (
-                <div
-                  key={`stream-card-${originalIndex}-${idx}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goToShortIndex(originalIndex, originalIndex > activeIndex ? 'next' : 'prev');
-                  }}
-                  className="shorts-stream-card"
-                  title={item.title || 'Play Short'}
-                >
-                  <img
-                    src={thumbUrl}
-                    alt={item.title || 'Short'}
-                    className="w-full h-full object-cover pointer-events-none select-none"
-                    loading="lazy"
-                  />
-                </div>
-              );
-            })}
+            {shuffledBackgroundPhotos.map((photo, pIdx) => (
+              <div
+                key={`bg-photo-${photo.id || photo.url}-${pIdx}`}
+                className="shorts-stream-card aspect-[3/4] h-full overflow-hidden flex-shrink-0"
+              >
+                <img
+                  src={photo.thumbnail || getMediaUrl(photo.url || photo.path || '')}
+                  alt=""
+                  loading="lazy"
+                  className="w-full h-full object-cover filter brightness-75 contrast-110"
+                />
+              </div>
+            ))}
           </div>
         </div>
       )}

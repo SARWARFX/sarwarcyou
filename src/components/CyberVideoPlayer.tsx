@@ -86,11 +86,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [showTelemetry, setShowTelemetry] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
 
-  // Desktop vs Mobile and Portrait vs Landscape Screen Detection
+  // Desktop, Tablet, and Mobile Screen Detection
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  const [isTablet, setIsTablet] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 640 && window.innerWidth < 1024);
+  const [isPhonePortrait, setIsPhonePortrait] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640 && window.innerHeight >= window.innerWidth);
   const [isPortrait, setIsPortrait] = useState(() => typeof window !== 'undefined' && window.innerHeight > window.innerWidth);
   const [isFullscreen, setIsFullscreen] = useState(() => typeof document !== 'undefined' && Boolean(document.fullscreenElement));
-  const isOutsideTop = isDesktop || (isPortrait && !isFullscreen);
 
   // Shuffle photo pool: pick 20 random images from directory for background slideshow
   const shuffledBackgroundPhotos = useMemo(() => {
@@ -108,8 +109,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-      setIsPortrait(window.innerHeight > window.innerWidth);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      setIsDesktop(w >= 1024);
+      setIsTablet(w >= 640 && w < 1024);
+      setIsPhonePortrait(w < 640 && h >= w);
+      setIsPortrait(h > w);
     };
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
@@ -146,21 +151,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     setHasPlaybackError(false);
     fallbackAttemptedRef.current = {};
   }, [item?.id, item?.url, isOpen]);
-
-  // Seek bar hover preview state
-  const [seekHover, setSeekHover] = useState<{
-    isHovering: boolean;
-    hoverX: number;
-    hoverPct: number;
-    hoverTime: number;
-    barWidth: number;
-  }>({
-    isHovering: false,
-    hoverX: 0,
-    hoverPct: 0,
-    hoverTime: 0,
-    barWidth: 300,
-  });
 
   // A-B Loop State
   const [loopA, setLoopA] = useState<number | null>(null);
@@ -206,10 +196,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const lastTimeUpdateRef = useRef<number>(0);
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const progressBarRef = useRef<HTMLDivElement>(null);
   const speedMenuRef = useRef<HTMLDivElement>(null);
   const speedBtnRef = useRef<HTMLButtonElement>(null);
   const isDraggingProgress = useRef(false);
+  const isVerticalScrubbingRef = useRef(false);
 
   // Auto-hide HUD on inactivity (3 seconds) when in fullscreen OR on rotated screen
   const resetHudTimer = useCallback(() => {
@@ -218,12 +208,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     // Auto-hide only when in fullscreen OR on a rotated screen (mobile landscape)
     const shouldAutoHide = isFullscreen || (!isDesktop && !isPortrait);
     if (!shouldAutoHide) return;
-    if (showSpeedMenu || seekHover.isHovering) return;
+    if (showSpeedMenu || isVerticalScrubbingRef.current) return;
     hudTimerRef.current = window.setTimeout(() => {
       setShowHud(false);
       setShowSpeedMenu(false);
     }, 3000);
-  }, [isFullscreen, isDesktop, isPortrait, showSpeedMenu, seekHover.isHovering]);
+  }, [isFullscreen, isDesktop, isPortrait, showSpeedMenu]);
 
   // Robust Playback Speed Application Engine
   const applyPlaybackSpeed = useCallback((speed: number) => {
@@ -692,61 +682,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     resetHudTimer();
   }, [resetHudTimer]);
 
-  // Progress Bar Seek
-  const handleProgressSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressBarRef.current || !videoRef.current) return;
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const target = pct * (videoRef.current.duration || 0);
-    videoRef.current.currentTime = target;
-    setCurrentTime(target);
-    resetHudTimer();
-  };
-
-  // Hover Position & Timestamp Tracking for Seek Bar
-  const handleSeekMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressBarRef.current) return;
-    const rect = progressBarRef.current.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
-    const vidDuration = videoRef.current?.duration || duration || 0;
-    const time = (pct / 100) * vidDuration;
-
-    setSeekHover({
-      isHovering: true,
-      hoverX: x,
-      hoverPct: pct,
-      hoverTime: time,
-      barWidth: rect.width,
-    });
-
-    // Lazily mount timeslider hover preview video frame on demand
-    if (sliderPreviewVideoRef.current) {
-      if (!sliderPreviewVideoRef.current.src || sliderPreviewVideoRef.current.src !== streamUrl) {
-        sliderPreviewVideoRef.current.src = streamUrl;
-      }
-      if (Math.abs(sliderPreviewVideoRef.current.currentTime - time) > 0.15) {
-        sliderPreviewVideoRef.current.currentTime = time;
-      }
-    }
-  };
-
-  const handleSeekMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    handleSeekMouseMove(e);
-  };
-
-  const handleSeekMouseLeave = () => {
-    setSeekHover((prev) => ({ ...prev, isHovering: false }));
-    if (sliderPreviewVideoRef.current) {
-      try {
-        sliderPreviewVideoRef.current.pause();
-        sliderPreviewVideoRef.current.removeAttribute('src');
-        sliderPreviewVideoRef.current.load();
-      } catch (_) {}
-    }
-  };
-
   // Toggle Fullscreen with Landscape Auto-Rotate via Web Screen Orientation API
   const handleFullscreenToggle = useCallback(async () => {
     hapticLight();
@@ -1042,132 +977,137 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const primaryStreamUrl = getMediaUrl(item.url || item.path || item.id);
   const directHfUrl = getDirectHfVideoUrl(item);
   const streamUrl = sourceOverride || primaryStreamUrl || directHfUrl;
-  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const bufferPct = duration > 0 ? (buffered / duration) * 100 : 0;
 
-  // Clamped position for Seek Hover Tooltip
-  const barWidth = seekHover.barWidth || 300;
-  const tooltipWidth = 192;
-  const halfTooltip = tooltipWidth / 2;
-  const clampedX = barWidth > tooltipWidth + 16
-    ? Math.max(halfTooltip + 8, Math.min(barWidth - halfTooltip - 8, seekHover.hoverX))
-    : barWidth / 2;
+  // Vertical timeline scrub handling (adapted from ShortsView with live square reticle dot)
 
-  const renderScrubberBar = () => (
-    <div
-      ref={progressBarRef}
-      onClick={handleProgressSeek}
-      onMouseEnter={handleSeekMouseEnter}
-      onMouseMove={handleSeekMouseMove}
-      onMouseLeave={handleSeekMouseLeave}
-      className="group/seek relative w-full pt-1.5 pb-1.5 cursor-pointer select-none overflow-visible"
-    >
-      {/* Floating Hover Preview Tooltip Card (Positioned below top scrubber) */}
+  const handleVerticalScrubSeek = useCallback((clientY: number, target: HTMLElement) => {
+    if (!videoRef.current || !duration) return;
+    const rect = target.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    const pct = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+    const seekTime = pct * duration;
+    videoRef.current.currentTime = seekTime;
+    setCurrentTime(seekTime);
+    resetHudTimer();
+  }, [duration, resetHudTimer]);
+
+  const handleVerticalScrubPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    isVerticalScrubbingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    handleVerticalScrubSeek(e.clientY, e.currentTarget);
+  }, [handleVerticalScrubSeek]);
+
+  const handleVerticalScrubPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isVerticalScrubbingRef.current) return;
+    e.stopPropagation();
+    handleVerticalScrubSeek(e.clientY, e.currentTarget);
+  }, [handleVerticalScrubSeek]);
+
+  const handleVerticalScrubPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isVerticalScrubbingRef.current) return;
+    e.stopPropagation();
+    isVerticalScrubbingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    hapticLight();
+    resetHudTimer();
+  }, [resetHudTimer]);
+
+  const renderVerticalScrubberBar = useCallback(() => {
+    const progressPct = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+    const bufferPct = duration > 0 ? Math.min(100, Math.max(0, (buffered / duration) * 100)) : 0;
+
+    return (
       <div
-        className={`absolute top-6 sm:top-7 -translate-x-1/2 pointer-events-none transition-all duration-150 ease-out z-50 flex flex-col items-center ${
-          seekHover.isHovering && duration > 0
-            ? 'opacity-100 scale-100'
-            : 'opacity-0 scale-90 pointer-events-none'
-        }`}
-        style={{ left: `${clampedX}px` }}
+        onClick={(e) => e.stopPropagation()}
+        className="group/vseek relative h-full flex flex-col items-center justify-between cursor-pointer select-none py-1.5"
+        title="Seek playback (Drag to scrub)"
       >
-        {/* Pointer Arrow pointing UP to track */}
-        <div className="w-2.5 h-2.5 bg-black border-l border-t border-white/20 transform rotate-45 -mb-1 z-10 shadow-lg" />
+        {/* Top Bound Time Label */}
+        <span
+          className="text-[10px] font-mono text-white/50 tracking-wider font-bold select-none shrink-0"
+          style={{ textShadow: '0 1px 4px #000' }}
+        >
+          0:00
+        </span>
 
-        <div className="w-40 sm:w-48 aspect-video rounded-none overflow-hidden border border-white/20 bg-black/95 shadow-[0_12px_40px_rgba(0,0,0,0.95),0_0_20px_rgba(56,189,248,0.3)] flex flex-col items-center relative">
-          {/* Live Video Frame Preview */}
-          <video
-            ref={sliderPreviewVideoRef}
-            src={seekHover.isHovering ? streamUrl : undefined}
-            preload="none"
-            muted
-            playsInline
-            crossOrigin="anonymous"
-            className="w-full h-full object-cover pointer-events-none bg-black"
-          />
+        {/* Vertical Track Hitbox */}
+        <div
+          onPointerDown={handleVerticalScrubPointerDown}
+          onPointerMove={handleVerticalScrubPointerMove}
+          onPointerUp={handleVerticalScrubPointerUp}
+          onPointerCancel={handleVerticalScrubPointerUp}
+          className="relative w-7 flex-1 flex items-center justify-center cursor-pointer my-1.5 overflow-visible"
+        >
+          {/* Visual Track Rail: Slim 3px expanding to 5px on hover */}
+          <div className="relative w-[3px] group-hover/vseek:w-[5px] h-full bg-white/20 transition-all duration-150 flex flex-col justify-start overflow-visible">
+            {/* Buffered Progress */}
+            <div
+              className="absolute top-0 left-0 right-0 bg-white/30 transition-all"
+              style={{ height: `${bufferPct}%` }}
+            />
 
-          {/* Bottom Timestamp Badge Overlay */}
-          <div className="absolute bottom-1.5 px-2 py-0.5 rounded-none bg-black/85 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold text-white shadow flex items-center gap-1.5">
-            <span className="text-white">{formatTime(seekHover.hoverTime)}</span>
-            <span className="text-zinc-400 text-[10px]">
-              ({formatDelta(seekHover.hoverTime - currentTime)})
-            </span>
+            {/* Active Progress Fill: Pure Stark White Style with Cyber Glow */}
+            <div
+              className="absolute top-0 left-0 right-0 transition-all"
+              style={{
+                height: `${progressPct}%`,
+                background: '#ffffff',
+                boxShadow: '0 0 10px rgba(255, 255, 255, 0.85)',
+              }}
+            />
+
+            {/* A-B Loop Locked Interval Shading */}
+            {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
+              <div
+                className="absolute left-0 right-0 bg-amber-400/30 border-y border-amber-400/60 z-10 pointer-events-none"
+                style={{
+                  top: `${(loopA / duration) * 100}%`,
+                  height: `${((loopB - loopA) / duration) * 100}%`,
+                }}
+              />
+            )}
+
+            {/* Scrubber Handle & Live Timestamp Badge */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-none transition-transform duration-75 group-hover/vseek:scale-110 z-20"
+              style={{
+                top: `${progressPct}%`,
+              }}
+            >
+              {/* Distinct Square Reticle Scrubber Dot */}
+              <div
+                className="w-3.5 h-3.5 bg-white border border-black/40 shrink-0"
+                style={{
+                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)',
+                  borderRadius: 0,
+                  outline: 'none',
+                }}
+              />
+
+              {/* Live Current Time Badge beside the Scrubber Dot */}
+              <span
+                className="ml-2 px-1.5 py-0.5 bg-[#05070c]/95 border border-white/30 text-[10px] font-mono font-bold text-white shadow-[0_0_10px_rgba(0,0,0,0.9)] whitespace-nowrap"
+                style={{ borderRadius: 0, outline: 'none' }}
+              >
+                {formatTime(currentTime)}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Bottom Bound Duration Label */}
+        <span
+          className="text-[10px] font-mono text-white/50 tracking-wider font-bold select-none shrink-0"
+          style={{ textShadow: '0 1px 4px #000' }}
+        >
+          {formatTime(duration)}
+        </span>
       </div>
-
-      {/* Visual Track: Slim 3px timeline track expanding to 5px on hover */}
-      <div className="relative w-full h-[3px] group-hover/seek:h-[5px] bg-white/15 rounded-full transition-all duration-150 flex items-center overflow-visible">
-        {/* Buffered Progress */}
-        <div
-          className="absolute left-0 top-0 bottom-0 bg-white/25 rounded-full transition-all"
-          style={{ width: `${bufferPct}%` }}
-        />
-
-        {/* Subtle Ghost Scrub Fill on Hover */}
-        {seekHover.isHovering && (
-          <div
-            className="absolute left-0 top-0 bottom-0 bg-white/20 rounded-full pointer-events-none transition-all"
-            style={{ width: `${seekHover.hoverPct}%` }}
-          />
-        )}
-
-        {/* Active Progress: Pure Stark White Style */}
-        <div
-          className="absolute left-0 top-0 bottom-0 rounded-full transition-all"
-          style={{
-            width: `${progressPct}%`,
-            background: '#ffffff',
-            boxShadow: '0 0 10px rgba(255, 255, 255, 0.8)',
-          }}
-        />
-
-        {/* Distinct Scrubber Dot */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border border-black/40 transition-transform duration-100 group-hover/seek:scale-125 z-20 pointer-events-none"
-          style={{
-            left: `${progressPct}%`,
-            boxShadow: '0 0 8px rgba(255, 255, 255, 0.9)',
-          }}
-        />
-
-        {/* Ghost Scrub Line Marker */}
-        {seekHover.isHovering && (
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-white/80 pointer-events-none z-30"
-            style={{ left: `${seekHover.hoverPct}%` }}
-          />
-        )}
-
-        {/* A-B Loop Locked Interval Shading */}
-        {duration > 0 && loopA !== null && loopB !== null && loopB > loopA && (
-          <div
-            className="absolute top-0 bottom-0 bg-white/20 border-x border-white/40 z-10 pointer-events-none"
-            style={{
-              left: `${(loopA / duration) * 100}%`,
-              width: `${((loopB - loopA) / duration) * 100}%`,
-            }}
-          />
-        )}
-
-        {/* Marker A */}
-        {duration > 0 && loopA !== null && (
-          <div
-            className="absolute top-0 bottom-0 w-1 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] z-20 pointer-events-none"
-            style={{ left: `${(loopA / duration) * 100}%` }}
-          />
-        )}
-
-        {/* Marker B */}
-        {duration > 0 && loopB !== null && (
-          <div
-            className="absolute top-0 bottom-0 w-1 bg-white shadow-sm z-20 pointer-events-none"
-            style={{ left: `${(loopB / duration) * 100}%` }}
-          />
-        )}
-      </div>
-    </div>
-  );
+    );
+  }, [duration, currentTime, buffered, loopA, loopB, handleVerticalScrubPointerDown, handleVerticalScrubPointerMove, handleVerticalScrubPointerUp]);
 
   return (
     <div
@@ -1373,18 +1313,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             e.stopPropagation();
           }}
         >
-          {/* Outside Top Time Slider (Desktop and Unrotated Portrait Screens) */}
-          {isOutsideTop && (
-            <div
-              className={`w-full mb-2 sm:mb-2.5 z-30 cursor-pointer select-none transition-all duration-300 ${
-                showHud ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {renderScrubberBar()}
-            </div>
-          )}
-
           {/* Video Player Box with overflow-hidden */}
           <div
             className={
@@ -1403,29 +1331,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             onTouchEnd={handleStageTouchEnd}
             onTouchCancel={handleStageTouchEnd}
           >
-            {/* Inside Top Time Slider (Rotated Mobile Screen / Landscape / Fullscreen) */}
-            {!isOutsideTop && (
-              <div
-                className={`absolute top-0 inset-x-0 pt-2 pb-3 px-4 z-30 cursor-pointer select-none bg-gradient-to-b from-black/85 via-black/40 to-transparent transition-all duration-300 ${
-                  showHud ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
-                }`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {renderScrubberBar()}
-              </div>
-            )}
-          <video
-            ref={videoRef}
-            src={streamUrl}
-            autoPlay
-            preload="auto"
-            playsInline
-            crossOrigin="anonymous"
-            muted={isMuted}
-            className={`w-full h-full pointer-events-none transition-all duration-300 ${
-              isDesktop ? 'rounded-none' : ''
-            } ${fitMode === 'cover' ? 'object-cover' : 'object-contain'}`}
-            onCanPlay={(e) => {
+            <video
+              ref={videoRef}
+              src={streamUrl}
+              autoPlay
+              preload="auto"
+              playsInline
+              crossOrigin="anonymous"
+              muted={isMuted}
+              className={`w-full h-full pointer-events-none transition-all duration-300 ${
+                isDesktop ? 'rounded-none' : ''
+              } ${fitMode === 'cover' ? 'object-cover' : 'object-contain'}`}
+              onCanPlay={(e) => {
               const v = e.currentTarget;
               try {
                 v.defaultPlaybackRate = playbackSpeed;
@@ -1569,6 +1486,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             </div>
           )}
 
+          {/* Desktop Outside Vertical Time Slider (At the very right side of the VideoPlayer) */}
+          {isDesktop && duration > 0 && !isFullscreen && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`absolute left-[calc(100%+16px)] sm:left-[calc(100%+24px)] top-1/2 -translate-y-1/2 h-[55vh] max-h-[520px] z-30 flex items-center select-none transition-all duration-300 ${
+                showHud ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-3 pointer-events-none'
+              }`}
+            >
+              {renderVerticalScrubberBar()}
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -1669,24 +1598,57 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* 5. Universal Floating Control Tray (Globally for Any Screen / Bottom Tray) */}
+      {/* Tablet Vertical Time Slider (Middle Right Side) */}
+      {isTablet && duration > 0 && !isFullscreen && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`fixed right-4 sm:right-6 top-1/2 -translate-y-1/2 h-[50vh] max-h-[460px] z-30 flex items-center select-none transition-all duration-300 ${
+            showHud ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-3 pointer-events-none'
+          }`}
+        >
+          {renderVerticalScrubberBar()}
+        </div>
+      )}
+
+      {/* Mobile Phone Portrait Vertical Time Slider (Bottom Right Side, underneath video, above logo) */}
+      {isPhonePortrait && duration > 0 && !isFullscreen && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`fixed right-4 bottom-[76px] h-[150px] max-h-[20vh] z-30 flex items-center select-none transition-all duration-300 ${
+            showHud ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-3 pointer-events-none'
+          }`}
+        >
+          {renderVerticalScrubberBar()}
+        </div>
+      )}
+
+      {/* Rotated Phone Landscape / Fullscreen Vertical Time Slider */}
+      {((!isDesktop && !isTablet && !isPhonePortrait && duration > 0) || (isFullscreen && duration > 0)) && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`fixed right-3.5 top-1/2 -translate-y-1/2 h-[60vh] max-h-[360px] z-30 flex items-center select-none transition-all duration-300 ${
+            showHud ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-3 pointer-events-none'
+          }`}
+        >
+          {renderVerticalScrubberBar()}
+        </div>
+      )}
+
+      {/* 5. Universal Floating Control Tray (Bottom Left Corner on Desktop & Tablets / Bottom on Mobile) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         style={{
-          left: isDesktop ? '50%' : undefined,
-          transform: isDesktop
-            ? `translateX(-50%) translateY(${showHud ? '0px' : '16px'})`
-            : `translateY(${showHud ? '0px' : '16px'})`,
+          transform: `translateY(${showHud ? '0px' : '16px'})`,
+          borderRadius: 0,
+          outline: 'none',
         }}
         className={`fixed ${
           isPortrait && !isFullscreen
             ? 'bottom-16 sm:bottom-20 left-4'
-            : isDesktop
-            ? 'bottom-5 sm:bottom-6'
-            : 'bottom-4 left-4 sm:bottom-6'
-        } z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
-          showHud ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            : 'bottom-4 left-4 sm:bottom-6 sm:left-6'
+        } z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/[0.1] shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-hidden select-none ${
+          showHud ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
           {/* Play / Pause Toggle (Laser Shimmer Outline) */}
