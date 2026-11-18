@@ -802,48 +802,63 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }}
       className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-backdrop-fade cursor-pointer"
     >
-      {/* Universal Shorts Player Control Tray (Fixed Bottom-Left for both Landscape and Portrait) */}
-      <div
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-        style={{
-          transform: `translateY(${isTrayVisible ? '0px' : '16px'})`,
-          borderRadius: 0,
-          outline: 'none',
-        }}
-        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-1.5 sm:gap-2.5 p-1.5 sm:p-2 bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/[0.1] shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-hidden select-none ${
-          isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
-        }`}
-      >
-        {/* Play / Pause Toggle Button */}
-        <button
-          type="button"
-          onClick={togglePlay}
-          className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer border-0"
-          title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
+      {/* ===== MOBILE PORTRAIT VERTICAL CYBER CONTROL RACK (OPTION A: RIGHT-SIDE THUMB RACK) ===== */}
+      {isPhonePortrait ? (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          style={{
+            transform: `translateX(${isTrayVisible ? '0px' : '20px'})`,
+            borderRadius: 0,
+            outline: 'none',
+          }}
+          className={`fixed right-3 bottom-20 z-50 flex flex-col items-center gap-2 p-1.5 bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/[0.1] shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 select-none overflow-hidden ${
+            isTrayVisible ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-5 pointer-events-none'
+          }`}
         >
-          {isPlaying ? (
-            <LaserPauseIcon size={isPhonePortrait ? 20 : 24} />
-          ) : (
-            <LaserPlayIcon size={isPhonePortrait ? 20 : 24} />
-          )}
-        </button>
-
-        {/* Current Time / Duration Counter */}
-        {duration > 0 && (
-          <span
-            className="px-1.5 sm:px-2 text-[10.5px] sm:text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap shrink-0 select-none"
-            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+          {/* Close Button at Top */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="reticle-btn reticle-btn-close w-8 h-8 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
+            title="Close (Esc)"
+            aria-label="Close shorts player"
           >
-            {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
-          </span>
-        )}
+            <LaserCloseIcon size={20} />
+          </button>
 
-        {/* Previous Short Button (Hidden on Mobile Phone, Visible on Tablet / Desktop) */}
-        {!isPhonePortrait && (
+          {/* Divider line */}
+          <div className="w-5 h-[1px] bg-white/10 shrink-0" />
+
+          {/* Play / Pause Toggle Button */}
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="reticle-btn w-8 h-8 flex items-center justify-center shrink-0 cursor-pointer border-0"
+            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <LaserPauseIcon size={20} /> : <LaserPlayIcon size={20} />}
+          </button>
+
+          {/* Time Counter (Stacked cleanly in 2 rows) */}
+          {duration > 0 && (
+            <div
+              className="flex flex-col items-center text-[9px] font-mono font-medium text-white/90 leading-tight select-none py-0.5 shrink-0"
+              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+            >
+              <span>{formatTime(currentTime)}</span>
+              <span className="text-white/30 text-[8px] leading-none my-0.5">—</span>
+              <span className="text-white/60">{formatTime(duration)}</span>
+            </div>
+          )}
+
+          {/* Previous Short Button (Upward Chevron for vertical scroll) */}
           <button
             type="button"
             onClick={(e) => {
@@ -851,24 +866,24 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               if (activeIndex > 0) goToShortIndex(activeIndex - 1, 'prev');
             }}
             disabled={activeIndex <= 0}
-            className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
-            title="Previous Short (↑ or Left Arrow)"
+            className="reticle-btn w-8 h-8 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            title="Previous Short (↑)"
             aria-label="Previous short"
           >
-            <LaserPrevIcon size={22} />
+            <LaserPrevIcon size={20} className="rotate-90" />
           </button>
-        )}
 
-        {/* Short Index Counter */}
-        <span
-          className="px-1.5 sm:px-2 text-[10.5px] sm:text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap shrink-0 select-none"
-          style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
-        >
-          {activeIndex + 1} <span className="text-white/40">/</span> {shorts.length}
-        </span>
+          {/* Short Index Counter (Stacked) */}
+          <div
+            className="flex flex-col items-center text-[10px] font-mono font-medium text-white/90 leading-tight select-none py-0.5 shrink-0"
+            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+          >
+            <span className="font-bold">{activeIndex + 1}</span>
+            <span className="text-white/30 text-[8px] leading-none my-0.5">—</span>
+            <span className="text-white/60">{shorts.length}</span>
+          </div>
 
-        {/* Next Short Button (Hidden on Mobile Phone, Visible on Tablet / Desktop) */}
-        {!isPhonePortrait && (
+          {/* Next Short Button (Downward Chevron for vertical scroll) */}
           <button
             type="button"
             onClick={(e) => {
@@ -876,56 +891,159 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               if (activeIndex < shorts.length - 1) goToShortIndex(activeIndex + 1, 'next');
             }}
             disabled={activeIndex >= shorts.length - 1}
-            className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            className="reticle-btn w-8 h-8 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            title="Next Short (↓)"
+            aria-label="Next short"
+          >
+            <LaserNextIcon size={20} className="rotate-90" />
+          </button>
+
+          {/* Aspect Ratio Indicator Badge */}
+          <div
+            className={`w-8 h-6 flex items-center justify-center font-mono text-[9px] font-bold tracking-tight select-none pointer-events-none shrink-0 border ${
+              landscapeMap[activeIndex]
+                ? 'text-[#38bdf8] border-[#38bdf8]/40 bg-[#38bdf8]/10 shadow-[0_0_8px_rgba(56,189,248,0.3)]'
+                : 'text-white/80 border-white/20 bg-white/[0.04]'
+            }`}
+            style={{ borderRadius: 0, outline: 'none' }}
+            title={landscapeMap[activeIndex] ? '16:9 Horizontal Short' : '9:16 Vertical Short'}
+          >
+            {landscapeMap[activeIndex] ? '16:9' : '9:16'}
+          </div>
+
+          {/* Volume / Mute Toggle Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMuted((prev) => !prev);
+              hapticLight();
+            }}
+            className="reticle-btn w-8 h-8 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
+            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            <LaserVolumeIcon size={20} isMuted={isMuted} />
+          </button>
+        </div>
+      ) : (
+        /* ===== DESKTOP / TABLET HORIZONTAL CONTROL TRAY (BOTTOM-LEFT) ===== */
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          style={{
+            transform: `translateY(${isTrayVisible ? '0px' : '16px'})`,
+            borderRadius: 0,
+            outline: 'none',
+          }}
+          className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/[0.1] shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-hidden select-none ${
+            isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
+          }`}
+        >
+          {/* Play / Pause Toggle Button */}
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="reticle-btn w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer border-0"
+            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <LaserPauseIcon size={24} /> : <LaserPlayIcon size={24} />}
+          </button>
+
+          {/* Current Time / Duration Counter */}
+          {duration > 0 && (
+            <span
+              className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap shrink-0 select-none"
+              style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+            >
+              {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
+            </span>
+          )}
+
+          {/* Previous Short Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (activeIndex > 0) goToShortIndex(activeIndex - 1, 'prev');
+            }}
+            disabled={activeIndex <= 0}
+            className="reticle-btn w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            title="Previous Short (↑ or Left Arrow)"
+            aria-label="Previous short"
+          >
+            <LaserPrevIcon size={22} />
+          </button>
+
+          {/* Short Index Counter */}
+          <span
+            className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap shrink-0 select-none"
+            style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
+          >
+            {activeIndex + 1} <span className="text-white/40">/</span> {shorts.length}
+          </span>
+
+          {/* Next Short Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (activeIndex < shorts.length - 1) goToShortIndex(activeIndex + 1, 'next');
+            }}
+            disabled={activeIndex >= shorts.length - 1}
+            className="reticle-btn w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
             title="Next Short (↓ or Right Arrow)"
             aria-label="Next short"
           >
             <LaserNextIcon size={22} />
           </button>
-        )}
 
-        {/* Aspect Ratio Indicator Badge (Non-clickable, displays 16:9 or 9:16) */}
-        <div
-          className={`px-1.5 sm:px-2 h-7 sm:h-8 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold tracking-wider shrink-0 select-none pointer-events-none border ${
-            landscapeMap[activeIndex]
-              ? 'text-[#38bdf8] border-[#38bdf8]/40 bg-[#38bdf8]/10 shadow-[0_0_8px_rgba(56,189,248,0.3)]'
-              : 'text-white/80 border-white/20 bg-white/[0.04]'
-          }`}
-          style={{ borderRadius: 0, outline: 'none' }}
-          title={landscapeMap[activeIndex] ? '16:9 Horizontal Short' : '9:16 Vertical Short'}
-        >
-          {landscapeMap[activeIndex] ? '16:9' : '9:16'}
+          {/* Aspect Ratio Indicator Badge */}
+          <div
+            className={`px-2 h-8 flex items-center justify-center font-mono text-xs font-bold tracking-wider shrink-0 select-none pointer-events-none border ${
+              landscapeMap[activeIndex]
+                ? 'text-[#38bdf8] border-[#38bdf8]/40 bg-[#38bdf8]/10 shadow-[0_0_8px_rgba(56,189,248,0.3)]'
+                : 'text-white/80 border-white/20 bg-white/[0.04]'
+            }`}
+            style={{ borderRadius: 0, outline: 'none' }}
+            title={landscapeMap[activeIndex] ? '16:9 Horizontal Short' : '9:16 Vertical Short'}
+          >
+            {landscapeMap[activeIndex] ? '16:9' : '9:16'}
+          </div>
+
+          {/* Volume / Mute Toggle Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMuted((prev) => !prev);
+              hapticLight();
+            }}
+            className="reticle-btn w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
+            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            <LaserVolumeIcon size={24} isMuted={isMuted} />
+          </button>
+
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="reticle-btn reticle-btn-close w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
+            title="Close (Esc)"
+            aria-label="Close shorts player"
+          >
+            <LaserCloseIcon size={22} />
+          </button>
         </div>
-
-        {/* Volume / Mute Toggle Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsMuted((prev) => !prev);
-            hapticLight();
-          }}
-          className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
-          title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
-          aria-label={isMuted ? 'Unmute' : 'Mute'}
-        >
-          <LaserVolumeIcon size={isPhonePortrait ? 20 : 24} isMuted={isMuted} />
-        </button>
-
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="reticle-btn reticle-btn-close w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
-          title="Close (Esc)"
-          aria-label="Close shorts player"
-        >
-          <LaserCloseIcon size={isPhonePortrait ? 20 : 22} />
-        </button>
-      </div>
+      )}
 
       {/* ===== SEAMLESS ZERO-GAP STREAM (100VH FULL HEIGHT, 0PX GAP, 85S ULTRA CALM) ===== */}
       {isDesktop && streamItems.length > 0 && (
