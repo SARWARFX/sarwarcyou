@@ -366,7 +366,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           onOpenPhoto(item, [item], 0);
         } else if (isShort) {
           switchTab(2);
-          onOpenShort(item, [item], 0);
+          const allShorts = items.filter(
+            (i) =>
+              i.mediaType === 'short' ||
+              i.path?.toLowerCase().includes('short') ||
+              i.url?.toLowerCase().includes('short')
+          );
+          const playlist = allShorts.length > 0 ? allShorts : [item];
+          const targetIdx = playlist.findIndex(
+            (s) => s.id === item.id || s.name === item.name || s.path === item.path || s.url === item.url
+          );
+          onOpenShort(item, playlist, targetIdx >= 0 ? targetIdx : 0, 'Shorts');
         } else {
           switchTab(3);
           onOpenVideo(item, [item]);

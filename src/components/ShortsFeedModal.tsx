@@ -70,9 +70,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const iconTimerRef = useRef<number | null>(null);
   const hideControlsTimerRef = useRef<number | null>(null);
   const lastTouchTimeRef = useRef<number>(0);
-  const touchStartXRef = useRef<number>(0);
-  const touchStartYRef = useRef<number>(0);
-  const isSwipingRef = useRef<boolean>(false);
   const backdropClickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const pointerStartXRef = useRef<number>(0);
   const pointerStartYRef = useRef<number>(0);
@@ -121,7 +118,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     });
   }, [activeIndex, shorts, landscapeMap]);
 
-  // Gesture Engine Refs
+  // Gesture & Tap Engine Refs
   const isScrubbingRef = useRef(false);
   const holdTimerRef = useRef<number | null>(null);
   const isHold2XRef = useRef(false);
@@ -129,6 +126,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const isDraggingRef = useRef(false);
   const lastTapTimeRef = useRef(0);
   const tapTimeoutRef = useRef<number | null>(null);
+  const pointerStartTimeRef = useRef<number>(0);
+  const isPointerMovedRef = useRef<boolean>(false);
+  const lastTapProcessedRef = useRef<number>(0);
 
   // Web Escape and History Back navigation handler
   useBackButton(
@@ -186,54 +186,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [isWideScreen]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    lastTouchTimeRef.current = Date.now();
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-    isSwipingRef.current = false;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    lastTouchTimeRef.current = Date.now();
-    const dx = Math.abs(e.touches[0].clientX - touchStartXRef.current);
-    const dy = Math.abs(e.touches[0].clientY - touchStartYRef.current);
-    if (dx > 20 || dy > 20) {
-      isSwipingRef.current = true;
-      if (holdTimerRef.current) {
-        clearTimeout(holdTimerRef.current);
-        holdTimerRef.current = null;
-      }
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - touchStartXRef.current;
-    const dy = e.changedTouches[0].clientY - touchStartYRef.current;
-    // Horizontal swipe gesture detection for shorts
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-      if (dx < 0 && activeIndex < shorts.length - 1) {
-        goToShortIndex(activeIndex + 1, 'next');
-      } else if (dx > 0 && activeIndex > 0) {
-        goToShortIndex(activeIndex - 1, 'prev');
-      }
-    }
-    if (isSwipingRef.current) {
-      setTimeout(() => {
-        isSwipingRef.current = false;
-      }, 150);
-    }
-  };
-
   // Screen tap handler:
   // - Wide screen devices: Tray stays appeared at bottom-left all the time; tap toggles play/pause
   // - Portrait devices: Immersive view with synchronized play/pause & tray toggle:
   //     * If playing: pauses video and shows the tray
   //     * If paused: starts playing and hides the tray
   const handleScreenTap = useCallback((idx: number) => {
-    if (isSwipingRef.current) {
-      isSwipingRef.current = false;
-      return;
-    }
     const v = videoRefs.current[idx] || videoRefs.current[activeIndex];
     if (!v) return;
 
@@ -262,20 +220,131 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     iconTimerRef.current = window.setTimeout(() => setCenterIcon(null), 700);
   }, [activeIndex, isWideScreen]);
 
-  // Unified card click handler (Mobile Taps & Desktop Clicks with double-tap like detection)
-  const handleCardClick = useCallback((e: React.MouseEvent, idx: number) => {
-    e.stopPropagation();
+  // Video Pointer Engine: Hold-to-2x Speed, Swipe Navigation & Instant Tap Detection
+  const handleVideoPointerDown = useCallback((e: React.PointerEvent, idx: number) => {
+    pointerStartXRef.current = e.clientX;
+    pointerStartYRef.current = e.clientY;
+    pointerStartTimeRef.current = Date.now();
+    isPointerMovedRef.current = false;
+    didHold2XRef.current = false;
+    isDraggingRef.current = false;
 
-    // If hold-2x was engaged, don't trigger click/play-pause
+    // Hold-to-2x speed gesture trigger (> 320ms stationary hold)
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = window.setTimeout(() => {
+      if (isPointerMovedRef.current) return;
+      const v = videoRefs.current[idx] || videoRefs.current[activeIndex];
+      if (v && !v.paused) {
+        isHold2XRef.current = true;
+        didHold2XRef.current = true;
+        setIs2XSpeed(true);
+        v.playbackRate = 2.0;
+        hapticMedium();
+      }
+    }, 320);
+  }, [activeIndex]);
+
+  const handleVideoPointerMove = useCallback((e: React.PointerEvent) => {
+    const dx = Math.abs(e.clientX - pointerStartXRef.current);
+    const dy = Math.abs(e.clientY - pointerStartYRef.current);
+    if (dx > 10 || dy > 10) {
+      isPointerMovedRef.current = true;
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
+    }
+    if (dx > 25 || dy > 25) {
+      isDraggingRef.current = true;
+    }
+  }, []);
+
+  const handleVideoPointerUp = useCallback((e: React.PointerEvent, idx: number) => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    // If hold-2x was engaged, restore normal speed
+    if (isHold2XRef.current) {
+      isHold2XRef.current = false;
+      setIs2XSpeed(false);
+      const v = videoRefs.current[activeIndex];
+      if (v) {
+        v.playbackRate = 1.0;
+        hapticLight();
+      }
+      return;
+    }
+
     if (didHold2XRef.current) {
       didHold2XRef.current = false;
       return;
     }
 
-    // If swipe/drag occurred, ignore click
-    if (isSwipingRef.current || isDraggingRef.current) {
-      isSwipingRef.current = false;
-      isDraggingRef.current = false;
+    const dx = e.clientX - pointerStartXRef.current;
+    const dy = e.clientY - pointerStartYRef.current;
+    const dist = Math.hypot(dx, dy);
+    const elapsed = Date.now() - pointerStartTimeRef.current;
+
+    // Horizontal drag on desktop / touch: navigate next or prev
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      isDraggingRef.current = true;
+      if (dx < 0 && activeIndex < shorts.length - 1) {
+        goToShortIndex(activeIndex + 1, 'next');
+      } else if (dx > 0 && activeIndex > 0) {
+        goToShortIndex(activeIndex - 1, 'prev');
+      }
+      setTimeout(() => { isDraggingRef.current = false; }, 150);
+      return;
+    }
+
+    // Direct Tap Detection on PointerUp (handles mobile touch, Chrome DevTools emulation, and mouse)
+    if (dist < 15 && elapsed < 350) {
+      lastTapProcessedRef.current = Date.now();
+      const now = Date.now();
+
+      // Double-tap detection (< 280ms)
+      if (now - lastTapTimeRef.current < 280) {
+        if (tapTimeoutRef.current) {
+          clearTimeout(tapTimeoutRef.current);
+          tapTimeoutRef.current = null;
+        }
+        lastTapTimeRef.current = 0;
+        setLikeHeart({ id: Date.now() });
+        setTimeout(() => setLikeHeart(null), 850);
+        return;
+      }
+      lastTapTimeRef.current = now;
+
+      // Single-tap -> trigger play/pause after debounce
+      if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+      tapTimeoutRef.current = window.setTimeout(() => {
+        handleScreenTap(idx);
+        tapTimeoutRef.current = null;
+      }, 200);
+    }
+  }, [activeIndex, goToShortIndex, handleScreenTap, shorts.length]);
+
+  const handleVideoPointerCancel = useCallback((idx: number) => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (isHold2XRef.current) {
+      isHold2XRef.current = false;
+      setIs2XSpeed(false);
+      const v = videoRefs.current[idx] || videoRefs.current[activeIndex];
+      if (v) v.playbackRate = 1.0;
+    }
+  }, [activeIndex]);
+
+  // Unified card click handler (Fallback / Keyboard / Mouse)
+  const handleCardClick = useCallback((e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+
+    // If pointerUp already handled this tap within 400ms, ignore duplicate click event
+    if (Date.now() - lastTapProcessedRef.current < 400) {
       return;
     }
 
@@ -298,97 +367,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     tapTimeoutRef.current = window.setTimeout(() => {
       handleScreenTap(idx);
       tapTimeoutRef.current = null;
-    }, 220);
+    }, 200);
   }, [handleScreenTap]);
-
-  // Video Pointer Engine: Hold-to-2x Speed & Desktop Drag Navigation
-  const handleVideoPointerDown = useCallback((_e: React.PointerEvent, idx: number) => {
-    pointerStartXRef.current = _e.clientX;
-    pointerStartYRef.current = _e.clientY;
-    didHold2XRef.current = false;
-    isDraggingRef.current = false;
-
-    // Hold-to-2x speed gesture trigger (> 280ms)
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    holdTimerRef.current = window.setTimeout(() => {
-      const v = videoRefs.current[idx] || videoRefs.current[activeIndex];
-      if (v && !v.paused) {
-        isHold2XRef.current = true;
-        didHold2XRef.current = true;
-        setIs2XSpeed(true);
-        v.playbackRate = 2.0;
-        hapticMedium();
-      }
-    }, 280);
-  }, [activeIndex]);
-
-  const handleVideoPointerMove = useCallback((_e: React.PointerEvent) => {
-    const dx = Math.abs(_e.clientX - pointerStartXRef.current);
-    const dy = Math.abs(_e.clientY - pointerStartYRef.current);
-    if (dx > 12 || dy > 12) {
-      if (holdTimerRef.current) {
-        clearTimeout(holdTimerRef.current);
-        holdTimerRef.current = null;
-      }
-    }
-    if (dx > 25 || dy > 25) {
-      isDraggingRef.current = true;
-    }
-  }, []);
-
-  const handleVideoPointerUp = useCallback((_e: React.PointerEvent, _idx: number) => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-
-    // If hold-2x was engaged, restore normal speed
-    if (isHold2XRef.current) {
-      isHold2XRef.current = false;
-      setIs2XSpeed(false);
-      const v = videoRefs.current[activeIndex];
-      if (v) {
-        v.playbackRate = 1.0;
-        hapticLight();
-      }
-      return;
-    }
-
-    const dx = _e.clientX - pointerStartXRef.current;
-    const dy = _e.clientY - pointerStartYRef.current;
-
-    // Horizontal drag on desktop / touch: navigate next or prev
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-      isDraggingRef.current = true;
-      if (dx < 0 && activeIndex < shorts.length - 1) {
-        goToShortIndex(activeIndex + 1, 'next');
-      } else if (dx > 0 && activeIndex > 0) {
-        goToShortIndex(activeIndex - 1, 'prev');
-      }
-      setTimeout(() => { isDraggingRef.current = false; }, 150);
-      return;
-    }
-
-    // Vertical drag on desktop is strictly ignored
-    if (isDesktop && Math.abs(dy) > 30 && Math.abs(dy) > Math.abs(dx)) {
-      isDraggingRef.current = true;
-      setTimeout(() => { isDraggingRef.current = false; }, 150);
-      return;
-    }
-  }, [activeIndex, isDesktop, goToShortIndex, shorts.length]);
-
-  const handleVideoPointerCancel = useCallback((idx: number) => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-    if (isHold2XRef.current) {
-      isHold2XRef.current = false;
-      setIs2XSpeed(false);
-      const v = videoRefs.current[idx] || videoRefs.current[activeIndex];
-      if (v) v.playbackRate = 1.0;
-    }
-  }, [activeIndex]);
 
   // Timeline scrub handling
   const handleScrubSeek = useCallback((clientX: number, target: HTMLElement, idx: number) => {
@@ -748,8 +728,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         onPointerMove={handleVideoPointerMove}
         onPointerUp={(e) => handleVideoPointerUp(e, idx)}
         onPointerCancel={() => handleVideoPointerCancel(idx)}
-        style={
-          isDesktop
+        style={{
+          touchAction: 'pan-y',
+          ...(isDesktop
             ? isLandscape
               ? {
                   width: '100%',
@@ -764,8 +745,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             : {
                 width: '100%',
                 height: '100%',
-              }
-        }
+              }),
+        }}
         className={`relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none overflow-hidden ${
           isDesktop
             ? isLandscape
@@ -951,9 +932,6 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   return (
     <div
       onMouseMove={handleMouseMove}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -961,6 +939,20 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }}
       className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-backdrop-fade cursor-pointer"
     >
+      {/* Dedicated Top-Right Cybernetic Close Button (Always reachable on all screens & orientations) */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          hapticLight();
+          onClose();
+        }}
+        className="fixed top-3 right-3 sm:top-5 sm:right-5 z-50 p-2.5 rounded-none bg-[rgba(5,7,12,0.85)] hover:bg-black backdrop-blur-xl border-0 text-white/80 hover:text-white transition-all cursor-pointer pointer-events-auto shadow-[0_4px_25px_rgba(0,0,0,0.8)]"
+        title="Close (Esc)"
+        aria-label="Close shorts player"
+      >
+        <LaserCloseIcon size={22} />
+      </button>
       {/* Universal Shorts Player Control Tray (Fixed Bottom-Left for both Landscape and Portrait) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}

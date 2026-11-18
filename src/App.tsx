@@ -251,10 +251,12 @@ function App() {
 
       if (isShort) {
         const fullShortsList =
-          (playlistContext && playlistContext.length > 0
+          (playlistContext && playlistContext.length > 1
             ? playlistContext
             : rawFeed.shorts.length > 0
             ? rawFeed.shorts
+            : playlistContext && playlistContext.length > 0
+            ? playlistContext
             : [item]).filter(Boolean);
 
         // Find exact index within the folder's shorts array:

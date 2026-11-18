@@ -26,6 +26,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // 10 randomly selected shorts
   const selected10 = useMemo(() => {
@@ -60,6 +61,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     setIsPlaybackReady(false);
     isPlaybackReadyRef.current = false;
     videoRefs.current = [];
+    cardRefs.current = [];
   }, [selected10]);
 
   // Sync ref with state
@@ -129,21 +131,49 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     }
   }, [readyIndices.size, targetThreshold, isPlaybackReady]);
 
-  // When playback threshold is met, simultaneously start all buffered videos from frame 0
+  // Active Viewport Window Optimizer:
+  // Decodes & plays ONLY the 3-4 cards currently visible in the visitor's screen.
+  // Cards outside the viewport are paused to prevent GPU hardware decoder saturation (capped at 3-4 slots).
   useEffect(() => {
-    if (isPlaybackReady) {
-      videoRefs.current.forEach((v) => {
-        if (v) {
-          v.muted = true;
-          v.defaultMuted = true;
-          try {
-            v.currentTime = 0;
-          } catch {}
-          v.play().catch(() => {});
-        }
-      });
-    }
-  }, [isPlaybackReady]);
+    if (!isPlaybackReady) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const idxAttr = entry.target.getAttribute('data-card-index');
+          if (idxAttr === null) return;
+          const idx = parseInt(idxAttr, 10);
+          const v = videoRefs.current[idx];
+          if (!v) return;
+
+          if (entry.isIntersecting && entry.intersectionRatio > 0.05) {
+            // Card entered (or is inside) viewport: start decoding and playback
+            if (v.paused) {
+              v.muted = true;
+              v.defaultMuted = true;
+              v.play().catch(() => {});
+            }
+          } else {
+            // Card slid out of viewport: pause immediately to release GPU decoder slot
+            if (!v.paused) {
+              v.pause();
+            }
+          }
+        });
+      },
+      {
+        root: containerRef.current,
+        threshold: [0, 0.05, 0.25],
+        rootMargin: '50px 100px 50px 100px', // Decodes right before crossing into view for seamless visuals
+      }
+    );
+
+    cardRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [isPlaybackReady, displayList.length]);
 
   const handleVideoRef = (el: HTMLVideoElement | null, idx: number) => {
     videoRefs.current[idx] = el;
@@ -207,6 +237,8 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
           borderRadius: 0,
           outline: 'none',
           border: 'none',
+          willChange: 'transform',
+          transform: 'translate3d(0, 0, 0)',
         }}
       >
         {displayList.map((item, idx) => {
@@ -223,9 +255,20 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
           return (
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
+              ref={(el) => {
+                cardRefs.current[idx] = el;
+              }}
+              data-card-index={idx}
               onClick={() => onOpenShort(item, selected10, actualIndex)}
-              className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative"
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative select-none"
+              style={{
+                borderRadius: 0,
+                outline: 'none',
+                border: 'none',
+                willChange: 'transform',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden',
+              }}
             >
               <video
                 ref={(el) => handleVideoRef(el, idx)}
@@ -244,7 +287,12 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
                 }}
                 onError={() => handleMediaReady(actualIndex)}
                 className="w-full h-full object-cover block filter saturate-[0.95] contrast-[1.05]"
-                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+                style={{
+                  borderRadius: 0,
+                  outline: 'none',
+                  border: 'none',
+                  transform: 'translateZ(0)',
+                }}
               />
             </div>
           );
@@ -254,14 +302,17 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       <style>{`
         @keyframes homepageSlowSlide {
           0% {
-            transform: translateX(0);
+            transform: translate3d(0, 0, 0);
           }
           100% {
-            transform: translateX(-50%);
+            transform: translate3d(-50%, 0, 0);
           }
         }
         .animate-homepage-slow-slide {
           animation: homepageSlowSlide 85s linear infinite;
+          will-change: transform;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
         }
       `}</style>
     </div>
