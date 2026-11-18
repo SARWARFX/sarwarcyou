@@ -19,46 +19,33 @@ function formatTime(mins: number): string {
   return `${h}H ${String(m).padStart(2, '0')}M`;
 }
 
-// 8 Diurnal Categories with 24-hour time format
-interface DiurnalCategory24 {
-  id: string;
-  name: string;
-  shortName: string;
-  window24: string;
-  shortWindow: string;
-}
-
-const DIURNAL_CATEGORIES_24: DiurnalCategory24[] = [
-  { id: 'midnight', name: 'MIDNIGHT', shortName: 'MID', window24: '00:00 – 04:00', shortWindow: '00-04' },
-  { id: 'dawn', name: 'DAWN', shortName: 'DAWN', window24: '04:00 – 06:00', shortWindow: '04-06' },
-  { id: 'early_morning', name: 'EARLY MORNING', shortName: 'E.MORN', window24: '06:00 – 09:00', shortWindow: '06-09' },
-  { id: 'morning', name: 'MORNING', shortName: 'MORN', window24: '09:00 – 12:00', shortWindow: '09-12' },
-  { id: 'noon', name: 'NOON', shortName: 'NOON', window24: '12:00 – 15:00', shortWindow: '12-15' },
-  { id: 'afternoon', name: 'AFTERNOON', shortName: 'AFT', window24: '15:00 – 18:00', shortWindow: '15-18' },
-  { id: 'evening', name: 'EVENING', shortName: 'EVE', window24: '18:00 – 20:00', shortWindow: '18-20' },
-  { id: 'early_night', name: 'EARLY NIGHT', shortName: 'NIGHT', window24: '20:00 – 24:00', shortWindow: '20-24' },
+// 8 Diurnal Time Windows (24-hour time format)
+const DIURNAL_WINDOWS_24 = [
+  { id: 'w1', window24: '00:00 – 04:00' },
+  { id: 'w2', window24: '04:00 – 06:00' },
+  { id: 'w3', window24: '06:00 – 09:00' },
+  { id: 'w4', window24: '09:00 – 12:00' },
+  { id: 'w5', window24: '12:00 – 15:00' },
+  { id: 'w6', window24: '15:00 – 18:00' },
+  { id: 'w7', window24: '18:00 – 20:00' },
+  { id: 'w8', window24: '20:00 – 24:00' },
 ];
 
 /**
- * Distraction-Free 24-Hour Diurnal Telemetry Modal
- * - Supports landscape phones, tablets, and desktop displays
- * - Dynamic height scaling on rotated phone screens to eliminate clipping
- * - Direct 7-day quick switcher tabs right inside the modal
- * - Dedicated Cyber Close Button with Esc & backdrop-tap support
+ * Clean & Minimalist 24-Hour Diurnal Telemetry Modal
+ * - Displays clicked day from mini graph
+ * - Each column: Time count at top -> Monolith Bar -> Time-to-time at bottom
+ * - Zero word labels (midnight/dawn/etc removed), zero day switcher buttons
+ * - Dedicated Cyber Close Button [✕], Esc key, and backdrop click to close
+ * - Responsive bar height for mobile landscape and desktop
  * - All Science Gothic typography, zero rounded corners, zero outlines
  */
 export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> = ({
   onClose,
   initialDayIndex = 0,
 }) => {
-  const [activeDayIndex, setActiveDayIndex] = useState<number>(initialDayIndex ?? 0);
+  const activeDayIndex = initialDayIndex ?? 0;
   const [isClosing, setIsClosing] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (initialDayIndex !== undefined && initialDayIndex !== null) {
-      setActiveDayIndex(initialDayIndex);
-    }
-  }, [initialDayIndex]);
 
   const handleClose = useCallback(() => {
     if (isClosing) return;
@@ -170,7 +157,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`diurnal-modal-box w-full max-w-4xl max-h-[96dvh] bg-[#06080e]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.85)] flex flex-col p-3 sm:p-6 md:p-8 relative overflow-y-auto no-scrollbar cursor-default ${
+        className={`diurnal-modal-box w-full max-w-4xl max-h-[96dvh] bg-[#06080e]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.85)] flex flex-col p-4 sm:p-6 md:p-8 relative overflow-y-auto no-scrollbar cursor-default ${
           isClosing ? 'animate-holo-beam-close' : 'animate-holo-beam-open'
         }`}
         style={{
@@ -180,83 +167,56 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
           fontFamily: "'Science Gothic', sans-serif",
         }}
       >
-        {/* Sleek Cyber Header: Day Title + 7-Day Quick-Switcher + Total Time + Cyber Close Button */}
-        <div className="diurnal-header flex flex-col gap-2 sm:gap-2.5 w-full mb-3 sm:mb-5 shrink-0">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <span
-                className="text-[11px] sm:text-xs md:text-sm font-bold tracking-[0.16em] sm:tracking-[0.2em] uppercase text-[#38bdf8]"
-                style={{
-                  fontFamily: "'Science Gothic', sans-serif",
-                  textShadow: '0 0 10px rgba(56, 189, 248, 0.6)',
-                }}
-              >
-                {activeDay?.dayFullName} // 24-HOUR DIURNAL BREAKDOWN
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span
-                className="text-[10px] sm:text-xs md:text-sm font-bold tracking-wider text-white/90 whitespace-nowrap"
-                style={{ fontFamily: "'Science Gothic', sans-serif" }}
-              >
-                {formatTime(activeDay?.totalMins || 0)} TOTAL
-              </span>
-
-              {/* Dedicated Square Cyber Close Button */}
-              <button
-                type="button"
-                onClick={handleClose}
-                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-white/[0.06] hover:bg-[#38bdf8]/20 border border-white/20 hover:border-[#38bdf8] text-white/70 hover:text-[#38bdf8] transition-colors cursor-pointer shrink-0"
-                style={{ borderRadius: 0, outline: 'none' }}
-                title="Close (Esc)"
-                aria-label="Close telemetry modal"
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="square"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
+        {/* Sleek Cyber Header: Day Title + Total Time + Cyber Close Button */}
+        <div className="diurnal-header flex items-center justify-between w-full mb-4 sm:mb-6 shrink-0">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-xs sm:text-sm font-bold tracking-[0.18em] sm:tracking-[0.2em] uppercase text-[#38bdf8]"
+              style={{
+                fontFamily: "'Science Gothic', sans-serif",
+                textShadow: '0 0 10px rgba(56, 189, 248, 0.6)',
+              }}
+            >
+              {activeDay?.dayFullName} // 24-HOUR DIURNAL BREAKDOWN
+            </span>
           </div>
 
-          {/* 7-Day Quick-Selector Strip */}
-          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            {sevenDays.map((d, idx) => {
-              const isSelected = idx === activeDayIndex;
-              return (
-                <button
-                  key={d.key}
-                  type="button"
-                  onClick={() => {
-                    hapticMedium();
-                    setActiveDayIndex(idx);
-                  }}
-                  className={`px-2 py-0.5 sm:py-1 text-[8.5px] sm:text-[9.5px] md:text-[10.5px] font-bold tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#38bdf8] text-black shadow-[0_0_10px_rgba(56,189,248,0.6)] font-black'
-                      : 'bg-white/[0.05] text-[#94a3b8] hover:text-white hover:bg-white/[0.1] border border-white/[0.08]'
-                  }`}
-                  style={{ borderRadius: 0, outline: 'none' }}
-                >
-                  {d.dayFullName.slice(0, 3)} <span className="text-[7.5px] sm:text-[8.5px] opacity-80">({d.timeFormatted})</span>
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <span
+              className="text-xs sm:text-sm font-bold tracking-wider text-white/90 whitespace-nowrap"
+              style={{ fontFamily: "'Science Gothic', sans-serif" }}
+            >
+              {formatTime(activeDay?.totalMins || 0)} TOTAL
+            </span>
+
+            {/* Dedicated Square Cyber Close Button */}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-white/[0.06] hover:bg-[#38bdf8]/20 border border-white/20 hover:border-[#38bdf8] text-white/70 hover:text-[#38bdf8] transition-colors cursor-pointer shrink-0"
+              style={{ borderRadius: 0, outline: 'none' }}
+              title="Close (Esc)"
+              aria-label="Close telemetry modal"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="square"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* 8 Columns: Time on top -> Monolith Bar -> Category Name & 24h Window Below */}
-        <div className="diurnal-grid grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-3 items-end w-full pb-1">
-          {DIURNAL_CATEGORIES_24.map((cat, idx) => {
+        {/* 8 Columns: Time on top -> Monolith Bar -> Time-to-Time Window at Bottom */}
+        <div className="diurnal-grid grid grid-cols-8 gap-1.5 sm:gap-3 items-end w-full pb-1">
+          {DIURNAL_WINDOWS_24.map((cat, idx) => {
             const mins = activeDay?.phasesMins[idx] || 0;
             const heightPct =
               mins > 0 ? Math.max(16, Math.round((mins / maxPhaseMins) * 100)) : 6;
@@ -280,24 +240,33 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                 ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]'
                 : 'text-[#94a3b8]';
 
+            const bottomTextColor =
+              mins === 0
+                ? 'text-[#475569]'
+                : isPeak
+                ? 'text-[#38bdf8] font-bold'
+                : activeDay?.isToday
+                ? 'text-white/80 font-medium'
+                : 'text-[#64748b] font-medium';
+
             return (
               <div
                 key={cat.id}
-                className="flex flex-col items-center gap-1 sm:gap-2 cursor-default p-0.5 sm:p-1 transition-transform duration-200 hover:scale-[1.03]"
+                className="flex flex-col items-center gap-1.5 sm:gap-2.5 cursor-default p-0.5 sm:p-1 transition-transform duration-200 hover:scale-[1.03]"
                 style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-                title={`${cat.name}: ${formatTime(mins)} (${cat.window24})`}
+                title={`${cat.window24}: ${formatTime(mins)}`}
               >
-                {/* Time Count At Top of the Bar */}
+                {/* 1. Time Count At Top of the Bar */}
                 <span
-                  className={`text-[8px] sm:text-[9.5px] md:text-[11px] font-bold leading-none tracking-tight whitespace-nowrap transition-colors duration-150 ${textColor}`}
+                  className={`text-[8px] sm:text-[10px] md:text-[11.5px] font-bold leading-none tracking-tight whitespace-nowrap transition-colors duration-150 ${textColor}`}
                   style={{ fontFamily: "'Science Gothic', sans-serif" }}
                 >
                   {formatTime(mins)}
                 </span>
 
-                {/* Vertical Monolith Bar (Responsive Height via media queries) */}
+                {/* 2. Vertical Monolith Bar */}
                 <div
-                  className="diurnal-bar-container w-3 sm:w-4 md:w-5.5 bg-white/[0.04] flex items-end relative overflow-hidden"
+                  className="diurnal-bar-container w-3.5 sm:w-4.5 md:w-6 bg-white/[0.04] flex items-end relative overflow-hidden"
                   style={{ borderRadius: 0, outline: 'none', border: 'none' }}
                 >
                   <div
@@ -311,23 +280,13 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                   />
                 </div>
 
-                {/* Category Name & 24h Window Underneath */}
-                <div className="flex flex-col items-center text-center gap-0.5 sm:gap-1 w-full">
-                  <span
-                    className={`text-[8px] sm:text-[9px] md:text-[10px] font-bold tracking-wider uppercase leading-tight ${
-                      isPeak ? 'text-[#38bdf8]' : 'text-white'
-                    }`}
-                    style={{ fontFamily: "'Science Gothic', sans-serif" }}
-                  >
-                    {cat.name}
-                  </span>
-                  <span
-                    className="text-[6.5px] sm:text-[7.5px] md:text-[8.5px] font-medium text-[#64748b] tracking-tight whitespace-nowrap"
-                    style={{ fontFamily: "'Science Gothic', sans-serif" }}
-                  >
-                    {cat.window24}
-                  </span>
-                </div>
+                {/* 3. Time to Time Window at Bottom of the Bar */}
+                <span
+                  className={`text-[7px] sm:text-[8.5px] md:text-[9.5px] tracking-tight whitespace-nowrap leading-none ${bottomTextColor}`}
+                  style={{ fontFamily: "'Science Gothic', sans-serif" }}
+                >
+                  {cat.window24}
+                </span>
               </div>
             );
           })}
@@ -399,32 +358,25 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
 
         @media (max-height: 520px) {
           .diurnal-bar-container {
-            height: 90px !important;
+            height: 95px !important;
           }
           .diurnal-modal-box {
-            padding: 8px 12px !important;
+            padding: 10px 16px !important;
           }
           .diurnal-header {
-            margin-bottom: 4px !important;
-            gap: 4px !important;
-          }
-        }
-
-        @media (orientation: landscape) and (max-height: 520px) {
-          .diurnal-grid {
-            grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+            margin-bottom: 8px !important;
           }
         }
 
         @media (min-height: 521px) and (max-height: 700px) {
           .diurnal-bar-container {
-            height: 150px !important;
+            height: 155px !important;
           }
           .diurnal-modal-box {
-            padding: 16px 20px !important;
+            padding: 16px 22px !important;
           }
           .diurnal-header {
-            margin-bottom: 12px !important;
+            margin-bottom: 14px !important;
           }
         }
 
