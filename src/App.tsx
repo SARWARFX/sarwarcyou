@@ -22,6 +22,7 @@ import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { CyberSplash } from './components/CyberSplash';
 import { BackgroundThumbnailCacheToast } from './components/common/BackgroundThumbnailCacheToast';
 import { NetworkStatusDialog } from './components/common/NetworkStatusDialog';
+import { BatteryStatusDialog } from './components/common/BatteryStatusDialog';
 import { CinematicBackdropCanvas } from './components/gate/CinematicBackdropCanvas';
 import { MonolithBarGate } from './components/gate/MonolithBarGate';
 import {
@@ -38,7 +39,7 @@ import {
 import type { StageMediaItem, SortOrder } from './types';
 import { isVideoExtension } from './utils/mediaTypeDetector';
 import { trackActivityEvent } from './utils/usageTelemetry';
-import { initKeepAwake, acquirePlayerWakeLock, releasePlayerWakeLock } from './utils/keepAwakeManager';
+import { initKeepAwake } from './utils/keepAwakeManager';
 import { addRecentMediaItem } from './utils/recentHistoryManager';
 import {
   parseUrlState,
@@ -205,25 +206,10 @@ function App() {
   // Organize raw catalog data into structured discovery feed
   const rawFeed = useMemo(() => organizeVaultFeed(data, sortOrder), [data, sortOrder]);
 
-  // Restore Keep Screen On preferences and attach wake lock handlers
+  // Initialize wake lock manager
   useEffect(() => {
     initKeepAwake();
   }, []);
-
-  // Automated Screen Wake Lock: Active when any player is open, released on pages
-  useEffect(() => {
-    const isAnyPlayerOpen =
-      theaterState.isOpen ||
-      shortsState.isOpen ||
-      lightboxState.isOpen ||
-      viewAllState.isOpen;
-
-    if (isAnyPlayerOpen) {
-      acquirePlayerWakeLock().catch(() => {});
-    } else {
-      releasePlayerWakeLock().catch(() => {});
-    }
-  }, [theaterState.isOpen, shortsState.isOpen, lightboxState.isOpen, viewAllState.isOpen]);
 
   // Universal Media Player / Lightbox Dispatcher with strict mutual exclusivity
   const openMediaItem = useCallback(
@@ -665,6 +651,7 @@ function App() {
       <CyberSplash onComplete={() => setIsSplashComplete(true)} />
       <BackgroundThumbnailCacheToast items={rawFeed?.allMediaPool} enabled={isSplashComplete} />
       <NetworkStatusDialog />
+      <BatteryStatusDialog />
 
       {/* Universal Animated Graphical Background (Entire Website) */}
       <CinematicBackdropCanvas isPaused={theaterState.isOpen} />

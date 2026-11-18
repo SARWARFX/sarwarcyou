@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import {
   Loader2,
   Check,
+  Sun,
+  SunDim,
 } from 'lucide-react';
+import { acquirePlayerWakeLock, releasePlayerWakeLock } from '../utils/keepAwakeManager';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
 import { getMediaUrl } from '../utils/imageUrlResolver';
 import { isVideoExtension } from '../utils/mediaTypeDetector';
@@ -65,6 +68,23 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const [showControls, setShowControls] = useState<boolean>(false);
+  const [keepScreenOn, setKeepScreenOn] = useState<boolean>(false);
+
+  const handleToggleKeepScreenOn = useCallback(() => {
+    hapticMedium();
+    setKeepScreenOn((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && keepScreenOn) {
+      acquirePlayerWakeLock().catch(() => {});
+    } else {
+      releasePlayerWakeLock().catch(() => {});
+    }
+    return () => {
+      releasePlayerWakeLock().catch(() => {});
+    };
+  }, [isOpen, keepScreenOn]);
 
   useEffect(() => {
     if (isOpen) {
@@ -72,8 +92,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         clearTimeout(singleTapTimerRef.current);
         singleTapTimerRef.current = null;
       }
-      // Tray does not view upon opening photo; only appears on single tap on image
-      setShowControls(false);
+      // On desktop/laptop: show controls by default so user sees buttons immediately
+      // On mobile: tray toggles on single tap on photo
+      setShowControls(typeof window !== 'undefined' && window.innerWidth >= 1024);
     }
   }, [isOpen, activeIdx]);
 
@@ -764,6 +785,77 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
+      {/* Zoom Slider Control at Bottom-Right Corner (Slightly Above Logo) */}
+      <div
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className={`fixed bottom-14 right-4 sm:bottom-16 sm:right-6 z-50 flex items-center gap-2 px-3 py-1.5 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 select-none ${
+          showControls ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        {/* Zoom Out Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setZoomLevel(scaleRef.current - 0.35);
+          }}
+          disabled={scale <= 1.02}
+          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white"
+          title="Zoom Out (−)"
+          aria-label="Zoom out"
+        >
+          <LaserZoomOutIcon size={16} />
+        </button>
+
+        {/* Range Slider */}
+        <input
+          type="range"
+          min="1"
+          max="4.5"
+          step="0.05"
+          value={scale}
+          onChange={(e) => {
+            e.stopPropagation();
+            setZoomLevel(parseFloat(e.target.value), false);
+          }}
+          className="w-20 sm:w-28 h-1 bg-white/20 accent-[#00f0ff] cursor-pointer"
+          title={`Zoom: ${Math.round(scale * 100)}%`}
+          aria-label="Image zoom slider"
+        />
+
+        {/* Zoom In Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setZoomLevel(scaleRef.current + 0.35);
+          }}
+          disabled={scale >= 4.5}
+          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white"
+          title="Zoom In (+)"
+          aria-label="Zoom in"
+        >
+          <LaserZoomInIcon size={16} />
+        </button>
+
+        {/* Zoom Percentage / 100% Reset Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            resetZoom();
+          }}
+          className={`px-1.5 py-0.5 rounded-none text-[11px] font-mono font-bold cursor-pointer border-0 transition-colors ${
+            scale > 1.05 ? 'text-[#00f0ff] hover:text-white' : 'text-slate-400 hover:text-white'
+          }`}
+          title="Reset Zoom (Fit to Screen)"
+          aria-label="Reset zoom"
+        >
+          {Math.round(scale * 100)}%
+        </button>
+      </div>
+
       {/* Universal Bottom-Left Image Viewer Control Tray (Globally for Any Screen) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
@@ -816,50 +908,26 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           </button>
         )}
 
-        {/* Zoom In Button */}
+        {/* Screen Keep-Awake / Device Lock Toggle Button (Placed in Control Tray) */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setZoomLevel(scaleRef.current + 0.35);
+            handleToggleKeepScreenOn();
           }}
-          disabled={scale >= 4.5}
-          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-300 hover:text-white"
-          title="Zoom In (+)"
-          aria-label="Zoom in"
-        >
-          <LaserZoomInIcon size={20} />
-        </button>
-
-        {/* Zoom Percentage / 100% Reset Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            resetZoom();
-          }}
-          className={`reticle-btn px-2 h-9 rounded-none text-xs font-mono font-bold cursor-pointer border-0 ${
-            scale > 1.05 ? 'text-white drop-shadow-[0_0_8px_#ffffff]' : 'text-slate-400 hover:text-white'
+          className={`reticle-btn w-9 h-9 cursor-pointer border-0 ${
+            keepScreenOn
+              ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]'
+              : 'text-slate-400 hover:text-white'
           }`}
-          title="Reset Zoom (Fit to Screen)"
-          aria-label="Reset zoom"
+          title={
+            keepScreenOn
+              ? 'Screen: Stay On (Device lock disabled)'
+              : 'Screen: Auto-Lock with Device (Click to keep screen on)'
+          }
+          aria-label={keepScreenOn ? 'Screen lock disabled' : 'Screen lock enabled'}
         >
-          {Math.round(scale * 100)}%
-        </button>
-
-        {/* Zoom Out Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setZoomLevel(scaleRef.current - 0.35);
-          }}
-          disabled={scale <= 1.02}
-          className="reticle-btn w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-300 hover:text-white"
-          title="Zoom Out (−)"
-          aria-label="Zoom out"
-        >
-          <LaserZoomOutIcon size={20} />
+          {keepScreenOn ? <Sun className="w-5 h-5 text-amber-300" /> : <SunDim className="w-5 h-5" />}
         </button>
 
         {/* Download Button */}

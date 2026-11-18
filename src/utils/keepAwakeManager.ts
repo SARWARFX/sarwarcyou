@@ -118,30 +118,13 @@ export async function releasePlayerWakeLock(): Promise<void> {
 }
 
 /**
- * Initialize on web startup (restores user preference from localStorage)
+ * Initialize on web startup (ensures default clean state where device lock is permitted)
  */
 export function initKeepAwake(): void {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'true') {
-      isKeepAwakeEnabled = true;
-      acquireLock().catch(() => {});
-      notifyListeners();
-    } else {
-      isKeepAwakeEnabled = false;
-      releaseLock().catch(() => {});
-      notifyListeners();
-    }
-  } catch {
-    releaseLock().catch(() => {});
-  }
-
-  // Handle re-acquiring lock when tab/window comes back to foreground
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && isKeepAwakeEnabled) {
-        acquireLock().catch(() => {});
-      }
-    });
-  }
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+  isKeepAwakeEnabled = false;
+  releaseLock().catch(() => {});
+  notifyListeners();
 }

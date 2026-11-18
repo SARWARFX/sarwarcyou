@@ -18,10 +18,13 @@ import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
-import { hapticLight } from '../utils/hapticsManager';
+import { hapticLight, hapticWarning } from '../utils/hapticsManager';
 import { getGlobalAudioMuted } from '../utils/audioMuteManager';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
+import { acquirePlayerWakeLock, releasePlayerWakeLock } from '../utils/keepAwakeManager';
+import { subscribeBatteryState } from '../utils/batteryManager';
+import type { BatteryState } from '../utils/batteryManager';
 import {
   LaserCloseIcon,
   LaserDownloadIcon,
@@ -86,6 +89,29 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(false);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
+
+  // Hardware Battery Safety Brake (< 5% on battery)
+  const [batteryState, setBatteryState] = useState<BatteryState>({
+    isSupported: false,
+    level: 100,
+    charging: true,
+  });
+
+  useEffect(() => {
+    return subscribeBatteryState((state) => {
+      setBatteryState(state);
+      if (state.isSupported && !state.charging && state.level < 5) {
+        const v = activeVideoElRef.current || videoRef.current;
+        if (v && !v.paused) {
+          isPausedByUserRef.current = true;
+          v.pause();
+          setIsPlaying(false);
+        }
+      }
+    });
+  }, []);
+
+  const isBatteryBrakeActive = batteryState.isSupported && !batteryState.charging && batteryState.level < 5;
 
   // Desktop, Tablet, and Mobile Screen Detection
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
@@ -200,6 +226,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const gestureFadeTimeoutRef = useRef<number | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const activeVideoElRef = useRef<HTMLVideoElement | null>(null);
+  const isPausedByUserRef = useRef<boolean>(false);
   const sliderPreviewVideoRef = useRef<HTMLVideoElement>(null);
   const gesturePreviewVideoRef = useRef<HTMLVideoElement>(null);
   const wasPlayingBeforeGesture = useRef(false);
@@ -387,17 +415,24 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // Play / Pause Toggle
   const togglePlay = useCallback(() => {
-    if (!videoRef.current) return;
+    if (isBatteryBrakeActive) {
+      hapticWarning();
+      return;
+    }
+    const v = activeVideoElRef.current || videoRef.current;
+    if (!v) return;
     hapticLight();
-    if (videoRef.current.paused) {
-      videoRef.current.play().catch(() => {});
+    if (v.paused) {
+      isPausedByUserRef.current = false;
+      v.play().catch(() => {});
       setIsPlaying(true);
     } else {
-      videoRef.current.pause();
+      isPausedByUserRef.current = true;
+      v.pause();
       setIsPlaying(false);
     }
     resetHudTimer();
-  }, [resetHudTimer]);
+  }, [resetHudTimer, isBatteryBrakeActive]);
 
   // Samsung One UI Style Horizontal Scrubbing Gesture Handlers
   const handleStagePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -751,58 +786,19 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     };
   }, []);
 
-  // Android Native Hardware Back Button handler
-  useBackButton(
-    useCallback(() => {
-      // 1. If currently in fullscreen, exit fullscreen and restore portrait
-      if (document.fullscreenElement) {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(() => {});
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen();
-        }
-        unlockOrientation();
-        return true;
-      }
-
-      // 2. If sidebar drawer is open, close drawer first
-      if (showSidebar) {
-        setShowSidebar(false);
-        return true;
-      }
-
-      // 3. Close the video player
-      unlockOrientation();
-      onClose();
-      return true;
-    }, [showSidebar, onClose]),
-    isOpen
-  );
-
-  // Handle Mute Toggle
-  const handleToggleMute = useCallback(() => {
-    hapticLight();
-    setIsMuted((prev) => {
-      const next = !prev;
-      if (videoRef.current) {
-        videoRef.current.muted = next;
-      }
-      return next;
-    });
-    resetHudTimer();
-  }, [resetHudTimer]);
-
   // Strict background scroll-lock
   useLockBodyScroll(isOpen);
 
-  // Instantly release GPU RAM and video decoders on mobile
+  // Instantly release GPU RAM and video decoders on mobile & desktop
   const releaseVideoResources = useCallback(() => {
-    if (videoRef.current) {
+    const v = activeVideoElRef.current || videoRef.current;
+    if (v) {
       try {
-        videoRef.current.pause();
-        videoRef.current.src = '';
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
+        v.pause();
+        v.currentTime = 0;
+        v.src = '';
+        v.removeAttribute('src');
+        v.load();
       } catch {
         // ignore
       }
@@ -827,9 +823,11 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         // ignore
       }
     }
+    releasePlayerWakeLock().catch(() => {});
   }, []);
 
   const handleClose = useCallback(() => {
+    isPausedByUserRef.current = true;
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
@@ -841,6 +839,60 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     releaseVideoResources();
     onClose();
   }, [onClose, releaseVideoResources]);
+
+  // Android Native Hardware Back Button handler
+  useBackButton(
+    useCallback(() => {
+      // 1. If currently in fullscreen, exit fullscreen and restore portrait
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+        unlockOrientation();
+        return true;
+      }
+
+      // 2. If sidebar drawer is open, close drawer first
+      if (showSidebar) {
+        setShowSidebar(false);
+        return true;
+      }
+
+      // 3. Close the video player
+      unlockOrientation();
+      handleClose();
+      return true;
+    }, [showSidebar, handleClose]),
+    isOpen
+  );
+
+  // Handle Mute Toggle
+  const handleToggleMute = useCallback(() => {
+    hapticLight();
+    setIsMuted((prev) => {
+      const next = !prev;
+      const v = activeVideoElRef.current || videoRef.current;
+      if (v) {
+        v.muted = next;
+      }
+      return next;
+    });
+    resetHudTimer();
+  }, [resetHudTimer]);
+
+  // Device Screen Lock Rule: Screen stays unlocked ONLY when video is actively playing
+  useEffect(() => {
+    if (isOpen && isPlaying) {
+      acquirePlayerWakeLock().catch(() => {});
+    } else {
+      releasePlayerWakeLock().catch(() => {});
+    }
+    return () => {
+      releasePlayerWakeLock().catch(() => {});
+    };
+  }, [isOpen, isPlaying]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1128,7 +1180,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       onClick={(e) => {
         resetHudTimer();
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
       className="fixed inset-0 z-50 bg-[#020408] text-white overflow-hidden h-[100dvh] w-full max-w-full select-none font-sans touch-none touch-action-none overscroll-contain animate-keynote-modal"
@@ -1295,7 +1347,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         }
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            onClose();
+            handleClose();
           }
         }}
       >
@@ -1305,7 +1357,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             className="w-full flex-1 cursor-pointer min-h-[40px] z-10"
             onClick={(e) => {
               e.stopPropagation();
-              onClose();
+              handleClose();
             }}
             title="Tap empty space to close"
           />
@@ -1342,7 +1394,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             onTouchCancel={handleStageTouchEnd}
           >
             <video
-              ref={videoRef}
+              ref={(el) => {
+                (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+                activeVideoElRef.current = el;
+              }}
               src={streamUrl}
               autoPlay
               preload="auto"
@@ -1353,19 +1408,25 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 isDesktop ? 'rounded-none' : ''
               } ${fitMode === 'cover' ? 'object-cover' : 'object-contain'}`}
               onCanPlay={(e) => {
-              const v = e.currentTarget;
-              try {
-                v.defaultPlaybackRate = playbackSpeed;
-                v.playbackRate = playbackSpeed;
-                v.preservesPitch = true;
-                (v as any).webkitPreservesPitch = true;
-                (v as any).mozPreservesPitch = true;
-              } catch (_) {}
-              const playPromise = v.play();
-              if (playPromise !== undefined) {
-                playPromise.then(() => setIsPlaying(true)).catch(() => {});
-              }
-            }}
+                const v = e.currentTarget;
+                try {
+                  v.defaultPlaybackRate = playbackSpeed;
+                  v.playbackRate = playbackSpeed;
+                  v.preservesPitch = true;
+                  (v as any).webkitPreservesPitch = true;
+                  (v as any).mozPreservesPitch = true;
+                } catch (_) {}
+                // Respect user pause & battery safety brake: NEVER auto-resume if paused or critical battery
+                if (isPlaying && !isPausedByUserRef.current && !isBatteryBrakeActive && v.paused) {
+                  const playPromise = v.play();
+                  if (playPromise !== undefined) {
+                    playPromise.then(() => setIsPlaying(true)).catch(() => {});
+                  }
+                }
+              }}
+              onPause={() => {
+                setIsPlaying(false);
+              }}
             onTimeUpdate={() => {
               if (videoRef.current) {
                 const now = videoRef.current.currentTime;
@@ -1468,6 +1529,35 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             }}
           />
 
+          {/* In-Stage Safety Brake Modal Banner for < 5% Battery on Battery Power */}
+          {isBatteryBrakeActive && (
+            <div
+              className="absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl pointer-events-auto select-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="relative w-full max-w-sm bg-[#090c12] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.95)] border border-[#ef4444]/40 flex flex-col gap-3 text-center animate-fade-in"
+                style={{ borderRadius: 0, outline: 'none' }}
+              >
+                <div className="inline-flex items-center justify-center gap-2 text-xs font-mono font-bold text-[#ef4444] tracking-wider uppercase">
+                  <span className="w-2 h-2 bg-[#ef4444] animate-ping inline-block" />
+                  // SYSTEM SAFETY BRAKE ENGAGED
+                </div>
+                <h3 className="text-sm font-bold font-mono text-white uppercase">Critical Battery ({batteryState.level}%)</h3>
+                <p className="text-xs text-neutral-300 font-sans leading-relaxed">
+                  Device power is below 5% on battery. High-bitrate media decoding is paused to prevent sudden system crash and data corruption.
+                </p>
+                <div className="bg-[#030406] p-2 text-[11px] font-mono text-neutral-400 flex items-center justify-between border border-white/5">
+                  <span className="text-[#ef4444] font-bold">BATTERY // {batteryState.level}%</span>
+                  <span className="text-neutral-500">AC OFFLINE</span>
+                </div>
+                <div className="text-[11px] font-mono text-[#f59e0b] pt-1">
+                  Connect charger to resume playback
+                </div>
+              </div>
+            </div>
+          )}
+
           {hasPlaybackError && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-black/85 backdrop-blur-md">
               <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mb-3 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
@@ -1517,7 +1607,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             className="w-full flex-1 cursor-pointer min-h-[40px] z-10"
             onClick={(e) => {
               e.stopPropagation();
-              onClose();
+              handleClose();
             }}
             title="Tap empty space to close"
           />
@@ -1597,7 +1687,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onClose();
+              handleClose();
             }}
             className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
             title="Close (Esc)"
@@ -1871,7 +1961,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onClose();
+                handleClose();
               }}
               className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
               title="Close (Esc)"

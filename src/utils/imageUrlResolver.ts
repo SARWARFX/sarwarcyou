@@ -480,14 +480,4 @@ export function getImageUrl(
   return getThumbnailUrl(itemOrPath);
 }
 
-export function getBackupDriveUrl(fileId: string): string {
-  return `https://drive.google.com/uc?export=view&id=${fileId}`;
-}
 
-/**
- * Deprecated fallback returning empty string.
- * Strictly guarantees zero external stock/dummy photo leakage.
- */
-export function getUnsplashFallback(_index = 0): string {
-  return '';
-}

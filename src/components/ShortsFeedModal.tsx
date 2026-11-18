@@ -18,6 +18,9 @@ import {
   LaserPauseIcon,
 } from './brand/LaserIcons';
 import { getGlobalAudioMuted } from '../utils/audioMuteManager';
+import { acquirePlayerWakeLock, releasePlayerWakeLock } from '../utils/keepAwakeManager';
+import { subscribeBatteryState } from '../utils/batteryManager';
+import type { BatteryState } from '../utils/batteryManager';
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds < 0) return '0:00';
@@ -57,6 +60,29 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [duration, setDuration] = useState(0);
   const [is2XSpeed, setIs2XSpeed] = useState(false);
   const [likeHeart, setLikeHeart] = useState<{ id: number } | null>(null);
+
+  // Hardware Battery Safety Brake (< 5% on battery)
+  const [batteryState, setBatteryState] = useState<BatteryState>({
+    isSupported: false,
+    level: 100,
+    charging: true,
+  });
+
+  useEffect(() => {
+    return subscribeBatteryState((state) => {
+      setBatteryState(state);
+      if (state.isSupported && !state.charging && state.level < 5) {
+        videoRefs.current.forEach((v) => {
+          if (v && !v.paused) {
+            v.pause();
+          }
+        });
+        setIsPlaying(false);
+      }
+    });
+  }, []);
+
+  const isBatteryBrakeActive = batteryState.isSupported && !batteryState.charging && batteryState.level < 5;
 
   // Seamless Zero-Gap Stream items list of other shorts (infinite loop at 260s Ultra Calm speed)
   const streamItems = useMemo(() => {
@@ -173,6 +199,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   // Screen tap handler: toggles play/pause with tactile haptics
   const handleScreenTap = useCallback((idx: number) => {
+    if (isBatteryBrakeActive) {
+      return;
+    }
     const v = videoRefs.current[idx] || videoRefs.current[activeIndex];
     if (!v) return;
 
@@ -192,7 +221,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       setIsPlaying(false);
       hapticLight();
     }
-  }, [activeIndex]);
+  }, [activeIndex, isBatteryBrakeActive]);
 
   // Video Pointer Engine: Hold-to-2x Speed, Swipe Navigation & Instant Tap Detection
   const handleVideoPointerDown = useCallback((e: React.PointerEvent, idx: number) => {
@@ -364,6 +393,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
 
   const togglePlay = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (isBatteryBrakeActive) {
+      return;
+    }
     hapticLight();
     const v = videoRefs.current[activeIndex];
     if (!v) return;
@@ -374,7 +406,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       v.pause();
       setIsPlaying(false);
     }
-  }, [activeIndex]);
+  }, [activeIndex, isBatteryBrakeActive]);
 
   // Vertical timeline scrub handling for outside portrait short on widescreen
   const handleVerticalScrubSeek = useCallback((clientY: number, target: HTMLElement, idx: number) => {
@@ -636,6 +668,36 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     }
   }, [activeIndex, isMuted]);
 
+  // Device Screen Lock Rule: Screen stays unlocked ONLY when short is actively playing
+  useEffect(() => {
+    if (isOpen && isPlaying) {
+      acquirePlayerWakeLock().catch(() => {});
+    } else {
+      releasePlayerWakeLock().catch(() => {});
+    }
+    return () => {
+      releasePlayerWakeLock().catch(() => {});
+    };
+  }, [isOpen, isPlaying]);
+
+  // Teardown all video decoders on unmount
+  useEffect(() => {
+    return () => {
+      videoRefs.current.forEach((v) => {
+        if (v) {
+          try {
+            v.pause();
+            v.currentTime = 0;
+            v.src = '';
+            v.removeAttribute('src');
+            v.load();
+          } catch {}
+        }
+      });
+      releasePlayerWakeLock().catch(() => {});
+    };
+  }, []);
+
   // Render single video card (used for desktop center stage & mobile scroll container)
   const renderVideoCard = (item: StageMediaItem, idx: number, isActive: boolean) => {
     if (!item) return null;
@@ -777,6 +839,35 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-out fade-out zoom-out duration-700">
                 <div className="w-24 h-24 rounded-full bg-red-500/20 backdrop-blur-md flex items-center justify-center border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.6)]">
                   <Heart className="w-14 h-14 text-red-500 fill-red-500" />
+                </div>
+              </div>
+            )}
+
+            {/* In-Stage Safety Brake Modal Banner for < 5% Battery on Battery Power */}
+            {isBatteryBrakeActive && idx === activeIndex && (
+              <div
+                className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl pointer-events-auto select-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  className="relative w-full max-w-xs bg-[#090c12] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.95)] border border-[#ef4444]/40 flex flex-col gap-3 text-center animate-fade-in"
+                  style={{ borderRadius: 0, outline: 'none' }}
+                >
+                  <div className="inline-flex items-center justify-center gap-2 text-xs font-mono font-bold text-[#ef4444] tracking-wider uppercase">
+                    <span className="w-2 h-2 bg-[#ef4444] animate-ping inline-block" />
+                    // SYSTEM SAFETY BRAKE
+                  </div>
+                  <h3 className="text-sm font-bold font-mono text-white uppercase">Critical Battery ({batteryState.level}%)</h3>
+                  <p className="text-xs text-neutral-300 font-sans leading-relaxed">
+                    Device power is below 5% on battery. Shorts decoding is locked to prevent sudden system crash and data corruption.
+                  </p>
+                  <div className="bg-[#030406] p-2 text-[11px] font-mono text-neutral-400 flex items-center justify-between border border-white/5">
+                    <span className="text-[#ef4444] font-bold">BATTERY // {batteryState.level}%</span>
+                    <span className="text-neutral-500">AC OFFLINE</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-[#f59e0b] pt-1">
+                    Connect charger to resume shorts
+                  </div>
                 </div>
               </div>
             )}
