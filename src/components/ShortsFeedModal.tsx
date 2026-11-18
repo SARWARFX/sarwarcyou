@@ -469,6 +469,117 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     );
   }, [duration, currentTime, handleScrubPointerDown, handleScrubPointerMove, handleScrubPointerUp]);
 
+  // Vertical timeline scrub handling for outside portrait short on widescreen
+  const handleVerticalScrubSeek = useCallback((clientY: number, target: HTMLElement, idx: number) => {
+    const video = videoRefs.current[idx];
+    if (!video || !duration) return;
+    const rect = target.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    // Top-to-bottom timeline: top = 0:00 (start), bottom = duration (end)
+    const pct = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+    const seekTime = pct * duration;
+    video.currentTime = seekTime;
+    setCurrentTime(seekTime);
+  }, [duration]);
+
+  const handleVerticalScrubPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, idx: number) => {
+    e.stopPropagation();
+    isScrubbingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    handleVerticalScrubSeek(e.clientY, e.currentTarget, idx);
+  }, [handleVerticalScrubSeek]);
+
+  const handleVerticalScrubPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>, idx: number) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    handleVerticalScrubSeek(e.clientY, e.currentTarget, idx);
+  }, [handleVerticalScrubSeek]);
+
+  const handleVerticalScrubPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    isScrubbingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    hapticLight();
+  }, []);
+
+  const renderVerticalScrubberBar = useCallback((idx: number) => {
+    const progressPct = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+    return (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="group/vseek relative h-full flex flex-col items-center justify-between cursor-pointer select-none py-2"
+        title="Seek playback (Drag to scrub)"
+      >
+        {/* Top Bound Time Label */}
+        <span
+          className="text-[10px] font-mono text-white/50 tracking-wider font-bold select-none shrink-0"
+          style={{ textShadow: '0 1px 4px #000' }}
+        >
+          0:00
+        </span>
+
+        {/* Vertical Track Hitbox */}
+        <div
+          onPointerDown={(e) => handleVerticalScrubPointerDown(e, idx)}
+          onPointerMove={(e) => handleVerticalScrubPointerMove(e, idx)}
+          onPointerUp={handleVerticalScrubPointerUp}
+          onPointerCancel={handleVerticalScrubPointerUp}
+          className="relative w-8 flex-1 flex items-center justify-center cursor-pointer my-2 overflow-visible"
+        >
+          {/* Visual Track Rail: Slim 3px expanding to 5px on hover */}
+          <div className="relative w-[3px] group-hover/vseek:w-[5px] h-full bg-white/20 transition-all duration-150 flex flex-col justify-start overflow-visible">
+            {/* Active Progress Fill: Pure Stark White Style with Cyber Glow */}
+            <div
+              className="absolute top-0 left-0 right-0 transition-all"
+              style={{
+                height: `${progressPct}%`,
+                background: '#ffffff',
+                boxShadow: '0 0 10px rgba(255, 255, 255, 0.85)',
+              }}
+            />
+
+            {/* Scrubber Handle & Live Timestamp Badge */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-none transition-transform duration-75 group-hover/vseek:scale-110 z-20"
+              style={{
+                top: `${progressPct}%`,
+              }}
+            >
+              {/* Distinct Square Reticle Scrubber Dot */}
+              <div
+                className="w-3.5 h-3.5 bg-white border border-black/40 shrink-0"
+                style={{
+                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)',
+                  borderRadius: 0,
+                  outline: 'none',
+                }}
+              />
+
+              {/* Live Current Time Badge beside the Scrubber Dot */}
+              <span
+                className="ml-2.5 px-1.5 py-0.5 bg-[#05070c]/95 border border-white/30 text-[10px] font-mono font-bold text-white shadow-[0_0_10px_rgba(0,0,0,0.9)] whitespace-nowrap"
+                style={{ borderRadius: 0, outline: 'none' }}
+              >
+                {formatTime(currentTime)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Bound Duration Label */}
+        <span
+          className="text-[10px] font-mono text-white/50 tracking-wider font-bold select-none shrink-0"
+          style={{ textShadow: '0 1px 4px #000' }}
+        >
+          {formatTime(duration)}
+        </span>
+      </div>
+    );
+  }, [duration, currentTime, handleVerticalScrubPointerDown, handleVerticalScrubPointerMove, handleVerticalScrubPointerUp]);
+
   // Break the infinite fallback loop (Single-shot fallback per itemKey)
   const handleVideoError = useCallback((idx: number, item: StageMediaItem, currentSrc: string) => {
     const itemKey = item.id || item.url || item.name || String(idx);
@@ -747,8 +858,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               </div>
             )}
 
-            {/* Bottom glowing scrub timeline for 9:16 Portrait Shorts Mode */}
-            {!isLandscape && idx === activeIndex && duration > 0 && (
+            {/* Bottom glowing scrub timeline for 9:16 Portrait Shorts Mode (ONLY on Portrait Screens) */}
+            {!isLandscape && !isWideScreen && idx === activeIndex && duration > 0 && (
               <div
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => handleScrubPointerDown(e, idx)}
@@ -816,23 +927,16 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       }}
       className="fixed inset-0 z-[9999] bg-black md:bg-neutral-950/70 md:backdrop-blur-md flex flex-col items-center select-none overflow-hidden font-serif animate-backdrop-fade cursor-pointer"
     >
-      {/* Universal Shorts Player Control Tray (Adaptive Center on 16:9, Bottom-Left on 9:16) */}
+      {/* Universal Shorts Player Control Tray (Fixed Bottom-Left for both Landscape and Portrait) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
         style={{
-          left: isDesktop && landscapeMap[activeIndex] ? '50%' : undefined,
-          transform: isDesktop && landscapeMap[activeIndex]
-            ? `translateX(-50%) translateY(${isTrayVisible ? '0px' : '16px'})`
-            : `translateY(${isTrayVisible ? '0px' : '16px'})`,
+          transform: `translateY(${isTrayVisible ? '0px' : '16px'})`,
         }}
-        className={`fixed ${
-          isDesktop && landscapeMap[activeIndex]
-            ? 'bottom-5 sm:bottom-6'
-            : 'bottom-4 left-4 sm:bottom-6 sm:left-6'
-        } z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
           isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
@@ -847,8 +951,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
           {isPlaying ? <LaserPauseIcon size={24} /> : <LaserPlayIcon size={24} />}
         </button>
 
-        {/* Current Time / Duration Counter (displayed in 16:9 video player mode) */}
-        {landscapeMap[activeIndex] && duration > 0 && (
+        {/* Current Time / Duration Counter (Consistently visible whenever media is loaded) */}
+        {duration > 0 && (
           <span
             className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
             style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
@@ -1017,9 +1121,21 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
               </div>
             </div>
           ) : (
-            /* 9:16 Portrait Shorts Mode (Centered 100vh Vertical Reel) */
-            <div className="pointer-events-auto h-screen aspect-[9/16] flex items-center justify-center transition-all duration-300">
+            /* 9:16 Portrait Shorts Mode (Centered Vertical Reel with Outside Right Time Slider on Widescreen) */
+            <div className="pointer-events-auto relative h-screen max-h-screen aspect-[9/16] flex items-center justify-center transition-all duration-300">
               {renderVideoCard(shorts[activeIndex], activeIndex, true)}
+
+              {/* Outside Vertical Time Slider (Positioned Outside on the Right Side of the Portrait Short on Wide Screen) */}
+              {duration > 0 && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className={`absolute left-[calc(100%+14px)] sm:left-[calc(100%+20px)] top-1/2 -translate-y-1/2 h-[68vh] max-h-[640px] z-30 flex items-center select-none transition-all duration-300 ${
+                    isTrayVisible ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-3 pointer-events-none'
+                  }`}
+                >
+                  {renderVerticalScrubberBar(activeIndex)}
+                </div>
+              )}
             </div>
           )}
           {/* Preload adjacent videos for zero-latency instant transitions */}
