@@ -170,8 +170,8 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   if (selected10.length === 0) return null;
 
   const readyCount = readyIndices.size;
-  const progressPercent =
-    targetThreshold > 0 ? Math.min(100, Math.round((readyCount / targetThreshold) * 100)) : 0;
+  const rawPct = targetThreshold > 0 ? (readyCount / targetThreshold) * 100 : 0;
+  const progressPercent = Math.min(100, Math.max(15, Math.round(rawPct)));
 
   return (
     <div
@@ -182,21 +182,21 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       {/* High-Tech Cybernetic Loading Screen */}
       {!isPlaybackReady && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none">
-          <div className="flex flex-col items-center gap-2 px-6 py-3.5 bg-[#07090e]/95 border border-[#38bdf8]/40 shadow-[0_0_30px_rgba(0,0,0,0.85)] backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="w-2.5 h-2.5 bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] animate-pulse" />
+          <div className="flex flex-col items-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-[#07090e]/95 border border-[#38bdf8]/40 shadow-[0_0_40px_rgba(0,0,0,0.9),0_0_20px_rgba(56,189,248,0.2)] backdrop-blur-md">
+            <div className="flex items-center gap-3.5">
+              <div className="w-3 h-3 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
               <span
-                className="text-xs sm:text-sm font-bold tracking-[0.18em] uppercase text-white"
+                className="text-base sm:text-lg md:text-xl font-bold tracking-[0.16em] uppercase text-white whitespace-nowrap"
                 style={{ fontFamily: "'Science Gothic', sans-serif" }}
               >
-                LOADING MEDIA
+                <span className="text-[#38bdf8]">LOADING MEDIA //</span> PLEASE WAIT
               </span>
             </div>
 
-            {/* Tactical 2px progress track */}
-            <div className="w-full h-[2px] bg-[#38bdf8]/20 overflow-hidden mt-1 relative">
+            {/* Tactical progress track */}
+            <div className="w-full h-[3px] bg-[#38bdf8]/20 overflow-hidden mt-1 relative min-w-[280px] sm:min-w-[340px] md:min-w-[400px]">
               <div
-                className="h-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-300 ease-out"
+                className="h-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] transition-all duration-300 ease-out"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
