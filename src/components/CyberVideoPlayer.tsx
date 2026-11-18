@@ -21,6 +21,7 @@ import { useBackButton } from '../utils/backButtonManager';
 import { hapticLight } from '../utils/hapticsManager';
 import { getGlobalAudioMuted } from '../utils/audioMuteManager';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
+import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import {
   LaserCloseIcon,
   LaserDownloadIcon,
@@ -123,6 +124,15 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
+
+  // Synchronize browser URL to active video
+  useEffect(() => {
+    if (!isOpen || !item) return;
+    const shortId = getMediaShortId(item);
+    if (shortId) {
+      updateBrowserUrl('/clips/' + shortId, true);
+    }
+  }, [isOpen, item]);
 
   // Picture-in-Picture State
   const [isPiPSupported] = useState(() => typeof document !== 'undefined' && Boolean((document as any).pictureInPictureEnabled));

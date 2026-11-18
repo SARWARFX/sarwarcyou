@@ -299,6 +299,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   }, []);
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const launchMatchedItemRef = useRef<(item: StageMediaItem) => void>(() => {});
+
   useEffect(() => {
     const handlePopState = () => {
       const parsed = parseAppPathname();
@@ -311,6 +315,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         return;
       }
       setShowTelemetry(false);
+
+      if (parsed.shortId && itemsRef.current && itemsRef.current.length > 0) {
+        const matched = findMediaByShortId(itemsRef.current, parsed.shortId);
+        if (matched) {
+          launchMatchedItemRef.current(matched.item);
+          return;
+        }
+      }
+
       setShuffleTrigger((prev) => prev + 1);
       if (parsed.tab === 'PHOTOGRAPHY') {
         setPhotosSubfolder('ALL');
@@ -343,56 +356,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
-
-  // Deep Link Synchronizer on load
-  const hasAutoLaunchedRef = useRef(false);
-  useEffect(() => {
-    if (hasAutoLaunchedRef.current || !items || items.length === 0) return;
-
-    if (initialRoute.shortId) {
-      hasAutoLaunchedRef.current = true;
-      const matched = findMediaByShortId(items, initialRoute.shortId);
-      if (matched) {
-        const item = matched.item;
-        const isPhoto =
-          item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
-        const isShort =
-          initialRoute.tab === 'SHORTS' ||
-          item.mediaType === 'short' ||
-          item.path?.toLowerCase().includes('short') ||
-          item.url?.toLowerCase().includes('short');
-
-        if (isPhoto) {
-          switchTab(1);
-          onOpenPhoto(item, [item], 0);
-        } else if (isShort) {
-          switchTab(2);
-          const allShorts = items.filter(
-            (i) =>
-              i.mediaType === 'short' ||
-              i.path?.toLowerCase().includes('short') ||
-              i.url?.toLowerCase().includes('short')
-          );
-          const playlist = allShorts.length > 0 ? allShorts : [item];
-          const targetIdx = playlist.findIndex(
-            (s) => s.id === item.id || s.name === item.name || s.path === item.path || s.url === item.url
-          );
-          onOpenShort(item, playlist, targetIdx >= 0 ? targetIdx : 0, 'Shorts');
-        } else {
-          switchTab(3);
-          onOpenVideo(item, [item]);
-        }
-      } else {
-        setNotFoundInfo({ isOpen: true, path: window.location.pathname, tab: initialRoute.tab });
-      }
-      return;
-    }
-
-    const parsed = parseAppPathname();
-    if (parsed.isNotFound) {
-      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
-    }
-  }, [items, initialRoute, onOpenPhoto, onOpenShort, onOpenVideo, switchTab]);
 
   // Catalog indexation by directory
   const rootMap = useMemo(() => {
@@ -581,6 +544,147 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     },
     [displayedTab, activeBandhobiList, activePhotosList, activeShortsList, activeClipsList, onOpenPhoto, onOpenShort, onOpenVideo]
   );
+
+  // Full folder playlist launcher for deep links and popstate navigation
+  const launchMatchedItem = useCallback(
+    (item: StageMediaItem) => {
+      const { root, subfolders } = getFolderSegments(item);
+      const isPhoto =
+        item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+      const isShort =
+        item.mediaType === 'short' ||
+        item.path?.toLowerCase().includes('short') ||
+        item.url?.toLowerCase().includes('short');
+
+      const findIdx = (list: StageMediaItem[]) => {
+        return list.findIndex(
+          (x) =>
+            (x.id && item.id && x.id === item.id) ||
+            (x.name && item.name && x.name === item.name) ||
+            (x.path && item.path && x.path === item.path) ||
+            (x.url && item.url && x.url === item.url)
+        );
+      };
+
+      const withItem = (list: StageMediaItem[]) => {
+        if (findIdx(list) >= 0) return list;
+        return [item, ...list];
+      };
+
+      if (root === 'Bandhobi') {
+        setTabIndex(4);
+        setDisplayedTab(4);
+        const subName = subfolders[0] || (isPhoto ? 'Photographs' : isShort ? 'Shorts' : 'Video Clips');
+        setBandhobiSubfolder(subName);
+        setDisplayedBandhobiSub(subName);
+
+        if (subName === 'Photographs' || isPhoto) {
+          const node = rootMap.get('Bandhobi')?.subfolders.get('Photographs');
+          const rawFiles =
+            node && node.files.length > 0
+              ? sortMediaItemsDescending<StageMediaItem>(node.files)
+              : activeBandhobiList;
+          const playlist = withItem(rawFiles);
+          const idx = findIdx(playlist);
+          onOpenPhoto(item, playlist, idx >= 0 ? idx : 0);
+        } else if (subName === 'Shorts' || isShort) {
+          const node = rootMap.get('Bandhobi')?.subfolders.get('Shorts');
+          const rawFiles =
+            node && node.files.length > 0
+              ? sortMediaItemsDescending<StageMediaItem>(node.files)
+              : activeBandhobiList;
+          const playlist = withItem(rawFiles);
+          const idx = findIdx(playlist);
+          onOpenShort(item, playlist, idx >= 0 ? idx : 0, 'Bandhobi');
+        } else {
+          const node = rootMap.get('Bandhobi')?.subfolders.get('Video Clips');
+          const rawFiles =
+            node && node.files.length > 0
+              ? sortMediaItemsDescending<StageMediaItem>(node.files)
+              : activeBandhobiList;
+          const playlist = withItem(rawFiles);
+          onOpenVideo(item, playlist);
+        }
+        return;
+      }
+
+      if (root === 'Photographs' || isPhoto) {
+        setTabIndex(1);
+        setDisplayedTab(1);
+        const subName = subfolders[0] || 'ALL';
+        setPhotosSubfolder(subName);
+        setDisplayedPhotosSub(subName);
+
+        const node = rootMap.get('Photographs')?.subfolders.get(subName);
+        const rawFiles =
+          node && node.files.length > 0
+            ? sortMediaItemsDescending<StageMediaItem>(node.files)
+            : allPhotosFiles;
+        const playlist = withItem(rawFiles);
+        const idx = findIdx(playlist);
+        onOpenPhoto(item, playlist, idx >= 0 ? idx : 0);
+        return;
+      }
+
+      if (root === 'Shorts' || isShort) {
+        setTabIndex(2);
+        setDisplayedTab(2);
+        const subName = subfolders[0] || '2027';
+        setShortsSubfolder(subName);
+        setDisplayedShortsSub(subName);
+
+        const node = rootMap.get('Shorts')?.subfolders.get(subName);
+        const rawFiles =
+          node && node.files.length > 0
+            ? sortMediaItemsDescending<StageMediaItem>(node.files)
+            : allShortsFiles;
+        const playlist = withItem(rawFiles);
+        const idx = findIdx(playlist);
+        onOpenShort(item, playlist, idx >= 0 ? idx : 0, 'Shorts');
+        return;
+      }
+
+      // Root === 'Video Clips' or fallback
+      setTabIndex(3);
+      setDisplayedTab(3);
+      const subName = subfolders[0] || 'ALL';
+      setClipsSubfolder(subName);
+      setDisplayedClipsSub(subName);
+
+      const node = rootMap.get('Video Clips')?.subfolders.get(subName);
+      const rawFiles =
+        node && node.files.length > 0
+          ? sortMediaItemsDescending<StageMediaItem>(node.files)
+          : allClipsFiles;
+      const playlist = withItem(rawFiles);
+      onOpenVideo(item, playlist);
+    },
+    [rootMap, allPhotosFiles, allShortsFiles, allClipsFiles, activeBandhobiList, onOpenPhoto, onOpenShort, onOpenVideo]
+  );
+
+  launchMatchedItemRef.current = launchMatchedItem;
+
+  // Deep Link Synchronizer on load
+  const hasAutoLaunchedRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoLaunchedRef.current || !items || items.length === 0) return;
+
+    if (initialRoute.shortId) {
+      hasAutoLaunchedRef.current = true;
+      const matched = findMediaByShortId(items, initialRoute.shortId);
+      if (matched) {
+        launchMatchedItem(matched.item);
+      } else {
+        setNotFoundInfo({ isOpen: true, path: window.location.pathname, tab: initialRoute.tab });
+      }
+      return;
+    }
+
+    const parsed = parseAppPathname();
+    if (parsed.isNotFound) {
+      setNotFoundInfo({ isOpen: true, path: '/' + parsed.rawPath, tab: parsed.tab });
+    }
+  }, [items, initialRoute, launchMatchedItem]);
 
   // Active list & subfolder list resolution
   const currentActiveList =
