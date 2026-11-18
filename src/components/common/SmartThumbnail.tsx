@@ -83,11 +83,20 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
 
   const handleLoadedMetadata = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
     const v = e.currentTarget;
+    v.muted = true;
+    v.defaultMuted = true;
     const dur = v.duration;
     if (dur && !isNaN(dur) && dur > 0) {
       // Option B: Start at 10% of total video duration
       v.currentTime = dur * 0.1;
     }
+    v.play().catch(() => {});
+  }, []);
+
+  const handleCanPlay = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget;
+    v.muted = true;
+    v.defaultMuted = true;
     v.play().catch(() => {});
   }, []);
 
@@ -202,6 +211,7 @@ export const SmartThumbnail: React.FC<SmartThumbnailProps> = ({
           playsInline
           preload="auto"
           onLoadedMetadata={handleLoadedMetadata}
+          onCanPlay={handleCanPlay}
           onTimeUpdate={handleTimeUpdate}
           className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none transition-opacity duration-300"
           style={{ borderRadius: 0, outline: 'none', border: 'none' }}
