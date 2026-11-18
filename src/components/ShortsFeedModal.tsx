@@ -74,6 +74,9 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const [isScreenLandscape, setIsScreenLandscape] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
   );
+  const [isPhonePortrait, setIsPhonePortrait] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 && window.innerHeight >= window.innerWidth : false
+  );
   const isWideScreen = isDesktop || isScreenLandscape;
   const isTrayVisible = isDesktop ? true : !isPlaying;
 
@@ -81,6 +84,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const checkOrientation = () => {
       setIsDesktop(window.innerWidth >= 1024);
       setIsScreenLandscape(window.innerWidth > window.innerHeight);
+      setIsPhonePortrait(window.innerWidth < 640 && window.innerHeight >= window.innerWidth);
     };
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('orientationchange', checkOrientation);
@@ -119,6 +123,8 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const isHold2XRef = useRef(false);
   const didHold2XRef = useRef(false);
   const isDraggingRef = useRef(false);
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<number | null>(null);
   const lastTapTimeRef = useRef(0);
   const tapTimeoutRef = useRef<number | null>(null);
   const pointerStartTimeRef = useRef<number>(0);
@@ -140,6 +146,7 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     hapticLight();
     setSlideDirection(dir);
     setActiveIndex(targetIdx);
+    setIsPlaying(true);
     const targetVideo = videoRefs.current[targetIdx];
     setCurrentTime(targetVideo?.currentTime || 0);
     setDuration(targetVideo && targetVideo.duration && !isNaN(targetVideo.duration) && targetVideo.duration > 0 ? targetVideo.duration : 0);
@@ -246,20 +253,33 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     const dist = Math.hypot(dx, dy);
     const elapsed = Date.now() - pointerStartTimeRef.current;
 
-    // Horizontal drag on desktop / touch: navigate next or prev
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    // Swipe or drag detection: mark as dragged so native click does NOT pause or trigger the tray
+    if (dist > 15 || isDraggingRef.current || isPointerMovedRef.current) {
       isDraggingRef.current = true;
-      if (dx < 0 && activeIndex < shorts.length - 1) {
-        goToShortIndex(activeIndex + 1, 'next');
-      } else if (dx > 0 && activeIndex > 0) {
-        goToShortIndex(activeIndex - 1, 'prev');
+      lastTapProcessedRef.current = Date.now();
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
       }
-      setTimeout(() => { isDraggingRef.current = false; }, 150);
+
+      // Horizontal drag on desktop / touch: navigate next or prev
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0 && activeIndex < shorts.length - 1) {
+          goToShortIndex(activeIndex + 1, 'next');
+        } else if (dx > 0 && activeIndex > 0) {
+          goToShortIndex(activeIndex - 1, 'prev');
+        }
+      }
+
+      setTimeout(() => {
+        isDraggingRef.current = false;
+        isPointerMovedRef.current = false;
+      }, 400);
       return;
     }
 
     // Direct Tap Detection on PointerUp (handles mobile touch, Chrome DevTools emulation, and mouse)
-    if (dist < 15 && elapsed < 350) {
+    if (dist <= 15 && elapsed < 350) {
       lastTapProcessedRef.current = Date.now();
       const now = Date.now();
 
@@ -302,8 +322,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
   const handleCardClick = useCallback((e: React.MouseEvent, idx: number) => {
     e.stopPropagation();
 
-    // If pointerUp already handled this tap within 400ms, ignore duplicate click event
-    if (Date.now() - lastTapProcessedRef.current < 400) {
+    // If scrolling, dragging, or pointerUp recently handled a gesture, ignore click
+    if (
+      isDraggingRef.current ||
+      isPointerMovedRef.current ||
+      isScrollingRef.current ||
+      Date.now() - lastTapProcessedRef.current < 450
+    ) {
       return;
     }
 
@@ -557,14 +582,27 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             const idx = parseInt(idxAttr, 10);
             if (!isNaN(idx)) {
               setActiveIndex(idx);
+              setIsPlaying(true);
               onIndexChange?.(idx);
               if (shorts[idx]) {
                 updateBrowserUrl('/shorts/' + getMediaShortId(shorts[idx]), true);
               }
               videoRefs.current.forEach((v, i) => {
                 if (!v) return;
-                if (i !== idx) { v.pause(); v.currentTime = 0; }
-                else { v.muted = isMuted; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
+                if (i !== idx) {
+                  v.pause();
+                  v.currentTime = 0;
+                } else {
+                  v.muted = isMuted;
+                  v.play().then(() => {
+                    setIsPlaying(true);
+                  }).catch(() => {
+                    v.muted = true;
+                    v.play().then(() => {
+                      setIsPlaying(true);
+                    }).catch(() => {});
+                  });
+                }
               });
             }
           }
@@ -693,13 +731,18 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
                   }
                 }
               }}
-              onPause={() => {
-                if (idx === activeIndex) {
+              onPause={(e) => {
+                if (
+                  idx === activeIndex &&
+                  videoRefs.current[activeIndex] === e.currentTarget &&
+                  !isDraggingRef.current &&
+                  !isScrollingRef.current
+                ) {
                   setIsPlaying(false);
                 }
               }}
-              onPlay={() => {
-                if (idx === activeIndex) {
+              onPlay={(e) => {
+                if (idx === activeIndex && videoRefs.current[activeIndex] === e.currentTarget) {
                   setIsPlaying(true);
                 }
               }}
@@ -767,8 +810,10 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         onTouchEnd={(e) => e.stopPropagation()}
         style={{
           transform: `translateY(${isTrayVisible ? '0px' : '16px'})`,
+          borderRadius: 0,
+          outline: 'none',
         }}
-        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 p-2 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border-0 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-x-auto space-scrollbar ${
+        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-1.5 sm:gap-2.5 p-1.5 sm:p-2 bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/[0.1] shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 max-w-[calc(100vw-2rem)] overflow-hidden select-none ${
           isTrayVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
@@ -776,64 +821,72 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         <button
           type="button"
           onClick={togglePlay}
-          className="reticle-btn w-9 h-9 cursor-pointer border-0"
+          className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer border-0"
           title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
-          {isPlaying ? <LaserPauseIcon size={24} /> : <LaserPlayIcon size={24} />}
+          {isPlaying ? (
+            <LaserPauseIcon size={isPhonePortrait ? 20 : 24} />
+          ) : (
+            <LaserPlayIcon size={isPhonePortrait ? 20 : 24} />
+          )}
         </button>
 
-        {/* Current Time / Duration Counter (Consistently visible whenever media is loaded) */}
+        {/* Current Time / Duration Counter */}
         {duration > 0 && (
           <span
-            className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+            className="px-1.5 sm:px-2 text-[10.5px] sm:text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap shrink-0 select-none"
             style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
           >
             {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
           </span>
         )}
 
-        {/* Previous Short Button (Hidden on Mobile, Visible on Tablet / Desktop) */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (activeIndex > 0) goToShortIndex(activeIndex - 1, 'prev');
-          }}
-          disabled={activeIndex <= 0}
-          className="reticle-btn hidden sm:inline-flex w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
-          title="Previous Short (↑ or Left Arrow)"
-          aria-label="Previous short"
-        >
-          <LaserPrevIcon size={22} />
-        </button>
+        {/* Previous Short Button (Hidden on Mobile Phone, Visible on Tablet / Desktop) */}
+        {!isPhonePortrait && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (activeIndex > 0) goToShortIndex(activeIndex - 1, 'prev');
+            }}
+            disabled={activeIndex <= 0}
+            className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            title="Previous Short (↑ or Left Arrow)"
+            aria-label="Previous short"
+          >
+            <LaserPrevIcon size={22} />
+          </button>
+        )}
 
         {/* Short Index Counter */}
         <span
-          className="px-2 text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap select-none"
+          className="px-1.5 sm:px-2 text-[10.5px] sm:text-xs font-mono font-medium text-white/90 tracking-wider whitespace-nowrap shrink-0 select-none"
           style={{ textShadow: '0 1px 4px #000, 0 0 8px #000' }}
         >
           {activeIndex + 1} <span className="text-white/40">/</span> {shorts.length}
         </span>
 
-        {/* Next Short Button (Hidden on Mobile, Visible on Tablet / Desktop) */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (activeIndex < shorts.length - 1) goToShortIndex(activeIndex + 1, 'next');
-          }}
-          disabled={activeIndex >= shorts.length - 1}
-          className="reticle-btn hidden sm:inline-flex w-9 h-9 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
-          title="Next Short (↓ or Right Arrow)"
-          aria-label="Next short"
-        >
-          <LaserNextIcon size={22} />
-        </button>
+        {/* Next Short Button (Hidden on Mobile Phone, Visible on Tablet / Desktop) */}
+        {!isPhonePortrait && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (activeIndex < shorts.length - 1) goToShortIndex(activeIndex + 1, 'next');
+            }}
+            disabled={activeIndex >= shorts.length - 1}
+            className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none"
+            title="Next Short (↓ or Right Arrow)"
+            aria-label="Next short"
+          >
+            <LaserNextIcon size={22} />
+          </button>
+        )}
 
         {/* Aspect Ratio Indicator Badge (Non-clickable, displays 16:9 or 9:16) */}
         <div
-          className={`px-2 h-7 sm:h-8 flex items-center justify-center font-mono text-[10.5px] sm:text-xs font-bold tracking-wider select-none pointer-events-none border ${
+          className={`px-1.5 sm:px-2 h-7 sm:h-8 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold tracking-wider shrink-0 select-none pointer-events-none border ${
             landscapeMap[activeIndex]
               ? 'text-[#38bdf8] border-[#38bdf8]/40 bg-[#38bdf8]/10 shadow-[0_0_8px_rgba(56,189,248,0.3)]'
               : 'text-white/80 border-white/20 bg-white/[0.04]'
@@ -852,11 +905,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             setIsMuted((prev) => !prev);
             hapticLight();
           }}
-          className="reticle-btn w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
+          className="reticle-btn w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
           title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
           aria-label={isMuted ? 'Unmute' : 'Mute'}
         >
-          <LaserVolumeIcon size={24} isMuted={isMuted} />
+          <LaserVolumeIcon size={isPhonePortrait ? 20 : 24} isMuted={isMuted} />
         </button>
 
         {/* Close Button */}
@@ -866,11 +919,11 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             e.stopPropagation();
             onClose();
           }}
-          className="reticle-btn reticle-btn-close w-9 h-9 cursor-pointer text-slate-300 hover:text-white border-0"
+          className="reticle-btn reticle-btn-close w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0 cursor-pointer text-slate-300 hover:text-white border-0"
           title="Close (Esc)"
           aria-label="Close shorts player"
         >
-          <LaserCloseIcon size={22} />
+          <LaserCloseIcon size={isPhonePortrait ? 20 : 22} />
         </button>
       </div>
 
@@ -972,6 +1025,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
       ) : (
         <div
           ref={containerRef}
+          onScroll={() => {
+            isScrollingRef.current = true;
+            if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+            scrollTimeoutRef.current = window.setTimeout(() => {
+              isScrollingRef.current = false;
+            }, 300);
+          }}
           onPointerDown={(e) => {
             if (e.target === e.currentTarget) {
               backdropClickStartRef.current = { x: e.clientX, y: e.clientY };
