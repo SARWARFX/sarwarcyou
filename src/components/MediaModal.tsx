@@ -15,7 +15,7 @@ import { sanitizeMediaTitle } from '../utils/titleSanitizer';
 
 import { unlockOrientation } from '../utils/orientationManager';
 import { useBackButton } from '../utils/backButtonManager';
-import { hapticMedium } from '../utils/hapticsManager';
+import { hapticMedium, hapticLight } from '../utils/hapticsManager';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
 import {
@@ -304,6 +304,41 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       }
     }
   }, [calculatePanLimits]);
+
+  // Vertical Zoom Slider handlers (matching Video Player's vertical time slider styling)
+  const isVerticalZoomDraggingRef = useRef(false);
+
+  const handleVerticalZoomSeek = useCallback((clientY: number, target: HTMLElement) => {
+    const rect = target.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    // Bottom = 1.0x (100%), Top = 4.5x (450%)
+    const pct = Math.min(1, Math.max(0, 1 - (clientY - rect.top) / rect.height));
+    const newScale = 1 + pct * 3.5;
+    setZoomLevel(newScale, false);
+  }, [setZoomLevel]);
+
+  const handleVerticalZoomPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    isVerticalZoomDraggingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    handleVerticalZoomSeek(e.clientY, e.currentTarget);
+  }, [handleVerticalZoomSeek]);
+
+  const handleVerticalZoomPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isVerticalZoomDraggingRef.current) return;
+    e.stopPropagation();
+    handleVerticalZoomSeek(e.clientY, e.currentTarget);
+  }, [handleVerticalZoomSeek]);
+
+  const handleVerticalZoomPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isVerticalZoomDraggingRef.current) return;
+    e.stopPropagation();
+    isVerticalZoomDraggingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    hapticLight();
+  }, []);
 
   // Handle window resizing while zoomed to prevent edge gaps
   useEffect(() => {
@@ -785,46 +820,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* Zoom Slider Control at Bottom-Right Corner (Slightly Above Logo) */}
+      {/* Vertical Zoom Scrubber Slider at Bottom-Right Corner (Slightly Above Logo) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        className={`fixed bottom-14 right-4 sm:bottom-16 sm:right-6 z-50 flex items-center gap-2 px-3 py-1.5 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 select-none ${
+        className={`fixed bottom-14 right-4 sm:bottom-16 sm:right-6 z-50 flex flex-col items-center justify-between h-48 sm:h-56 py-2 px-1.5 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 select-none ${
           showControls ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
+        title="Vertical Zoom Slider (Drag to zoom in/out)"
       >
-        {/* Zoom Out Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setZoomLevel(scaleRef.current - 0.35);
-          }}
-          disabled={scale <= 1.02}
-          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white"
-          title="Zoom Out (−)"
-          aria-label="Zoom out"
-        >
-          <LaserZoomOutIcon size={16} />
-        </button>
-
-        {/* Range Slider */}
-        <input
-          type="range"
-          min="1"
-          max="4.5"
-          step="0.05"
-          value={scale}
-          onChange={(e) => {
-            e.stopPropagation();
-            setZoomLevel(parseFloat(e.target.value), false);
-          }}
-          className="w-20 sm:w-28 h-1 bg-white/20 accent-[#00f0ff] cursor-pointer"
-          title={`Zoom: ${Math.round(scale * 100)}%`}
-          aria-label="Image zoom slider"
-        />
-
-        {/* Zoom In Button */}
+        {/* Top Bound Zoom-In Icon Button */}
         <button
           type="button"
           onClick={(e) => {
@@ -832,27 +837,90 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             setZoomLevel(scaleRef.current + 0.35);
           }}
           disabled={scale >= 4.5}
-          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white"
+          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white shrink-0"
           title="Zoom In (+)"
           aria-label="Zoom in"
         >
           <LaserZoomInIcon size={16} />
         </button>
 
-        {/* Zoom Percentage / 100% Reset Button */}
+        {/* Vertical Track Hitbox */}
+        <div
+          onPointerDown={handleVerticalZoomPointerDown}
+          onPointerMove={handleVerticalZoomPointerMove}
+          onPointerUp={handleVerticalZoomPointerUp}
+          onPointerCancel={handleVerticalZoomPointerUp}
+          className="relative w-8 flex-1 flex items-center justify-center cursor-pointer my-1 overflow-visible"
+        >
+          {/* Visual Track Rail: Slim 3px expanding to 5px on hover */}
+          <div className="relative w-[3px] hover:w-[5px] h-full bg-white/20 transition-all duration-150 flex flex-col justify-end overflow-visible">
+            {/* Active Progress Fill: Pure Stark White Style with Cyber Glow */}
+            <div
+              className="absolute bottom-0 left-0 right-0 transition-all"
+              style={{
+                height: `${Math.min(100, Math.max(0, ((scale - 1) / 3.5) * 100))}%`,
+                background: '#ffffff',
+                boxShadow: '0 0 10px rgba(255, 255, 255, 0.85)',
+              }}
+            />
+
+            {/* Scrubber Handle & Live Zoom Percentage Badge */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center pointer-events-none transition-transform duration-75 z-20"
+              style={{
+                bottom: `${Math.min(100, Math.max(0, ((scale - 1) / 3.5) * 100))}%`,
+              }}
+            >
+              {/* Distinct Square Reticle Scrubber Dot */}
+              <div
+                className="w-3 h-3 bg-white border border-black/40 shrink-0"
+                style={{
+                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)',
+                  borderRadius: 0,
+                  outline: 'none',
+                }}
+              />
+
+              {/* Live Zoom Percentage Badge to the left of the slider handle */}
+              <span
+                className="mr-2 order-first px-1.5 py-0.5 bg-[#05070c]/95 border border-white/30 text-[10px] font-mono font-bold text-white shadow-[0_0_10px_rgba(0,0,0,0.9)] whitespace-nowrap"
+                style={{ borderRadius: 0, outline: 'none' }}
+              >
+                {Math.round(scale * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Bound Zoom-Out Step Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setZoomLevel(scaleRef.current - 0.35);
+          }}
+          disabled={scale <= 1.02}
+          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white shrink-0"
+          title="Zoom Out (−)"
+          aria-label="Zoom out"
+        >
+          <LaserZoomOutIcon size={16} />
+        </button>
+
+        {/* 100% Reset Button */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             resetZoom();
           }}
-          className={`px-1.5 py-0.5 rounded-none text-[11px] font-mono font-bold cursor-pointer border-0 transition-colors ${
+          className={`px-1 py-0.5 rounded-none text-[10px] font-mono font-bold cursor-pointer border-0 transition-colors shrink-0 ${
             scale > 1.05 ? 'text-[#00f0ff] hover:text-white' : 'text-slate-400 hover:text-white'
           }`}
-          title="Reset Zoom (Fit to Screen)"
+          title="Reset Zoom to 100%"
           aria-label="Reset zoom"
         >
-          {Math.round(scale * 100)}%
+          100%
         </button>
       </div>
 
