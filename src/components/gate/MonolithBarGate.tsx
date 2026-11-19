@@ -23,7 +23,7 @@ import { BandhobiSlidingFeaturedPhotos } from './BandhobiSlidingFeaturedPhotos';
 import { DeepDiurnalTelemetryView } from '../telemetry/DeepDiurnalTelemetryView';
 import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
 import { CyberSearchBar } from '../navigation/CyberSearchBar';
-import { WebImageSearchModal } from '../search/WebImageSearchModal';
+import { searchWebImages } from '../../services/imageSearchService';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -249,20 +249,56 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER' | 'HOME' | 'TELEMETRY';
   }>({ isOpen: false, path: '' });
 
-  const [searchState, setSearchState] = useState<{ isOpen: boolean; query: string }>({
-    isOpen: false,
+  const [searchState, setSearchState] = useState<{
+    isActive: boolean;
+    query: string;
+    isLoading: boolean;
+    results: StageMediaItem[];
+  }>({
+    isActive: false,
     query: '',
+    isLoading: false,
+    results: [],
   });
 
-  const handleWebImageSearch = useCallback((query: string) => {
-    setSearchState({ isOpen: true, query });
+  const handleWebImageSearch = useCallback(async (query: string) => {
+    const q = query.trim();
+    if (!q) return;
+
+    setSearchState({
+      isActive: true,
+      query: q,
+      isLoading: true,
+      results: [],
+    });
+
+    try {
+      const items = await searchWebImages(q);
+      setSearchState((prev) => ({
+        ...prev,
+        isLoading: false,
+        results: items,
+      }));
+    } catch {
+      setSearchState((prev) => ({
+        ...prev,
+        isLoading: false,
+        results: [],
+      }));
+    }
   }, []);
 
-  const handleCloseSearch = useCallback(() => {
-    setSearchState((prev) => ({ ...prev, isOpen: false }));
+  const handleClearSearch = useCallback(() => {
+    setSearchState({
+      isActive: false,
+      query: '',
+      isLoading: false,
+      results: [],
+    });
   }, []);
 
   const switchTab = useCallback((targetIndex: number) => {
+    handleClearSearch();
     if (targetIndex === tabIndex) return;
 
     const currentVis = TAB_VISUAL_ORDER[tabIndex] ?? 0;
@@ -312,6 +348,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   // Navigate directly to the real homepage (Shorts -> Featured showcase at root '/')
   const goToHome = useCallback(() => {
+    handleClearSearch();
     if (transitionTimerRef.current.t1) clearTimeout(transitionTimerRef.current.t1);
     if (transitionTimerRef.current.t2) clearTimeout(transitionTimerRef.current.t2);
 
@@ -888,7 +925,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             </a>
 
             {/* Cyber Search Bar */}
-            <CyberSearchBar onSearch={handleWebImageSearch} />
+            <CyberSearchBar
+              onSearch={handleWebImageSearch}
+              onClear={handleClearSearch}
+              isLoading={searchState.isLoading}
+            />
           </div>
 
           {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}
@@ -977,7 +1018,39 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           className={`w-full h-full flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none ${quantumAnimClass}`}
           style={{ borderRadius: 0, outline: 'none', border: 'none' }}
         >
-          {displayedTab === 2 && displayedShortsSub === 'Featured' ? (
+          {searchState.isActive ? (
+            searchState.isLoading ? (
+              /* Cyber Loading Progress Bar */
+              <div className="w-full flex-1 flex flex-col items-center justify-center py-24 gap-3">
+                <div className="w-48 sm:w-64 h-[2px] bg-white/10 overflow-hidden relative" style={{ borderRadius: 0 }}>
+                  <div className="h-full bg-cyan-400 shadow-[0_0_12px_#38bdf8] animate-pulse w-full" style={{ borderRadius: 0 }} />
+                </div>
+                <span className="text-[11px] font-mono tracking-widest text-cyan-400/80 uppercase">
+                  LOADING MEDIA // PLEASE WAIT
+                </span>
+              </div>
+            ) : searchState.results.length > 0 ? (
+              /* Search Results: Exact Same Monolith Rectangular Grid as Photographs */
+              <div
+                className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-6"
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              >
+                {searchState.results.map((item: StageMediaItem, idx: number) => (
+                  <LivingMediaCard
+                    key={`${item.id}-${idx}`}
+                    item={item}
+                    aspectRatio="3/4"
+                    delayIdx={idx}
+                    onClick={() => onOpenPhoto(item, searchState.results, idx)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="w-full flex-1 flex items-center justify-center py-24 text-white/40 text-xs tracking-widest font-mono">
+                // NO MEDIA FOUND
+              </div>
+            )
+          ) : displayedTab === 2 && displayedShortsSub === 'Featured' ? (
             isPortrait ? (
               /* Portrait Screen Homepage: Mini Graph (Top) -> Sliding Media Cards (Center) -> 24h Statistic (Bottom) */
               <div
@@ -1073,26 +1146,37 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto scrollbar-none">
-          {currentSubfolderList.map((sub) => {
-            const isActive = currentSubfolder === sub;
-            const href = getSubfolderHref(tabIndex, sub);
-            return (
-              <a
-                key={sub}
-                href={href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleSelectSubfolder(sub);
-                }}
-                className={`text-[11.5px] sm:text-[12px] tracking-wide transition-colors cursor-pointer whitespace-nowrap p-0 bg-transparent no-underline ${
-                  isActive ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
-                }`}
-                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-              >
-                {sub}
-              </a>
-            );
-          })}
+          {searchState.isActive ? (
+            <button
+              onClick={handleClearSearch}
+              className="text-[11.5px] sm:text-[12px] tracking-wide text-cyan-400 hover:text-white font-mono cursor-pointer p-0 bg-transparent border-0 outline-none flex items-center gap-2"
+              style={{ borderRadius: 0 }}
+            >
+              <span>✕</span>
+              <span>CLEAR SEARCH</span>
+            </button>
+          ) : (
+            currentSubfolderList.map((sub) => {
+              const isActive = currentSubfolder === sub;
+              const href = getSubfolderHref(tabIndex, sub);
+              return (
+                <a
+                  key={sub}
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSelectSubfolder(sub);
+                  }}
+                  className={`text-[11.5px] sm:text-[12px] tracking-wide transition-colors cursor-pointer whitespace-nowrap p-0 bg-transparent no-underline ${
+                    isActive ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
+                  }`}
+                  style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+                >
+                  {sub}
+                </a>
+              );
+            })
+          )}
         </div>
       </footer>
 
@@ -1166,14 +1250,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           animation: quantumTabEnterBwd 0.88s cubic-bezier(0, 0, 0.2, 1) forwards;
         }
       `}</style>
-
-      {/* Web Image Search Modal */}
-      <WebImageSearchModal
-        isOpen={searchState.isOpen}
-        initialQuery={searchState.query}
-        onClose={handleCloseSearch}
-        onOpenPhoto={onOpenPhoto}
-      />
     </div>
   );
 };
