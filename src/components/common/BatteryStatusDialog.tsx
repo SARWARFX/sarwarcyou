@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   initBatteryMonitor,
   subscribeBatteryNotification,
-  subscribeBatteryState,
   subscribeUnsupportedBatteryReminder,
 } from '../../utils/batteryManager';
 import type { BatteryMilestone } from '../../utils/batteryManager';
@@ -39,30 +38,11 @@ export const BatteryStatusDialog: React.FC = () => {
       });
     });
 
-    // Dismiss active battery toast if device is plugged into AC power
-    const unsubState = subscribeBatteryState((state) => {
-      if (state.charging) {
-        setActiveToast(null);
-      }
-    });
-
     return () => {
       unsubNotify();
       unsubUnsupported();
-      unsubState();
     };
   }, []);
-
-  // Auto-dismiss non-critical alerts after timeout
-  useEffect(() => {
-    if (!activeToast) return;
-    if (activeToast.type === 'unsupported' || (activeToast.milestone && activeToast.milestone >= 15)) {
-      const timer = setTimeout(() => {
-        setActiveToast(null);
-      }, activeToast.type === 'unsupported' ? 8000 : 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [activeToast]);
 
   const handleDismiss = useCallback(() => {
     setActiveToast(null);
