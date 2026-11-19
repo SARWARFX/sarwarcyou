@@ -172,22 +172,40 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     >
       {/* High-Tech Cybernetic Loading Screen: Shows while buffering until ALL 6 are truly ready */}
       {!isPlaybackReady && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none">
-          <div className="flex flex-col items-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-[#07090e]/95 border border-[#38bdf8]/40 shadow-[0_0_40px_rgba(0,0,0,0.9),0_0_20px_rgba(56,189,248,0.2)] backdrop-blur-md">
-            <div className="flex items-center gap-3.5">
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none px-4">
+          {/* Responsive Dual-Mode Cyber Loading Card: Taller rectangular monolith on mobile, horizontal banner on desktop */}
+          <div className="flex flex-col items-center justify-between w-full max-w-[295px] min-h-[290px] p-8 sm:min-w-[440px] sm:max-w-[520px] sm:min-h-0 sm:p-6 sm:px-10 sm:py-5 bg-[#07090e]/95 border border-[#38bdf8]/45 shadow-[0_0_45px_rgba(0,0,0,0.9),0_0_25px_rgba(56,189,248,0.22)] backdrop-blur-md">
+            {/* Mobile View: Taller Rectangular Card with Exact 2-Line Desktop Split (Option A) */}
+            <div className="flex sm:hidden flex-col items-center justify-center gap-5 flex-1 w-full text-center py-2">
+              <div className="w-3.5 h-3.5 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
+              <div
+                className="flex flex-col items-center text-center gap-1.5 font-bold tracking-[0.16em] uppercase text-base leading-snug"
+                style={{ fontFamily: "'Science Gothic', sans-serif" }}
+              >
+                <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">
+                  LOADING MEDIA //
+                </span>
+                <span className="text-white">
+                  PLEASE WAIT
+                </span>
+              </div>
+            </div>
+
+            {/* Desktop & Tablet View: Single Horizontal Line Benchmark */}
+            <div className="hidden sm:flex items-center gap-3.5 mb-3">
               <div className="w-3 h-3 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
               <span
                 className="text-base sm:text-lg md:text-xl font-bold tracking-[0.16em] uppercase text-white whitespace-nowrap"
                 style={{ fontFamily: "'Science Gothic', sans-serif" }}
               >
-                <span className="text-[#38bdf8]">LOADING MEDIA //</span> PLEASE WAIT
+                <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">LOADING MEDIA //</span> PLEASE WAIT
               </span>
             </div>
 
-            {/* Tactical progress track */}
-            <div className="w-full h-[3px] bg-[#38bdf8]/20 overflow-hidden mt-1 relative min-w-[280px] sm:min-w-[340px] md:min-w-[400px]">
+            {/* Tactical Solid Rectangular Progress Gauge (Option A) */}
+            <div className="w-full h-3.5 sm:h-4 bg-[#030712] border border-[#38bdf8]/50 shadow-[inset_0_0_8px_rgba(0,0,0,0.9)] p-[2px] overflow-hidden relative">
               <div
-                className="h-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] transition-all duration-300 ease-out"
+                className="h-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8,0_0_20px_rgba(56,189,248,0.65)] transition-all duration-300 ease-out"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
