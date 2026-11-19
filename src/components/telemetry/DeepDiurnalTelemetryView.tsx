@@ -326,30 +326,30 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
           animation: holoBeamModalClose 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* Proportional bar & container heights */
+        /* Proportional bar & container heights (Taller detailed graph for any screen) */
         .diurnal-bar-container {
-          height: 95px;
+          height: 135px;
         }
 
         .diurnal-modal-box {
-          padding: 12px 14px;
+          padding: 14px 16px;
         }
 
         @media (min-width: 640px) and (min-height: 521px) {
           .diurnal-bar-container {
-            height: 150px;
+            height: 200px;
           }
           .diurnal-modal-box {
-            padding: 18px 24px;
+            padding: 20px 26px;
           }
         }
 
         @media (min-width: 1024px) and (min-height: 701px) {
           .diurnal-bar-container {
-            height: 200px;
+            height: 265px;
           }
           .diurnal-modal-box {
-            padding: 24px 32px;
+            padding: 26px 34px;
           }
         }
       `}</style>

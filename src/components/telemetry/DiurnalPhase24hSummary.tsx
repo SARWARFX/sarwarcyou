@@ -154,9 +154,9 @@ export const DiurnalPhase24hSummary: React.FC<DiurnalPhase24hSummaryProps> = ({
                 {formatTime(mins)}
               </span>
 
-              {/* Monolith Bar */}
+              {/* Monolith Bar (Taller detailed graph) */}
               <div
-                className="w-3 sm:w-3.5 h-[68px] sm:h-[80px] bg-white/[0.05] flex items-end relative overflow-hidden"
+                className="w-3 sm:w-3.5 h-[96px] sm:h-[115px] md:h-[128px] bg-white/[0.05] flex items-end relative overflow-hidden"
                 style={{ borderRadius: 0, outline: 'none', border: 'none' }}
               >
                 <div

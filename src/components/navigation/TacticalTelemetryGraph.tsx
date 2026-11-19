@@ -162,7 +162,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
                     : 'text-[#94a3b8] group-hover:text-white'
                 }`}
                 style={{
-                  fontFamily: "'Science Gothic', sans-serif",
+                  fontFamily: "'Firjar', 'Science Gothic', sans-serif",
                   transform: 'rotate(-90deg)',
                   transformOrigin: 'center center',
                   textShadow: day.isPeak
@@ -228,7 +228,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
                   : 'text-[#64748b] group-hover:text-white'
               }`}
               style={{
-                fontFamily: "'Science Gothic', sans-serif",
+                fontFamily: "'Firjar', 'Science Gothic', sans-serif",
                 borderRadius: 0,
                 outline: 'none',
                 border: 'none',
