@@ -99,19 +99,19 @@ const BANDHOBI_SUBFOLDERS = ['Featured', 'Photographs', 'Video Clips', 'Shorts']
 
 // Selected photo filenames to showcase under bandhobiz -> Featured in user's exact order
 export const BANDHOBI_FEATURED_PHOTO_FILENAMES: string[] = [
-  'webmedia-serial-254.jpeg',
-  'Farhana2.png',
-  'Farhana.jpg',
-  'f26140392.jpg',
-  'Eva8.jpg',
-  'Eva6.jpg',
-  'Eva5.jpg',
-  'Eva4.jpg',
-  'Asha5.jpg',
-  'Asha2.jpg',
-  'Anamika7.jpg',
-  'Anamika4.jpg',
-  'Drthrinaislam.jpg',
+  'FAV_webmedia-serial-254.jpeg',
+  'FAV_Farhana2.png',
+  'FAV_Farhana.jpg',
+  'FAV_f26140392.jpg',
+  'FAV_Eva8.jpg',
+  'FAV_Eva6.jpg',
+  'FAV_Eva5.jpg',
+  'FAV_Eva4.jpg',
+  'FAV_Asha5.jpg',
+  'FAV_Asha2.jpg',
+  'FAV_Anamika7.jpg',
+  'FAV_Anamika4.jpg',
+  'FAV_Drthrinaislam.jpg',
 ];
 export const BANDHOBI_FEATURED_PHOTO_KEYS = BANDHOBI_FEATURED_PHOTO_FILENAMES;
 
@@ -505,16 +505,21 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
       const selected: StageMediaItem[] = [];
       for (const fname of BANDHOBI_FEATURED_PHOTO_FILENAMES) {
-        const match = itemMap.get(fname.toLowerCase());
+        const cleanName = fname.replace(/^fav[_\s-]+/i, '').toLowerCase();
+        const favName = `fav_${cleanName}`;
+        const match =
+          itemMap.get(fname.toLowerCase()) ||
+          itemMap.get(favName) ||
+          itemMap.get(cleanName);
         if (match && !selected.some((s) => s.id === match.id || s.path === match.path)) {
           selected.push(match);
         }
       }
 
-      // Automatic discovery: Any photo in bandhobiz/Photographs that is in a Favorite/ subfolder or has 'fav' in filename
+      // Automatic discovery: Any photo in bandhobiz/Photographs that starts with FAV_
       for (const item of allPhotos) {
-        const p = (item.path || item.name || '').toLowerCase();
-        if (p.includes('/favorite/') || p.includes('fav_') || p.includes('_fav') || p.includes('[fav]') || p.includes('favorite')) {
+        const baseName = (item.name || (item.path ? item.path.split('/').pop() : '') || '').toLowerCase();
+        if (baseName.startsWith('fav_') || baseName.startsWith('fav-') || item.path?.toLowerCase().includes('/favorite/')) {
           if (!selected.some((s) => s.id === item.id || s.path === item.path)) {
             selected.push(item);
           }

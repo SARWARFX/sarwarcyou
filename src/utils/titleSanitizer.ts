@@ -11,6 +11,9 @@ export function sanitizeMediaTitle(rawTitle: string | undefined, category?: stri
   // 1. Extract base filename if path is provided
   let title = rawTitle.split('/').pop() || rawTitle;
 
+  // 1b. Strip FAV_ or fav_ prefix
+  title = title.replace(/^fav[_\s-]+/i, '');
+
   // 2. Strip file extensions
   title = title.replace(/\.(mp4|mov|webm|mkv|avi|flv|wmv|jpg|jpeg|png|webp|gif|heic|bmp|tiff)$/i, '');
 
