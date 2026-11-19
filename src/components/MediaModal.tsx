@@ -5,6 +5,7 @@ import {
   Check,
   Sun,
   SunDim,
+  RotateCcw,
 } from 'lucide-react';
 import { acquirePlayerWakeLock, releasePlayerWakeLock } from '../utils/keepAwakeManager';
 import { downloadMedia, downloadBrandedVideo, applyWatermarkAndDownload } from '../utils/downloadMedia';
@@ -70,6 +71,39 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [showControls, setShowControls] = useState<boolean>(false);
   const [keepScreenOn, setKeepScreenOn] = useState<boolean>(false);
 
+  // Rotation State (Session viewing only, turns 90deg anticlockwise per click, resets on 4th click)
+  const [rotation, setRotation] = useState<number>(0);
+  const rotationRef = useRef<number>(0);
+
+  const handleRotate = useCallback(() => {
+    hapticMedium();
+    setIsTransitioning(true);
+    const next = rotationRef.current - 90;
+    rotationRef.current = next;
+    setRotation(next);
+
+    if (imgRef.current) {
+      imgRef.current.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
+      imgRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0px) scale(${scaleRef.current}) rotate(${next}deg)`;
+    }
+
+    setTimeout(() => {
+      setIsTransitioning(false);
+      if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+      }
+      // Clicking four times completes a full 360-degree rotation, normalizing back to 0
+      if (rotationRef.current <= -360 || rotationRef.current >= 360) {
+        const normalized = rotationRef.current % 360;
+        rotationRef.current = normalized;
+        setRotation(normalized);
+        if (imgRef.current) {
+          imgRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0px) scale(${scaleRef.current}) rotate(${normalized}deg)`;
+        }
+      }
+    }, 280);
+  }, []);
+
   const handleToggleKeepScreenOn = useCallback(() => {
     hapticMedium();
     setKeepScreenOn((prev) => !prev);
@@ -95,6 +129,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       // On desktop/laptop: show controls by default so user sees buttons immediately
       // On mobile: tray toggles on single tap on photo
       setShowControls(typeof window !== 'undefined' && window.innerWidth >= 1024);
+    } else {
+      setRotation(0);
+      rotationRef.current = 0;
     }
   }, [isOpen]);
 
@@ -113,7 +150,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     setIsTransitioning(true);
     if (imgRef.current) {
       imgRef.current.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-      imgRef.current.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
+      imgRef.current.style.transform = `translate3d(0px, 0px, 0px) scale(1) rotate(${rotationRef.current}deg)`;
       setTimeout(() => {
         if (imgRef.current) imgRef.current.style.transition = 'none';
         setIsTransitioning(false);
@@ -128,6 +165,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setActiveIdx(next);
       _onIndexChange?.(next);
       resetZoom();
+      setRotation(0);
+      rotationRef.current = 0;
       if (items[next]) {
         updateBrowserUrl('/photographs/' + getMediaShortId(items[next]), true);
       }
@@ -141,6 +180,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setActiveIdx(prev);
       _onIndexChange?.(prev);
       resetZoom();
+      setRotation(0);
+      rotationRef.current = 0;
       if (items[prev]) {
         updateBrowserUrl('/photographs/' + getMediaShortId(items[prev]), true);
       }
@@ -161,6 +202,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     positionRef.current = { x: 0, y: 0 };
     setScale(1);
     setPos({ x: 0, y: 0 });
+    setRotation(0);
+    rotationRef.current = 0;
     if (isOpen) {
       setAnimationClass('animate-picasa-open');
     }
@@ -175,6 +218,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   // Reset whenever displayed photo changes
   useEffect(() => {
     resetZoom();
+    setRotation(0);
+    rotationRef.current = 0;
   }, [activeIdx, activeUrl, resetZoom]);
 
   // Keep browser address bar in sync with active photograph
@@ -290,7 +335,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setPos({ x: 0, y: 0 });
       if (imgRef.current) {
         imgRef.current.style.transition = smooth ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
-        imgRef.current.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
+        imgRef.current.style.transform = `translate3d(0px, 0px, 0px) scale(1) rotate(${rotationRef.current}deg)`;
       }
     } else {
       const { maxPanX, maxPanY } = calculatePanLimits(clampedScale);
@@ -300,7 +345,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setPos({ x: nextX, y: nextY });
       if (imgRef.current) {
         imgRef.current.style.transition = smooth ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
-        imgRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${clampedScale})`;
+        imgRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${clampedScale}) rotate(${rotationRef.current}deg)`;
       }
     }
   }, [calculatePanLimits]);
@@ -355,7 +400,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         positionRef.current = { x: nextX, y: nextY };
         setPos({ x: nextX, y: nextY });
         if (imgRef.current) {
-          imgRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${scaleRef.current})`;
+          imgRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${scaleRef.current}) rotate(${rotationRef.current}deg)`;
         }
       }
     };
@@ -406,7 +451,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setIsTransitioning(true);
       if (img) {
         img.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
-        img.style.transform = 'translate3d(0px, 0px, 0px) scale(1)';
+        img.style.transform = `translate3d(0px, 0px, 0px) scale(1) rotate(${rotationRef.current}deg)`;
         img.style.cursor = 'pointer';
       }
       setTimeout(() => {
@@ -435,7 +480,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setIsTransitioning(true);
       if (img) {
         img.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
-        img.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${targetScale})`;
+        img.style.transform = `translate3d(${nextX}px, ${nextY}px, 0px) scale(${targetScale}) rotate(${rotationRef.current}deg)`;
         img.style.cursor = 'grab';
       }
       setTimeout(() => {
@@ -458,7 +503,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     const applyTransform = (smooth = false) => {
       if (!img) return;
       img.style.transition = smooth ? 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
-      img.style.transform = `translate3d(${posX}px, ${posY}px, 0px) scale(${currentScale})`;
+      img.style.transform = `translate3d(${posX}px, ${posY}px, 0px) scale(${currentScale}) rotate(${rotationRef.current}deg)`;
       scaleRef.current = currentScale;
       positionRef.current = { x: posX, y: posY };
     };
@@ -968,6 +1013,24 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           {keepScreenOn ? <Sun className="w-5 h-5 text-amber-300" /> : <SunDim className="w-5 h-5" />}
         </button>
 
+        {/* Rotate Image Button (90° Anticlockwise per click, session viewing only) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRotate();
+          }}
+          className={`reticle-btn w-9 h-9 cursor-pointer border-0 transition-colors ${
+            rotation !== 0
+              ? 'text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]'
+              : 'text-slate-400 hover:text-white'
+          }`}
+          title="Rotate Image 90° Anticlockwise"
+          aria-label="Rotate image 90 degrees anticlockwise"
+        >
+          <RotateCcw className="w-5 h-5" />
+        </button>
+
         {/* Download Button */}
         <button
           type="button"
@@ -1089,7 +1152,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
           style={{
             transformOrigin: 'center center',
             willChange: 'transform',
-            transform: `translate3d(${pos.x}px, ${pos.y}px, 0px) scale(${scale})`,
+            transform: `translate3d(${pos.x}px, ${pos.y}px, 0px) scale(${scale}) rotate(${rotation}deg)`,
             transition: isTransitioning ? 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
             touchAction: 'none',
             userSelect: 'none',
