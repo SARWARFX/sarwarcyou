@@ -186,7 +186,7 @@ export function resolveStaticVideoThumbnail(
   if (typeof itemOrPath === 'object' && itemOrPath !== null) {
     const itemObj = itemOrPath as { posterUrl?: string; poster?: string; thumbnail?: string; thumbnails?: string[]; category?: string; parentAlbum?: string };
     folderHint = itemObj.parentAlbum || itemObj.category || '';
-    const poster = itemObj.posterUrl || itemObj.poster || itemObj.thumbnails?.[0];
+    const poster = itemObj.thumbnail || itemObj.posterUrl || itemObj.poster || itemObj.thumbnails?.[0];
     if (poster && !isVideoExtension(poster)) {
       if (/^https?:\/\//i.test(poster) && !poster.includes('media.sarwar.cyou') && !poster.includes('huggingface.co')) {
         return poster;
@@ -203,6 +203,11 @@ export function resolveStaticVideoThumbnail(
     : (('path' in itemOrPath && typeof itemOrPath.path === 'string') ? itemOrPath.path : (itemOrPath.url || ''));
 
   if (!raw) return '';
+
+  // If raw is an external URL, return directly
+  if (/^https?:\/\//i.test(raw) && !raw.includes('media.sarwar.cyou') && !raw.includes('huggingface.co')) {
+    return raw;
+  }
 
   // 3. If raw path is already pointing directly to a thumbnail file in the dataset under Thumbnails/
   if (/^Thumbnails\//i.test(raw)) {

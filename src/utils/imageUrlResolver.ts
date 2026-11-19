@@ -247,9 +247,6 @@ export function getRawMediaUrl(relativePath?: string | null): string {
     return '';
   }
 
-  // Strip trailing media fragment like #t=1.0 or query parameters
-  path = path.replace(/#t=[\d.,]+$/i, '').split('?')[0];
-
   // If blob or data URL, return as-is
   if (path.startsWith('blob:') || path.startsWith('data:')) {
     return path;
@@ -265,10 +262,13 @@ export function getRawMediaUrl(relativePath?: string | null): string {
     return path.startsWith('/') ? path : `/${path}`;
   }
 
-  // If external non-Hugging Face host (e.g. Google Drive / lh3.googleusercontent.com)
+  // If external non-Hugging Face host (e.g. Google Drive, Flickr, Wikimedia, web images)
   if (/^https?:\/\//i.test(path) && !path.includes('huggingface.co') && !path.includes('media.sarwar.cyou')) {
-    return path;
+    return path.replace(/#t=[\d.,]+$/i, '');
   }
+
+  // Strip trailing media fragment like #t=1.0 or query parameters
+  path = path.replace(/#t=[\d.,]+$/i, '').split('?')[0];
 
   // Strip Hugging Face dataset base URL if present
   path = path.replace(/^https?:\/\/huggingface\.co\/datasets\/[^/]+\/[^/]+\/(?:resolve|raw|tree)\/main\//i, '');

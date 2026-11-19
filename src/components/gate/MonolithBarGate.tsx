@@ -22,6 +22,8 @@ import { HomepageSlidingShorts } from './HomepageSlidingShorts';
 import { BandhobiSlidingFeaturedPhotos } from './BandhobiSlidingFeaturedPhotos';
 import { DeepDiurnalTelemetryView } from '../telemetry/DeepDiurnalTelemetryView';
 import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
+import { CyberSearchBar } from '../navigation/CyberSearchBar';
+import { WebImageSearchModal } from '../search/WebImageSearchModal';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -246,6 +248,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     path: string;
     tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER' | 'HOME' | 'TELEMETRY';
   }>({ isOpen: false, path: '' });
+
+  const [searchState, setSearchState] = useState<{ isOpen: boolean; query: string }>({
+    isOpen: false,
+    query: '',
+  });
+
+  const handleWebImageSearch = useCallback((query: string) => {
+    setSearchState({ isOpen: true, query });
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setSearchState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   const switchTab = useCallback((targetIndex: number) => {
     if (targetIndex === tabIndex) return;
@@ -853,23 +868,28 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         className="w-full flex justify-between items-start pt-6 sm:pt-7 pb-2 px-6 sm:px-10 shrink-0 z-30 bg-transparent gap-4"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        {/* Left: Logo (clicking acts as Home) + Major Folders Bar directly underneath */}
+        {/* Left: Logo (clicking acts as Home) + Search Bar beside it */}
         <div className="flex flex-col gap-3 sm:gap-4 shrink-0">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              if (tabIndex === 2 && shortsSubfolder === 'Featured' && displayedShortsSub === 'Featured') {
-                return;
-              }
-              goToHome();
-            }}
-            className="inline-flex items-center cursor-pointer transition-opacity hover:opacity-85 bg-transparent p-0 no-underline"
-            title="SARWAR.CYOU"
-            style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-          >
-            <LaserSparkLogo width={250} height={34} interactive={false} />
-          </a>
+          <div className="flex items-center gap-3 sm:gap-5">
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                if (tabIndex === 2 && shortsSubfolder === 'Featured' && displayedShortsSub === 'Featured') {
+                  return;
+                }
+                goToHome();
+              }}
+              className="inline-flex items-center cursor-pointer transition-opacity hover:opacity-85 bg-transparent p-0 no-underline shrink-0"
+              title="SARWAR.CYOU"
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              <LaserSparkLogo width={250} height={34} interactive={false} />
+            </a>
+
+            {/* Cyber Search Bar */}
+            <CyberSearchBar onSearch={handleWebImageSearch} />
+          </div>
 
           {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}
           <nav className="flex items-center gap-5 sm:gap-6">
@@ -1146,6 +1166,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           animation: quantumTabEnterBwd 0.88s cubic-bezier(0, 0, 0.2, 1) forwards;
         }
       `}</style>
+
+      {/* Web Image Search Modal */}
+      <WebImageSearchModal
+        isOpen={searchState.isOpen}
+        initialQuery={searchState.query}
+        onClose={handleCloseSearch}
+        onOpenPhoto={onOpenPhoto}
+      />
     </div>
   );
 };
