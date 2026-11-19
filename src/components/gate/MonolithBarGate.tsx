@@ -488,8 +488,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const activeBandhobiList: StageMediaItem[] = useMemo(() => {
     if (displayedBandhobiSub === 'Featured') {
       const photosNode = rootMap.get('bandhobiz')?.subfolders.get('Photographs') || rootMap.get('Bandhobi')?.subfolders.get('Photographs');
-      const allPhotos = photosNode ? photosNode.files : [];
-      // Build lookup map by filename, shortId, and clean basename
+      // Strictly isolate to bandhobiz/Photographs photos only - NEVER accept files outside this directory
+      const allPhotos = (photosNode ? photosNode.files : []).filter((item: StageMediaItem) => {
+        const p = (item.path || '').toLowerCase();
+        return p.startsWith('bandhobiz/photographs/') || p.startsWith('bandhobi/photographs/');
+      });
+
+      // Build lookup map ONLY from bandhobiz/Photographs photos
       const itemMap = new Map<string, StageMediaItem>();
       const registerItem = (item: StageMediaItem) => {
         const sid = getMediaShortId(item);
@@ -501,7 +506,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       };
 
       for (const item of allPhotos) registerItem(item);
-      for (const item of items) registerItem(item);
 
       const selected: StageMediaItem[] = [];
       for (const fname of BANDHOBI_FEATURED_PHOTO_FILENAMES) {
@@ -516,7 +520,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         }
       }
 
-      // Automatic discovery: Any photo in bandhobiz/Photographs that starts with FAV_
+      // Automatic discovery: STRICTLY within allPhotos (bandhobiz/Photographs only)
       for (const item of allPhotos) {
         const baseName = (item.name || (item.path ? item.path.split('/').pop() : '') || '').toLowerCase();
         if (baseName.startsWith('fav_') || baseName.startsWith('fav-') || item.path?.toLowerCase().includes('/favorite/')) {
@@ -530,7 +534,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }
     const node = rootMap.get('bandhobiz')?.subfolders.get(displayedBandhobiSub) || rootMap.get('Bandhobi')?.subfolders.get(displayedBandhobiSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
-  }, [items, rootMap, displayedBandhobiSub, shuffleTrigger]);
+  }, [rootMap, displayedBandhobiSub, shuffleTrigger]);
 
   const handleOpenItem = useCallback(
     (item: StageMediaItem, index: number = 0) => {
