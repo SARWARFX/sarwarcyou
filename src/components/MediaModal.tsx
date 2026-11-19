@@ -96,7 +96,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       // On mobile: tray toggles on single tap on photo
       setShowControls(typeof window !== 'undefined' && window.innerWidth >= 1024);
     }
-  }, [isOpen, activeIdx]);
+  }, [isOpen]);
 
   const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
 
@@ -820,16 +820,16 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* Vertical Zoom Scrubber Slider at Bottom-Right Corner (Slightly Above Logo) */}
+      {/* Vertical Zoom Bar (Clean +/- with slider on the bar, following control tray) */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        className={`fixed bottom-14 right-4 sm:bottom-16 sm:right-6 z-50 flex flex-col items-center justify-between h-48 sm:h-56 py-2 px-1.5 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 select-none ${
+        className={`fixed bottom-14 right-4 sm:bottom-16 sm:right-6 z-50 flex flex-col items-center justify-between w-9 sm:w-10 h-64 sm:h-72 py-2 px-1 rounded-none bg-[rgba(5,7,12,0.92)] backdrop-blur-xl border border-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.85)] pointer-events-auto transition-all duration-300 select-none ${
           showControls ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
-        title="Vertical Zoom Slider (Drag to zoom in/out)"
+        title="Zoom (Drag slider or use +/- buttons)"
       >
-        {/* Top Bound Zoom-In Icon Button */}
+        {/* Top Bound Zoom-In (+) */}
         <button
           type="button"
           onClick={(e) => {
@@ -837,62 +837,48 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             setZoomLevel(scaleRef.current + 0.35);
           }}
           disabled={scale >= 4.5}
-          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white shrink-0"
+          className="w-7 h-7 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-300 hover:text-white shrink-0"
           title="Zoom In (+)"
           aria-label="Zoom in"
         >
-          <LaserZoomInIcon size={16} />
+          <LaserZoomInIcon size={18} />
         </button>
 
-        {/* Vertical Track Hitbox */}
+        {/* Vertical Bar Track & Slider Thumb */}
         <div
           onPointerDown={handleVerticalZoomPointerDown}
           onPointerMove={handleVerticalZoomPointerMove}
           onPointerUp={handleVerticalZoomPointerUp}
           onPointerCancel={handleVerticalZoomPointerUp}
-          className="relative w-8 flex-1 flex items-center justify-center cursor-pointer my-1 overflow-visible"
+          className="group/zrail relative w-full flex-1 flex items-center justify-center cursor-pointer my-1.5 overflow-visible"
         >
-          {/* Visual Track Rail: Slim 3px expanding to 5px on hover */}
-          <div className="relative w-[3px] hover:w-[5px] h-full bg-white/20 transition-all duration-150 flex flex-col justify-end overflow-visible">
-            {/* Active Progress Fill: Pure Stark White Style with Cyber Glow */}
+          {/* Vertical Track Rail */}
+          <div className="relative w-[3px] group-hover/zrail:w-[4px] h-full bg-white/20 transition-all duration-150 flex flex-col justify-end overflow-visible">
+            {/* Active Fill Bar */}
             <div
-              className="absolute bottom-0 left-0 right-0 transition-all"
+              className="absolute bottom-0 left-0 right-0 bg-white transition-all"
               style={{
                 height: `${Math.min(100, Math.max(0, ((scale - 1) / 3.5) * 100))}%`,
-                background: '#ffffff',
-                boxShadow: '0 0 10px rgba(255, 255, 255, 0.85)',
+                boxShadow: '0 0 8px rgba(255, 255, 255, 0.85)',
               }}
             />
 
-            {/* Scrubber Handle & Live Zoom Percentage Badge */}
+            {/* Slider Thumb on the Bar */}
             <div
-              className="absolute left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center pointer-events-none transition-transform duration-75 z-20"
+              className="absolute left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center pointer-events-none z-20"
               style={{
                 bottom: `${Math.min(100, Math.max(0, ((scale - 1) / 3.5) * 100))}%`,
               }}
             >
-              {/* Distinct Square Reticle Scrubber Dot */}
               <div
-                className="w-3 h-3 bg-white border border-black/40 shrink-0"
-                style={{
-                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)',
-                  borderRadius: 0,
-                  outline: 'none',
-                }}
-              />
-
-              {/* Live Zoom Percentage Badge to the left of the slider handle */}
-              <span
-                className="mr-2 order-first px-1.5 py-0.5 bg-[#05070c]/95 border border-white/30 text-[10px] font-mono font-bold text-white shadow-[0_0_10px_rgba(0,0,0,0.9)] whitespace-nowrap"
+                className="w-3.5 h-3.5 bg-white border border-black/40 shadow-[0_0_10px_rgba(255,255,255,0.95)]"
                 style={{ borderRadius: 0, outline: 'none' }}
-              >
-                {Math.round(scale * 100)}%
-              </span>
+              />
             </div>
           </div>
         </div>
 
-        {/* Bottom Bound Zoom-Out Step Button */}
+        {/* Bottom Bound Zoom-Out (−) */}
         <button
           type="button"
           onClick={(e) => {
@@ -900,27 +886,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             setZoomLevel(scaleRef.current - 0.35);
           }}
           disabled={scale <= 1.02}
-          className="w-6 h-6 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-400 hover:text-white shrink-0"
+          className="w-7 h-7 flex items-center justify-center cursor-pointer border-0 disabled:opacity-25 disabled:pointer-events-none text-slate-300 hover:text-white shrink-0"
           title="Zoom Out (−)"
           aria-label="Zoom out"
         >
-          <LaserZoomOutIcon size={16} />
-        </button>
-
-        {/* 100% Reset Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            resetZoom();
-          }}
-          className={`px-1 py-0.5 rounded-none text-[10px] font-mono font-bold cursor-pointer border-0 transition-colors shrink-0 ${
-            scale > 1.05 ? 'text-[#00f0ff] hover:text-white' : 'text-slate-400 hover:text-white'
-          }`}
-          title="Reset Zoom to 100%"
-          aria-label="Reset zoom"
-        >
-          100%
+          <LaserZoomOutIcon size={18} />
         </button>
       </div>
 
