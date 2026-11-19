@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&family=Science+Gothic:wght@100..900&family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&family=Science+Gothic:wght@100..900&family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800;900&family=Firjar:wdth,wght@75..125,100..800&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -40,9 +40,16 @@
   --font-audiowide: 'Science Gothic', cursive, sans-serif;
   --font-orbitron: 'Science Gothic', sans-serif;
   --font-rajdhani: 'Science Gothic', sans-serif;
+  --font-firjar: 'Firjar', sans-serif;
 
   --color-neutral-border: rgba(255, 255, 255, 0.15);
   --color-neutral-hover: rgba(255, 255, 255, 0.1);
+}
+
+/* Firjar font utility: Mini graph day initials and telemetry labels */
+.font-firjar,
+.font-firjar * {
+  font-family: 'Firjar', 'Science Gothic', sans-serif !important;
 }
 
 /* EULO Marquee Bar: Globally Standard High-End Modern Sans (Inter) */

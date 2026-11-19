@@ -152,7 +152,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
               }}
             >
               <span
-                className={`${
+                className={`font-firjar ${
                   isLarge ? 'text-[10px] sm:text-[11.5px]' : 'text-[9px] sm:text-[10px]'
                 } font-bold tracking-tight whitespace-nowrap leading-none transition-colors duration-150 ${
                   day.isPeak
@@ -162,7 +162,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
                     : 'text-[#94a3b8] group-hover:text-white'
                 }`}
                 style={{
-                  fontFamily: "'Firjar', 'Science Gothic', sans-serif",
+                  fontFamily: "'Firjar', 'Science Gothic', sans-serif !important",
                   transform: 'rotate(-90deg)',
                   transformOrigin: 'center center',
                   textShadow: day.isPeak
@@ -216,7 +216,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
           {/* Single-letter day initial at bottom (T, Y, S, S, F, T, W) */}
           <div className="flex flex-col items-center gap-0.5">
             <span
-              className={`${
+              className={`font-firjar ${
                 isLarge ? 'text-[11.5px] sm:text-[13px]' : 'text-[10px] sm:text-[11px]'
               } font-bold transition-colors duration-150 ${
                 isSelected
@@ -228,7 +228,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
                   : 'text-[#64748b] group-hover:text-white'
               }`}
               style={{
-                fontFamily: "'Firjar', 'Science Gothic', sans-serif",
+                fontFamily: "'Firjar', 'Science Gothic', sans-serif !important",
                 borderRadius: 0,
                 outline: 'none',
                 border: 'none',

@@ -128,24 +128,25 @@ export function normalizeRepoPath(path: string): string {
       ? 'Thumbnails/Shorts/Older/webmedia-serial-340.webp'
       : 'Shorts/Older/webmedia-serial-340.mp4';
   }
-  if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean) || /^Bandhobi.*asha8\.mp4$/i.test(clean)) {
-    return 'Bandhobi/Video Clips/asha8.mp4';
+  if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean) || /^(?:Bandhobi|bandhobiz).*asha8\.mp4$/i.test(clean)) {
+    return 'bandhobiz/Video Clips/asha8.mp4';
   }
   if (/^Thumbnails\/.*asha8/i.test(clean)) {
-    return 'Thumbnails/Bandhobi/Video Clips/asha8.webp';
+    return 'Thumbnails/bandhobiz/Video Clips/asha8.webp';
   }
   if (/^Images\/Bandhobis\//i.test(clean)) {
-    return clean.replace(/^Images\/Bandhobis\//i, 'Bandhobi/Photographs/');
+    return clean.replace(/^Images\/Bandhobis\//i, 'bandhobiz/Photographs/');
   }
 
   // 2. Folder mappings
   clean = deduplicatePathSegments(clean);
 
   if (isThumbnailPath) {
-    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Images\//i, 'Thumbnails/Bandhobi/Photographs/');
-    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Shorts\//i, 'Thumbnails/Bandhobi/Shorts/');
-    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Video Clips\//i, 'Thumbnails/Bandhobi/Video Clips/');
-    clean = clean.replace(/^Thumbnails\/REALTube\//i, 'Thumbnails/Bandhobi/');
+    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Images\//i, 'Thumbnails/bandhobiz/Photographs/');
+    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Shorts\//i, 'Thumbnails/bandhobiz/Shorts/');
+    clean = clean.replace(/^Thumbnails\/REALTube\/REALTube Video Clips\//i, 'Thumbnails/bandhobiz/Video Clips/');
+    clean = clean.replace(/^Thumbnails\/REALTube\//i, 'Thumbnails/bandhobiz/');
+    clean = clean.replace(/^Thumbnails\/Bandhobi\//i, 'Thumbnails/bandhobiz/');
 
     clean = clean.replace(/^Thumbnails\/(?:Video Clips\/)?(?:Clips 2025|H2025)\//i, 'Thumbnails/Video Clips/2025/');
     clean = clean.replace(/^Thumbnails\/(?:Video Clips\/)?(?:Clips 2026|H2026)\//i, 'Thumbnails/Video Clips/2026/');
@@ -164,10 +165,11 @@ export function normalizeRepoPath(path: string): string {
     clean = clean.replace(/^Thumbnails\/Shorts\/(?:Shorts 2027|2027)\//i, 'Thumbnails/Shorts/2027/');
     clean = clean.replace(/^Thumbnails\/Shorts\/(?:Shorts Classic|Classic|Older)\//i, 'Thumbnails/Shorts/Older/');
   } else {
-    clean = clean.replace(/^REALTube\/REALTube Images\//i, 'Bandhobi/Photographs/');
-    clean = clean.replace(/^REALTube\/REALTube Shorts\//i, 'Bandhobi/Shorts/');
-    clean = clean.replace(/^REALTube\/REALTube Video Clips\//i, 'Bandhobi/Video Clips/');
-    clean = clean.replace(/^REALTube\//i, 'Bandhobi/');
+    clean = clean.replace(/^REALTube\/REALTube Images\//i, 'bandhobiz/Photographs/');
+    clean = clean.replace(/^REALTube\/REALTube Shorts\//i, 'bandhobiz/Shorts/');
+    clean = clean.replace(/^REALTube\/REALTube Video Clips\//i, 'bandhobiz/Video Clips/');
+    clean = clean.replace(/^REALTube\//i, 'bandhobiz/');
+    clean = clean.replace(/^Bandhobi\//i, 'bandhobiz/');
 
     clean = clean.replace(/^(?:Video Clips\/)?(?:Clips 2025|H2025)\//i, 'Video Clips/2025/');
     clean = clean.replace(/^(?:Video Clips\/)?(?:Clips 2026|H2026)\//i, 'Video Clips/2026/');

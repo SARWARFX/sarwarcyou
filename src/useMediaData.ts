@@ -22,7 +22,7 @@ export const HF_IMAGES_TREE_API_URL =
 export const HF_SHORTS_TREE_API_URL =
   'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Shorts?recursive=true';
 export const HF_BANDHOBI_TREE_API_URL =
-  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/Bandhobi?recursive=true';
+  'https://huggingface.co/api/datasets/SARWARFX/stream-vault/tree/main/bandhobiz?recursive=true';
 // Backwards-compatibility alias
 export const HF_REALTUBE_TREE_API_URL = HF_BANDHOBI_TREE_API_URL;
 export const HUGGINGFACE_CATALOG_URL = HF_RAW_MEDIA_JSON_URL;
@@ -240,7 +240,7 @@ export function parseTreeToCatalog(
     const itemObj = { name, path, url, lastCommit, date: itemDate };
 
     // ISOLATE BANDHOBI: Bandhobi media must NEVER be included in main Photographs, Shorts, or Video Clips
-    const isBandhobi = path.toLowerCase().startsWith('bandhobi/') || path.toLowerCase().startsWith('realtube/');
+    const isBandhobi = path.toLowerCase().startsWith('bandhobiz/') || path.toLowerCase().startsWith('bandhobi/') || path.toLowerCase().startsWith('realtube/');
     if (isBandhobi) {
       bandhobi.push(itemObj);
       allMedia.push(itemObj);
@@ -455,7 +455,7 @@ export async function fetchDynamicCatalog(forceBypassCache = false): Promise<HfM
           seen.add(key);
 
           // ISOLATE BANDHOBI:
-          if (p.toLowerCase().startsWith('bandhobi/') || p.toLowerCase().startsWith('realtube/')) {
+          if (p.toLowerCase().startsWith('bandhobiz/') || p.toLowerCase().startsWith('bandhobi/') || p.toLowerCase().startsWith('realtube/')) {
             rawBandhobi.push(item);
           } else if (isVideoExtension(p)) {
             const parsed = parseMediaPath(p);

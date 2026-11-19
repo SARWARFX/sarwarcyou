@@ -1259,57 +1259,149 @@ export type AppTabRoute = 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BAND
 
 export interface ParsedAppRoute {
   tab: AppTabRoute;
+  subfolder?: string | null;
   shortId: string | null;
   rawPath: string;
   isNotFound: boolean;
 }
 
 /**
+ * Normalizes a raw subfolder slug to its canonical display subfolder name
+ */
+export function resolveSubfolderSlug(tab: AppTabRoute, slug: string): string | null {
+  const s = slug.toLowerCase().trim();
+  if (tab === 'PHOTOGRAPHY') {
+    if (s === 'all') return 'ALL';
+    if (s === 'favorite' || s === 'fav') return 'Favorite';
+    if (s === '2027') return '2027';
+    if (s === '2026') return '2026';
+    if (s === '2025') return '2025';
+    if (s === 'older' || s === 'classic') return 'Older';
+    return null;
+  }
+  if (tab === 'SHORTS') {
+    if (s === 'featured') return 'Featured';
+    if (s === '2027') return '2027';
+    if (s === 'older' || s === 'classic') return 'Older';
+    return null;
+  }
+  if (tab === 'CLIPS') {
+    if (s === 'all') return 'ALL';
+    if (s === 'favorite' || s === 'fav') return 'Favorite';
+    if (s === '2027') return '2027';
+    if (s === '2026') return '2026';
+    if (s === 'older' || s === 'classic') return 'Older';
+    return null;
+  }
+  if (tab === 'BANDHOBI') {
+    if (s === 'featured') return 'Featured';
+    if (s === 'photographs' || s === 'photos' || s === 'images') return 'Photographs';
+    if (s === 'videoclips' || s === 'video-clips' || s === 'clips' || s === 'video clips' || s === 'videos') return 'Video Clips';
+    if (s === 'shorts' || s === 'reels') return 'Shorts';
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Builds standard canonical web URL for a subfolder page
+ */
+export function getSubfolderHref(tabIndex: number, subfolder: string): string {
+  const sub = subfolder.toLowerCase();
+  if (tabIndex === 1) { // Photographs
+    return sub === 'all' ? '/photographs' : `/photographs/${sub}`;
+  }
+  if (tabIndex === 2) { // Shorts
+    return sub === 'featured' ? '/' : `/shorts/${sub}`;
+  }
+  if (tabIndex === 3) { // Video Clips
+    return sub === 'all' ? '/clips' : `/clips/${sub}`;
+  }
+  if (tabIndex === 4) { // bandhobiz
+    if (sub === 'featured') return '/bandhobiz';
+    if (sub === 'video clips') return '/bandhobiz/videoclips';
+    return `/bandhobiz/${sub}`;
+  }
+  return '/';
+}
+
+/**
  * Parses modern clean pathnames such as:
- * - "/" -> Home (Trailer)
+ * - "/" -> Home (Trailer/Featured Shorts)
  * - "/shorts" -> Shorts Tab
+ * - "/shorts/2027" -> Shorts Tab + Subfolder 2027
  * - "/shorts/7mK9" -> Shorts Tab + Media 7mK9
  * - "/clips" or "/videoclips" -> Video Clips Tab
+ * - "/clips/favorite" -> Video Clips Tab + Subfolder Favorite
  * - "/clips/x2P4" -> Video Clips Tab + Media x2P4
  * - "/photographs" or "/photos" -> Photographs Tab
+ * - "/photographs/2027" -> Photographs Tab + Subfolder 2027
  * - "/photographs/v9Q1" -> Photographs Tab + Media v9Q1
+ * - "/bandhobiz" or "/bandhobi" -> bandhobiz Tab
+ * - "/bandhobiz/photographs" -> bandhobiz Tab + Subfolder Photographs
  */
 export function parseAppPathname(pathname?: string): ParsedAppRoute {
   if (typeof window === 'undefined') {
-    return { tab: 'TRAILER', shortId: null, rawPath: '/', isNotFound: false };
+    return { tab: 'TRAILER', subfolder: null, shortId: null, rawPath: '/', isNotFound: false };
   }
 
   const raw = (pathname ?? window.location.pathname).replace(/^\/+|\/+$/g, '').trim();
   if (!raw || raw === 'home' || raw === 'trailer') {
-    return { tab: 'TRAILER', shortId: null, rawPath: '/', isNotFound: false };
+    return { tab: 'TRAILER', subfolder: 'Featured', shortId: null, rawPath: '/', isNotFound: false };
   }
 
   const segments = raw.split('/').map((s) => s.trim()).filter(Boolean);
   const root = segments[0]?.toLowerCase();
-  const shortId = segments[1] || null;
+
+  const parseTabAndSub = (tab: AppTabRoute) => {
+    let subfolder: string | null = null;
+    let shortId: string | null = null;
+    let isNotFound = false;
+
+    if (segments.length === 2) {
+      const resolvedSub = resolveSubfolderSlug(tab, segments[1]);
+      if (resolvedSub) {
+        subfolder = resolvedSub;
+      } else {
+        shortId = segments[1];
+      }
+    } else if (segments.length === 3) {
+      const resolvedSub = resolveSubfolderSlug(tab, segments[1]);
+      if (resolvedSub) {
+        subfolder = resolvedSub;
+        shortId = segments[2];
+      } else {
+        isNotFound = true;
+      }
+    } else if (segments.length > 3) {
+      isNotFound = true;
+    }
+
+    return { tab, subfolder, shortId, rawPath: raw, isNotFound };
+  };
 
   if (root === 'shorts') {
-    return { tab: 'SHORTS', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+    return parseTabAndSub('SHORTS');
   }
 
   if (root === 'clips' || root === 'videoclips' || root === 'videos') {
-    return { tab: 'CLIPS', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+    return parseTabAndSub('CLIPS');
   }
 
   if (root === 'photographs' || root === 'photos' || root === 'images') {
-    return { tab: 'PHOTOGRAPHY', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+    return parseTabAndSub('PHOTOGRAPHY');
   }
 
-  if (root === 'bandhobi') {
-    return { tab: 'BANDHOBI', shortId, rawPath: raw, isNotFound: segments.length > 2 };
+  if (root === 'bandhobiz' || root === 'bandhobi') {
+    return parseTabAndSub('BANDHOBI');
   }
 
   if (root === 'telemetry' || root === 'stats' || root === 'graph' || root === 'screentime') {
-    return { tab: 'TELEMETRY', shortId: null, rawPath: raw, isNotFound: false };
+    return { tab: 'TELEMETRY', subfolder: null, shortId: null, rawPath: raw, isNotFound: false };
   }
 
   // Any unrecognized root path
-  return { tab: 'TRAILER', shortId: null, rawPath: raw, isNotFound: true };
+  return { tab: 'TRAILER', subfolder: null, shortId: null, rawPath: raw, isNotFound: true };
 }
 
 /**

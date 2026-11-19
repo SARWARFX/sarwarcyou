@@ -38,7 +38,7 @@ export function formatFolderName(raw: string, mediaTypeHint?: 'video' | 'image' 
   if (/^h2026\s*photos?$/i.test(decoded)) return 'H2026 Photos';
   if (/^h2025\s*photos?$/i.test(decoded)) return 'H2025 Photos';
   if (/^works?$/i.test(decoded)) return 'Works';
-  if (/^bandhobis?$/i.test(decoded)) return 'Bandhobis';
+  if (/^(?:bandhobis?|bandhobiz)$/i.test(decoded)) return 'bandhobiz';
   if (/^classic$/i.test(decoded)) return 'Classic';
 
   if (/^h2027$/i.test(decoded)) {
@@ -74,8 +74,8 @@ export function formatAlbumDisplayName(folderPath: string, mediaTypeHint?: 'vide
   const last = segments[segments.length - 1];
   const root = segments[0].toLowerCase();
 
-  // If root is a generic namespace folder like Photographs, Video Clips, Bandhobi, REALTube, Images, Clips, Shorts
-  if (['photographs', 'video clips', 'bandhobi', 'realtube', 'images', 'clips', 'shorts'].includes(root)) {
+  // If root is a generic namespace folder like Photographs, Video Clips, bandhobiz, REALTube, Images, Clips, Shorts
+  if (['photographs', 'video clips', 'bandhobiz', 'bandhobi', 'realtube', 'images', 'clips', 'shorts'].includes(root)) {
     if (root === 'clips') {
       return formatFolderName(last, 'video');
     }
