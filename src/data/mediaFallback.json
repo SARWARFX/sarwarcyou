@@ -5612,6 +5612,14 @@
       "thumbnail": "https://media.sarwar.cyou/Thumbnails/bandhobiz/Shorts/webmedia-serial-267.webp",
       "size": 28833917,
       "date": 1794400786874
+    },
+    {
+      "path": "bandhobiz/Photographs/Drthrinaislam.jpg",
+      "name": "Drthrinaislam.jpg",
+      "url": "https://media.sarwar.cyou/bandhobiz/Photographs/Drthrinaislam.jpg",
+      "fallbackUrl": "https://huggingface.co/datasets/SARWARFX/stream-vault/resolve/main/bandhobiz/Photographs/Drthrinaislam.jpg",
+      "thumbnail": "https://media.sarwar.cyou/bandhobiz/Photographs/Drthrinaislam.jpg",
+      "type": "image"
     }
   ],
   "allMedia": [

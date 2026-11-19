@@ -97,21 +97,23 @@ const SHORTS_SUBFOLDERS = ['Featured', '2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
 const BANDHOBI_SUBFOLDERS = ['Featured', 'Photographs', 'Video Clips', 'Shorts'];
 
-// Selected photo identifiers to showcase under Bandhobi -> Featured in user's exact order
-export const BANDHOBI_FEATURED_PHOTO_KEYS: string[] = [
-  'hs0c', // webmedia-serial-254.jpeg
-  'cKsr', // Farhana2.png
-  '1uZH', // Farhana.jpg
-  'xMUf', // f26140392.jpg
-  'X6jY', // Eva8.jpg
-  'ky2w', // Eva6.jpg
-  'Aiox', // Eva5.jpg
-  'Hr06', // Eva4.jpg
-  'GMBe', // Asha5.jpg
-  'GVKR', // Asha2.jpg
-  '300N', // Anamika7.jpg
-  'c4LO', // Anamika4.jpg
+// Selected photo filenames to showcase under bandhobiz -> Featured in user's exact order
+export const BANDHOBI_FEATURED_PHOTO_FILENAMES: string[] = [
+  'webmedia-serial-254.jpeg',
+  'Farhana2.png',
+  'Farhana.jpg',
+  'f26140392.jpg',
+  'Eva8.jpg',
+  'Eva6.jpg',
+  'Eva5.jpg',
+  'Eva4.jpg',
+  'Asha5.jpg',
+  'Asha2.jpg',
+  'Anamika7.jpg',
+  'Anamika4.jpg',
+  'Drthrinaislam.jpg',
 ];
+export const BANDHOBI_FEATURED_PHOTO_KEYS = BANDHOBI_FEATURED_PHOTO_FILENAMES;
 
 function shuffleArray<T>(list: T[]): T[] {
   const result = [...list];
@@ -487,30 +489,39 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     if (displayedBandhobiSub === 'Featured') {
       const photosNode = rootMap.get('bandhobiz')?.subfolders.get('Photographs') || rootMap.get('Bandhobi')?.subfolders.get('Photographs');
       const allPhotos = photosNode ? photosNode.files : [];
-      // Build lookup map by shortId and filename
+      // Build lookup map by filename, shortId, and clean basename
       const itemMap = new Map<string, StageMediaItem>();
-      for (const item of allPhotos) {
+      const registerItem = (item: StageMediaItem) => {
         const sid = getMediaShortId(item);
         if (sid) itemMap.set(sid.toLowerCase(), item);
         const name = (item.name || '').toLowerCase();
         if (name) itemMap.set(name, item);
         const pathPart = (item.path || '').split('/').pop()?.toLowerCase();
         if (pathPart) itemMap.set(pathPart, item);
-      }
-      for (const item of items) {
-        const sid = getMediaShortId(item);
-        if (sid && !itemMap.has(sid.toLowerCase())) itemMap.set(sid.toLowerCase(), item);
-      }
+      };
+
+      for (const item of allPhotos) registerItem(item);
+      for (const item of items) registerItem(item);
 
       const selected: StageMediaItem[] = [];
-      for (const key of BANDHOBI_FEATURED_PHOTO_KEYS) {
-        const match = itemMap.get(key.toLowerCase());
-        if (match) {
+      for (const fname of BANDHOBI_FEATURED_PHOTO_FILENAMES) {
+        const match = itemMap.get(fname.toLowerCase());
+        if (match && !selected.some((s) => s.id === match.id || s.path === match.path)) {
           selected.push(match);
         }
       }
-      const baseList = selected.length > 0 ? selected : sortMediaItemsDescending<StageMediaItem>(allPhotos).slice(0, 12);
-      return shuffleArray(baseList);
+
+      // Automatic discovery: Any photo in bandhobiz/Photographs that is in a Favorite/ subfolder or has 'fav' in filename
+      for (const item of allPhotos) {
+        const p = (item.path || item.name || '').toLowerCase();
+        if (p.includes('/favorite/') || p.includes('fav_') || p.includes('_fav') || p.includes('[fav]') || p.includes('favorite')) {
+          if (!selected.some((s) => s.id === item.id || s.path === item.path)) {
+            selected.push(item);
+          }
+        }
+      }
+
+      return selected.length > 0 ? selected : allPhotos.slice(0, 13);
     }
     const node = rootMap.get('bandhobiz')?.subfolders.get(displayedBandhobiSub) || rootMap.get('Bandhobi')?.subfolders.get(displayedBandhobiSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
