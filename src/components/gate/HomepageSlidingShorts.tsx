@@ -173,8 +173,8 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       {/* High-Tech Cybernetic Loading Screen: Shows while buffering until ALL 6 are truly ready */}
       {!isPlaybackReady && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none px-4">
-          {/* Responsive Dual-Mode Cyber Loading Card: Taller rectangular monolith on mobile, horizontal banner on desktop */}
-          <div className="flex flex-col items-center justify-between w-full max-w-[295px] min-h-[290px] p-8 sm:min-w-[440px] sm:max-w-[520px] sm:min-h-0 sm:p-6 sm:px-10 sm:py-5 bg-[#07090e]/95 border border-[#38bdf8]/45 shadow-[0_0_45px_rgba(0,0,0,0.9),0_0_25px_rgba(56,189,248,0.22)] backdrop-blur-md">
+          {/* Responsive Dual-Mode Cyber Loading Card: Taller rectangular monolith on mobile, spacious horizontal banner on desktop */}
+          <div className="flex flex-col items-center justify-between w-full max-w-[295px] min-h-[290px] p-8 sm:w-auto sm:min-w-[500px] sm:max-w-[620px] sm:min-h-0 sm:px-14 sm:py-6 md:px-16 md:py-7 bg-[#07090e]/95 border border-[#38bdf8]/45 shadow-[0_0_45px_rgba(0,0,0,0.9),0_0_25px_rgba(56,189,248,0.22)] backdrop-blur-md">
             {/* Mobile View: Taller Rectangular Card with Exact 2-Line Desktop Split (Option A) */}
             <div className="flex sm:hidden flex-col items-center justify-center gap-5 flex-1 w-full text-center py-2">
               <div className="w-3.5 h-3.5 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
@@ -191,11 +191,11 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
               </div>
             </div>
 
-            {/* Desktop & Tablet View: Single Horizontal Line Benchmark */}
-            <div className="hidden sm:flex items-center gap-3.5 mb-3">
+            {/* Desktop & Tablet View: Single Horizontal Line with Generous Breathing Room */}
+            <div className="hidden sm:flex items-center gap-3.5 mb-4">
               <div className="w-3 h-3 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
               <span
-                className="text-base sm:text-lg md:text-xl font-bold tracking-[0.16em] uppercase text-white whitespace-nowrap"
+                className="text-base sm:text-base md:text-lg font-bold tracking-[0.14em] uppercase text-white whitespace-nowrap"
                 style={{ fontFamily: "'Science Gothic', sans-serif" }}
               >
                 <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">LOADING MEDIA //</span> PLEASE WAIT
