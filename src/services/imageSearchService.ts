@@ -8,8 +8,8 @@ import type { StageMediaItem } from '../types';
  */
 
 const CLOUDFLARE_SEARCH_WORKERS = [
-  'https://searchbox.msnfx9.workers.dev',
   'https://search.sarwar.cyou',
+  'https://searchbox.msnfx9.workers.dev',
 ];
 
 async function fetchFromDdgWorker(query: string, signal?: AbortSignal): Promise<StageMediaItem[]> {
