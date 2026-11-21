@@ -1286,7 +1286,7 @@ export function resolveSubfolderSlug(tab: AppTabRoute, slug: string): string | n
     return null;
   }
   if (tab === 'CLIPS') {
-    if (s === 'all') return 'ALL';
+    if (s === 'featured' || s === 'all') return 'Featured';
     if (s === 'favorite' || s === 'fav') return 'Favorite';
     if (s === '2027') return '2027';
     if (s === '2026') return '2026';
@@ -1315,7 +1315,7 @@ export function getSubfolderHref(tabIndex: number, subfolder: string): string {
     return sub === 'featured' ? '/shorts' : `/shorts/${sub}`;
   }
   if (tabIndex === 3) { // Video Clips
-    return sub === 'all' ? '/clips' : `/clips/${sub}`;
+    return (sub === 'featured' || sub === 'all') ? '/clips' : `/clips/${sub}`;
   }
   if (tabIndex === 4) { // bandhobiz
     if (sub === 'featured') return '/bandhobiz';

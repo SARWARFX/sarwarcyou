@@ -20,6 +20,7 @@ import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { HomepageSlidingShorts } from './HomepageSlidingShorts';
 import { PhotographsSlidingFeatured } from './PhotographsSlidingFeatured';
+import { VideoClipsCinemaTheater } from './VideoClipsCinemaTheater';
 import { BandhobiSlidingFeaturedPhotos } from './BandhobiSlidingFeaturedPhotos';
 import { DeepDiurnalTelemetryView } from '../telemetry/DeepDiurnalTelemetryView';
 import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
@@ -97,7 +98,7 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
 
 const PHOTO_SUBFOLDERS = ['Favorite', '2027', '2026', '2025', 'Older'];
 const SHORTS_SUBFOLDERS = ['2027', 'Older'];
-const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
+const CLIPS_SUBFOLDERS = ['Favorite', '2027', '2026', 'Older'];
 const BANDHOBI_SUBFOLDERS = ['Photographs', 'Video Clips', 'Shorts'];
 
 // Selected photo filenames to showcase under bandhobiz -> Featured in user's exact order
@@ -117,15 +118,6 @@ export const BANDHOBI_FEATURED_PHOTO_FILENAMES: string[] = [
   'FAV_Drthrinaislam.jpg',
 ];
 export const BANDHOBI_FEATURED_PHOTO_KEYS = BANDHOBI_FEATURED_PHOTO_FILENAMES;
-
-function shuffleArray<T>(list: T[]): T[] {
-  const result = [...list];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
 
 export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   items,
@@ -169,10 +161,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     return 'Featured';
   });
   const [clipsSubfolder, setClipsSubfolder] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'ALL';
+    if (typeof window === 'undefined') return 'Featured';
     const parsed = parseAppPathname();
     if (parsed.tab === 'CLIPS' && parsed.subfolder) return parsed.subfolder;
-    return 'ALL';
+    return 'Featured';
   });
   const [bandhobiSubfolder, setBandhobiSubfolder] = useState<string>(() => {
     if (typeof window === 'undefined') return 'Featured';
@@ -310,6 +302,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setDisplayedShortsSub('Featured');
         setShuffleTrigger((prev) => prev + 1);
         if (typeof window !== 'undefined') updateBrowserUrl('/shorts');
+      } else if (tabIndex === 3 && (clipsSubfolder !== 'Featured' || displayedClipsSub !== 'Featured')) {
+        setClipsSubfolder('Featured');
+        setDisplayedClipsSub('Featured');
+        setShuffleTrigger((prev) => prev + 1);
+        if (typeof window !== 'undefined') updateBrowserUrl('/clips');
       } else if (tabIndex === 4 && (bandhobiSubfolder !== 'Featured' || displayedBandhobiSub !== 'Featured')) {
         setBandhobiSubfolder('Featured');
         setDisplayedBandhobiSub('Featured');
@@ -333,7 +330,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     setTabIndex(targetIndex);
     if (targetIndex === 1) setPhotosSubfolder('Featured');
     else if (targetIndex === 2) setShortsSubfolder('Featured');
-    else if (targetIndex === 3) setClipsSubfolder('ALL');
+    else if (targetIndex === 3) setClipsSubfolder('Featured');
     else if (targetIndex === 4) setBandhobiSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
 
@@ -353,7 +350,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setDisplayedTab(targetIndex);
       if (targetIndex === 1) setDisplayedPhotosSub('Featured');
       else if (targetIndex === 2) setDisplayedShortsSub('Featured');
-      else if (targetIndex === 3) setDisplayedClipsSub('ALL');
+      else if (targetIndex === 3) setDisplayedClipsSub('Featured');
       else if (targetIndex === 4) setDisplayedBandhobiSub('Featured');
 
       setQuantumAnimClass(enterClass);
@@ -422,7 +419,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setTabIndex(2);
         setDisplayedTab(2);
       } else if (parsed.tab === 'CLIPS') {
-        const sub = parsed.subfolder || 'ALL';
+        const sub = parsed.subfolder || 'Featured';
         setClipsSubfolder(sub);
         setDisplayedClipsSub(sub);
         setTabIndex(3);
@@ -551,10 +548,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   }, [allShortsFiles, rootMap, displayedShortsSub]);
 
   const activeClipsList: StageMediaItem[] = useMemo(() => {
-    if (displayedClipsSub === 'ALL') return shuffleArray(allClipsFiles);
+    if (displayedClipsSub === 'Featured' || displayedClipsSub === 'ALL') return allClipsFiles;
     const node = rootMap.get('Video Clips')?.subfolders.get(displayedClipsSub);
     return node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allClipsFiles;
-  }, [allClipsFiles, rootMap, displayedClipsSub, shuffleTrigger]);
+  }, [allClipsFiles, rootMap, displayedClipsSub]);
 
   const activeBandhobiList: StageMediaItem[] = useMemo(() => {
     if (displayedBandhobiSub === 'Featured') {
@@ -1304,6 +1301,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 />
               </div>
             )
+          ) : displayedTab === 3 && displayedClipsSub === 'Featured' ? (
+            /* Video Clips Featured: Modern 5-Stage Cinema Theater Showcase */
+            <div className="w-full h-full flex items-center justify-center overflow-hidden">
+              <VideoClipsCinemaTheater
+                clips={allClipsFiles}
+                onOpenVideo={(item: StageMediaItem, playlist: StageMediaItem[]) => onOpenVideo(item, playlist)}
+                randomSeed={shuffleTrigger}
+                isPortrait={isPortrait}
+              />
+            </div>
           ) : displayedTab === 4 && displayedBandhobiSub === 'Featured' ? (
             /* Bandhobi Featured: Selected Photos Sliding Right-to-Left */
             <div className="w-full h-full flex items-center justify-start overflow-hidden">
