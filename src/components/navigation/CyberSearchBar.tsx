@@ -119,10 +119,10 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         onKeyDown={handleKeyDown}
-        placeholder="SEARCH"
+        placeholder="Search"
         autoComplete="off"
         spellCheck="false"
-        className="font-firjar w-full bg-transparent text-[12px] sm:text-[13px] font-bold text-white placeholder:text-[#64748b] group-hover:placeholder:text-white/60 tracking-wider uppercase outline-none border-none p-0 focus:ring-0 transition-colors"
+        className="font-firjar w-full bg-transparent text-[12.5px] sm:text-[13px] font-medium text-white placeholder:text-[#64748b] group-hover:placeholder:text-white/60 tracking-normal outline-none border-none p-0 focus:ring-0 transition-colors"
         style={{
           borderRadius: 0,
           fontFamily: "'Firjar', 'Science Gothic', sans-serif !important",
