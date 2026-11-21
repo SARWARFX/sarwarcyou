@@ -1023,9 +1023,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               /* Cyber Loading Progress Bar */
               <div className="w-full flex-1 flex flex-col items-center justify-center py-24 gap-3">
                 <div className="w-48 sm:w-64 h-[2px] bg-white/10 overflow-hidden relative" style={{ borderRadius: 0 }}>
-                  <div className="h-full bg-cyan-400 shadow-[0_0_12px_#38bdf8] animate-pulse w-full" style={{ borderRadius: 0 }} />
+                  <div className="h-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse w-full" style={{ borderRadius: 0 }} />
                 </div>
-                <span className="text-[11px] font-mono tracking-widest text-cyan-400/80 uppercase">
+                <span
+                  className="text-[11px] font-bold tracking-widest text-[#38bdf8] uppercase"
+                  style={{ fontFamily: "'Science Gothic', sans-serif" }}
+                >
                   LOADING MEDIA // PLEASE WAIT
                 </span>
               </div>
@@ -1046,7 +1049,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="w-full flex-1 flex items-center justify-center py-24 text-white/40 text-xs tracking-widest font-mono">
+              <div
+                className="w-full flex-1 flex items-center justify-center py-24 text-white/40 text-xs tracking-widest uppercase font-bold"
+                style={{ fontFamily: "'Science Gothic', sans-serif" }}
+              >
                 // NO MEDIA FOUND
               </div>
             )
@@ -1149,8 +1155,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           {searchState.isActive ? (
             <button
               onClick={handleClearSearch}
-              className="text-[11.5px] sm:text-[12px] tracking-wide text-cyan-400 hover:text-white font-mono cursor-pointer p-0 bg-transparent border-0 outline-none flex items-center gap-2"
-              style={{ borderRadius: 0 }}
+              className="text-[11.5px] sm:text-[12px] tracking-wider text-[#38bdf8] hover:text-white font-bold cursor-pointer p-0 bg-transparent border-0 outline-none flex items-center gap-2 transition-colors uppercase"
+              style={{ borderRadius: 0, fontFamily: "'Science Gothic', sans-serif" }}
             >
               <span>✕</span>
               <span>CLEAR SEARCH</span>

@@ -74,22 +74,25 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
     <form
       onSubmit={handleSubmit}
       onClick={() => inputRef.current?.focus()}
-      className={`group flex items-center gap-2 h-[32px] px-3 bg-[#0d1117]/60 hover:bg-[#161b22]/80 transition-all duration-200 cursor-text select-none ${
+      className={`group relative flex items-center gap-2 h-[32px] px-2.5 bg-[#06080d]/85 hover:bg-[#0a0d14] backdrop-blur-md transition-all duration-200 cursor-text select-none ${
         isFocused || query
-          ? 'border border-cyan-400 shadow-[0_0_12px_rgba(56,189,248,0.25)] w-44 sm:w-56'
-          : 'border border-white/20 hover:border-cyan-400/50 w-28 sm:w-36'
+          ? 'border border-[#38bdf8] shadow-[0_0_16px_rgba(56,189,248,0.3)] w-48 sm:w-64'
+          : 'border border-white/15 hover:border-[#38bdf8]/60 hover:shadow-[0_0_10px_rgba(56,189,248,0.15)] w-32 sm:w-40'
       } ${className}`}
-      style={{ borderRadius: 0 }}
+      style={{
+        borderRadius: 0,
+        fontFamily: "'Science Gothic', sans-serif",
+      }}
       title="Search (/)"
     >
-      {/* Search Reticle Icon */}
+      {/* Search Reticle / Lens Icon matching website's cyan & slate telemetry color scheme */}
       <svg
         className={`w-3.5 h-3.5 shrink-0 transition-colors duration-200 ${
           isLoading
-            ? 'text-cyan-400 animate-pulse'
+            ? 'text-[#38bdf8] animate-pulse drop-shadow-[0_0_6px_#38bdf8]'
             : isFocused || query
-            ? 'text-cyan-400'
-            : 'text-white/60 group-hover:text-white'
+            ? 'text-[#38bdf8] drop-shadow-[0_0_4px_rgba(56,189,248,0.6)]'
+            : 'text-[#64748b] group-hover:text-[#38bdf8]'
         }`}
         viewBox="0 0 24 24"
         fill="none"
@@ -102,7 +105,7 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
 
-      {/* Input strictly displaying only 'Search' as placeholder and zero other text */}
+      {/* Input Field with Science Gothic (MiniGraphs) font */}
       <input
         ref={inputRef}
         type="text"
@@ -116,24 +119,34 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         onKeyDown={handleKeyDown}
-        placeholder="Search"
+        placeholder="SEARCH"
         autoComplete="off"
         spellCheck="false"
-        className="w-full bg-transparent text-[13px] text-white placeholder:text-white/50 tracking-wide font-sans outline-none border-none p-0 focus:ring-0"
-        style={{ borderRadius: 0 }}
+        className="w-full bg-transparent text-[11.5px] sm:text-[12px] font-semibold text-white placeholder:text-[#64748b] group-hover:placeholder:text-white/60 tracking-wider uppercase outline-none border-none p-0 focus:ring-0 transition-colors"
+        style={{
+          borderRadius: 0,
+          fontFamily: "'Science Gothic', sans-serif",
+        }}
       />
 
-      {/* Clear Button when query has text */}
-      {query && (
+      {/* Shortcut hint [ / ] when empty and not focused, or Clear button when active */}
+      {query ? (
         <button
           type="button"
           onClick={handleClear}
-          className="text-white/50 hover:text-white text-xs shrink-0 p-0.5 bg-transparent border-0 cursor-pointer outline-none transition-colors"
-          title="Clear"
-          style={{ borderRadius: 0 }}
+          className="text-[#64748b] hover:text-[#ef4444] text-[11px] font-bold shrink-0 p-0.5 bg-transparent border-0 cursor-pointer outline-none transition-colors"
+          title="Clear Search"
+          style={{ borderRadius: 0, fontFamily: "'Science Gothic', sans-serif" }}
         >
           ✕
         </button>
+      ) : (
+        <span
+          className="hidden sm:inline-block text-[9.5px] font-bold text-[#64748b] group-hover:text-white/50 tracking-wider shrink-0 transition-colors select-none"
+          style={{ fontFamily: "'Science Gothic', sans-serif" }}
+        >
+          /
+        </span>
       )}
     </form>
   );
