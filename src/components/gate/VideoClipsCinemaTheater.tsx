@@ -368,116 +368,129 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     videoRefs.current[slotIdx] = el;
   }, []);
 
-  // Compute unified dynamic tiers and exposure positions
+  // Compute screen-decided dynamic tiers: ZERO predefined card count!
+  // Slices dynamically until the container boundaries (availableHalf) are completely filled.
   const layout = useMemo(() => {
     const W_box = dimensions.width;
     const H_box = dimensions.height;
 
+    // 1. Calculate Main Center Screen (Scaled 25% larger on wide landscape, generously fitted on portrait)
+    let W_main: number;
+    let H_main: number;
+
     if (isVertical) {
-      /* ===================================================================== */
-      /* PORTRAIT SCREEN: CINEMA THEATER FLIPPED VERTICAL                       */
-      /* ===================================================================== */
-      // Width fits mobile/tablet portrait with clean margins
-      const W_main = Math.min(
-        480,
-        Math.max(260, Math.min(W_box * 0.92, H_box * 0.42 * (16 / 9)))
+      W_main = Math.min(
+        680,
+        Math.max(260, Math.min(W_box * 0.94, H_box * 0.48 * (16 / 9)))
       );
-      const H_main = W_main * (9 / 16);
-
-      // Tier 1 card (adjacent Top & Bottom): 88% scale, 30% exposed along vertical Y-axis
-      const H1 = H_main * 0.88;
-      const W1 = W_main * 0.88;
-      const E1 = H_main / 2 + 0.30 * H1;
-
-      // Tier 2 card: 76% scale, 10% exposed along vertical Y-axis
-      const H2 = H_main * 0.76;
-      const W2 = W_main * 0.76;
-      const E2 = E1 + 0.10 * H2;
-
-      // Tier 3 card: 65% scale, 5% exposed along vertical Y-axis
-      const H3 = H_main * 0.65;
-      const W3 = W_main * 0.65;
-      const E3 = E2 + 0.05 * H3;
-
-      const halfH = H_box / 2;
-      let tiersAllowed = 1; // 3 cards: Top + Center + Bottom
-      if (E2 <= halfH - 8 && H_box >= 620) tiersAllowed = 2; // 5 cards
-      if (E3 <= halfH - 8 && H_box >= 880) tiersAllowed = 3; // 7 cards
-
-      return {
-        isVertical: true,
-        W_main,
-        H_main,
-        W1,
-        H1,
-        E1,
-        W2,
-        H2,
-        E2,
-        W3,
-        H3,
-        E3,
-        W4: 0,
-        H4: 0,
-        E4: 0,
-        tiersAllowed,
-      };
+      H_main = W_main * (9 / 16);
     } else {
-      /* ===================================================================== */
-      /* WIDE SCREEN: HORIZONTAL CINEMA THEATER (25% LARGER ON LAPTOP/DESKTOP) */
-      /* ===================================================================== */
-      // Center screen scaled up 25%: up to 720px / 54vw
-      const W_main = Math.min(
-        720,
-        Math.max(300, Math.min(W_box * 0.54, H_box * 0.65 * (16 / 9)))
+      W_main = Math.min(
+        760,
+        Math.max(300, Math.min(W_box * 0.56, H_box * 0.68 * (16 / 9)))
       );
-      const H_main = W_main * (9 / 16);
-
-      // Tier 1 card width & outer exposure edge (30% exposed along horizontal X-axis)
-      const W1 = W_main * 0.88;
-      const H1 = W1 * (9 / 16);
-      const E1 = W_main / 2 + 0.30 * W1;
-
-      // Tier 2 card width & outer exposure edge (10% exposed along horizontal X-axis)
-      const W2 = W_main * 0.76;
-      const H2 = W2 * (9 / 16);
-      const E2 = E1 + 0.10 * W2;
-
-      // Tier 3 card width & outer exposure edge (5% exposed)
-      const W3 = W_main * 0.65;
-      const H3 = W3 * (9 / 16);
-      const E3 = E2 + 0.05 * W3;
-
-      // Tier 4 card width & outer exposure edge (5% exposed for ultra-wide)
-      const W4 = W_main * 0.55;
-      const H4 = W4 * (9 / 16);
-      const E4 = E3 + 0.05 * W4;
-
-      const halfW = W_box / 2;
-      let tiersAllowed = 1; // Default 3 cards
-      if (E2 <= halfW - 10 && W_box >= 640) tiersAllowed = 2; // 5 cards
-      if (E3 <= halfW - 10 && W_box >= 1100) tiersAllowed = 3; // 7 cards
-      if (E4 <= halfW - 10 && W_box >= 1700) tiersAllowed = 4; // 9 cards
-
-      return {
-        isVertical: false,
-        W_main,
-        H_main,
-        W1,
-        H1,
-        E1,
-        W2,
-        H2,
-        E2,
-        W3,
-        H3,
-        E3,
-        W4,
-        H4,
-        E4,
-        tiersAllowed,
-      };
+      H_main = W_main * (9 / 16);
     }
+
+    const availableHalf = isVertical ? H_box / 2 : W_box / 2;
+    const primaryMain = isVertical ? H_main : W_main;
+
+    // 2. Dynamically add tiers until screen edges are completely reached (ZERO predefined cap!)
+    interface TierConfig {
+      k: number;
+      cardW: number;
+      cardH: number;
+      centerPos: number;
+      rotDeg: number;
+      zPos: number;
+      opacity: number;
+      zIndex: number;
+      shadowClass: string;
+      exposurePct: number;
+    }
+
+    const tiers: TierConfig[] = [];
+    let currentEdge = primaryMain / 2;
+    let k = 1;
+
+    // Continue adding tiers until currentEdge reaches or exceeds availableHalf
+    while (currentEdge < availableHalf && k <= 30) {
+      const scale = Math.max(0.60, 1 - k * 0.04);
+      const cardPrimary = primaryMain * scale;
+      const cardSecondary = isVertical ? cardPrimary * (16 / 9) : cardPrimary * (9 / 16);
+
+      // Strict user specifications:
+      // - The other two beside main screen: exactly 30%
+      // - The other two beside them: exactly 10%
+      // - Outer wings / horizon screens: 10% tapering to 5%
+      let exposurePct = 0.10;
+      if (k === 1) exposurePct = 0.30;
+      else if (k === 2) exposurePct = 0.10;
+      else if (k >= 6) exposurePct = 0.08;
+
+      const exposure = cardPrimary * exposurePct;
+      currentEdge += exposure;
+
+      const centerPos = currentEdge - cardPrimary / 2;
+
+      // Smooth mathematical 3D perspective mapping
+      let rotDeg: number;
+      let zPos: number;
+      let opacity: number;
+      let zIdx: number;
+
+      if (k === 1) {
+        rotDeg = 36;
+        zPos = -40;
+        opacity = 0.90;
+        zIdx = 45;
+      } else if (k === 2) {
+        rotDeg = 52;
+        zPos = -100;
+        opacity = 0.75;
+        zIdx = 40;
+      } else if (k === 3) {
+        rotDeg = 64;
+        zPos = -160;
+        opacity = 0.62;
+        zIdx = 35;
+      } else if (k === 4) {
+        rotDeg = 72;
+        zPos = -220;
+        opacity = 0.50;
+        zIdx = 30;
+      } else {
+        rotDeg = Math.min(84, 72 + (k - 4) * 2.5);
+        zPos = -220 - (k - 4) * 45;
+        opacity = Math.max(0.18, 0.50 - (k - 4) * 0.045);
+        zIdx = Math.max(2, 30 - k);
+      }
+
+      tiers.push({
+        k,
+        cardW: isVertical ? cardSecondary : cardPrimary,
+        cardH: isVertical ? cardPrimary : cardSecondary,
+        centerPos,
+        rotDeg,
+        zPos,
+        opacity,
+        zIndex: zIdx,
+        shadowClass:
+          k === 1
+            ? 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110'
+            : 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
+        exposurePct,
+      });
+
+      k++;
+    }
+
+    return {
+      isVertical,
+      W_main,
+      H_main,
+      tiers,
+    };
   }, [dimensions, isVertical]);
 
   // Buffer gate: wait until center + 2 adjacent cards are ready before revealing
@@ -517,23 +530,7 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
   const rawPct = (readyCount / targetThreshold) * 100;
   const progressPercent = Math.min(100, Math.max(10, Math.round(rawPct)));
 
-  const {
-    W_main,
-    H_main,
-    W1,
-    H1,
-    E1,
-    W2,
-    H2,
-    E2,
-    W3,
-    H3,
-    E3,
-    W4,
-    H4,
-    E4,
-    tiersAllowed,
-  } = layout as any;
+  const { W_main, H_main, tiers } = layout;
 
   return (
     <div
@@ -582,121 +579,76 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
           border: 'none',
         }}
       >
-        {Array.from({ length: tiersAllowed * 2 + 1 }).map((_, i) => {
-          const offset = i - tiersAllowed; // -2, -1, 0, 1, 2
-          const itemIdx = (centerIndex + offset + clipPool.length * 10) % clipPool.length;
-          const item = clipPool[itemIdx];
-
-          const isCenter = offset === 0;
-          const isWall = Math.abs(offset) === 1;
-
-          let cardW = W_main;
-          let cardH = H_main;
-          let transformStyle = '';
-          let opacity = 1;
-          let zIndex = 10;
-          let shadowClass = '';
-
-          if (isCenter) {
-            // HERO CENTER STAGE: 100% visible, plays 30% to 70%
-            cardW = W_main;
-            cardH = H_main;
-            transformStyle = isVertical
-              ? 'translateY(0px) rotateX(0deg) translateZ(80px) scale(1)'
-              : 'translateX(0px) rotateY(0deg) translateZ(80px) scale(1)';
-            zIndex = 40;
-            opacity = 1;
-            shadowClass =
-              'shadow-[0_16px_70px_rgba(0,0,0,0.95),0_0_40px_rgba(56,189,248,0.25)]';
-          } else if (isWall) {
-            // TIER 1 ADJACENT: Exactly 30% exposed, plays 40% to 60%
-            cardW = W1;
-            cardH = H1;
-            const dir = offset > 0 ? 1 : -1;
-            if (isVertical) {
-              const posY = dir * (E1 - H1 / 2);
-              const rotX = dir * 36;
-              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-40px) scale(1)`;
-            } else {
-              const posX = dir * (E1 - W1 / 2);
-              const rotY = dir * -36;
-              transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-40px) scale(1)`;
-            }
-            zIndex = 30;
-            opacity = 0.88;
-            shadowClass = 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110';
-          } else if (Math.abs(offset) === 2) {
-            // TIER 2: Exactly 10% exposed, static thumbnail
-            cardW = W2;
-            cardH = H2;
-            const dir = offset > 0 ? 1 : -1;
-            if (isVertical) {
-              const posY = dir * (E2 - H2 / 2);
-              const rotX = dir * 52;
-              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-110px) scale(1)`;
-            } else {
-              const posX = dir * (E2 - W2 / 2);
-              const rotY = dir * -52;
-              transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-110px) scale(1)`;
-            }
-            zIndex = 20;
-            opacity = 0.65;
-            shadowClass = 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125';
-          } else if (Math.abs(offset) === 3) {
-            // TIER 3: Exactly 5% exposed, static thumbnail
-            cardW = W3;
-            cardH = H3;
-            const dir = offset > 0 ? 1 : -1;
-            if (isVertical) {
-              const posY = dir * (E3 - H3 / 2);
-              const rotX = dir * 65;
-              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-180px) scale(1)`;
-            } else {
-              const posX = dir * (E3 - W3 / 2);
-              const rotY = dir * -65;
-              transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-180px) scale(1)`;
-            }
-            zIndex = 10;
-            opacity = 0.45;
-            shadowClass = 'shadow-[0_6px_25px_rgba(0,0,0,0.8)] hover:brightness-125';
-          } else if (Math.abs(offset) >= 4) {
-            // TIER 4: Exactly 5% exposed, static thumbnail
-            cardW = W4;
-            cardH = H4;
-            const dir = offset > 0 ? 1 : -1;
-            if (isVertical) {
-              const posY = dir * (E4 - H4 / 2);
-              const rotX = dir * 75;
-              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-250px) scale(1)`;
-            } else {
-              const posX = dir * (E4 - W4 / 2);
-              const rotY = dir * -75;
-              transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-250px) scale(1)`;
-            }
-            zIndex = 5;
-            opacity = 0.3;
-            shadowClass = 'shadow-[0_6px_20px_rgba(0,0,0,0.75)] hover:brightness-125';
-          }
+        {/* HERO CENTER STAGE: 100% visible, plays 30% to 70% */}
+        {(() => {
+          const item = clipPool[centerIndex % clipPool.length];
+          if (!item) return null;
+          const centerTransform = isVertical
+            ? 'translateY(0px) rotateX(0deg) translateZ(80px) scale(1)'
+            : 'translateX(0px) rotateY(0deg) translateZ(80px) scale(1)';
 
           return (
             <CinemaScreenCard
-              key={`${isVertical ? 'vert' : 'horiz'}-${item.id || item.url || item.name}-${itemIdx}`}
+              key={`${isVertical ? 'v' : 'h'}-center-${item.id || item.url || item.name}-${centerIndex}`}
               item={item}
-              slotIdx={offset}
-              isCenter={isCenter}
-              isWall={isWall}
+              slotIdx={0}
+              isCenter={true}
+              isWall={false}
               isPlaybackReady={isPlaybackReady}
               onReady={handleVideoReady}
-              onClick={() => handleCardClick(itemIdx)}
-              transformStyle={transformStyle}
-              width={cardW}
-              height={cardH}
-              opacity={opacity}
-              zIndex={zIndex}
-              shadowClass={shadowClass}
+              onClick={() => handleCardClick(centerIndex)}
+              transformStyle={centerTransform}
+              width={W_main}
+              height={H_main}
+              opacity={1}
+              zIndex={50}
+              shadowClass="shadow-[0_16px_70px_rgba(0,0,0,0.95),0_0_40px_rgba(56,189,248,0.25)]"
               registerVideoRef={registerVideoRef}
             />
           );
+        })()}
+
+        {/* SCREEN-DECIDED DYNAMIC TIERS (Symmetrical Pairs - ZERO predefined card count!) */}
+        {tiers.map((tier) => {
+          return [-1, 1].map((dir) => {
+            const slotOffset = dir * tier.k;
+            const itemIdx = (centerIndex + slotOffset + clipPool.length * 100) % clipPool.length;
+            const item = clipPool[itemIdx];
+            if (!item) return null;
+
+            const isWall = tier.k === 1;
+
+            let transformStyle = '';
+            if (isVertical) {
+              const posY = dir * tier.centerPos;
+              const rotX = dir * tier.rotDeg;
+              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(${tier.zPos}px) scale(1)`;
+            } else {
+              const posX = dir * tier.centerPos;
+              const rotY = dir * -tier.rotDeg;
+              transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(${tier.zPos}px) scale(1)`;
+            }
+
+            return (
+              <CinemaScreenCard
+                key={`${isVertical ? 'v' : 'h'}-${slotOffset}-${item.id || item.url || item.name}-${itemIdx}`}
+                item={item}
+                slotIdx={slotOffset}
+                isCenter={false}
+                isWall={isWall}
+                isPlaybackReady={isPlaybackReady}
+                onReady={handleVideoReady}
+                onClick={() => handleCardClick(itemIdx)}
+                transformStyle={transformStyle}
+                width={tier.cardW}
+                height={tier.cardH}
+                opacity={tier.opacity}
+                zIndex={tier.zIndex}
+                shadowClass={tier.shadowClass}
+                registerVideoRef={registerVideoRef}
+              />
+            );
+          });
         })}
       </div>
     </div>
