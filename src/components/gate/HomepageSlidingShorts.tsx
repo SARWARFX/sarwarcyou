@@ -49,6 +49,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
   const [readyIndices, setReadyIndices] = useState<Set<number>>(new Set());
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
   const isPlaybackReadyRef = useRef(false);
+  const [displayProgress, setDisplayProgress] = useState(10);
 
   // Target threshold: ALL 6 media items must be fully buffered before launching bufferless playback
   const targetThreshold = useMemo(() => {
@@ -60,6 +61,7 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     setReadyIndices(new Set());
     setIsPlaybackReady(false);
     isPlaybackReadyRef.current = false;
+    setDisplayProgress(10);
     videoRefs.current = [];
     cardRefs.current = [];
   }, [selected6]);
@@ -123,23 +125,34 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     [handleMediaReady]
   );
 
-  // Check if buffer threshold is met: show up when all are ready, with a safety timeout so it never hangs indefinitely
+  // Check if buffer threshold is met: slide all the way to 100% before revealing
   useEffect(() => {
     if (isPlaybackReady) return;
 
     if (targetThreshold > 0 && readyIndices.size >= targetThreshold) {
-      setIsPlaybackReady(true);
-      isPlaybackReadyRef.current = true;
-      return;
+      setDisplayProgress(100);
+      const timer = setTimeout(() => {
+        setIsPlaybackReady(true);
+        isPlaybackReadyRef.current = true;
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      const pct = targetThreshold > 0
+        ? Math.max(12, Math.min(88, Math.round((readyIndices.size / targetThreshold) * 85)))
+        : 50;
+      setDisplayProgress(pct);
     }
 
     // Safety timeout: never leave visitor frozen on loading screen if network throttles concurrent requests
     const timer = setTimeout(() => {
       if (!isPlaybackReadyRef.current) {
-        setIsPlaybackReady(true);
-        isPlaybackReadyRef.current = true;
+        setDisplayProgress(100);
+        setTimeout(() => {
+          setIsPlaybackReady(true);
+          isPlaybackReadyRef.current = true;
+        }, 320);
       }
-    }, 3500);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [readyIndices.size, targetThreshold, isPlaybackReady]);
@@ -173,10 +186,6 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
 
   if (selected6.length === 0) return null;
 
-  const readyCount = readyIndices.size;
-  const rawPct = targetThreshold > 0 ? (readyCount / targetThreshold) * 100 : 0;
-  const progressPercent = Math.min(100, Math.max(10, Math.round(rawPct)));
-
   return (
     <div
       ref={containerRef}
@@ -196,13 +205,13 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
               <span className="text-[#38bdf8]">ARCHIVE</span>
             </div>
 
-            {/* Active Progress Layer: Fills in glowing vibrant colors from left to right as the slider */}
+            {/* Active Progress Layer: Fills in glowing vibrant colors from left to the very right edge */}
             <div
-              className="absolute inset-0 overflow-hidden transition-[width] duration-300 ease-out"
+              className="absolute inset-y-0 left-0 overflow-hidden transition-[width] duration-300 ease-out"
               style={{
-                width: `${progressPercent}%`,
-                borderRight: progressPercent < 100 ? '2px solid #38bdf8' : 'none',
-                boxShadow: progressPercent < 100 ? '2px 0 10px rgba(56,189,248,0.85)' : 'none',
+                width: `${displayProgress}%`,
+                borderRight: displayProgress < 100 ? '2px solid #38bdf8' : 'none',
+                boxShadow: displayProgress < 100 ? '2px 0 10px rgba(56,189,248,0.85)' : 'none',
               }}
             >
               <div className="whitespace-nowrap">

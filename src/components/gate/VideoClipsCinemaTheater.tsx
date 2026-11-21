@@ -320,18 +320,20 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     return clipPool.length > 2 ? 2 : 0;
   });
 
-  // Buffering states for the 3 active video screens (center, and the 2 adjacent cards)
+  // Buffering states for active video screens
   const [readySlots, setReadySlots] = useState<Set<number>>(new Set());
   const [isPlaybackReady, setIsPlaybackReady] = useState<boolean>(false);
   const isPlaybackReadyRef = useRef<boolean>(false);
+  const [displayProgress, setDisplayProgress] = useState<number>(10);
 
-  // Target threshold: 3 active video screens
+  // Target threshold: 3 active video screens (Center + 2 Tier 1 walls)
   const targetThreshold = 3;
 
   useEffect(() => {
     setReadySlots(new Set());
     setIsPlaybackReady(false);
     isPlaybackReadyRef.current = false;
+    setDisplayProgress(10);
     videoRefs.current = [];
   }, [clipPool]);
 
@@ -368,34 +370,12 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     videoRefs.current[slotIdx] = el;
   }, []);
 
-  // Compute screen-decided dynamic tiers: ZERO predefined card count!
-  // Slices dynamically until the container boundaries (availableHalf) are completely filled.
+  // Compute Clean 5-Card Cinema Theater: EXACTLY 5 CARDS FOR ANY SCREEN
+  // Center Hero (100% visible) + 2 Tier 1 Walls (30% exposed) + 2 Tier 2 Wings (10% exposed)
   const layout = useMemo(() => {
     const W_box = dimensions.width;
     const H_box = dimensions.height;
 
-    // 1. Calculate Main Center Screen (Scaled 25% larger on wide landscape, generously fitted on portrait)
-    let W_main: number;
-    let H_main: number;
-
-    if (isVertical) {
-      W_main = Math.min(
-        680,
-        Math.max(260, Math.min(W_box * 0.94, H_box * 0.48 * (16 / 9)))
-      );
-      H_main = W_main * (9 / 16);
-    } else {
-      W_main = Math.min(
-        760,
-        Math.max(300, Math.min(W_box * 0.56, H_box * 0.68 * (16 / 9)))
-      );
-      H_main = W_main * (9 / 16);
-    }
-
-    const availableHalf = isVertical ? H_box / 2 : W_box / 2;
-    const primaryMain = isVertical ? H_main : W_main;
-
-    // 2. Dynamically add tiers until screen edges are completely reached (ZERO predefined cap!)
     interface TierConfig {
       k: number;
       cardW: number;
@@ -409,110 +389,132 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
       exposurePct: number;
     }
 
-    const tiers: TierConfig[] = [];
-    let currentEdge = primaryMain / 2;
-    let k = 1;
+    if (isVertical) {
+      /* PORTRAIT SCREEN: EXACTLY 5 CARDS VERTICAL 3D AUDITORIUM */
+      const W_main = Math.min(
+        640,
+        Math.max(260, Math.min(W_box * 0.92, H_box * 0.44 * (16 / 9)))
+      );
+      const H_main = W_main * (9 / 16);
 
-    // Continue adding tiers until currentEdge reaches or exceeds availableHalf
-    while (currentEdge < availableHalf && k <= 30) {
-      const scale = Math.max(0.60, 1 - k * 0.04);
-      const cardPrimary = primaryMain * scale;
-      const cardSecondary = isVertical ? cardPrimary * (16 / 9) : cardPrimary * (9 / 16);
+      // Tier 1 card (adjacent Top & Bottom): 88% scale, 30% exposed along vertical Y-axis
+      const H1 = H_main * 0.88;
+      const W1 = W_main * 0.88;
+      const E1 = H_main / 2 + 0.30 * H1;
 
-      // Strict user specifications:
-      // - The other two beside main screen: exactly 30%
-      // - The other two beside them: exactly 10%
-      // - Outer wings / horizon screens: 10% tapering to 5%
-      let exposurePct = 0.10;
-      if (k === 1) exposurePct = 0.30;
-      else if (k === 2) exposurePct = 0.10;
-      else if (k >= 6) exposurePct = 0.08;
+      // Tier 2 card (outer Top & Bottom wings): 76% scale, 10% exposed along vertical Y-axis
+      const H2 = H_main * 0.76;
+      const W2 = W_main * 0.76;
+      const E2 = E1 + 0.10 * H2;
 
-      const exposure = cardPrimary * exposurePct;
-      currentEdge += exposure;
+      const tiers: TierConfig[] = [
+        {
+          k: 1,
+          cardW: W1,
+          cardH: H1,
+          centerPos: E1 - H1 / 2,
+          rotDeg: 36,
+          zPos: -40,
+          opacity: 0.90,
+          zIndex: 40,
+          shadowClass: 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110',
+          exposurePct: 0.30,
+        },
+        {
+          k: 2,
+          cardW: W2,
+          cardH: H2,
+          centerPos: E2 - H2 / 2,
+          rotDeg: 52,
+          zPos: -100,
+          opacity: 0.75,
+          zIndex: 30,
+          shadowClass: 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
+          exposurePct: 0.10,
+        },
+      ];
 
-      const centerPos = currentEdge - cardPrimary / 2;
+      return { isVertical: true, W_main, H_main, tiers };
+    } else {
+      /* WIDE SCREEN: EXACTLY 5 CARDS HORIZONTAL 3D AUDITORIUM (25% LARGER) */
+      const W_main = Math.min(
+        740,
+        Math.max(300, Math.min(W_box * 0.54, H_box * 0.65 * (16 / 9)))
+      );
+      const H_main = W_main * (9 / 16);
 
-      // Smooth mathematical 3D perspective mapping
-      let rotDeg: number;
-      let zPos: number;
-      let opacity: number;
-      let zIdx: number;
+      // Tier 1 card (adjacent Left & Right): 88% scale, 30% exposed along horizontal X-axis
+      const W1 = W_main * 0.88;
+      const H1 = W1 * (9 / 16);
+      const E1 = W_main / 2 + 0.30 * W1;
 
-      if (k === 1) {
-        rotDeg = 36;
-        zPos = -40;
-        opacity = 0.90;
-        zIdx = 45;
-      } else if (k === 2) {
-        rotDeg = 52;
-        zPos = -100;
-        opacity = 0.75;
-        zIdx = 40;
-      } else if (k === 3) {
-        rotDeg = 64;
-        zPos = -160;
-        opacity = 0.62;
-        zIdx = 35;
-      } else if (k === 4) {
-        rotDeg = 72;
-        zPos = -220;
-        opacity = 0.50;
-        zIdx = 30;
-      } else {
-        rotDeg = Math.min(84, 72 + (k - 4) * 2.5);
-        zPos = -220 - (k - 4) * 45;
-        opacity = Math.max(0.18, 0.50 - (k - 4) * 0.045);
-        zIdx = Math.max(2, 30 - k);
-      }
+      // Tier 2 card (outer Left & Right wings): 76% scale, 10% exposed along horizontal X-axis
+      const W2 = W_main * 0.76;
+      const H2 = W2 * (9 / 16);
+      const E2 = E1 + 0.10 * W2;
 
-      tiers.push({
-        k,
-        cardW: isVertical ? cardSecondary : cardPrimary,
-        cardH: isVertical ? cardPrimary : cardSecondary,
-        centerPos,
-        rotDeg,
-        zPos,
-        opacity,
-        zIndex: zIdx,
-        shadowClass:
-          k === 1
-            ? 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110'
-            : 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
-        exposurePct,
-      });
+      const tiers: TierConfig[] = [
+        {
+          k: 1,
+          cardW: W1,
+          cardH: H1,
+          centerPos: E1 - W1 / 2,
+          rotDeg: 36,
+          zPos: -40,
+          opacity: 0.90,
+          zIndex: 40,
+          shadowClass: 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110',
+          exposurePct: 0.30,
+        },
+        {
+          k: 2,
+          cardW: W2,
+          cardH: H2,
+          centerPos: E2 - W2 / 2,
+          rotDeg: 52,
+          zPos: -100,
+          opacity: 0.75,
+          zIndex: 30,
+          shadowClass: 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
+          exposurePct: 0.10,
+        },
+      ];
 
-      k++;
+      return { isVertical: false, W_main, H_main, tiers };
     }
-
-    return {
-      isVertical,
-      W_main,
-      H_main,
-      tiers,
-    };
   }, [dimensions, isVertical]);
 
-  // Buffer gate: wait until center + 2 adjacent cards are ready before revealing
+  // Buffer gate: wait until center + 2 adjacent cards are ready, then slide to 100% before revealing
   useEffect(() => {
     if (isPlaybackReady) return;
 
-    if (readySlots.size >= targetThreshold) {
-      setIsPlaybackReady(true);
-      isPlaybackReadyRef.current = true;
-      return;
+    const count = readySlots.size;
+    if (count >= targetThreshold) {
+      // Buffer complete: slide all the way to 100% (the very right of the text!)
+      setDisplayProgress(100);
+      const timer = setTimeout(() => {
+        setIsPlaybackReady(true);
+        isPlaybackReadyRef.current = true;
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      const pct = Math.max(12, Math.min(88, Math.round((count / targetThreshold) * 85)));
+      setDisplayProgress(pct);
     }
 
     // Safety timeout: prevents visitors from freezing permanently if network throttles
     const timer = setTimeout(() => {
-      if (!isPlaybackReadyRef.current && (readySlots.size >= 1 || clipPool.length > 0)) {
-        setIsPlaybackReady(true);
-        isPlaybackReadyRef.current = true;
+      if (!isPlaybackReadyRef.current) {
+        setDisplayProgress(100);
+        setTimeout(() => {
+          setIsPlaybackReady(true);
+          isPlaybackReadyRef.current = true;
+        }, 320);
       }
     }, 6500);
 
     return () => clearTimeout(timer);
-  }, [readySlots, isPlaybackReady, targetThreshold, clipPool.length]);
+  }, [readySlots, isPlaybackReady, targetThreshold]);
 
   const handleCardClick = (clickedItemIdx: number) => {
     if (clickedItemIdx === centerIndex) {
@@ -525,10 +527,6 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
   };
 
   if (clipPool.length === 0) return null;
-
-  const readyCount = readySlots.size;
-  const rawPct = (readyCount / targetThreshold) * 100;
-  const progressPercent = Math.min(100, Math.max(10, Math.round(rawPct)));
 
   const { W_main, H_main, tiers } = layout;
 
@@ -551,13 +549,13 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
               <span className="text-[#38bdf8]">ARCHIVE</span>
             </div>
 
-            {/* Active Progress Layer: Fills in glowing vibrant colors from left to right as the slider */}
+            {/* Active Progress Layer: Fills in glowing vibrant colors from left to the very right edge */}
             <div
-              className="absolute inset-0 overflow-hidden transition-[width] duration-300 ease-out"
+              className="absolute inset-y-0 left-0 overflow-hidden transition-[width] duration-300 ease-out"
               style={{
-                width: `${progressPercent}%`,
-                borderRight: progressPercent < 100 ? '2px solid #38bdf8' : 'none',
-                boxShadow: progressPercent < 100 ? '2px 0 10px rgba(56,189,248,0.85)' : 'none',
+                width: `${displayProgress}%`,
+                borderRight: displayProgress < 100 ? '2px solid #38bdf8' : 'none',
+                boxShadow: displayProgress < 100 ? '2px 0 10px rgba(56,189,248,0.85)' : 'none',
               }}
             >
               <div className="whitespace-nowrap">

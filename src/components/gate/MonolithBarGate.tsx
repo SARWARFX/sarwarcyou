@@ -1098,7 +1098,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         className="w-full flex justify-between items-start pt-5 sm:pt-7 pb-2 px-4 sm:px-10 shrink-0 z-30 bg-transparent gap-2 sm:gap-4"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
-        {/* Left: Logo (clicking acts as Home) + Search Bar beside it */}
+        {/* Left: Logo (clicking acts as Home) + Search Bar beside it on Desktop */}
         <div className="flex flex-col gap-2.5 sm:gap-4 shrink-0 max-w-full">
           <div className="flex items-center gap-2 sm:gap-5 max-w-full">
             <a
@@ -1117,12 +1117,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <LaserSparkLogo width={isPortrait ? 175 : 240} height={isPortrait ? 24 : 33} interactive={false} />
             </a>
 
-            {/* Cyber Search Bar */}
-            <CyberSearchBar
-              onSearch={handleWebImageSearch}
-              onClear={handleClearSearch}
-              isLoading={searchState.isLoading}
-            />
+            {/* Desktop Only: Search Bar beside Logo */}
+            {!isPortrait && (
+              <CyberSearchBar
+                onSearch={handleWebImageSearch}
+                onClear={handleClearSearch}
+                isLoading={searchState.isLoading}
+              />
+            )}
           </div>
 
           {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}
@@ -1187,8 +1189,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <TopMiddleNetworkStatus />
         </div>
 
-        {/* Right: Clean Tactical Telemetry Graph (Desktop/Tablet Only) */}
-        {!isPortrait && (
+        {/* Right: In Portrait -> Search Box at Top Right Corner! In Landscape -> Tactical Telemetry Graph */}
+        {isPortrait ? (
+          <div className="shrink-0 flex items-center justify-end pt-0.5">
+            <CyberSearchBar
+              onSearch={handleWebImageSearch}
+              onClear={handleClearSearch}
+              isLoading={searchState.isLoading}
+            />
+          </div>
+        ) : (
           <div className="shrink-0 flex items-center justify-end">
             <TacticalTelemetryGraph
               onSelectDay={handleOpenTelemetryWithDay}
