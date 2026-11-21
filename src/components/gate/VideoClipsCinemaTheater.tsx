@@ -10,23 +10,257 @@ export interface VideoClipsCinemaTheaterProps {
   isPortrait?: boolean;
 }
 
+interface CinemaScreenCardProps {
+  item: StageMediaItem;
+  slotIdx: number;
+  isCenter: boolean;
+  isPlaybackReady: boolean;
+  onReady: (slotIdx: number) => void;
+  onClick: () => void;
+  transformStyle: string;
+  opacity: number;
+  zIndex: number;
+  isPortrait: boolean;
+  registerVideoRef: (slotIdx: number, el: HTMLVideoElement | null) => void;
+}
+
+/**
+ * Individual Screen Card within the Cinema Theater:
+ * - Center Main Stage: Plays from 20% to 80% of duration in a continuous loop.
+ * - Other Four Screens (Walls & Peeks): Plays preview from 10% to 35% of duration in a continuous loop
+ *   (matches exact hover preview behavior from LivingMediaCard).
+ * - Thin 2px bottom cyan progress line showing relative playback progress within each mode's slice.
+ * - Pure Cinema: ZERO borders, ZERO outlines, ZERO text labels.
+ */
+const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
+  item,
+  slotIdx,
+  isCenter,
+  isPlaybackReady,
+  onReady,
+  onClick,
+  transformStyle,
+  opacity,
+  zIndex,
+  isPortrait,
+  registerVideoRef,
+}) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const [hasError, setHasError] = useState<boolean>(false);
+
+  const videoSrc = getVideoStreamUrl(item.url || item.path || '');
+  const imageSrc =
+    (item as any).thumbnail ||
+    resolveStaticVideoThumbnail(item) ||
+    item.poster ||
+    getMediaUrl(item.url || item.path || '');
+
+  // Deep buffer verification to prevent stutter
+  const verifyBufferDepth = useCallback(
+    (el: HTMLVideoElement | null) => {
+      if (!el) return;
+
+      if (el.readyState >= 4) {
+        onReady(slotIdx);
+        return;
+      }
+
+      const cur = el.currentTime;
+      const dur = el.duration;
+      if (el.buffered && el.buffered.length > 0) {
+        for (let i = 0; i < el.buffered.length; i++) {
+          const bStart = el.buffered.start(i);
+          const bEnd = el.buffered.end(i);
+          if (cur >= bStart - 0.5 && cur <= bEnd) {
+            const bufferedAhead = bEnd - cur;
+            if (
+              bufferedAhead >= 2.5 ||
+              (dur && !isNaN(dur) && dur > 0 && bufferedAhead >= dur * 0.2) ||
+              el.readyState >= 3
+            ) {
+              onReady(slotIdx);
+              return;
+            }
+          }
+        }
+      }
+
+      if (el.readyState >= 3) {
+        onReady(slotIdx);
+      }
+    },
+    [onReady, slotIdx]
+  );
+
+  // Initial metadata loaded: seek to starting slice point
+  const handleLoadedMetadata = useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      const v = e.currentTarget;
+      v.muted = true;
+      v.defaultMuted = true;
+      const dur = v.duration;
+      if (dur && !isNaN(dur) && dur > 0) {
+        // Main stage: start at 20%; Other screens (preview): start at 10%
+        const start = isCenter ? dur * 0.2 : dur * 0.1;
+        v.currentTime = start;
+      }
+      verifyBufferDepth(v);
+    },
+    [isCenter, verifyBufferDepth]
+  );
+
+  const handleSeeked = useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      verifyBufferDepth(e.currentTarget);
+    },
+    [verifyBufferDepth]
+  );
+
+  // Adjust playback slice when switching between Center Stage and Wall/Peek
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const dur = v.duration;
+    if (!dur || isNaN(dur) || dur <= 0) return;
+
+    const start = isCenter ? dur * 0.2 : dur * 0.1;
+    const end = isCenter ? dur * 0.8 : dur * 0.35;
+
+    if (v.currentTime < start || v.currentTime >= end) {
+      v.currentTime = start;
+    }
+    if (isPlaybackReady && v.paused) {
+      v.play().catch(() => {});
+    }
+  }, [isCenter, isPlaybackReady]);
+
+  // Handle auto-play once global loading screen lifts
+  useEffect(() => {
+    if (isPlaybackReady && videoRef.current && videoRef.current.paused) {
+      videoRef.current.muted = true;
+      videoRef.current.defaultMuted = true;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isPlaybackReady]);
+
+  // Continuous looping within designated time slice
+  const handleTimeUpdate = useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      const v = e.currentTarget;
+      const dur = v.duration;
+      if (!dur || isNaN(dur) || dur <= 0) return;
+
+      // Main stage: 20% to 80% | Other 4 screens: 10% to 35% preview
+      const start = isCenter ? dur * 0.2 : dur * 0.1;
+      const end = isCenter ? dur * 0.8 : dur * 0.35;
+
+      if (v.currentTime >= end || v.currentTime < start) {
+        v.currentTime = start;
+      }
+
+      const sliceLength = end - start;
+      if (sliceLength > 0) {
+        const pct = Math.min(100, Math.max(0, ((v.currentTime - start) / sliceLength) * 100));
+        setProgress(pct);
+      }
+    },
+    [isCenter]
+  );
+
+  return (
+    <div
+      onClick={onClick}
+      className={`absolute ${
+        isPortrait
+          ? 'w-[92vw] max-w-[370px] sm:max-w-[420px] aspect-[16/9]'
+          : 'w-[460px] sm:w-[580px] md:w-[700px] lg:w-[820px] xl:w-[920px] max-w-[76vw] aspect-[16/9]'
+      } bg-black overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] cursor-pointer ${
+        isCenter
+          ? isPortrait
+            ? 'shadow-[0_12px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(56,189,248,0.25)]'
+            : 'shadow-[0_16px_70px_rgba(0,0,0,0.95),0_0_40px_rgba(56,189,248,0.25)]'
+          : isPortrait
+          ? 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-110'
+          : 'shadow-[0_8px_35px_rgba(0,0,0,0.85)] hover:brightness-110'
+      }`}
+      style={{
+        transform: transformStyle,
+        opacity,
+        zIndex,
+        borderRadius: 0,
+        outline: 'none',
+        border: 'none',
+        willChange: 'transform',
+      }}
+    >
+      {videoSrc && !hasError ? (
+        <video
+          ref={(el) => {
+            videoRef.current = el;
+            registerVideoRef(slotIdx, el);
+            if (el) {
+              el.muted = true;
+              el.defaultMuted = true;
+              el.playsInline = true;
+              verifyBufferDepth(el);
+            }
+          }}
+          src={videoSrc}
+          poster={imageSrc}
+          muted
+          playsInline
+          preload="auto"
+          onLoadedMetadata={handleLoadedMetadata}
+          onSeeked={handleSeeked}
+          onCanPlayThrough={() => onReady(slotIdx)}
+          onLoadedData={() => verifyBufferDepth(videoRef.current)}
+          onProgress={() => verifyBufferDepth(videoRef.current)}
+          onTimeUpdate={handleTimeUpdate}
+          onError={() => {
+            setHasError(true);
+            onReady(slotIdx);
+          }}
+          className="w-full h-full object-cover block"
+          style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+        />
+      ) : (
+        <img src={imageSrc} alt="" className="w-full h-full object-cover block" />
+      )}
+
+      {/* Tactical Thin Micro Progress Track at bottom */}
+      {isPlaybackReady && (
+        <div
+          className="absolute bottom-0 inset-x-0 h-[2px] bg-white/15 z-20 pointer-events-none overflow-hidden"
+          style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+        >
+          <div
+            className={`h-full ${
+              isCenter ? 'bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]' : 'bg-[#38bdf8]/80'
+            } transition-all duration-75 ease-linear`}
+            style={{ width: `${progress}%`, borderRadius: 0 }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 /**
  * Modern 5-Stage Cinema Theater Showcase for Video Clips:
  * - Desktop: 3D Horizontal Auditorium:
- *     - Center Main Stage: Massively scaled hero screen (100% visible, elevated in front).
- *     - Left & Right Walls: Show ~50% (half) of their video screen, angled inward (rotateY 42deg).
- *     - Far Outer Reserve Peeks: Show ~18-20% at the very sides, angled deeper (rotateY 56deg).
+ *     - Center Main Stage: Massively scaled hero screen (100% visible, elevated in front), plays 20% to 80% loop.
+ *     - Left & Right Walls: Show ~50% (half) of screen, angled inward (rotateY 40deg), plays 10% to 35% preview.
+ *     - Far Outer Reserve Peeks: Show ~18-20% at the very sides, angled deeper (rotateY 55deg), plays 10% to 35% preview.
  * - Mobile Portrait: Option A Vertical Cinema Tower:
- *     - Center Main Stage: Largest 16:9 hero screen.
- *     - Ceiling & Floor Screens: Show ~50% (half) of their video screen, angled backward (rotateX 36deg).
- *     - Top & Bottom Outer Peeks: Show ~18-20% at the extreme top/bottom edges.
+ *     - Center Main Stage: Largest 16:9 hero screen, plays 20% to 80% loop.
+ *     - Ceiling & Floor Screens: Show ~50% (half) of screen, angled backward (rotateX 36deg), plays 10% to 35% preview.
+ *     - Top & Bottom Outer Peeks: Show ~18-20% at the extreme top/bottom edges, plays 10% to 35% preview.
  * - Pure Cinematic Presentation: ZERO outlines, ZERO borders, ZERO text overlays.
- * - Hardware Safe: Only the 3 visible screens stream live video simultaneously (3 decoders << GPU limit).
  * - Buffer-Guaranteed Loading Screen:
  *     - Identical to Shorts featured page (mobile 2-line split, desktop horizontal banner, solid gauge).
- *     - Strictly holds until ALL 3 active visible videos have buffered enough data before revealing,
- *       ensuring completely buffer-free, uninterrupted playback.
- * - Interactive: Clicking any wall/screen smoothly rotates it into Center Stage; clicking Center Stage launches player.
+ *     - Holds until visible videos have buffered sufficient data before revealing for stutter-free playback.
+ * - Interactive: Clicking any wall/peek screen smoothly rotates it into Center Stage; clicking Center Stage launches full player.
  */
 export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = ({
   clips,
@@ -51,21 +285,13 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
   // Center index in selected5 (starts at 2: 0=peek-1, 1=wall-1, 2=center, 3=wall-2, 4=peek-2)
   const [centerIndex, setCenterIndex] = useState<number>(2);
 
-  // Buffering states for the 3 active visible videos (center, left/ceiling, right/floor)
+  // Buffering states for all screens
   const [readyIndices, setReadyIndices] = useState<Set<number>>(new Set());
   const [isPlaybackReady, setIsPlaybackReady] = useState<boolean>(false);
   const isPlaybackReadyRef = useRef<boolean>(false);
 
-  // The 3 active visible slots
-  const activeVisibleIndices = useMemo(() => {
-    const prev = (centerIndex - 1 + 5) % 5;
-    const center = centerIndex;
-    const next = (centerIndex + 1) % 5;
-    return [prev, center, next];
-  }, [centerIndex]);
-
-  // Target threshold: ALL 3 visible media items must be fully buffered before launching playback
-  const targetThreshold = 3;
+  // Target threshold: 5 screens total (unlocks at 5, or center + at least 2 walls)
+  const targetThreshold = Math.min(5, Math.max(3, selected5.length));
 
   useEffect(() => {
     setReadyIndices(new Set());
@@ -78,6 +304,22 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     isPlaybackReadyRef.current = isPlaybackReady;
   }, [isPlaybackReady]);
 
+  // Clean up all video elements on unmount to conserve GPU decoders
+  useEffect(() => {
+    return () => {
+      videoRefs.current.forEach((v) => {
+        if (v) {
+          try {
+            v.pause();
+            v.src = '';
+            v.load();
+          } catch {}
+        }
+      });
+      videoRefs.current = [];
+    };
+  }, []);
+
   const handleVideoReady = useCallback((slotIdx: number) => {
     setReadyIndices((prev) => {
       if (prev.has(slotIdx)) return prev;
@@ -87,68 +329,33 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     });
   }, []);
 
-  // Deep buffer inspection matching Shorts featured page: verifies deep buffer before marking ready
-  const verifyBufferDepth = useCallback(
-    (el: HTMLVideoElement | null, slotIdx: number) => {
-      if (!el) return;
+  const registerVideoRef = useCallback((slotIdx: number, el: HTMLVideoElement | null) => {
+    videoRefs.current[slotIdx] = el;
+  }, []);
 
-      // HTML5 readyState >= 4 means HAVE_ENOUGH_DATA
-      if (el.readyState >= 4) {
-        handleVideoReady(slotIdx);
-        return;
-      }
-
-      // Check timeRanges buffer depth in seconds
-      if (el.buffered.length > 0) {
-        const bufferedEnd = el.buffered.end(el.buffered.length - 1);
-        const duration = el.duration;
-        // Require at least 3 seconds of buffer, or 50% of video duration, or readyState >= 3 with 2s buffer
-        if (
-          bufferedEnd >= 3 ||
-          (duration && !isNaN(duration) && duration > 0 && bufferedEnd >= duration * 0.5) ||
-          (el.readyState >= 3 && bufferedEnd >= 2)
-        ) {
-          handleVideoReady(slotIdx);
-        }
-      }
-    },
-    [handleVideoReady]
-  );
-
-  // Buffer gate: strictly wait until ALL 3 visible videos are ready to prevent any buffer stutter
+  // Buffer gate: wait until center + 2 walls or all screens are ready before revealing
   useEffect(() => {
     if (isPlaybackReady) return;
 
-    if (readyIndices.size >= targetThreshold) {
+    const hasCenter = readyIndices.has(centerIndex);
+    const hasEnough = readyIndices.size >= targetThreshold || (hasCenter && readyIndices.size >= 3);
+
+    if (hasEnough) {
       setIsPlaybackReady(true);
       isPlaybackReadyRef.current = true;
       return;
     }
 
-    // Safety timeout: prevents visitors from freezing permanently if network throttles
+    // Safety timeout: prevents freezing if a specific media file takes longer
     const timer = setTimeout(() => {
-      if (!isPlaybackReadyRef.current && readyIndices.size >= 1) {
+      if (!isPlaybackReadyRef.current && (readyIndices.size >= 1 || selected5.length > 0)) {
         setIsPlaybackReady(true);
         isPlaybackReadyRef.current = true;
       }
     }, 7000);
 
     return () => clearTimeout(timer);
-  }, [readyIndices.size, isPlaybackReady]);
-
-  // Synchronize playback of visible videos once buffering is complete
-  useEffect(() => {
-    if (isPlaybackReady && selected5.length > 0) {
-      activeVisibleIndices.forEach((idx) => {
-        const v = videoRefs.current[idx];
-        if (v && v.paused) {
-          v.muted = true;
-          v.defaultMuted = true;
-          v.play().catch(() => {});
-        }
-      });
-    }
-  }, [isPlaybackReady, activeVisibleIndices, selected5.length]);
+  }, [readyIndices, isPlaybackReady, centerIndex, targetThreshold, selected5.length]);
 
   const handleCardClick = (clickedIdx: number) => {
     if (clickedIdx === centerIndex) {
@@ -186,9 +393,7 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
                 <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">
                   LOADING MEDIA //
                 </span>
-                <span className="text-white">
-                  PLEASE WAIT
-                </span>
+                <span className="text-white">PLEASE WAIT</span>
               </div>
             </div>
 
@@ -199,7 +404,10 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
                 className="text-base sm:text-base md:text-lg font-bold tracking-[0.14em] uppercase text-white whitespace-nowrap"
                 style={{ fontFamily: "'Science Gothic', sans-serif" }}
               >
-                <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">LOADING MEDIA //</span> PLEASE WAIT
+                <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">
+                  LOADING MEDIA //
+                </span>{' '}
+                PLEASE WAIT
               </span>
             </div>
 
@@ -235,14 +443,6 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
               const isCenter = offset === 0;
               const isCeiling = offset === -1;
               const isFloor = offset === 1;
-              const isVisibleScreen = isCenter || isCeiling || isFloor;
-
-              const videoSrc = getVideoStreamUrl(item.url || item.path || '');
-              const imageSrc =
-                (item as any).thumbnail ||
-                resolveStaticVideoThumbnail(item) ||
-                item.poster ||
-                getMediaUrl(item.url || item.path || '');
 
               let transformStyle = '';
               let opacity = 0.3;
@@ -276,52 +476,20 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
               }
 
               return (
-                <div
+                <CinemaScreenCard
                   key={`${item.id || item.url || item.name}-${idx}`}
+                  item={item}
+                  slotIdx={idx}
+                  isCenter={isCenter}
+                  isPlaybackReady={isPlaybackReady}
+                  onReady={handleVideoReady}
                   onClick={() => handleCardClick(idx)}
-                  className={`absolute w-[92vw] max-w-[370px] sm:max-w-[420px] aspect-[16/9] bg-black overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] cursor-pointer ${
-                    isCenter
-                      ? 'shadow-[0_12px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(56,189,248,0.25)]'
-                      : 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-110'
-                  }`}
-                  style={{
-                    transform: transformStyle,
-                    opacity,
-                    zIndex,
-                    borderRadius: 0,
-                    outline: 'none',
-                    border: 'none',
-                    willChange: 'transform',
-                  }}
-                >
-                  {isVisibleScreen ? (
-                    <video
-                      ref={(el) => {
-                        videoRefs.current[idx] = el;
-                        if (el) {
-                          el.muted = true;
-                          el.defaultMuted = true;
-                          el.playsInline = true;
-                          verifyBufferDepth(el, idx);
-                        }
-                      }}
-                      src={videoSrc}
-                      poster={imageSrc}
-                      loop
-                      muted
-                      playsInline
-                      preload="auto"
-                      onCanPlayThrough={() => handleVideoReady(idx)}
-                      onProgress={(e) => verifyBufferDepth(e.currentTarget, idx)}
-                      onLoadedData={(e) => {
-                        if (e.currentTarget.readyState >= 3) handleVideoReady(idx);
-                      }}
-                      className="w-full h-full object-cover block"
-                    />
-                  ) : (
-                    <img src={imageSrc} alt="" className="w-full h-full object-cover block" />
-                  )}
-                </div>
+                  transformStyle={transformStyle}
+                  opacity={opacity}
+                  zIndex={zIndex}
+                  isPortrait={true}
+                  registerVideoRef={registerVideoRef}
+                />
               );
             })}
           </div>
@@ -339,14 +507,6 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
               const isCenter = offset === 0;
               const isLeftWall = offset === -1;
               const isRightWall = offset === 1;
-              const isVisibleScreen = isCenter || isLeftWall || isRightWall;
-
-              const videoSrc = getVideoStreamUrl(item.url || item.path || '');
-              const imageSrc =
-                (item as any).thumbnail ||
-                resolveStaticVideoThumbnail(item) ||
-                item.poster ||
-                getMediaUrl(item.url || item.path || '');
 
               let transformStyle = '';
               let opacity = 0.3;
@@ -380,52 +540,20 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
               }
 
               return (
-                <div
+                <CinemaScreenCard
                   key={`${item.id || item.url || item.name}-${idx}`}
+                  item={item}
+                  slotIdx={idx}
+                  isCenter={isCenter}
+                  isPlaybackReady={isPlaybackReady}
+                  onReady={handleVideoReady}
                   onClick={() => handleCardClick(idx)}
-                  className={`absolute w-[460px] sm:w-[580px] md:w-[700px] lg:w-[820px] xl:w-[920px] max-w-[76vw] aspect-[16/9] bg-black overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] cursor-pointer ${
-                    isCenter
-                      ? 'shadow-[0_16px_70px_rgba(0,0,0,0.95),0_0_40px_rgba(56,189,248,0.25)]'
-                      : 'shadow-[0_8px_35px_rgba(0,0,0,0.85)] hover:brightness-110'
-                  }`}
-                  style={{
-                    transform: transformStyle,
-                    opacity,
-                    zIndex,
-                    borderRadius: 0,
-                    outline: 'none',
-                    border: 'none',
-                    willChange: 'transform',
-                  }}
-                >
-                  {isVisibleScreen ? (
-                    <video
-                      ref={(el) => {
-                        videoRefs.current[idx] = el;
-                        if (el) {
-                          el.muted = true;
-                          el.defaultMuted = true;
-                          el.playsInline = true;
-                          verifyBufferDepth(el, idx);
-                        }
-                      }}
-                      src={videoSrc}
-                      poster={imageSrc}
-                      loop
-                      muted
-                      playsInline
-                      preload="auto"
-                      onCanPlayThrough={() => handleVideoReady(idx)}
-                      onProgress={(e) => verifyBufferDepth(e.currentTarget, idx)}
-                      onLoadedData={(e) => {
-                        if (e.currentTarget.readyState >= 3) handleVideoReady(idx);
-                      }}
-                      className="w-full h-full object-cover block"
-                    />
-                  ) : (
-                    <img src={imageSrc} alt="" className="w-full h-full object-cover block" />
-                  )}
-                </div>
+                  transformStyle={transformStyle}
+                  opacity={opacity}
+                  zIndex={zIndex}
+                  isPortrait={false}
+                  registerVideoRef={registerVideoRef}
+                />
               );
             })}
           </div>
