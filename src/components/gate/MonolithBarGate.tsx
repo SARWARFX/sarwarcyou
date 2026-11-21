@@ -867,10 +867,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   };
 
   // -------------------------------------------------------------
-  // DUAL-ZONE GESTURE & TOUCHPAD ENGINE
-  // Upper Half (<= 40% height) -> Major Tabs Turn
-  // Lower Half (> 40% height)  -> Subfolder Pages Turn
-  // Exception: Featured sliding cards scrub directly
+  // DUAL-ZONE TOUCH SWIPE ENGINE (MOBILE & TABLET ONLY)
+  // Completely disabled on desktop to preserve Chrome native back/forward.
+  // Upper Half (<= 50% height) -> Major Tabs Turn
+  // Lower Half (> 50% height)  -> Subfolder Pages Turn
   // -------------------------------------------------------------
   const TAB_SEQUENCE = useMemo(() => [1, 3, 2, 4], []);
 
@@ -904,88 +904,19 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [currentSubfolderList, currentSubfolder, handleSelectSubfolder]
   );
 
-  // 1. Laptop Touchpad Two-Finger Wheel Gesture Engine
+  // Touch Swipe Gesture Engine (Strictly Mobile & Tablet)
   useEffect(() => {
     if (isModalOpen || notFoundInfo.isOpen || showTelemetry) return;
+    if (typeof window === 'undefined') return;
 
-    let wheelAccumulatorX = 0;
-    let isWheelLocked = false;
-    let wheelLockTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Ignore if user is interacting with featured sliding cards
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.closest('[data-card-index]') ||
-          target.closest('.animate-homepage-slow-slide') ||
-          target.closest('.animate-bandhobi-slow-slide'))
-      ) {
-        return;
-      }
-
-      // Horizontal dominance filter (|deltaX| must clearly exceed |deltaY|)
-      const absDeltaX = Math.abs(e.deltaX);
-      const absDeltaY = Math.abs(e.deltaY);
-
-      if (absDeltaX > 15 && absDeltaX > absDeltaY * 1.2) {
-        if (isWheelLocked) return;
-
-        wheelAccumulatorX += e.deltaX;
-        const isUpperZone = e.clientY <= window.innerHeight * 0.4;
-        const THRESHOLD = 65;
-
-        if (Math.abs(wheelAccumulatorX) >= THRESHOLD) {
-          const isSwipeLeft = wheelAccumulatorX > 0;
-          isWheelLocked = true;
-          wheelAccumulatorX = 0;
-
-          if (isUpperZone) {
-            handleSwipeTab(isSwipeLeft ? 'next' : 'prev');
-          } else {
-            const isFeatured =
-              (tabIndex === 2 && shortsSubfolder === 'Featured') ||
-              (tabIndex === 4 && bandhobiSubfolder === 'Featured');
-            if (!isFeatured) {
-              handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
-            }
-          }
-
-          if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
-          wheelLockTimeout = setTimeout(() => {
-            isWheelLocked = false;
-            wheelAccumulatorX = 0;
-          }, 550);
-        }
-      } else {
-        wheelAccumulatorX = 0;
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: true });
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-      if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
-    };
-  }, [
-    isModalOpen,
-    notFoundInfo.isOpen,
-    showTelemetry,
-    tabIndex,
-    shortsSubfolder,
-    bandhobiSubfolder,
-    handleSwipeTab,
-    handleSwipeSubfolder,
-  ]);
-
-  // 2. Mobile Touch Swipe Gesture Engine
-  useEffect(() => {
-    if (isModalOpen || notFoundInfo.isOpen || showTelemetry) return;
+    // Desktop check: disable completely on desktop screens (width >= 1024 without touch)
+    const isTouchDevice = 'ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+    const isMobileOrTablet = window.innerWidth < 1024 && isTouchDevice;
+    if (!isMobileOrTablet) return;
 
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
-    let isIgnoredTouch = false;
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
@@ -993,25 +924,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
       touchStartTime = Date.now();
-
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.closest('[data-card-index]') ||
-          target.closest('.animate-homepage-slow-slide') ||
-          target.closest('.animate-bandhobi-slow-slide'))
-      ) {
-        isIgnoredTouch = true;
-      } else {
-        isIgnoredTouch = false;
-      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (isIgnoredTouch) {
-        isIgnoredTouch = false;
-        return;
-      }
       if (e.changedTouches.length !== 1) return;
       const touch = e.changedTouches[0];
       const deltaX = touch.clientX - touchStartX;
@@ -1020,19 +935,17 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const absY = Math.abs(deltaY);
       const duration = Date.now() - touchStartTime;
 
-      if (absX > 45 && absX >= 1.5 * absY && duration < 600) {
-        const isSwipeLeft = deltaX < 0;
-        const isUpperZone = touchStartY <= window.innerHeight * 0.4;
+      // Strict horizontal swipe check: horizontal delta must exceed vertical by 1.5x
+      if (absX > 40 && absX >= 1.5 * absY && duration < 600) {
+        const isSwipeLeft = deltaX < 0; // finger swiped right-to-left -> NEXT
+        const isUpperZone = touchStartY <= window.innerHeight * 0.5;
 
         if (isUpperZone) {
+          // Upper half: Major Tabs
           handleSwipeTab(isSwipeLeft ? 'next' : 'prev');
         } else {
-          const isFeatured =
-            (tabIndex === 2 && shortsSubfolder === 'Featured') ||
-            (tabIndex === 4 && bandhobiSubfolder === 'Featured');
-          if (!isFeatured) {
-            handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
-          }
+          // Lower half: Subfolder Pages
+          handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
         }
       }
     };
@@ -1047,9 +960,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     isModalOpen,
     notFoundInfo.isOpen,
     showTelemetry,
-    tabIndex,
-    shortsSubfolder,
-    bandhobiSubfolder,
     handleSwipeTab,
     handleSwipeSubfolder,
   ]);
