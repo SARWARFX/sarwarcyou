@@ -161,21 +161,29 @@ function App() {
     }
   }, []);
 
-  const handleCloseModal = useCallback((type?: 'theater' | 'lightbox' | 'shorts' | 'viewAll') => {
+  const handleCloseModal = useCallback((type?: 'theater' | 'lightbox' | 'shorts' | 'viewAll', fromPopState = false) => {
     // 1. Immediately reset all modal states to completely unmount players
     setTheaterState({ isOpen: false, item: null, playlist: [] });
     setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
     setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
     setViewAllState({ isOpen: false, title: '', items: [] });
-    historyDepthRef.current = 0;
+    historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
 
-    // 2. Cleanly restore current category path
-    const targetUrl =
-      type === 'shorts' ? '/shorts'
-      : type === 'lightbox' ? '/photographs'
-      : type === 'theater' ? '/clips'
-      : '/';
-    updateBrowserUrl(targetUrl, true);
+    // 2. If triggered by browser popstate (phone hardware back button), the browser
+    // has ALREADY reverted window.location to the exact tab / subfolder URL.
+    // Overriding the URL on popstate would incorrectly clobber the user's active tab.
+    if (!fromPopState) {
+      if (typeof window !== 'undefined' && window.history.length > 1 && historyDepthRef.current > 0) {
+        window.history.back();
+      } else {
+        const targetUrl =
+          type === 'shorts' ? '/shorts'
+          : type === 'lightbox' ? '/photographs'
+          : type === 'theater' ? '/clips'
+          : '/';
+        updateBrowserUrl(targetUrl, true);
+      }
+    }
   }, []);
 
   // Web Theme Accent Initialization
@@ -197,7 +205,7 @@ function App() {
   // Global fallback back handler for active modals
   useBackButton(
     useCallback(() => {
-      handleCloseModal();
+      handleCloseModal(undefined, true);
       return true;
     }, [handleCloseModal]),
     theaterState.isOpen || shortsState.isOpen || lightboxState.isOpen || viewAllState.isOpen

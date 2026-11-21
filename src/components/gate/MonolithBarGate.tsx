@@ -866,6 +866,194 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }, 800);
   };
 
+  // -------------------------------------------------------------
+  // DUAL-ZONE GESTURE & TOUCHPAD ENGINE
+  // Upper Half (<= 40% height) -> Major Tabs Turn
+  // Lower Half (> 40% height)  -> Subfolder Pages Turn
+  // Exception: Featured sliding cards scrub directly
+  // -------------------------------------------------------------
+  const TAB_SEQUENCE = useMemo(() => [1, 3, 2, 4], []);
+
+  const handleSwipeTab = useCallback(
+    (direction: 'next' | 'prev') => {
+      const currentVis = TAB_VISUAL_ORDER[tabIndex] ?? 0;
+      const targetVis =
+        direction === 'next'
+          ? (currentVis + 1) % TAB_SEQUENCE.length
+          : (currentVis - 1 + TAB_SEQUENCE.length) % TAB_SEQUENCE.length;
+      const targetTab = TAB_SEQUENCE[targetVis];
+      if (targetTab !== undefined) {
+        switchTab(targetTab);
+      }
+    },
+    [tabIndex, TAB_VISUAL_ORDER, TAB_SEQUENCE, switchTab]
+  );
+
+  const handleSwipeSubfolder = useCallback(
+    (direction: 'next' | 'prev') => {
+      const list = currentSubfolderList;
+      if (!list || list.length <= 1) return;
+      const currentIdx = list.indexOf(currentSubfolder);
+      if (currentIdx === -1) return;
+      const targetIdx =
+        direction === 'next'
+          ? (currentIdx + 1) % list.length
+          : (currentIdx - 1 + list.length) % list.length;
+      handleSelectSubfolder(list[targetIdx]);
+    },
+    [currentSubfolderList, currentSubfolder, handleSelectSubfolder]
+  );
+
+  // 1. Laptop Touchpad Two-Finger Wheel Gesture Engine
+  useEffect(() => {
+    if (isModalOpen || notFoundInfo.isOpen || showTelemetry) return;
+
+    let wheelAccumulatorX = 0;
+    let isWheelLocked = false;
+    let wheelLockTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Ignore if user is interacting with featured sliding cards
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.closest('[data-card-index]') ||
+          target.closest('.animate-homepage-slow-slide') ||
+          target.closest('.animate-bandhobi-slow-slide'))
+      ) {
+        return;
+      }
+
+      // Horizontal dominance filter (|deltaX| must clearly exceed |deltaY|)
+      const absDeltaX = Math.abs(e.deltaX);
+      const absDeltaY = Math.abs(e.deltaY);
+
+      if (absDeltaX > 15 && absDeltaX > absDeltaY * 1.2) {
+        if (isWheelLocked) return;
+
+        wheelAccumulatorX += e.deltaX;
+        const isUpperZone = e.clientY <= window.innerHeight * 0.4;
+        const THRESHOLD = 65;
+
+        if (Math.abs(wheelAccumulatorX) >= THRESHOLD) {
+          const isSwipeLeft = wheelAccumulatorX > 0;
+          isWheelLocked = true;
+          wheelAccumulatorX = 0;
+
+          if (isUpperZone) {
+            handleSwipeTab(isSwipeLeft ? 'next' : 'prev');
+          } else {
+            const isFeatured =
+              (tabIndex === 2 && shortsSubfolder === 'Featured') ||
+              (tabIndex === 4 && bandhobiSubfolder === 'Featured');
+            if (!isFeatured) {
+              handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
+            }
+          }
+
+          if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
+          wheelLockTimeout = setTimeout(() => {
+            isWheelLocked = false;
+            wheelAccumulatorX = 0;
+          }, 550);
+        }
+      } else {
+        wheelAccumulatorX = 0;
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
+    };
+  }, [
+    isModalOpen,
+    notFoundInfo.isOpen,
+    showTelemetry,
+    tabIndex,
+    shortsSubfolder,
+    bandhobiSubfolder,
+    handleSwipeTab,
+    handleSwipeSubfolder,
+  ]);
+
+  // 2. Mobile Touch Swipe Gesture Engine
+  useEffect(() => {
+    if (isModalOpen || notFoundInfo.isOpen || showTelemetry) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let isIgnoredTouch = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartTime = Date.now();
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.closest('[data-card-index]') ||
+          target.closest('.animate-homepage-slow-slide') ||
+          target.closest('.animate-bandhobi-slow-slide'))
+      ) {
+        isIgnoredTouch = true;
+      } else {
+        isIgnoredTouch = false;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (isIgnoredTouch) {
+        isIgnoredTouch = false;
+        return;
+      }
+      if (e.changedTouches.length !== 1) return;
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+      const duration = Date.now() - touchStartTime;
+
+      if (absX > 45 && absX >= 1.5 * absY && duration < 600) {
+        const isSwipeLeft = deltaX < 0;
+        const isUpperZone = touchStartY <= window.innerHeight * 0.4;
+
+        if (isUpperZone) {
+          handleSwipeTab(isSwipeLeft ? 'next' : 'prev');
+        } else {
+          const isFeatured =
+            (tabIndex === 2 && shortsSubfolder === 'Featured') ||
+            (tabIndex === 4 && bandhobiSubfolder === 'Featured');
+          if (!isFeatured) {
+            handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
+          }
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [
+    isModalOpen,
+    notFoundInfo.isOpen,
+    showTelemetry,
+    tabIndex,
+    shortsSubfolder,
+    bandhobiSubfolder,
+    handleSwipeTab,
+    handleSwipeSubfolder,
+  ]);
+
   return (
     <div
       className="w-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col bg-transparent relative select-none font-sans text-white"
@@ -902,12 +1090,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
       {/* TOP HEADER: LOGO (LEFT) + NOTIF (CENTER) + GRAPH (RIGHT) */}
       <header
-        className="w-full flex justify-between items-start pt-6 sm:pt-7 pb-2 px-6 sm:px-10 shrink-0 z-30 bg-transparent gap-4"
+        className="w-full flex justify-between items-start pt-5 sm:pt-7 pb-2 px-4 sm:px-10 shrink-0 z-30 bg-transparent gap-2 sm:gap-4"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         {/* Left: Logo (clicking acts as Home) + Search Bar beside it */}
-        <div className="flex flex-col gap-3 sm:gap-4 shrink-0">
-          <div className="flex items-center gap-3 sm:gap-5">
+        <div className="flex flex-col gap-2.5 sm:gap-4 shrink-0 max-w-full">
+          <div className="flex items-center gap-2 sm:gap-5 max-w-full">
             <a
               href="/"
               onClick={(e) => {
@@ -921,7 +1109,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               title="SARWAR.CYOU"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
-              <LaserSparkLogo width={250} height={34} interactive={false} />
+              <LaserSparkLogo width={isPortrait ? 175 : 240} height={isPortrait ? 24 : 33} interactive={false} />
             </a>
 
             {/* Cyber Search Bar */}
