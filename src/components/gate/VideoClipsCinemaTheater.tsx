@@ -258,9 +258,8 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
  *     - Vertical (Portrait Mobile/Tablet): Width scaled up to 92vw (max 480px), stacked vertically.
  * - Exposure Geometry:
  *     - Main Center Screen: 100% visible, elevated in front (Z = +80px).
- *     - The 2 Cards Beside It: Exactly 30% exposed, angled 36°.
- *     - The 2 Cards Beside Them: Exactly 10% exposed, angled 52°.
- *     - Outer Horizon Cards: Exactly 5% exposed, angled 65°.
+ *     - The 2 Cards Beside It (Tier 1): Exactly 50% exposed.
+ *     - The 2 Outer Wings (Tier 2, 4th & 5th cards): Exactly 25% exposed.
  * - Video Playback Rules:
  *     - Main screen: Plays 30% to 70% in a continuous loop.
  *     - The two beside it: Plays 40% to 60% in a continuous loop.
@@ -392,20 +391,20 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     if (isVertical) {
       /* PORTRAIT SCREEN: EXACTLY 5 CARDS VERTICAL 3D AUDITORIUM */
       const W_main = Math.min(
-        640,
-        Math.max(260, Math.min(W_box * 0.92, H_box * 0.44 * (16 / 9)))
+        540,
+        Math.max(260, Math.min(W_box * 0.90, (H_box * 0.42) * (16 / 9)))
       );
       const H_main = W_main * (9 / 16);
 
-      // Tier 1 card (adjacent Top & Bottom): 88% scale, 30% exposed along vertical Y-axis
+      // Tier 1 card (adjacent Top & Bottom): 88% scale, EXACTLY 50% exposed along vertical Y-axis
       const H1 = H_main * 0.88;
       const W1 = W_main * 0.88;
-      const E1 = H_main / 2 + 0.30 * H1;
+      const E1 = H_main / 2 + 0.50 * H1;
 
-      // Tier 2 card (outer Top & Bottom wings): 76% scale, 10% exposed along vertical Y-axis
+      // Tier 2 card (outer Top & Bottom wings): 76% scale, EXACTLY 25% exposed along vertical Y-axis
       const H2 = H_main * 0.76;
       const W2 = W_main * 0.76;
-      const E2 = E1 + 0.10 * H2;
+      const E2 = E1 + 0.25 * H2;
 
       const tiers: TierConfig[] = [
         {
@@ -413,45 +412,45 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
           cardW: W1,
           cardH: H1,
           centerPos: E1 - H1 / 2,
-          rotDeg: 36,
+          rotDeg: 30,
           zPos: -40,
           opacity: 0.90,
           zIndex: 40,
           shadowClass: 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110',
-          exposurePct: 0.30,
+          exposurePct: 0.50,
         },
         {
           k: 2,
           cardW: W2,
           cardH: H2,
           centerPos: E2 - H2 / 2,
-          rotDeg: 52,
+          rotDeg: 46,
           zPos: -100,
           opacity: 0.75,
           zIndex: 30,
           shadowClass: 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
-          exposurePct: 0.10,
+          exposurePct: 0.25,
         },
       ];
 
       return { isVertical: true, W_main, H_main, tiers };
     } else {
-      /* WIDE SCREEN: EXACTLY 5 CARDS HORIZONTAL 3D AUDITORIUM (25% LARGER) */
+      /* WIDE SCREEN: EXACTLY 5 CARDS HORIZONTAL 3D AUDITORIUM */
       const W_main = Math.min(
-        740,
-        Math.max(300, Math.min(W_box * 0.54, H_box * 0.65 * (16 / 9)))
+        680,
+        Math.max(300, Math.min(W_box * 0.42, H_box * 0.60 * (16 / 9)))
       );
       const H_main = W_main * (9 / 16);
 
-      // Tier 1 card (adjacent Left & Right): 88% scale, 30% exposed along horizontal X-axis
+      // Tier 1 card (adjacent Left & Right): 88% scale, EXACTLY 50% exposed along horizontal X-axis
       const W1 = W_main * 0.88;
       const H1 = W1 * (9 / 16);
-      const E1 = W_main / 2 + 0.30 * W1;
+      const E1 = W_main / 2 + 0.50 * W1;
 
-      // Tier 2 card (outer Left & Right wings): 76% scale, 10% exposed along horizontal X-axis
+      // Tier 2 card (outer Left & Right wings): 76% scale, EXACTLY 25% exposed along horizontal X-axis
       const W2 = W_main * 0.76;
       const H2 = W2 * (9 / 16);
-      const E2 = E1 + 0.10 * W2;
+      const E2 = E1 + 0.25 * W2;
 
       const tiers: TierConfig[] = [
         {
@@ -459,24 +458,24 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
           cardW: W1,
           cardH: H1,
           centerPos: E1 - W1 / 2,
-          rotDeg: 36,
+          rotDeg: 32,
           zPos: -40,
           opacity: 0.90,
           zIndex: 40,
           shadowClass: 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110',
-          exposurePct: 0.30,
+          exposurePct: 0.50,
         },
         {
           k: 2,
           cardW: W2,
           cardH: H2,
           centerPos: E2 - W2 / 2,
-          rotDeg: 52,
+          rotDeg: 48,
           zPos: -100,
           opacity: 0.75,
           zIndex: 30,
           shadowClass: 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
-          exposurePct: 0.10,
+          exposurePct: 0.25,
         },
       ];
 
