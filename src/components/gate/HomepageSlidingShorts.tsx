@@ -123,12 +123,25 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
     [handleMediaReady]
   );
 
-  // Check if buffer threshold is met: ONLY show up when ALL 6 are really ready (no premature timer ceiling)
+  // Check if buffer threshold is met: show up when all are ready, with a safety timeout so it never hangs indefinitely
   useEffect(() => {
-    if (!isPlaybackReady && targetThreshold > 0 && readyIndices.size >= targetThreshold) {
+    if (isPlaybackReady) return;
+
+    if (targetThreshold > 0 && readyIndices.size >= targetThreshold) {
       setIsPlaybackReady(true);
       isPlaybackReadyRef.current = true;
+      return;
     }
+
+    // Safety timeout: never leave visitor frozen on loading screen if network throttles concurrent requests
+    const timer = setTimeout(() => {
+      if (!isPlaybackReadyRef.current) {
+        setIsPlaybackReady(true);
+        isPlaybackReadyRef.current = true;
+      }
+    }, 3500);
+
+    return () => clearTimeout(timer);
   }, [readyIndices.size, targetThreshold, isPlaybackReady]);
 
   // Launch and synchronize playback on showcase videos once buffering completes
