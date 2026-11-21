@@ -95,10 +95,10 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   return { root, subfolders: [subName] };
 }
 
-const PHOTO_SUBFOLDERS = ['Featured', 'Favorite', '2027', '2026', '2025', 'Older'];
-const SHORTS_SUBFOLDERS = ['Featured', '2027', 'Older'];
+const PHOTO_SUBFOLDERS = ['Favorite', '2027', '2026', '2025', 'Older'];
+const SHORTS_SUBFOLDERS = ['2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['ALL', 'Favorite', '2027', '2026', 'Older'];
-const BANDHOBI_SUBFOLDERS = ['Featured', 'Photographs', 'Video Clips', 'Shorts'];
+const BANDHOBI_SUBFOLDERS = ['Photographs', 'Video Clips', 'Shorts'];
 
 // Selected photo filenames to showcase under bandhobiz -> Featured in user's exact order
 export const BANDHOBI_FEATURED_PHOTO_FILENAMES: string[] = [
@@ -299,7 +299,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const switchTab = useCallback((targetIndex: number) => {
     handleClearSearch();
-    if (targetIndex === tabIndex) return;
+    if (targetIndex === tabIndex) {
+      if (tabIndex === 1 && (photosSubfolder !== 'Featured' || displayedPhotosSub !== 'Featured')) {
+        setPhotosSubfolder('Featured');
+        setDisplayedPhotosSub('Featured');
+        setShuffleTrigger((prev) => prev + 1);
+        if (typeof window !== 'undefined') updateBrowserUrl('/photographs');
+      } else if (tabIndex === 2 && (shortsSubfolder !== 'Featured' || displayedShortsSub !== 'Featured')) {
+        setShortsSubfolder('Featured');
+        setDisplayedShortsSub('Featured');
+        setShuffleTrigger((prev) => prev + 1);
+        if (typeof window !== 'undefined') updateBrowserUrl('/shorts');
+      } else if (tabIndex === 4 && (bandhobiSubfolder !== 'Featured' || displayedBandhobiSub !== 'Featured')) {
+        setBandhobiSubfolder('Featured');
+        setDisplayedBandhobiSub('Featured');
+        setShuffleTrigger((prev) => prev + 1);
+        if (typeof window !== 'undefined') updateBrowserUrl('/bandhobiz');
+      }
+      return;
+    }
 
     const currentVis = TAB_VISUAL_ORDER[tabIndex] ?? 0;
     const targetVis = TAB_VISUAL_ORDER[targetIndex] ?? 0;
@@ -901,7 +919,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const list = currentSubfolderList;
       if (!list || list.length <= 1) return;
       const currentIdx = list.indexOf(currentSubfolder);
-      if (currentIdx === -1) return;
+      if (currentIdx === -1) {
+        if (direction === 'next') handleSelectSubfolder(list[0]);
+        else handleSelectSubfolder(list[list.length - 1]);
+        return;
+      }
       const targetIdx =
         direction === 'next'
           ? (currentIdx + 1) % list.length
