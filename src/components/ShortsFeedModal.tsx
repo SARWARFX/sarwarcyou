@@ -19,7 +19,12 @@ import {
 } from './brand/LaserIcons';
 import { getGlobalAudioMuted } from '../utils/audioMuteManager';
 import { acquirePlayerWakeLock, releasePlayerWakeLock } from '../utils/keepAwakeManager';
-import { subscribeBatteryState } from '../utils/batteryManager';
+import {
+  subscribeBatteryState,
+  subscribeUrgentPlayback,
+  requestUrgentPlayback,
+  resetUrgentPlayback,
+} from '../utils/batteryManager';
 import type { BatteryState } from '../utils/batteryManager';
 
 function formatTime(seconds: number): string {
@@ -67,11 +72,12 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     level: 100,
     charging: true,
   });
+  const [isUrgentPlaybackOverride, setIsUrgentPlaybackOverride] = useState(false);
 
   useEffect(() => {
-    return subscribeBatteryState((state) => {
+    const unsubState = subscribeBatteryState((state) => {
       setBatteryState(state);
-      if (state.isSupported && !state.charging && state.level < 5) {
+      if (state.isSupported && !state.charging && state.level < 5 && !isUrgentPlaybackOverride) {
         videoRefs.current.forEach((v) => {
           if (v && !v.paused) {
             v.pause();
@@ -80,9 +86,36 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
         setIsPlaying(false);
       }
     });
-  }, []);
 
-  const isBatteryBrakeActive = batteryState.isSupported && !batteryState.charging && batteryState.level < 5;
+    const unsubUrgent = subscribeUrgentPlayback((granted) => {
+      if (granted) {
+        setIsUrgentPlaybackOverride(true);
+      }
+    });
+
+    return () => {
+      unsubState();
+      unsubUrgent();
+    };
+  }, [isUrgentPlaybackOverride]);
+
+  // When modal closes or short item changes, reset emergency override
+  useEffect(() => {
+    setIsUrgentPlaybackOverride(false);
+    resetUrgentPlayback();
+  }, [isOpen, activeIndex]);
+
+  const isBatteryBrakeActive =
+    batteryState.isSupported && !batteryState.charging && batteryState.level < 5 && !isUrgentPlaybackOverride;
+
+  const handleUrgentPlay = useCallback(() => {
+    setIsUrgentPlaybackOverride(true);
+    requestUrgentPlayback();
+    const v = videoRefs.current[activeIndex];
+    if (v) {
+      v.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  }, [activeIndex]);
 
   // Seamless Zero-Gap Stream items list of other shorts (infinite loop at 260s Ultra Calm speed)
   const streamItems = useMemo(() => {
@@ -846,27 +879,51 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             {/* In-Stage Safety Brake Modal Banner for < 5% Battery on Battery Power */}
             {isBatteryBrakeActive && idx === activeIndex && (
               <div
-                className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl pointer-events-auto select-none"
+                className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl pointer-events-auto select-none animate-fade-in"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div
-                  className="relative w-full max-w-xs bg-[#090c12] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.95)] border border-[#ef4444]/40 flex flex-col gap-3 text-center animate-fade-in"
+                  className="relative w-full max-w-md bg-[#090c12] p-6 sm:p-7 shadow-[0_30px_90px_rgba(0,0,0,0.98)] border border-red-500/50 text-white flex flex-col gap-4 animate-scale-in text-left"
                   style={{ borderRadius: 0, outline: 'none' }}
                 >
-                  <div className="inline-flex items-center justify-center gap-2 text-xs font-mono font-bold text-[#ef4444] tracking-wider uppercase">
-                    <span className="w-2 h-2 bg-[#ef4444] animate-ping inline-block" />
-                    // SYSTEM SAFETY BRAKE
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs sm:text-sm font-bold font-mono tracking-tight uppercase flex items-center gap-2 text-[#ff0022]">
+                      <span className="w-2.5 h-2.5 bg-[#ff0022] animate-ping inline-block shrink-0 shadow-[0_0_8px_#ff0022]" />
+                      // CRITICAL BATTERY // &lt; 5%
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 bg-black/60 border border-white/10 text-neutral-400">
+                      #FF0022
+                    </span>
                   </div>
-                  <h3 className="text-sm font-bold font-mono text-white uppercase">Critical Battery ({batteryState.level}%)</h3>
-                  <p className="text-xs text-neutral-300 font-sans leading-relaxed">
-                    Device power is below 5% on battery. Shorts decoding is locked to prevent sudden system crash and data corruption.
+
+                  <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
+                    Device is running on very low power emergency state (&lt; 5%). Shorts playback is locked to prevent sudden system crash. You may choose 'Play as Urgent' for a single emergency play.
                   </p>
-                  <div className="bg-[#030406] p-2 text-[11px] font-mono text-neutral-400 flex items-center justify-between border border-white/5">
-                    <span className="text-[#ef4444] font-bold">BATTERY // {batteryState.level}%</span>
-                    <span className="text-neutral-500">AC OFFLINE</span>
+
+                  <div className="bg-[#030406] p-2.5 text-[11px] font-mono text-neutral-400 flex items-center justify-between border border-white/5">
+                    <span className="text-[#ff0022] font-bold">CRITICAL // {batteryState.level}%</span>
+                    <span className="text-neutral-500">PLAYBACK LOCKED</span>
                   </div>
-                  <div className="text-[11px] font-mono text-[#f59e0b] pt-1">
-                    Connect charger to resume shorts
+
+                  <div className="flex items-center justify-end gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleUrgentPlay}
+                      className="py-2 px-4 font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border flex items-center gap-1.5 hover:bg-red-500/10 text-[#ff4455] border-[#ff0022] shadow-[0_0_12px_rgba(255,0,34,0.35)]"
+                      style={{ borderRadius: 0 }}
+                    >
+                      <span>⚡</span>
+                      <span>Play as Urgent</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="py-2 px-5 font-mono font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer bg-[#ff0022] text-white hover:bg-white hover:text-black border-0"
+                      style={{ borderRadius: 0 }}
+                    >
+                      Close Shorts
+                    </button>
                   </div>
                 </div>
               </div>

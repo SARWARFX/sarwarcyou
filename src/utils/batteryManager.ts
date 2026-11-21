@@ -197,12 +197,174 @@ export function getBatteryState(): BatteryState {
   return { ...batteryState };
 }
 
+export interface BatteryColorTheme {
+  hex: string;
+  rgb: string;
+  textColor: string;
+  btnBg: string;
+  btnText: string;
+  shadow: string;
+  urgentBorder: string;
+  urgentText: string;
+}
+
+/**
+ * Dynamic color interpolation:
+ * - 50%: Pure Blue (#0088ff = rgb(0, 136, 255))
+ * - 50% down to 10%: Linear color blend from blue to red (e.g. 30% is violet/purple)
+ * - 9% down to 1%: Totally solid red (#ff0022 = rgb(255, 0, 34))
+ */
+export function getBatteryAlertColor(level: number): BatteryColorTheme {
+  if (level <= 9) {
+    return {
+      hex: '#ff0022',
+      rgb: 'rgb(255, 0, 34)',
+      textColor: '#ff0022',
+      btnBg: '#ff0022',
+      btnText: '#ffffff',
+      shadow: 'rgba(255, 0, 34, 0.45)',
+      urgentBorder: '#ff0022',
+      urgentText: '#ff4455',
+    };
+  }
+
+  const clamped = Math.max(10, Math.min(50, level));
+  const t = (50 - clamped) / 40; // 0.0 at 50%, 0.5 at 30%, 1.0 at 10%
+
+  const r = Math.round(0 + t * 245);
+  const g = Math.round(136 - t * 126);
+  const b = Math.round(255 - t * 225);
+
+  const hex = '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  const btnText = t > 0.4 ? '#ffffff' : '#000000';
+
+  return {
+    hex,
+    rgb: `rgb(${r}, ${g}, ${b})`,
+    textColor: hex,
+    btnBg: hex,
+    btnText,
+    shadow: `rgba(${r}, ${g}, ${b}, 0.35)`,
+    urgentBorder: hex,
+    urgentText: hex,
+  };
+}
+
+export interface BatteryAlertContent {
+  title: string;
+  desc: string;
+  status: string;
+  subStatus: string;
+  dismissBtn: string;
+  showUrgent: boolean;
+}
+
+/**
+ * Formats notification title and text strictly per design:
+ * - 'Play as Urgent' appears ONLY for level < 5
+ */
+export function getBatteryAlertContent(level: number): BatteryAlertContent {
+  if (level < 5) {
+    return {
+      title: '// CRITICAL BATTERY // < 5%',
+      desc: "Device is running on very low power emergency state (< 5%). Video & shorts playback is locked to prevent sudden system crash. You may choose 'Play as Urgent' for a single emergency play.",
+      status: `CRITICAL // ${level}%`,
+      subStatus: 'PLAYBACK LOCKED',
+      dismissBtn: 'Acknowledge',
+      showUrgent: true,
+    };
+  } else if (level === 5) {
+    return {
+      title: '// BATTERY // 5%',
+      desc: 'Device power has reached 5%. Media playback will lock below this level. Connect AC power cord immediately to prevent sudden shutdown.',
+      status: 'CRITICAL // 5%',
+      subStatus: 'AC OFFLINE',
+      dismissBtn: 'Acknowledge',
+      showUrgent: false,
+    };
+  } else if (level <= 10) {
+    return {
+      title: '// BATTERY // < 10%',
+      desc: 'Critical battery charge remaining. Connecting your charger is recommended to prevent unexpected shutdown during playback.',
+      status: `COUNTDOWN // ${level}%`,
+      subStatus: 'AC OFFLINE',
+      dismissBtn: 'Acknowledge',
+      showUrgent: false,
+    };
+  } else if (level <= 25) {
+    return {
+      title: '// BATTERY // < 25%',
+      desc: 'Device power has dropped below 25%. Connecting your charger is recommended for uninterrupted media streaming.',
+      status: `LOW POWER // ${level}%`,
+      subStatus: 'DISCHARGING',
+      dismissBtn: 'Dismiss',
+      showUrgent: false,
+    };
+  } else if (level <= 30) {
+    return {
+      title: '// BATTERY // < 30%',
+      desc: 'Device power has dropped to 30%. Consider connecting to AC electricity to maintain smooth streaming.',
+      status: `BATTERY // ${level}%`,
+      subStatus: 'DISCHARGING',
+      dismissBtn: 'Dismiss',
+      showUrgent: false,
+    };
+  } else {
+    return {
+      title: '// BATTERY // < 50%',
+      desc: 'Device is running on battery power without AC adapter connection. Connecting your charger is recommended for continuous streaming.',
+      status: `BATTERY // ${level}%`,
+      subStatus: 'DISCHARGING',
+      dismissBtn: 'Dismiss',
+      showUrgent: false,
+    };
+  }
+}
+
+// Emergency Playback Session Management (< 5% Battery override)
+let urgentPlaybackGranted = false;
+const urgentPlayListeners = new Set<(granted: boolean) => void>();
+
+export function requestUrgentPlayback(): void {
+  urgentPlaybackGranted = true;
+  urgentPlayListeners.forEach((cb) => {
+    try {
+      cb(true);
+    } catch (e) {
+      console.warn('[BatteryManager] Urgent play listener error:', e);
+    }
+  });
+}
+
+export function resetUrgentPlayback(): void {
+  urgentPlaybackGranted = false;
+  urgentPlayListeners.forEach((cb) => {
+    try {
+      cb(false);
+    } catch (e) {
+      console.warn('[BatteryManager] Urgent play listener error:', e);
+    }
+  });
+}
+
+export function isUrgentPlaybackActive(): boolean {
+  return urgentPlaybackGranted;
+}
+
+export function subscribeUrgentPlayback(callback: (granted: boolean) => void): () => void {
+  urgentPlayListeners.add(callback);
+  callback(urgentPlaybackGranted);
+  return () => {
+    urgentPlayListeners.delete(callback);
+  };
+}
+
 /**
  * Check if high-bitrate media playback (videos, shorts) is locked
- * Strict condition: Battery API supported, NOT charging, and battery < 5%
+ * Strict condition: Battery API supported, NOT charging, and battery < 5%, without active urgent session
  */
 export function isPlayerPlaybackLocked(): boolean {
-  return batteryState.isSupported && !batteryState.charging && batteryState.level < 5;
+  return batteryState.isSupported && !batteryState.charging && batteryState.level < 5 && !urgentPlaybackGranted;
 }
 
 /**
