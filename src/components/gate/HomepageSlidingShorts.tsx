@@ -183,29 +183,32 @@ export const HomepageSlidingShorts: React.FC<HomepageSlidingShortsProps> = ({
       className="w-full h-full flex items-center justify-start overflow-hidden relative select-none pl-6 sm:pl-10 min-h-[300px] sm:min-h-[380px] md:min-h-[480px]"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
-      {/* High-Tech Cybernetic Loading: Floating borderless text & slider (Option 2) */}
+      {/* High-Tech Cybernetic Text-as-Slider Loading: Color fills left-to-right as progress */}
       {!isPlaybackReady && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none px-4">
-          <div className="flex flex-col items-center justify-center gap-3.5">
-            <div className="flex items-center gap-3">
-              <div className="w-2.5 h-2.5 bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] animate-pulse shrink-0" />
-              <span
-                className="text-sm sm:text-base font-bold tracking-[0.16em] uppercase text-white whitespace-nowrap"
-                style={{ fontFamily: "'Science Gothic', sans-serif" }}
-              >
-                INITIALIZING <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">ARCHIVE</span>
-              </span>
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-transparent pointer-events-none select-none px-4">
+          <div
+            className="relative inline-block font-bold uppercase select-none text-base sm:text-lg md:text-xl tracking-[0.22em] whitespace-nowrap"
+            style={{ fontFamily: "'Science Gothic', sans-serif" }}
+          >
+            {/* Base Layer: Initial two-color dimmed state */}
+            <div className="opacity-25 transition-opacity duration-300">
+              <span className="text-white">INITIALIZING </span>
+              <span className="text-[#38bdf8]">ARCHIVE</span>
             </div>
 
-            {/* Pure borderless, background-free slider */}
+            {/* Active Progress Layer: Fills in glowing vibrant colors from left to right as the slider */}
             <div
-              className="w-48 sm:w-64 h-[3px] bg-white/15 overflow-hidden relative"
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              className="absolute inset-0 overflow-hidden transition-[width] duration-300 ease-out"
+              style={{
+                width: `${progressPercent}%`,
+                borderRight: progressPercent < 100 ? '2px solid #38bdf8' : 'none',
+                boxShadow: progressPercent < 100 ? '2px 0 10px rgba(56,189,248,0.85)' : 'none',
+              }}
             >
-              <div
-                className="h-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8,0_0_20px_rgba(56,189,248,0.65)] transition-all duration-300 ease-out"
-                style={{ width: `${progressPercent}%`, borderRadius: 0 }}
-              />
+              <div className="whitespace-nowrap">
+                <span className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">INITIALIZING </span>
+                <span className="text-[#38bdf8] drop-shadow-[0_0_12px_#38bdf8]">ARCHIVE</span>
+              </div>
             </div>
           </div>
         </div>
