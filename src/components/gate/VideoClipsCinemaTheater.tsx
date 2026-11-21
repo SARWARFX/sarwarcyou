@@ -541,43 +541,28 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
       className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden select-none min-h-[360px] sm:min-h-[460px] md:min-h-[540px]"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
-      {/* High-Tech Cybernetic Loading Screen: Exact Same as Shorts Featured Page */}
+      {/* High-Tech Cybernetic Loading: Floating borderless text & slider (Option 2) */}
       {!isPlaybackReady && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-transparent pointer-events-none select-none px-4">
-          <div className="flex flex-col items-center justify-between w-full max-w-[295px] min-h-[290px] p-8 sm:w-auto sm:min-w-[500px] sm:max-w-[620px] sm:min-h-0 sm:px-14 sm:py-6 md:px-16 md:py-7 bg-[#07090e]/95 border border-[#38bdf8]/45 shadow-[0_0_45px_rgba(0,0,0,0.9),0_0_25px_rgba(56,189,248,0.22)] backdrop-blur-md">
-            {/* Mobile View: Taller Rectangular Card with Exact 2-Line Split */}
-            <div className="flex sm:hidden flex-col items-center justify-center gap-5 flex-1 w-full text-center py-2">
-              <div className="w-3.5 h-3.5 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
-              <div
-                className="flex flex-col items-center text-center gap-1.5 font-bold tracking-[0.16em] uppercase text-base leading-snug"
-                style={{ fontFamily: "'Science Gothic', sans-serif" }}
-              >
-                <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">
-                  LOADING MEDIA //
-                </span>
-                <span className="text-white">PLEASE WAIT</span>
-              </div>
-            </div>
-
-            {/* Desktop & Tablet View: Single Horizontal Line */}
-            <div className="hidden sm:flex items-center gap-3.5 mb-4">
-              <div className="w-3 h-3 bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse shrink-0" />
+          <div className="flex flex-col items-center justify-center gap-3.5">
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-2.5 bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] animate-pulse shrink-0" />
               <span
-                className="text-base sm:text-base md:text-lg font-bold tracking-[0.14em] uppercase text-white whitespace-nowrap"
+                className="text-sm sm:text-base font-bold tracking-[0.16em] uppercase text-white whitespace-nowrap"
                 style={{ fontFamily: "'Science Gothic', sans-serif" }}
               >
-                <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">
-                  LOADING MEDIA //
-                </span>{' '}
-                PLEASE WAIT
+                INITIALIZING <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">ARCHIVE</span>
               </span>
             </div>
 
-            {/* Tactical Solid Rectangular Progress Gauge */}
-            <div className="w-full h-3.5 sm:h-4 bg-[#030712] border border-[#38bdf8]/50 shadow-[inset_0_0_8px_rgba(0,0,0,0.9)] p-[2px] overflow-hidden relative">
+            {/* Pure borderless, background-free slider */}
+            <div
+              className="w-48 sm:w-64 h-[3px] bg-white/15 overflow-hidden relative"
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
               <div
                 className="h-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8,0_0_20px_rgba(56,189,248,0.65)] transition-all duration-300 ease-out"
-                style={{ width: `${progressPercent}%` }}
+                style={{ width: `${progressPercent}%`, borderRadius: 0 }}
               />
             </div>
           </div>

@@ -1198,17 +1198,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         {searchState.isActive ? (
           <div className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4">
             {searchState.isLoading ? (
-              /* Cyber Loading Progress Bar */
-              <div className="w-full flex-1 flex flex-col items-center justify-center py-24 gap-3">
-                <div className="w-48 sm:w-64 h-[2px] bg-white/10 overflow-hidden relative" style={{ borderRadius: 0 }}>
-                  <div className="h-full bg-[#38bdf8] shadow-[0_0_12px_#38bdf8] animate-pulse w-full" style={{ borderRadius: 0 }} />
+              /* High-Tech Cybernetic Loading: Floating borderless text & slider (Option 2) */
+              <div className="w-full flex-1 flex flex-col items-center justify-center py-24 gap-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 bg-[#38bdf8] shadow-[0_0_10px_#38bdf8] animate-pulse shrink-0" />
+                  <span
+                    className="text-sm sm:text-base font-bold tracking-[0.16em] uppercase text-white whitespace-nowrap"
+                    style={{ fontFamily: "'Science Gothic', sans-serif" }}
+                  >
+                    INITIALIZING <span className="text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">ARCHIVE</span>
+                  </span>
                 </div>
-                <span
-                  className="font-firjar text-[11px] font-bold tracking-widest text-[#38bdf8] uppercase"
-                  style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+                <div
+                  className="w-48 sm:w-64 h-[3px] bg-white/15 overflow-hidden relative"
+                  style={{ borderRadius: 0, outline: 'none', border: 'none' }}
                 >
-                  LOADING MEDIA // PLEASE WAIT
-                </span>
+                  <div className="h-full bg-[#38bdf8] shadow-[0_0_10px_#38bdf8,0_0_20px_rgba(56,189,248,0.65)] animate-pulse w-full" style={{ borderRadius: 0 }} />
+                </div>
               </div>
             ) : searchState.results.length > 0 ? (
               /* Search Results: Exact Same Monolith Rectangular Grid as Photographs */
