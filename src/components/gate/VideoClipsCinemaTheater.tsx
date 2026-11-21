@@ -15,6 +15,7 @@ interface CinemaScreenCardProps {
   item: StageMediaItem;
   slotIdx: number;
   isCenter: boolean;
+  enableVideo: boolean;
   isPlaybackReady: boolean;
   onReady: (slotIdx: number) => void;
   onClick: () => void;
@@ -31,14 +32,15 @@ interface CinemaScreenCardProps {
  * Individual Screen Card within the Cinema Theater:
  * - Center Main Stage (isCenter): Plays from 30% to 70% of duration in a continuous loop.
  * - All Four Surrounding Cards (Tier 1 & Tier 2): Play from 40% to 60% of duration in a continuous loop.
- * - All 5 media cards play simultaneously in synchrony.
- * - Thin 2px bottom cyan progress line on all 5 active video screens.
+ * - If browsing via mobile data, video playback is suppressed to save visitor data (shows static thumbnail).
+ * - Thin 2px bottom cyan progress line on all active video screens.
  * - Pure Cinema: ZERO borders, ZERO outlines, ZERO text labels.
  */
 const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
   item,
   slotIdx,
   isCenter,
+  enableVideo,
   isPlaybackReady,
   onReady,
   onClick,
@@ -54,8 +56,8 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
   const [progress, setProgress] = useState<number>(0);
   const [hasError, setHasError] = useState<boolean>(false);
 
-  const isVideoScreen = true;
-  const videoSrc = getVideoStreamUrl(item.url || item.path || '');
+  const isVideoScreen = enableVideo;
+  const videoSrc = isVideoScreen ? getVideoStreamUrl(item.url || item.path || '') : null;
   const imageSrc =
     (item as any).thumbnail ||
     resolveStaticVideoThumbnail(item) ||
@@ -225,6 +227,8 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
         <img
           src={imageSrc}
           alt=""
+          onLoad={() => onReady(slotIdx)}
+          onError={() => onReady(slotIdx)}
           className="w-full h-full object-cover block pointer-events-none"
           style={{ borderRadius: 0, outline: 'none', border: 'none' }}
         />
@@ -249,9 +253,38 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
 };
 
 /**
+ * Detects if the visitor is browsing via cellular / mobile data or has Save-Data enabled.
+ * If true, cinema theater screens only display static thumbnails to conserve visitor mobile data.
+ */
+function checkIsMobileData(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const conn =
+    (navigator as any).connection ||
+    (navigator as any).mozConnection ||
+    (navigator as any).webkitConnection;
+
+  if (conn) {
+    if (conn.type === 'cellular') return true;
+    if (conn.saveData === true) return true;
+    if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g') return true;
+  }
+
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    try {
+      if (window.matchMedia('(prefers-reduced-data: reduce)').matches) {
+        return true;
+      }
+    } catch {}
+  }
+
+  return false;
+}
+
+/**
  * Modern Cinema Theater:
  * - Wide Screen: Horizontal 3D Theater (Center in middle, neighbors flanking Left & Right).
  * - Portrait Screen: Vertical 3D Theater (Exact same theater, flipped vertically: Center in middle, neighbors flanking Top & Bottom).
+ * - Mobile Data Conservation: If on cellular data or data saver, screens show high-res thumbnails instead of streaming video.
  * - Sizing:
  *     - Horizontal (Laptop/Desktop): 25% larger cards (up to 720px / 54vw).
  *     - Vertical (Portrait Mobile/Tablet): Width scaled up to 92vw (max 480px), stacked vertically.
@@ -261,8 +294,8 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
  * - Video Playback Rules:
  *     - Main center screen: Plays 30% to 70% in a continuous loop.
  *     - All other 4 screens: Play 40% to 60% in a continuous loop.
- *     - All 5 media cards play simultaneously in synchrony.
- * - Buffer Gate: Waits for all 5 active video screens to buffer before revealing for stutter-free playback.
+ *     - All 5 media cards play simultaneously in synchrony (or show thumbnails on mobile data).
+ * - Buffer Gate: Waits for all 5 screens to buffer before revealing for stutter-free playback.
  * - Interactive: Clicking any card smoothly rotates it to Center Stage.
  */
 export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = ({
@@ -273,6 +306,35 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  // Mobile data detector: if true, all 5 cinema screens display static thumbnails to save mobile data
+  const [isMobileData, setIsMobileData] = useState<boolean>(() => checkIsMobileData());
+
+  useEffect(() => {
+    const handleConnChange = () => {
+      setIsMobileData(checkIsMobileData());
+    };
+
+    window.addEventListener('online', handleConnChange);
+    window.addEventListener('offline', handleConnChange);
+
+    const conn =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
+
+    if (conn && conn.addEventListener) {
+      conn.addEventListener('change', handleConnChange);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleConnChange);
+      window.removeEventListener('offline', handleConnChange);
+      if (conn && conn.removeEventListener) {
+        conn.removeEventListener('change', handleConnChange);
+      }
+    };
+  }, []);
 
   // Container dimensions observed via ResizeObserver
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
@@ -366,6 +428,38 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
   const registerVideoRef = useCallback((slotIdx: number, el: HTMLVideoElement | null) => {
     videoRefs.current[slotIdx] = el;
   }, []);
+
+  // Mobile data thumbnail readiness: pre-buffers the 5 thumbnails so buffer gate completes quickly
+  useEffect(() => {
+    if (!isMobileData || clipPool.length === 0) return;
+
+    const visibleOffsets = [0, -1, 1, -2, 2];
+    visibleOffsets.forEach((slotOffset) => {
+      const itemIdx = (centerIndex + slotOffset + clipPool.length * 100) % clipPool.length;
+      const item = clipPool[itemIdx];
+      if (!item) return;
+
+      const src =
+        (item as any).thumbnail ||
+        resolveStaticVideoThumbnail(item) ||
+        item.poster ||
+        getMediaUrl(item.url || item.path || '');
+
+      if (!src) {
+        handleVideoReady(slotOffset);
+        return;
+      }
+
+      const img = new Image();
+      if (img.complete && img.naturalWidth > 0) {
+        handleVideoReady(slotOffset);
+      } else {
+        img.onload = () => handleVideoReady(slotOffset);
+        img.onerror = () => handleVideoReady(slotOffset);
+        img.src = src;
+      }
+    });
+  }, [isMobileData, centerIndex, clipPool, handleVideoReady]);
 
   // Compute Clean 5-Card Cinema Theater: EXACTLY 5 CARDS FOR ANY SCREEN
   // Center Hero (100% visible) + All Other 4 Cards (50% exposed each)
@@ -567,6 +661,7 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
               item={item}
               slotIdx={0}
               isCenter={true}
+              enableVideo={!isMobileData}
               isPlaybackReady={isPlaybackReady}
               onReady={handleVideoReady}
               onClick={() => handleCardClick(centerIndex)}
@@ -606,6 +701,7 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
                 item={item}
                 slotIdx={slotOffset}
                 isCenter={false}
+                enableVideo={!isMobileData}
                 isPlaybackReady={isPlaybackReady}
                 onReady={handleVideoReady}
                 onClick={() => handleCardClick(itemIdx)}
