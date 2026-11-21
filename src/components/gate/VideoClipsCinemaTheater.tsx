@@ -30,7 +30,7 @@ interface CinemaScreenCardProps {
 /**
  * Individual Screen Card within the Cinema Theater:
  * - Center Main Stage (isCenter): Plays from 30% to 70% of duration in a continuous loop.
- * - The Two Walls/Ceiling/Floor Beside It (isWall): Plays from 40% to 60% of duration in a continuous loop.
+ * - The Two Cards Beside It (isWall): Plays from 40% to 60% of duration in a continuous loop.
  * - Outer Screens (!isCenter && !isWall): Displays static high-res thumbnail (0% background video decoders).
  * - Thin 2px bottom cyan progress line on active video screens.
  * - Pure Cinema: ZERO borders, ZERO outlines, ZERO text labels.
@@ -108,7 +108,7 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
       v.defaultMuted = true;
       const dur = v.duration;
       if (dur && !isNaN(dur) && dur > 0) {
-        // Main stage: start at 30%; Walls/Ceiling/Floor: start at 40%
+        // Main stage: start at 30%; Adjacent cards: start at 40%
         const start = isCenter ? dur * 0.3 : dur * 0.4;
         v.currentTime = start;
       }
@@ -124,7 +124,7 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
     [verifyBufferDepth]
   );
 
-  // Adjust playback slice when transitioning between Center (30%-70%) and Wall (40%-60%)
+  // Adjust playback slice when transitioning between Center (30%-70%) and Adjacent (40%-60%)
   useEffect(() => {
     if (!isVideoScreen) return;
     const v = videoRef.current;
@@ -159,7 +159,7 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
       const dur = v.duration;
       if (!dur || isNaN(dur) || dur <= 0) return;
 
-      // Main stage: 30% to 70% | Adjacent Walls/Ceiling/Floor: 40% to 60%
+      // Main stage: 30% to 70% | Adjacent Cards: 40% to 60%
       const start = isCenter ? dur * 0.3 : dur * 0.4;
       const end = isCenter ? dur * 0.7 : dur * 0.6;
 
@@ -250,20 +250,23 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
 };
 
 /**
- * Dynamic Screen-Decided 3D Cinema Theater:
- * - Portrait Screens: Floor-to-Ceiling 3D View (Ceiling -> Center -> Floor -> Outer Peeks).
- *     - Optimized for vertical orientation: Ceiling angled backward, Center elevated, Floor angled forward.
- * - Landscape / Desktop / Laptop Screens: 25% Larger Horizontal 3D Auditorium:
- *     - Center card scaled 25% larger (up to 720px / 52vw).
- *     - Left & Right Walls show 30% of card beside Center.
- *     - Left & Right Wings show 10% of card beside Walls.
- *     - Horizon shows 5% for ultra-wide displays.
+ * Modern Cinema Theater:
+ * - Wide Screen: Horizontal 3D Theater (Center in middle, neighbors flanking Left & Right).
+ * - Portrait Screen: Vertical 3D Theater (Exact same theater, flipped vertically: Center in middle, neighbors flanking Top & Bottom).
+ * - Sizing:
+ *     - Horizontal (Laptop/Desktop): 25% larger cards (up to 720px / 54vw).
+ *     - Vertical (Portrait Mobile/Tablet): Width scaled up to 92vw (max 480px), stacked vertically.
+ * - Exposure Geometry:
+ *     - Main Center Screen: 100% visible, elevated in front (Z = +80px).
+ *     - The 2 Cards Beside It: Exactly 30% exposed, angled 36°.
+ *     - The 2 Cards Beside Them: Exactly 10% exposed, angled 52°.
+ *     - Outer Horizon Cards: Exactly 5% exposed, angled 65°.
  * - Video Playback Rules:
  *     - Main screen: Plays 30% to 70% in a continuous loop.
- *     - The two beside it (Walls or Ceiling/Floor): Plays 40% to 60% in a continuous loop.
- *     - All other cards: Static high-res thumbnails (0% GPU video decoding overhead).
+ *     - The two beside it: Plays 40% to 60% in a continuous loop.
+ *     - All other cards: Static high-res thumbnails (0% background video decoders).
  * - Buffer Gate: Waits for the 3 active video screens to buffer before revealing for stutter-free playback.
- * - Interactive: Clicking any wall/screen smoothly rotates it to Center Stage.
+ * - Interactive: Clicking any card smoothly rotates it to Center Stage.
  */
 export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = ({
   clips,
@@ -298,8 +301,8 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     return () => ro.disconnect();
   }, []);
 
-  // Determine effective portrait mode (prop or aspect ratio)
-  const isEffectivePortrait = isPortrait || dimensions.height > dimensions.width * 1.05;
+  // Determine vertical mode (portrait screen: when height > width or prop isPortrait)
+  const isVertical = isPortrait || dimensions.height > dimensions.width * 1.05;
 
   // Pool of clips from vault (shuffled once per seed/clips change)
   const clipPool = useMemo(() => {
@@ -317,7 +320,7 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     return clipPool.length > 2 ? 2 : 0;
   });
 
-  // Buffering states for the 3 active video screens (center, left/ceiling, right/floor)
+  // Buffering states for the 3 active video screens (center, and the 2 adjacent cards)
   const [readySlots, setReadySlots] = useState<Set<number>>(new Set());
   const [isPlaybackReady, setIsPlaybackReady] = useState<boolean>(false);
   const isPlaybackReadyRef = useRef<boolean>(false);
@@ -365,107 +368,119 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     videoRefs.current[slotIdx] = el;
   }, []);
 
-  // Calculate dynamic tiers and exposure positions
+  // Compute unified dynamic tiers and exposure positions
   const layout = useMemo(() => {
     const W_box = dimensions.width;
     const H_box = dimensions.height;
 
-    if (isEffectivePortrait) {
+    if (isVertical) {
       /* ===================================================================== */
-      /* PORTRAIT MODE: FLOOR-TO-CEILING VERTICAL 3D THEATER                   */
+      /* PORTRAIT SCREEN: CINEMA THEATER FLIPPED VERTICAL                       */
       /* ===================================================================== */
-      // Width bounded to ~90vw or max 440px
+      // Width fits mobile/tablet portrait with clean margins
       const W_main = Math.min(
-        440,
-        Math.max(260, Math.min(W_box * 0.90, H_box * 0.38 * (16 / 9)))
+        480,
+        Math.max(260, Math.min(W_box * 0.92, H_box * 0.42 * (16 / 9)))
       );
       const H_main = W_main * (9 / 16);
 
-      // Vertical Tier 1 (Ceiling & Floor): 88% scale, 30% of card exposed
+      // Tier 1 card (adjacent Top & Bottom): 88% scale, 30% exposed along vertical Y-axis
       const H1 = H_main * 0.88;
       const W1 = W_main * 0.88;
-      const E1_y = H_main / 2 + 0.30 * H1;
+      const E1 = H_main / 2 + 0.30 * H1;
 
-      // Vertical Tier 2 (Top & Bottom Outer Peeks): 76% scale, 10% of card exposed
+      // Tier 2 card: 76% scale, 10% exposed along vertical Y-axis
       const H2 = H_main * 0.76;
       const W2 = W_main * 0.76;
-      const E2_y = E1_y + 0.10 * H2;
+      const E2 = E1 + 0.10 * H2;
+
+      // Tier 3 card: 65% scale, 5% exposed along vertical Y-axis
+      const H3 = H_main * 0.65;
+      const W3 = W_main * 0.65;
+      const E3 = E2 + 0.05 * H3;
 
       const halfH = H_box / 2;
-      let tiersAllowed = 1; // 3 screens: Ceiling + Center + Floor
-      if (E2_y <= halfH - 10 && H_box >= 680) tiersAllowed = 2; // 5 screens: + Top & Bottom Peeks
+      let tiersAllowed = 1; // 3 cards: Top + Center + Bottom
+      if (E2 <= halfH - 8 && H_box >= 620) tiersAllowed = 2; // 5 cards
+      if (E3 <= halfH - 8 && H_box >= 880) tiersAllowed = 3; // 7 cards
 
       return {
-        isPortraitMode: true,
+        isVertical: true,
         W_main,
         H_main,
         W1,
         H1,
-        E1_y,
+        E1,
         W2,
         H2,
-        E2_y,
-        W3: 0,
-        H3: 0,
-        E3_y: 0,
+        E2,
+        W3,
+        H3,
+        E3,
+        W4: 0,
+        H4: 0,
+        E4: 0,
         tiersAllowed,
       };
     } else {
       /* ===================================================================== */
-      /* LANDSCAPE / LAPTOP / DESKTOP MODE: 25% LARGER HORIZONTAL 3D THEATER  */
+      /* WIDE SCREEN: HORIZONTAL CINEMA THEATER (25% LARGER ON LAPTOP/DESKTOP) */
       /* ===================================================================== */
-      // Scaled up by 25%: max width up to 720px, larger view fractions
+      // Center screen scaled up 25%: up to 720px / 54vw
       const W_main = Math.min(
         720,
-        Math.max(300, Math.min(W_box * 0.52, H_box * 0.64 * (16 / 9)))
+        Math.max(300, Math.min(W_box * 0.54, H_box * 0.65 * (16 / 9)))
       );
       const H_main = W_main * (9 / 16);
 
-      // Tier 1 card width & outer exposure edge (30% exposed)
+      // Tier 1 card width & outer exposure edge (30% exposed along horizontal X-axis)
       const W1 = W_main * 0.88;
+      const H1 = W1 * (9 / 16);
       const E1 = W_main / 2 + 0.30 * W1;
 
-      // Tier 2 card width & outer exposure edge (10% exposed)
+      // Tier 2 card width & outer exposure edge (10% exposed along horizontal X-axis)
       const W2 = W_main * 0.76;
+      const H2 = W2 * (9 / 16);
       const E2 = E1 + 0.10 * W2;
 
       // Tier 3 card width & outer exposure edge (5% exposed)
       const W3 = W_main * 0.65;
+      const H3 = W3 * (9 / 16);
       const E3 = E2 + 0.05 * W3;
 
       // Tier 4 card width & outer exposure edge (5% exposed for ultra-wide)
       const W4 = W_main * 0.55;
+      const H4 = W4 * (9 / 16);
       const E4 = E3 + 0.05 * W4;
 
       const halfW = W_box / 2;
-
       let tiersAllowed = 1; // Default 3 cards
       if (E2 <= halfW - 10 && W_box >= 640) tiersAllowed = 2; // 5 cards
       if (E3 <= halfW - 10 && W_box >= 1100) tiersAllowed = 3; // 7 cards
       if (E4 <= halfW - 10 && W_box >= 1700) tiersAllowed = 4; // 9 cards
 
       return {
-        isPortraitMode: false,
+        isVertical: false,
         W_main,
         H_main,
         W1,
-        H1: W1 * (9 / 16),
+        H1,
         E1,
         W2,
-        H2: W2 * (9 / 16),
+        H2,
         E2,
         W3,
-        H3: W3 * (9 / 16),
+        H3,
         E3,
         W4,
-        H4: W4 * (9 / 16),
+        H4,
         E4,
         tiersAllowed,
       };
     }
-  }, [dimensions, isEffectivePortrait]);
+  }, [dimensions, isVertical]);
 
-  // Buffer gate: wait until center + 2 walls/ceiling/floor are ready before revealing
+  // Buffer gate: wait until center + 2 adjacent cards are ready before revealing
   useEffect(() => {
     if (isPlaybackReady) return;
 
@@ -502,7 +517,23 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
   const rawPct = (readyCount / targetThreshold) * 100;
   const progressPercent = Math.min(100, Math.max(10, Math.round(rawPct)));
 
-  const { isPortraitMode, tiersAllowed } = layout;
+  const {
+    W_main,
+    H_main,
+    W1,
+    H1,
+    E1,
+    W2,
+    H2,
+    E2,
+    W3,
+    H3,
+    E3,
+    W4,
+    H4,
+    E4,
+    tiersAllowed,
+  } = layout as any;
 
   return (
     <div
@@ -553,190 +584,135 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
         </div>
       )}
 
-      {/* DYNAMIC 3D AUDITORIUM STAGE */}
+      {/* DYNAMIC 3D AUDITORIUM STAGE (Horizontal on wide, Vertical on portrait) */}
       <div
         className={`w-full h-full flex items-center justify-center transition-opacity duration-700 ${
           isPlaybackReady ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         style={{
-          perspective: isPortraitMode ? '1100px' : '1400px',
+          perspective: isVertical ? '1100px' : '1400px',
           transformStyle: 'preserve-3d',
           borderRadius: 0,
           outline: 'none',
           border: 'none',
         }}
       >
-        {isPortraitMode ? (
-          /* ================================================================= */
-          /* PORTRAIT SCREENS: FLOOR-TO-CEILING VERTICAL 3D CINEMA TOWER       */
-          /* ================================================================= */
-          Array.from({ length: tiersAllowed * 2 + 1 }).map((_, i) => {
-            const offset = i - tiersAllowed; // -2 (Top Peek), -1 (Ceiling), 0 (Center), 1 (Floor), 2 (Bottom Peek)
-            const itemIdx = (centerIndex + offset + clipPool.length * 10) % clipPool.length;
-            const item = clipPool[itemIdx];
+        {Array.from({ length: tiersAllowed * 2 + 1 }).map((_, i) => {
+          const offset = i - tiersAllowed; // -2, -1, 0, 1, 2
+          const itemIdx = (centerIndex + offset + clipPool.length * 10) % clipPool.length;
+          const item = clipPool[itemIdx];
 
-            const isCenter = offset === 0;
-            const isWall = Math.abs(offset) === 1; // Ceiling or Floor
+          const isCenter = offset === 0;
+          const isWall = Math.abs(offset) === 1;
 
-            const { W_main, H_main, W1, H1, E1_y, W2, H2, E2_y } = layout as any;
+          let cardW = W_main;
+          let cardH = H_main;
+          let transformStyle = '';
+          let opacity = 1;
+          let zIndex = 10;
+          let shadowClass = '';
 
-            let cardW = W_main;
-            let cardH = H_main;
-            let transformStyle = '';
-            let opacity = 1;
-            let zIndex = 10;
-            let shadowClass = '';
-
-            if (isCenter) {
-              // CENTER HERO SCREEN: 100% visible, plays 30% to 70%
-              cardW = W_main;
-              cardH = H_main;
-              transformStyle = 'translateY(0px) rotateX(0deg) translateZ(60px) scale(1)';
-              zIndex = 40;
-              opacity = 1;
-              shadowClass =
-                'shadow-[0_12px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(56,189,248,0.25)]';
-            } else if (isWall) {
-              // CEILING (-1) OR FLOOR (+1): Exactly 30% exposed, plays 40% to 60%
-              cardW = W1;
-              cardH = H1;
-              const dir = offset > 0 ? 1 : -1;
-              const posY = dir * (E1_y - H1 / 2);
-              const rotX = dir * 36; // -36deg for ceiling (backward), +36deg for floor (forward)
+          if (isCenter) {
+            // HERO CENTER STAGE: 100% visible, plays 30% to 70%
+            cardW = W_main;
+            cardH = H_main;
+            transformStyle = isVertical
+              ? 'translateY(0px) rotateX(0deg) translateZ(80px) scale(1)'
+              : 'translateX(0px) rotateY(0deg) translateZ(80px) scale(1)';
+            zIndex = 40;
+            opacity = 1;
+            shadowClass =
+              'shadow-[0_16px_70px_rgba(0,0,0,0.95),0_0_40px_rgba(56,189,248,0.25)]';
+          } else if (isWall) {
+            // TIER 1 ADJACENT: Exactly 30% exposed, plays 40% to 60%
+            cardW = W1;
+            cardH = H1;
+            const dir = offset > 0 ? 1 : -1;
+            if (isVertical) {
+              const posY = dir * (E1 - H1 / 2);
+              const rotX = dir * 36;
               transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-40px) scale(1)`;
-              zIndex = 30;
-              opacity = 0.88;
-              shadowClass = 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-110';
-            } else if (Math.abs(offset) >= 2) {
-              // TOP (-2) OR BOTTOM (+2) PEEKS: Exactly 10% exposed, static thumbnail
-              cardW = W2;
-              cardH = H2;
-              const dir = offset > 0 ? 1 : -1;
-              const posY = dir * (E2_y - H2 / 2);
-              const rotX = dir * 50;
-              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-110px) scale(1)`;
-              zIndex = 20;
-              opacity = 0.55;
-              shadowClass = 'shadow-[0_6px_25px_rgba(0,0,0,0.8)] hover:brightness-125';
-            }
-
-            return (
-              <CinemaScreenCard
-                key={`portrait-${item.id || item.url || item.name}-${itemIdx}`}
-                item={item}
-                slotIdx={offset}
-                isCenter={isCenter}
-                isWall={isWall}
-                isPlaybackReady={isPlaybackReady}
-                onReady={handleVideoReady}
-                onClick={() => handleCardClick(itemIdx)}
-                transformStyle={transformStyle}
-                width={cardW}
-                height={cardH}
-                opacity={opacity}
-                zIndex={zIndex}
-                shadowClass={shadowClass}
-                registerVideoRef={registerVideoRef}
-              />
-            );
-          })
-        ) : (
-          /* ================================================================= */
-          /* LANDSCAPE SCREENS: 25% LARGER HORIZONTAL 3D CINEMA AUDITORIUM    */
-          /* ================================================================= */
-          Array.from({ length: tiersAllowed * 2 + 1 }).map((_, i) => {
-            const offset = i - tiersAllowed; // -2, -1, 0, 1, 2
-            const itemIdx = (centerIndex + offset + clipPool.length * 10) % clipPool.length;
-            const item = clipPool[itemIdx];
-
-            const isCenter = offset === 0;
-            const isWall = Math.abs(offset) === 1;
-
-            const { W_main, H_main, W1, E1, W2, E2, W3, E3, W4, E4 } = layout as any;
-
-            let cardW = W_main;
-            let cardH = H_main;
-            let transformStyle = '';
-            let opacity = 1;
-            let zIndex = 10;
-            let shadowClass = '';
-
-            if (isCenter) {
-              // HERO CENTER STAGE: 25% larger, 100% visible, plays 30% to 70%
-              cardW = W_main;
-              cardH = H_main;
-              transformStyle = 'translateX(0px) rotateY(0deg) translateZ(80px) scale(1)';
-              zIndex = 40;
-              opacity = 1;
-              shadowClass =
-                'shadow-[0_16px_70px_rgba(0,0,0,0.95),0_0_40px_rgba(56,189,248,0.25)]';
-            } else if (isWall) {
-              // TIER 1 WALLS: 25% larger, Exactly 30% exposed, plays 40% to 60%
-              cardW = W1;
-              cardH = W1 * (9 / 16);
-              const dir = offset > 0 ? 1 : -1;
+            } else {
               const posX = dir * (E1 - W1 / 2);
               const rotY = dir * -36;
               transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-40px) scale(1)`;
-              zIndex = 30;
-              opacity = 0.88;
-              shadowClass = 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110';
-            } else if (Math.abs(offset) === 2) {
-              // TIER 2 WINGS: 25% larger, Exactly 10% exposed, static thumbnail
-              cardW = W2;
-              cardH = W2 * (9 / 16);
-              const dir = offset > 0 ? 1 : -1;
+            }
+            zIndex = 30;
+            opacity = 0.88;
+            shadowClass = 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110';
+          } else if (Math.abs(offset) === 2) {
+            // TIER 2: Exactly 10% exposed, static thumbnail
+            cardW = W2;
+            cardH = H2;
+            const dir = offset > 0 ? 1 : -1;
+            if (isVertical) {
+              const posY = dir * (E2 - H2 / 2);
+              const rotX = dir * 52;
+              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-110px) scale(1)`;
+            } else {
               const posX = dir * (E2 - W2 / 2);
               const rotY = dir * -52;
               transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-110px) scale(1)`;
-              zIndex = 20;
-              opacity = 0.65;
-              shadowClass = 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125';
-            } else if (Math.abs(offset) === 3) {
-              // TIER 3 HORIZON: 25% larger, Exactly 5% exposed, static thumbnail
-              cardW = W3;
-              cardH = W3 * (9 / 16);
-              const dir = offset > 0 ? 1 : -1;
+            }
+            zIndex = 20;
+            opacity = 0.65;
+            shadowClass = 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125';
+          } else if (Math.abs(offset) === 3) {
+            // TIER 3: Exactly 5% exposed, static thumbnail
+            cardW = W3;
+            cardH = H3;
+            const dir = offset > 0 ? 1 : -1;
+            if (isVertical) {
+              const posY = dir * (E3 - H3 / 2);
+              const rotX = dir * 65;
+              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-180px) scale(1)`;
+            } else {
               const posX = dir * (E3 - W3 / 2);
               const rotY = dir * -65;
               transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-180px) scale(1)`;
-              zIndex = 10;
-              opacity = 0.45;
-              shadowClass = 'shadow-[0_6px_25px_rgba(0,0,0,0.8)] hover:brightness-125';
-            } else if (Math.abs(offset) >= 4) {
-              // TIER 4 ULTRA-WIDE: 25% larger, Exactly 5% exposed, static thumbnail
-              cardW = W4;
-              cardH = W4 * (9 / 16);
-              const dir = offset > 0 ? 1 : -1;
+            }
+            zIndex = 10;
+            opacity = 0.45;
+            shadowClass = 'shadow-[0_6px_25px_rgba(0,0,0,0.8)] hover:brightness-125';
+          } else if (Math.abs(offset) >= 4) {
+            // TIER 4: Exactly 5% exposed, static thumbnail
+            cardW = W4;
+            cardH = H4;
+            const dir = offset > 0 ? 1 : -1;
+            if (isVertical) {
+              const posY = dir * (E4 - H4 / 2);
+              const rotX = dir * 75;
+              transformStyle = `translateY(${posY}px) rotateX(${rotX}deg) translateZ(-250px) scale(1)`;
+            } else {
               const posX = dir * (E4 - W4 / 2);
               const rotY = dir * -75;
               transformStyle = `translateX(${posX}px) rotateY(${rotY}deg) translateZ(-250px) scale(1)`;
-              zIndex = 5;
-              opacity = 0.3;
-              shadowClass = 'shadow-[0_6px_20px_rgba(0,0,0,0.75)] hover:brightness-125';
             }
+            zIndex = 5;
+            opacity = 0.3;
+            shadowClass = 'shadow-[0_6px_20px_rgba(0,0,0,0.75)] hover:brightness-125';
+          }
 
-            return (
-              <CinemaScreenCard
-                key={`landscape-${item.id || item.url || item.name}-${itemIdx}`}
-                item={item}
-                slotIdx={offset}
-                isCenter={isCenter}
-                isWall={isWall}
-                isPlaybackReady={isPlaybackReady}
-                onReady={handleVideoReady}
-                onClick={() => handleCardClick(itemIdx)}
-                transformStyle={transformStyle}
-                width={cardW}
-                height={cardH}
-                opacity={opacity}
-                zIndex={zIndex}
-                shadowClass={shadowClass}
-                registerVideoRef={registerVideoRef}
-              />
-            );
-          })
-        )}
+          return (
+            <CinemaScreenCard
+              key={`${isVertical ? 'vert' : 'horiz'}-${item.id || item.url || item.name}-${itemIdx}`}
+              item={item}
+              slotIdx={offset}
+              isCenter={isCenter}
+              isWall={isWall}
+              isPlaybackReady={isPlaybackReady}
+              onReady={handleVideoReady}
+              onClick={() => handleCardClick(itemIdx)}
+              transformStyle={transformStyle}
+              width={cardW}
+              height={cardH}
+              opacity={opacity}
+              zIndex={zIndex}
+              shadowClass={shadowClass}
+              registerVideoRef={registerVideoRef}
+            />
+          );
+        })}
       </div>
     </div>
   );
