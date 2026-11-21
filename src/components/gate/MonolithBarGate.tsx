@@ -904,15 +904,85 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     [currentSubfolderList, currentSubfolder, handleSelectSubfolder]
   );
 
-  // Touch Swipe Gesture Engine (Strictly Mobile & Tablet)
+  // Dynamic overscroll management:
+  // When browsing main catalog: disable Chrome horizontal back/forward overscroll navigation
+  // so touchpad two-finger horizontal gestures smoothly switch tabs and pages without browser collision.
+  // When a media player is open: restore overscroll so Chrome's native back works to close players!
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (!isModalOpen) {
+      document.documentElement.style.overscrollBehaviorX = 'none';
+      document.body.style.overscrollBehaviorX = 'none';
+    } else {
+      document.documentElement.style.overscrollBehaviorX = 'auto';
+      document.body.style.overscrollBehaviorX = 'auto';
+    }
+    return () => {
+      document.documentElement.style.overscrollBehaviorX = 'auto';
+      document.body.style.overscrollBehaviorX = 'auto';
+    };
+  }, [isModalOpen]);
+
+  // 1. Laptop Touchpad Two-Finger Wheel Gesture Engine (Chrome back/forward disabled on catalog)
   useEffect(() => {
     if (isModalOpen || notFoundInfo.isOpen || showTelemetry) return;
     if (typeof window === 'undefined') return;
 
-    // Desktop check: disable completely on desktop screens (width >= 1024 without touch)
-    const isTouchDevice = 'ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
-    const isMobileOrTablet = window.innerWidth < 1024 && isTouchDevice;
-    if (!isMobileOrTablet) return;
+    let wheelAccumulatorX = 0;
+    let isWheelLocked = false;
+    let wheelLockTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleWheel = (e: WheelEvent) => {
+      const absDeltaX = Math.abs(e.deltaX);
+      const absDeltaY = Math.abs(e.deltaY);
+
+      // Horizontal dominance guard: horizontal scroll delta must clearly exceed vertical
+      if (absDeltaX > 15 && absDeltaX > absDeltaY * 1.2) {
+        if (isWheelLocked) return;
+
+        wheelAccumulatorX += e.deltaX;
+        const isUpperZone = e.clientY <= window.innerHeight * 0.5;
+        const THRESHOLD = 65;
+
+        if (Math.abs(wheelAccumulatorX) >= THRESHOLD) {
+          const isSwipeLeft = wheelAccumulatorX > 0; // deltaX > 0 is finger moving left -> NEXT
+          isWheelLocked = true;
+          wheelAccumulatorX = 0;
+
+          if (isUpperZone) {
+            handleSwipeTab(isSwipeLeft ? 'next' : 'prev');
+          } else {
+            handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
+          }
+
+          if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
+          wheelLockTimeout = setTimeout(() => {
+            isWheelLocked = false;
+            wheelAccumulatorX = 0;
+          }, 550);
+        }
+      } else {
+        wheelAccumulatorX = 0;
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
+    };
+  }, [
+    isModalOpen,
+    notFoundInfo.isOpen,
+    showTelemetry,
+    handleSwipeTab,
+    handleSwipeSubfolder,
+  ]);
+
+  // 2. Mobile & Tablet Touch Swipe Gesture Engine (50% Upper = Tabs, 50% Lower = Pages)
+  useEffect(() => {
+    if (isModalOpen || notFoundInfo.isOpen || showTelemetry) return;
+    if (typeof window === 'undefined') return;
 
     let touchStartX = 0;
     let touchStartY = 0;
@@ -1058,25 +1128,23 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             >
               Video Clips
             </a>
-            {!isPortrait && (
-              <a
-                href="/shorts"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
-                    handleSelectSubfolder('2027');
-                  } else {
-                    switchTab(2);
-                  }
-                }}
-                className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent no-underline ${
-                  tabIndex === 2 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
-                }`}
-                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-              >
-                Shorts
-              </a>
-            )}
+            <a
+              href="/shorts"
+              onClick={(e) => {
+                e.preventDefault();
+                if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
+                  handleSelectSubfolder('2027');
+                } else {
+                  switchTab(2);
+                }
+              }}
+              className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent no-underline ${
+                tabIndex === 2 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
+              }`}
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              Shorts
+            </a>
             <a
               href="/bandhobiz"
               onClick={(e) => {
@@ -1098,39 +1166,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <TopMiddleNetworkStatus />
         </div>
 
-        {/* Right: Clean Tactical Telemetry Graph (Desktop/Tablet) OR Prominent SHORTS (Mobile Portrait) */}
-        <div className="shrink-0 flex items-center justify-end">
-          {!isPortrait ? (
+        {/* Right: Clean Tactical Telemetry Graph (Desktop/Tablet Only) */}
+        {!isPortrait && (
+          <div className="shrink-0 flex items-center justify-end">
             <TacticalTelemetryGraph
               onSelectDay={handleOpenTelemetryWithDay}
               onClick={handleOpenTelemetry}
             />
-          ) : (
-            <a
-              href="/shorts"
-              onClick={(e) => {
-                e.preventDefault();
-                if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
-                  handleSelectSubfolder('2027');
-                } else {
-                  switchTab(2);
-                }
-              }}
-              className={`text-[12.5px] font-bold tracking-widest transition-all cursor-pointer p-0 bg-transparent no-underline flex items-center gap-1.5 pt-1 select-none ${
-                tabIndex === 2
-                  ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]'
-                  : 'text-[#64748b] hover:text-white'
-              }`}
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-              title="Shorts"
-            >
-              {tabIndex === 2 && (
-                <span className="w-1.5 h-1.5 bg-[#38bdf8] shadow-[0_0_6px_#38bdf8]" />
-              )}
-              <span>SHORTS</span>
-            </a>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       {/* MIDDLE PAGE SPACE: HOMEPAGE SLIDING SHORTS OR RECTANGULAR MEDIA GRID */}
