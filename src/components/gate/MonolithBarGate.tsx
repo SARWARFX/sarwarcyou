@@ -101,10 +101,7 @@ const SHORTS_SUBFOLDERS = ['2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['Favorite', '2027', '2026', 'Older'];
 const BANDHOBI_SUBFOLDERS = ['Photographs', 'Video Clips', 'Shorts'];
 
-const PHOTO_PAGES_ORDER = ['Featured', 'Favorite', '2027', '2026', '2025', 'Older'];
-const SHORTS_PAGES_ORDER = ['Featured', '2027', 'Older'];
-const CLIPS_PAGES_ORDER = ['Featured', 'Favorite', '2027', '2026', 'Older'];
-const BANDHOBI_PAGES_ORDER = ['Featured', 'Photographs', 'Video Clips', 'Shorts'];
+
 
 // Selected photo filenames to showcase under bandhobiz -> Featured in user's exact order
 export const BANDHOBI_FEATURED_PHOTO_FILENAMES: string[] = [
@@ -179,76 +176,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   });
   const [shuffleTrigger, setShuffleTrigger] = useState<number>(0);
 
-  // Active view state
-  const [currentView, setCurrentView] = useState<{ tab: number; subfolder: string }>(() => {
-    let sub = 'Featured';
-    if (tabIndex === 1) sub = photosSubfolder;
-    else if (tabIndex === 2) sub = shortsSubfolder;
-    else if (tabIndex === 3) sub = clipsSubfolder;
-    else if (tabIndex === 4) sub = bandhobiSubfolder;
-    return { tab: tabIndex, subfolder: sub };
-  });
+  // Active subfolder for current tab
+  const currentSubfolder =
+    tabIndex === 1
+      ? photosSubfolder
+      : tabIndex === 2
+      ? shortsSubfolder
+      : tabIndex === 3
+      ? clipsSubfolder
+      : bandhobiSubfolder;
 
-  // Simultaneous adjacent slide transitions (Zero middle timing)
-  const [activeTransition, setActiveTransition] = useState<{
-    outgoingView: { tab: number; subfolder: string };
-    incomingView: { tab: number; subfolder: string };
-    outgoingClass: string;
-    incomingClass: string;
-  } | null>(null);
-
-  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const outgoingPanelRef = useRef<HTMLDivElement | null>(null);
-
-  // Immediately pause outgoing videos to keep GPU decoding pipelines completely safe
-  useEffect(() => {
-    if (activeTransition && outgoingPanelRef.current) {
-      outgoingPanelRef.current.querySelectorAll('video').forEach((v) => {
-        try {
-          v.pause();
-        } catch {}
-      });
-    }
-  }, [activeTransition]);
-
-  const startTransition = useCallback(
-    (
-      outgoing: { tab: number; subfolder: string },
-      incoming: { tab: number; subfolder: string },
-      type: 'tab' | 'page',
-      isForward: boolean
-    ) => {
-      if (transitionTimerRef.current) {
-        clearTimeout(transitionTimerRef.current);
-        transitionTimerRef.current = null;
-      }
-
-      let outgoingClass = '';
-      let incomingClass = '';
-
-      if (type === 'tab') {
-        outgoingClass = isForward ? 'anim-tab-out-fwd' : 'anim-tab-out-bwd';
-        incomingClass = isForward ? 'anim-tab-in-fwd' : 'anim-tab-in-bwd';
-      } else {
-        outgoingClass = isForward ? 'anim-page-out-fwd' : 'anim-page-out-bwd';
-        incomingClass = isForward ? 'anim-page-in-fwd' : 'anim-page-in-bwd';
-      }
-
-      setActiveTransition({
-        outgoingView: outgoing,
-        incomingView: incoming,
-        outgoingClass,
-        incomingClass,
-      });
-      setCurrentView(incoming);
-
-      transitionTimerRef.current = setTimeout(() => {
-        setActiveTransition(null);
-        transitionTimerRef.current = null;
-      }, 380);
-    },
-    []
-  );
 
   // Screen orientation detection for portrait layout
   const [isPortrait, setIsPortrait] = useState<boolean>(() => {
@@ -358,12 +295,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 
   const switchTab = useCallback((targetIndex: number) => {
     handleClearSearch();
-    const currentSub = currentView.subfolder;
 
     if (targetIndex === tabIndex) {
-      if (currentSub === 'Featured') return;
+      if (currentSubfolder === 'Featured') return;
 
-      // Clicked active tab while in a subfolder: Page switch back to Featured (Up-Down, backward)
+      // Clicked active tab while in a subfolder: Switch back to Featured
       if (tabIndex === 1) setPhotosSubfolder('Featured');
       else if (tabIndex === 2) setShortsSubfolder('Featured');
       else if (tabIndex === 3) setClipsSubfolder('Featured');
@@ -378,17 +314,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         else if (tabIndex === 4) route = '/bandhobiz';
         updateBrowserUrl(route);
       }
-
-      const outgoing = currentView;
-      const incoming = { tab: tabIndex, subfolder: 'Featured' };
-      startTransition(outgoing, incoming, 'page', false);
       return;
     }
-
-    // Switching to another tab: Tab switch (Left-Right)
-    const currentVis = TAB_VISUAL_ORDER[tabIndex] ?? 0;
-    const targetVis = TAB_VISUAL_ORDER[targetIndex] ?? 0;
-    const isForward = targetVis >= currentVis;
 
     setTabIndex(targetIndex);
     if (targetIndex === 1) setPhotosSubfolder('Featured');
@@ -405,16 +332,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       else if (targetIndex === 4) route = '/bandhobiz';
       updateBrowserUrl(route);
     }
-
-    const outgoing = currentView;
-    const incoming = { tab: targetIndex, subfolder: 'Featured' };
-    startTransition(outgoing, incoming, 'tab', isForward);
-  }, [tabIndex, currentView, handleClearSearch, TAB_VISUAL_ORDER, startTransition]);
+  }, [tabIndex, currentSubfolder, handleClearSearch]);
 
   // Navigate directly to Shorts Featured showcase at '/shorts'
   const goToHome = useCallback(() => {
     handleClearSearch();
-    if (tabIndex === 2 && currentView.subfolder === 'Featured') return;
+    if (tabIndex === 2 && currentSubfolder === 'Featured') return;
 
     setTabIndex(2);
     setShortsSubfolder('Featured');
@@ -423,21 +346,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     if (typeof window !== 'undefined') {
       updateBrowserUrl('/shorts');
     }
-
-    const outgoing = currentView;
-    const incoming = { tab: 2, subfolder: 'Featured' };
-
-    if (tabIndex === 2) {
-      // In subfolder of Shorts: Page switch (vertical up-down) back to Featured
-      startTransition(outgoing, incoming, 'page', false);
-    } else {
-      // Different tab: Tab switch (horizontal left-right)
-      const currentVis = TAB_VISUAL_ORDER[tabIndex] ?? 0;
-      const targetVis = TAB_VISUAL_ORDER[2] ?? 2;
-      const isForward = targetVis >= currentVis;
-      startTransition(outgoing, incoming, 'tab', isForward);
-    }
-  }, [tabIndex, currentView, handleClearSearch, TAB_VISUAL_ORDER, startTransition]);
+  }, [tabIndex, currentSubfolder, handleClearSearch]);
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
   const itemsRef = useRef(items);
@@ -465,38 +374,28 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         }
       }
 
-      if (transitionTimerRef.current) {
-        clearTimeout(transitionTimerRef.current);
-        transitionTimerRef.current = null;
-      }
-      setActiveTransition(null);
       setShuffleTrigger((prev) => prev + 1);
 
       if (parsed.tab === 'PHOTOGRAPHY') {
         const sub = parsed.subfolder || 'Featured';
         setPhotosSubfolder(sub);
         setTabIndex(1);
-        setCurrentView({ tab: 1, subfolder: sub });
       } else if (parsed.tab === 'SHORTS') {
         const sub = parsed.subfolder || 'Featured';
         setShortsSubfolder(sub);
         setTabIndex(2);
-        setCurrentView({ tab: 2, subfolder: sub });
       } else if (parsed.tab === 'CLIPS') {
         const sub = parsed.subfolder || 'Featured';
         setClipsSubfolder(sub);
         setTabIndex(3);
-        setCurrentView({ tab: 3, subfolder: sub });
       } else if (parsed.tab === 'BANDHOBI') {
         const sub = parsed.subfolder || 'Featured';
         setBandhobiSubfolder(sub);
         setTabIndex(4);
-        setCurrentView({ tab: 4, subfolder: sub });
       } else {
         // Root / lands on Shorts Featured
         setTabIndex(2);
         setShortsSubfolder('Featured');
-        setCurrentView({ tab: 2, subfolder: 'Featured' });
       }
     };
 
@@ -672,8 +571,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setTabIndex(4);
         const subName = subfolders[0] || (isPhoto ? 'Photographs' : isShort ? 'Shorts' : 'Video Clips');
         setBandhobiSubfolder(subName);
-        setCurrentView({ tab: 4, subfolder: subName });
-        setActiveTransition(null);
 
         if (subName === 'Photographs' || isPhoto) {
           const node = rootMap.get('bandhobiz')?.subfolders.get('Photographs') || rootMap.get('Bandhobi')?.subfolders.get('Photographs');
@@ -709,8 +606,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setTabIndex(1);
         const subName = subfolders[0] || 'Featured';
         setPhotosSubfolder(subName);
-        setCurrentView({ tab: 1, subfolder: subName });
-        setActiveTransition(null);
 
         const node = rootMap.get('Photographs')?.subfolders.get(subName);
         const rawFiles =
@@ -727,8 +622,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setTabIndex(2);
         const subName = subfolders[0] || 'Featured';
         setShortsSubfolder(subName);
-        setCurrentView({ tab: 2, subfolder: subName });
-        setActiveTransition(null);
 
         const node = rootMap.get('Shorts')?.subfolders.get(subName);
         const rawFiles =
@@ -745,8 +638,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       setTabIndex(3);
       const subName = subfolders[0] || 'Featured';
       setClipsSubfolder(subName);
-      setCurrentView({ tab: 3, subfolder: subName });
-      setActiveTransition(null);
 
       const node = rootMap.get('Video Clips')?.subfolders.get(subName);
       const rawFiles =
@@ -796,32 +687,11 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       ? BANDHOBI_SUBFOLDERS
       : [];
 
-  const currentSubfolder =
-    tabIndex === 1
-      ? photosSubfolder
-      : tabIndex === 2
-      ? shortsSubfolder
-      : tabIndex === 3
-      ? clipsSubfolder
-      : bandhobiSubfolder;
+
 
   const handleSelectSubfolder = useCallback(
     (sub: string) => {
-      const currentSub = currentView.subfolder;
-      if (sub === currentSub && currentView.tab === tabIndex) return;
-
-      const pagesOrder =
-        tabIndex === 1
-          ? PHOTO_PAGES_ORDER
-          : tabIndex === 2
-          ? SHORTS_PAGES_ORDER
-          : tabIndex === 3
-          ? CLIPS_PAGES_ORDER
-          : BANDHOBI_PAGES_ORDER;
-
-      const currentIdx = pagesOrder.indexOf(currentSub);
-      const targetIdx = pagesOrder.indexOf(sub);
-      const isForward = targetIdx >= currentIdx;
+      if (sub === currentSubfolder) return;
 
       if (sub === 'ALL' || sub === 'Featured') {
         setShuffleTrigger((prev) => prev + 1);
@@ -840,12 +710,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setBandhobiSubfolder(sub);
         if (typeof window !== 'undefined') updateBrowserUrl(getSubfolderHref(4, sub));
       }
-
-      const outgoing = currentView;
-      const incoming = { tab: tabIndex, subfolder: sub };
-      startTransition(outgoing, incoming, 'page', isForward);
     },
-    [tabIndex, currentView, startTransition]
+    [tabIndex, currentSubfolder]
   );
 
   const renderViewContent = useCallback(
@@ -1224,7 +1090,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               href="/"
               onClick={(e) => {
                 e.preventDefault();
-                if (tabIndex === 2 && currentView.subfolder === 'Featured') {
+                if (tabIndex === 2 && currentSubfolder === 'Featured') {
                   return;
                 }
                 goToHome();
@@ -1362,34 +1228,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               </div>
             )}
           </div>
-        ) : activeTransition ? (
-          /* Simultaneous Sliding Panels: Outgoing & Incoming moving in lockstep */
-          <>
-            <div
-              ref={outgoingPanelRef}
-              key={`out-${activeTransition.outgoingView.tab}-${activeTransition.outgoingView.subfolder}`}
-              className={`absolute inset-0 w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4 pointer-events-none ${activeTransition.outgoingClass}`}
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-            >
-              {renderViewContent(activeTransition.outgoingView.tab, activeTransition.outgoingView.subfolder)}
-            </div>
-
-            <div
-              key={`in-${activeTransition.incomingView.tab}-${activeTransition.incomingView.subfolder}`}
-              className={`absolute inset-0 w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4 ${activeTransition.incomingClass}`}
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-            >
-              {renderViewContent(activeTransition.incomingView.tab, activeTransition.incomingView.subfolder)}
-            </div>
-          </>
         ) : (
-          /* Static Active Panel */
+          /* Instant Static Active Panel (Zero Transition Animation) */
           <div
-            key={`curr-${currentView.tab}-${currentView.subfolder}`}
+            key={`view-${tabIndex}-${currentSubfolder}`}
             className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4"
             style={{ borderRadius: 0, outline: 'none', border: 'none' }}
           >
-            {renderViewContent(currentView.tab, currentView.subfolder)}
+            {renderViewContent(tabIndex, currentSubfolder)}
           </div>
         )}
       </main>
