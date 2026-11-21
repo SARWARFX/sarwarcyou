@@ -74,14 +74,14 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
     <form
       onSubmit={handleSubmit}
       onClick={() => inputRef.current?.focus()}
-      className={`group relative flex items-center gap-2 h-[32px] px-2.5 bg-[#06080d]/85 hover:bg-[#0a0d14] backdrop-blur-md transition-all duration-200 cursor-text select-none ${
+      className={`group font-firjar relative flex items-center gap-2 h-[32px] px-2.5 bg-[#06080d]/85 hover:bg-[#0a0d14] backdrop-blur-md transition-all duration-200 cursor-text select-none ${
         isFocused || query
           ? 'border border-[#38bdf8] shadow-[0_0_16px_rgba(56,189,248,0.3)] w-48 sm:w-64'
           : 'border border-white/15 hover:border-[#38bdf8]/60 hover:shadow-[0_0_10px_rgba(56,189,248,0.15)] w-32 sm:w-40'
       } ${className}`}
       style={{
         borderRadius: 0,
-        fontFamily: "'Science Gothic', sans-serif",
+        fontFamily: "'Firjar', 'Science Gothic', sans-serif !important",
       }}
       title="Search (/)"
     >
@@ -105,7 +105,7 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
 
-      {/* Input Field with Science Gothic (MiniGraphs) font */}
+      {/* Input Field with MiniGraphs (Firjar) font */}
       <input
         ref={inputRef}
         type="text"
@@ -122,10 +122,10 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         placeholder="SEARCH"
         autoComplete="off"
         spellCheck="false"
-        className="w-full bg-transparent text-[11.5px] sm:text-[12px] font-semibold text-white placeholder:text-[#64748b] group-hover:placeholder:text-white/60 tracking-wider uppercase outline-none border-none p-0 focus:ring-0 transition-colors"
+        className="font-firjar w-full bg-transparent text-[12px] sm:text-[13px] font-bold text-white placeholder:text-[#64748b] group-hover:placeholder:text-white/60 tracking-wider uppercase outline-none border-none p-0 focus:ring-0 transition-colors"
         style={{
           borderRadius: 0,
-          fontFamily: "'Science Gothic', sans-serif",
+          fontFamily: "'Firjar', 'Science Gothic', sans-serif !important",
         }}
       />
 
@@ -134,16 +134,16 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         <button
           type="button"
           onClick={handleClear}
-          className="text-[#64748b] hover:text-[#ef4444] text-[11px] font-bold shrink-0 p-0.5 bg-transparent border-0 cursor-pointer outline-none transition-colors"
+          className="font-firjar text-[#64748b] hover:text-[#ef4444] text-[11px] font-bold shrink-0 p-0.5 bg-transparent border-0 cursor-pointer outline-none transition-colors"
           title="Clear Search"
-          style={{ borderRadius: 0, fontFamily: "'Science Gothic', sans-serif" }}
+          style={{ borderRadius: 0, fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
         >
           ✕
         </button>
       ) : (
         <span
-          className="hidden sm:inline-block text-[9.5px] font-bold text-[#64748b] group-hover:text-white/50 tracking-wider shrink-0 transition-colors select-none"
-          style={{ fontFamily: "'Science Gothic', sans-serif" }}
+          className="font-firjar hidden sm:inline-block text-[10px] font-bold text-[#64748b] group-hover:text-white/50 tracking-wider shrink-0 transition-colors select-none"
+          style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
         >
           /
         </span>
