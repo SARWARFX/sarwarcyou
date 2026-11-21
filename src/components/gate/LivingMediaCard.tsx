@@ -13,20 +13,23 @@ export interface LivingMediaCardProps {
   featuredBadge?: string;
 }
 
+const CIRCUMFERENCE = 150.8; // 2 * Math.PI * 24
+
 /**
- * Pure Distraction-Free Media Card with Micro Hover Preview (Option B: 10% to 35% Loop)
- * - Zero outlines, zero borders, zero L-brackets
- * - Zero text (no file names, no badges)
- * - Hover plays Option B micro video preview (10% to 35% loop) with thin progress track
- * - 100% rectangular geometry (0px border-radius)
+ * Pure Distraction-Free Media Card with Circular Percentage Loader
+ * - Zero outlines, zero borders, zero rounded corners
+ * - Zero entrance animation (replaces slide/drop with circular percentage loader)
+ * - Circular SVG progress dial traces 0% to 100% with live numeric readout
+ * - Upon reaching 100%, content reveals immediately without entrance animation
+ * - Micro video hover preview (10% to 35% continuous loop)
  */
 export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
   item,
   aspectRatio,
   onClick,
-  delayIdx = 0,
 }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [isReady, setIsReady] = useState(false);
   const [isPreviewActive, setIsPreviewActive] = useState(false);
   const [previewProgress, setPreviewProgress] = useState(0);
   const hoverTimerRef = useRef<number | null>(null);
@@ -54,7 +57,56 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       ? 'aspect-video'
       : 'aspect-[3/4]';
 
-  // Clean up timer on unmount
+  // Circular Loader Progress & Image Readiness Gate
+  useEffect(() => {
+    setIsReady(false);
+    setLoadProgress(0);
+
+    let progress = 0;
+    let timer: number | null = null;
+    let isCancelled = false;
+
+    // Steady telemetry progression up to 92%
+    timer = window.setInterval(() => {
+      progress += Math.floor(Math.random() * 12) + 8;
+      if (progress > 92) {
+        progress = 92;
+        if (timer) clearInterval(timer);
+      }
+      if (!isCancelled) setLoadProgress(progress);
+    }, 45);
+
+    const img = new Image();
+    const handleLoaded = () => {
+      if (timer) clearInterval(timer);
+      if (isCancelled) return;
+      setLoadProgress(100);
+      setTimeout(() => {
+        if (!isCancelled) {
+          setIsReady(true);
+        }
+      }, 120);
+    };
+
+    img.onload = handleLoaded;
+    img.onerror = handleLoaded;
+    img.src = imageSrc;
+
+    // Safety fallback
+    const safetyTimer = window.setTimeout(() => {
+      if (!isCancelled && !img.complete) {
+        handleLoaded();
+      }
+    }, 3000);
+
+    return () => {
+      isCancelled = true;
+      if (timer) clearInterval(timer);
+      clearTimeout(safetyTimer);
+    };
+  }, [imageSrc]);
+
+  // Clean up hover timer on unmount
   useEffect(() => {
     return () => {
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -64,7 +116,6 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
   const handleMouseEnter = useCallback(() => {
     if (!isVideo || !videoSrc) return;
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    // 150ms debounce before mounting video decoder to prevent rapid sweeps
     hoverTimerRef.current = window.setTimeout(() => {
       setIsPreviewActive(true);
     }, 150);
@@ -91,7 +142,6 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
     v.defaultMuted = true;
     const dur = v.duration;
     if (dur && !isNaN(dur) && dur > 0) {
-      // Option B: Start at 10% of total video duration
       v.currentTime = dur * 0.1;
     }
     v.play().catch(() => {});
@@ -109,10 +159,9 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
     const dur = v.duration;
     if (!dur || isNaN(dur) || dur <= 0) return;
 
-    const start = dur * 0.1; // 10%
-    const end = dur * 0.35;  // 35%
+    const start = dur * 0.1;
+    const end = dur * 0.35;
 
-    // Option B: Loop continuously between 10% and 35% while hovered
     if (v.currentTime >= end || v.currentTime < start) {
       v.currentTime = start;
     }
@@ -130,21 +179,57 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{
-        animationDelay: `${Math.min(delayIdx, 24) * 24}ms`,
         borderRadius: 0,
         outline: 'none',
         border: 'none',
       }}
-      className={`relative group cursor-pointer ${aspectClass} select-none bg-[#080b12] overflow-hidden animate-card-enter transition-transform duration-300 hover:scale-[1.04] hover:z-20 w-full`}
+      className={`relative group cursor-pointer ${aspectClass} select-none bg-[#080b12] overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 w-full`}
     >
+      {/* Circular Loading Graphic with Percentage: Replaces Entrance Animations */}
+      {!isReady && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#070a12] select-none pointer-events-none">
+          <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
+            <svg
+              className="w-full h-full -rotate-90"
+              viewBox="0 0 64 64"
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+            >
+              <circle
+                cx="32"
+                cy="32"
+                r="24"
+                className="stroke-white/10 fill-transparent"
+                strokeWidth="2.5"
+              />
+              <circle
+                cx="32"
+                cy="32"
+                r="24"
+                className="stroke-[#38bdf8] fill-transparent transition-[stroke-dashoffset] duration-75 ease-linear"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={CIRCUMFERENCE}
+                strokeDashoffset={CIRCUMFERENCE - (loadProgress / 100) * CIRCUMFERENCE}
+                style={{ filter: 'drop-shadow(0 0 5px rgba(56,189,248,0.8))' }}
+              />
+            </svg>
+            <span
+              className="absolute font-mono text-[10px] sm:text-[11px] font-bold text-white tracking-tighter"
+              style={{ textShadow: '0 0 6px rgba(56,189,248,0.7)' }}
+            >
+              {loadProgress}%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Main Image: Reveals immediately at 100% readiness with zero entrance animation */}
       <img
         src={imageSrc}
         alt=""
         loading="lazy"
-        onLoad={() => setIsLoaded(true)}
-        onError={() => setIsLoaded(true)}
-        className={`w-full h-full object-cover filter saturate-[0.95] contrast-[1.05] transition-opacity duration-300 ${
-          isLoaded ? 'opacity-100' : 'opacity-0'
+        className={`w-full h-full object-cover filter saturate-[0.95] contrast-[1.05] ${
+          isReady ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       />
@@ -181,7 +266,7 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       {/* Subtle Cyber Preview Telemetry Chip */}
       {isPreviewActive && isVideo && (
         <div
-          className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/85 border border-[#38bdf8]/40 shadow-[0_0_8px_rgba(0,0,0,0.8)] z-20 pointer-events-none flex items-center gap-1.5 animate-fade-in"
+          className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/85 border border-[#38bdf8]/40 shadow-[0_0_8px_rgba(0,0,0,0.8)] z-20 pointer-events-none flex items-center gap-1.5"
           style={{ borderRadius: 0, outline: 'none', border: 'none' }}
         >
           <span className="w-1.5 h-1.5 bg-[#38bdf8] shadow-[0_0_6px_#38bdf8] animate-pulse inline-block" />

@@ -257,9 +257,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     results: [],
   });
 
-  // Suite 4 Liquid Plasma transition tracker: 'tab' (45° Diagonal Shear) vs 'page' (Elastic Spring)
-  const [transitionType, setTransitionType] = useState<'tab' | 'page'>('tab');
-
   const handleWebImageSearch = useCallback(async (query: string) => {
     const q = query.trim();
     if (!q) return;
@@ -302,7 +299,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     if (targetIndex === tabIndex) {
       if (currentSubfolder === 'Featured') return;
 
-      setTransitionType('page');
       // Clicked active tab while in a subfolder: Switch back to Featured
       if (tabIndex === 1) setPhotosSubfolder('Featured');
       else if (tabIndex === 2) setShortsSubfolder('Featured');
@@ -321,7 +317,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       return;
     }
 
-    setTransitionType('tab');
     setTabIndex(targetIndex);
     if (targetIndex === 1) setPhotosSubfolder('Featured');
     else if (targetIndex === 2) setShortsSubfolder('Featured');
@@ -344,7 +339,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     handleClearSearch();
     if (tabIndex === 2 && currentSubfolder === 'Featured') return;
 
-    setTransitionType('tab');
     setTabIndex(2);
     setShortsSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
@@ -698,8 +692,6 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const handleSelectSubfolder = useCallback(
     (sub: string) => {
       if (sub === currentSubfolder) return;
-
-      setTransitionType('page');
 
       if (sub === 'ALL' || sub === 'Featured') {
         setShuffleTrigger((prev) => prev + 1);
@@ -1263,12 +1255,10 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             )}
           </div>
         ) : (
-          /* Suite 4 Liquid Plasma Content Container */
+          /* Instant Switch Container (Zero tab/page animation, direct loading gate) */
           <div
             key={`view-${tabIndex}-${currentSubfolder}`}
-            className={`w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4 ${
-              transitionType === 'tab' ? 'animate-liquid-plasma-tab' : 'animate-liquid-plasma-page'
-            }`}
+            className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4"
             style={{ borderRadius: 0, outline: 'none', border: 'none' }}
           >
             {renderViewContent(tabIndex, currentSubfolder)}

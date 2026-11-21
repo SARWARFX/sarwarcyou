@@ -681,78 +681,8 @@ html, body, #root {
 }
 
 /* ==========================================================================
-   SUITE 4: LIQUID PLASMA MOTION SYSTEM (Tab, Page, Media Cards)
+   DIRECT INSTANT SWITCHING (Tab & Page animations removed per user specification)
    ========================================================================== */
-
-/* 1. Tab Switch: 45-Degree Diagonal Liquid Plasma Shear */
-@keyframes liquidPlasmaTab {
-  0% {
-    clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
-    transform: skewX(-8deg) translate3d(-30px, 0, 0);
-    opacity: 0.6;
-  }
-  100% {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-    transform: skewX(0deg) translate3d(0, 0, 0);
-    opacity: 1;
-  }
-}
-
-.animate-liquid-plasma-tab {
-  animation: liquidPlasmaTab 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: clip-path, transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-}
-
-/* 2. Page Switch: Elastic Spring Expand */
-@keyframes liquidPlasmaPage {
-  0% {
-    opacity: 0;
-    transform: scale3d(0.92, 0.92, 1);
-  }
-  70% {
-    opacity: 1;
-    transform: scale3d(1.02, 1.02, 1);
-  }
-  100% {
-    opacity: 1;
-    transform: scale3d(1, 1, 1);
-  }
-}
-
-.animate-liquid-plasma-page {
-  animation: liquidPlasmaPage 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-}
-
-/* 3. Media Card Appearance: Liquid Ripple Drop Cascade */
-@keyframes liquidPlasmaCard {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, -32px, 0) scale(0.9);
-  }
-  70% {
-    opacity: 1;
-    transform: translate3d(0, 4px, 0) scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-.animate-card-enter {
-  animation: liquidPlasmaCard 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-}
 
 /* ==========================================================================
    SARWAR.CYOU LUXURY AVANT-GARDE MOTION SYSTEM
