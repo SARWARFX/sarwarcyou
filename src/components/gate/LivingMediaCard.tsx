@@ -185,10 +185,24 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       }}
       className={`relative group cursor-pointer ${aspectClass} select-none bg-[#080b12] overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 w-full`}
     >
-      {/* Circular Loading Graphic with Percentage: Replaces Entrance Animations */}
+      {/* Option 2: Tactical Reticle Circular Loader with Live Percentage */}
       {!isReady && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#070a12] select-none pointer-events-none">
-          <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
+          <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
+            {/* Tactical Reticle Crosshairs (12, 3, 6, 9 o'clock precision guides) */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              {/* Vertical Guide Line */}
+              <div className="absolute top-1 bottom-1 left-1/2 -translate-x-1/2 w-[1px] bg-gradient-to-b from-[#38bdf8]/40 via-transparent to-[#38bdf8]/40" />
+              {/* Horizontal Guide Line */}
+              <div className="absolute left-1 right-1 top-1/2 -translate-y-1/2 h-[1px] bg-gradient-to-r from-[#38bdf8]/40 via-transparent to-[#38bdf8]/40" />
+              {/* Outer Reticle Ticks at 12, 6, 9, 3 */}
+              <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
+              <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
+              <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 h-1.5 w-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
+              <div className="absolute -right-0.5 top-1/2 -translate-y-1/2 h-1.5 w-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
+            </div>
+
+            {/* Circular Dial SVG */}
             <svg
               className="w-full h-full -rotate-90"
               viewBox="0 0 64 64"
@@ -210,12 +224,14 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}
                 strokeDashoffset={CIRCUMFERENCE - (loadProgress / 100) * CIRCUMFERENCE}
-                style={{ filter: 'drop-shadow(0 0 5px rgba(56,189,248,0.8))' }}
+                style={{ filter: 'drop-shadow(0 0 6px rgba(56,189,248,0.85))' }}
               />
             </svg>
+
+            {/* Center Monospace Percentage Counter */}
             <span
-              className="absolute font-mono text-[10px] sm:text-[11px] font-bold text-white tracking-tighter"
-              style={{ textShadow: '0 0 6px rgba(56,189,248,0.7)' }}
+              className="absolute font-mono text-[11px] sm:text-[13px] font-bold text-white tracking-tighter"
+              style={{ textShadow: '0 0 8px rgba(56,189,248,0.8)' }}
             >
               {loadProgress}%
             </span>
