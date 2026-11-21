@@ -15,45 +15,47 @@ import { safeEncodeUrl } from './mediaTypeDetector';
 
 const WATERMARK_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 70" width="820" height="70">
   <defs>
-    <filter id="wmShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.95"/>
-    </filter>
-    <linearGradient id="wmGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="50%" stop-color="#ccff00"/>
-      <stop offset="100%" stop-color="#ffffff"/>
+    <!-- Official Laser Spark Red -> Rose -> Violet -> Blue Linear Gradient -->
+    <linearGradient id="wmRedBlueGrad" x1="0" y1="0" x2="820" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="20%" stop-color="#f43f5e" />
+      <stop offset="45%" stop-color="#a855f7" />
+      <stop offset="75%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#ef4444" />
     </linearGradient>
+
+    <!-- Deep Drop Shadow & Soft Vibrant Glow for High Contrast Across Any Background -->
+    <filter id="wmShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.95" />
+    </filter>
   </defs>
 
-  <!-- Variation 2: Hierarchical Cyber-Block (Pure Floating - No Baseline Graphic) -->
-  <g stroke="url(#wmGradient)" stroke-width="8.5" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#wmShadow)">
-    <!-- S -->
-    <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54"/>
-    <!-- A1 -->
-    <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40"/>
-    <!-- R1 -->
-    <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54"/>
-    <path d="M 228 33 L 260 54"/>
-    <!-- W -->
-    <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12"/>
-    <!-- A2 -->
-    <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40"/>
-    <!-- R2 -->
-    <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54"/>
-    <path d="M 504 33 L 536 54"/>
+  <!-- 1. SARWAR Hero Wordmark in Exact Laser Spark Form -->
+  <g stroke="url(#wmRedBlueGrad)" stroke-width="8.5" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#wmShadow)">
+    <!-- S (x: 10 to 86) -->
+    <path d="M 84 12 L 30 12 A 10.5 10.5 0 0 0 30 33 L 64 33 A 10.5 10.5 0 0 1 64 54 L 10 54" />
+    <!-- A1 (x: 104 to 174) -->
+    <path d="M 104 54 L 139 12 L 174 54 M 118 40 L 160 40" />
+    <!-- R1 (x: 192 to 260) -->
+    <path d="M 216 12 L 240 12 A 10.5 10.5 0 0 1 240 33 L 204 33 A 10.5 10.5 0 0 0 192 43.5 L 192 54" />
+    <path d="M 228 33 L 260 54" />
+    <!-- W (x: 278 to 362) -->
+    <path d="M 278 12 L 296 54 L 320 20 L 344 54 L 362 12" />
+    <!-- A2 (x: 380 to 450) -->
+    <path d="M 380 54 L 415 12 L 450 54 M 394 40 L 436 40" />
+    <!-- R2 (x: 468 to 536) -->
+    <path d="M 492 12 L 516 12 A 10.5 10.5 0 0 1 516 33 L 480 33 A 10.5 10.5 0 0 0 468 43.5 L 468 54" />
+    <path d="M 504 33 L 536 54" />
+  </g>
 
-    <!-- .CYOU Cyber Tag Pill -->
-    <rect x="560" y="16" width="210" height="34" rx="8" stroke="rgba(204, 255, 0, 0.6)" stroke-width="1.8" fill="rgba(204, 255, 0, 0.08)"/>
-    <!-- Dot -->
-    <circle cx="582" cy="33" r="3.5" fill="#ccff00" stroke="none"/>
-    <!-- C -->
-    <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" stroke-width="3"/>
-    <!-- Y -->
-    <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" stroke-width="3"/>
-    <!-- O -->
-    <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" stroke-width="3"/>
-    <!-- U -->
-    <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" stroke-width="3"/>
+  <!-- 2. .CYOU Cyber Tag Pill Matching Gradient -->
+  <g stroke="url(#wmRedBlueGrad)" stroke-linecap="butt" stroke-linejoin="round" fill="none" filter="url(#wmShadow)">
+    <rect x="560" y="16" width="210" height="34" rx="8" stroke="url(#wmRedBlueGrad)" stroke-width="2.2" fill="none" />
+    <circle cx="582" cy="33" r="3.5" fill="url(#wmRedBlueGrad)" stroke="none" />
+    <path d="M 622 23 L 604 23 A 5 5 0 0 0 598 28 L 598 38 A 5 5 0 0 0 604 43 L 622 43" stroke-width="3.2" />
+    <path d="M 632 23 L 646 33 L 646 43 M 660 23 L 646 33" stroke-width="3.2" />
+    <path d="M 680 23 L 690 23 A 5 5 0 0 1 690 43 L 680 43 A 5 5 0 0 1 680 23 Z" stroke-width="3.2" />
+    <path d="M 710 23 L 710 38 A 5 5 0 0 0 715 43 L 729 43 A 5 5 0 0 0 734 38 L 734 23" stroke-width="3.2" />
   </g>
 </svg>`;
 
@@ -140,17 +142,17 @@ export async function applyWatermarkAndDownload(
     // 1. Draw base high-res photo
     ctx.drawImage(imageElement, 0, 0);
 
-    // 2. Load and stamp Option 2 Sweeping Laser logo at bottom-right corner at 85% opacity
+    // 2. Load and stamp current Laser Spark wordmark logo at bottom-right corner
     const wmImg = await getWatermarkSvgImage();
     const wmWidth = Math.max(180, Math.min(Math.round(canvas.width * 0.22), 650));
-    const wmHeight = Math.round(wmWidth * (90 / 740));
+    const wmHeight = Math.round(wmWidth * (70 / 820));
     const padX = Math.round(canvas.width * 0.035);
     const padY = Math.round(canvas.height * 0.035);
     const posX = canvas.width - padX - wmWidth;
     const posY = canvas.height - padY - wmHeight;
 
     ctx.save();
-    ctx.globalAlpha = 0.85; // 85% semi-translucent opacity as requested
+    ctx.globalAlpha = 0.90; // High-contrast translucent opacity
     ctx.drawImage(wmImg, posX, posY, wmWidth, wmHeight);
     ctx.restore();
 
@@ -224,17 +226,17 @@ export async function applyImageWatermark(
     // 1. Draw base photo
     ctx.drawImage(img, 0, 0);
 
-    // 2. Load and stamp Option 2 Sweeping Laser logo at bottom-right corner at 85% opacity
+    // 2. Load and stamp current Laser Spark wordmark logo at bottom-right corner
     const wmImg = await getWatermarkSvgImage();
     const wmWidth = Math.max(180, Math.min(Math.round(canvas.width * 0.22), 650));
-    const wmHeight = Math.round(wmWidth * (90 / 740));
+    const wmHeight = Math.round(wmWidth * (70 / 820));
     const padX = Math.round(canvas.width * 0.035);
     const padY = Math.round(canvas.height * 0.035);
     const posX = canvas.width - padX - wmWidth;
     const posY = canvas.height - padY - wmHeight;
 
     ctx.save();
-    ctx.globalAlpha = 0.85; // 85% semi-translucent opacity as requested
+    ctx.globalAlpha = 0.90; // High-contrast translucent opacity
     ctx.drawImage(wmImg, posX, posY, wmWidth, wmHeight);
     ctx.restore();
 
