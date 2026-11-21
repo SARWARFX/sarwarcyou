@@ -1255,7 +1255,7 @@ export function findMediaByShortId(
   return null;
 }
 
-export type AppTabRoute = 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TELEMETRY';
+export type AppTabRoute = 'HOME' | 'TRAILER' | 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TELEMETRY';
 
 export interface ParsedAppRoute {
   tab: AppTabRoute;
@@ -1312,7 +1312,7 @@ export function getSubfolderHref(tabIndex: number, subfolder: string): string {
     return sub === 'all' ? '/photographs' : `/photographs/${sub}`;
   }
   if (tabIndex === 2) { // Shorts
-    return sub === 'featured' ? '/' : `/shorts/${sub}`;
+    return sub === 'featured' ? '/shorts' : `/shorts/${sub}`;
   }
   if (tabIndex === 3) { // Video Clips
     return sub === 'all' ? '/clips' : `/clips/${sub}`;
@@ -1327,7 +1327,7 @@ export function getSubfolderHref(tabIndex: number, subfolder: string): string {
 
 /**
  * Parses modern clean pathnames such as:
- * - "/" -> Home (Trailer/Featured Shorts)
+ * - "/" -> Home (Cross-Format Showcase)
  * - "/shorts" -> Shorts Tab
  * - "/shorts/2027" -> Shorts Tab + Subfolder 2027
  * - "/shorts/7mK9" -> Shorts Tab + Media 7mK9
@@ -1342,12 +1342,12 @@ export function getSubfolderHref(tabIndex: number, subfolder: string): string {
  */
 export function parseAppPathname(pathname?: string): ParsedAppRoute {
   if (typeof window === 'undefined') {
-    return { tab: 'TRAILER', subfolder: null, shortId: null, rawPath: '/', isNotFound: false };
+    return { tab: 'HOME', subfolder: null, shortId: null, rawPath: '/', isNotFound: false };
   }
 
   const raw = (pathname ?? window.location.pathname).replace(/^\/+|\/+$/g, '').trim();
   if (!raw || raw === 'home' || raw === 'trailer') {
-    return { tab: 'TRAILER', subfolder: 'Featured', shortId: null, rawPath: '/', isNotFound: false };
+    return { tab: 'HOME', subfolder: null, shortId: null, rawPath: '/', isNotFound: false };
   }
 
   const segments = raw.split('/').map((s) => s.trim()).filter(Boolean);

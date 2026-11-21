@@ -19,6 +19,7 @@ import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { HomepageSlidingShorts } from './HomepageSlidingShorts';
+import { HomepageCrossFormatShowcase } from './HomepageCrossFormatShowcase';
 import { BandhobiSlidingFeaturedPhotos } from './BandhobiSlidingFeaturedPhotos';
 import { DeepDiurnalTelemetryView } from '../telemetry/DeepDiurnalTelemetryView';
 import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
@@ -136,23 +137,24 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
 }) => {
   const initialRoute = useMemo(() => parseAppPathname(), []);
 
-  // Visual tab display ordering for directional transitions (Photographs -> Video Clips -> Shorts -> Bandhobi)
+  // Visual tab display ordering for directional transitions (Homepage -> Photographs -> Video Clips -> Shorts -> Bandhobi)
   const TAB_VISUAL_ORDER = useMemo<Record<number, number>>(() => ({
+    0: -1,
     1: 0,
     3: 1,
     2: 2,
     4: 3,
   }), []);
 
-  // 1: Photographs, 2: Shorts (Homepage Landing), 3: Video Clips, 4: Bandhobi
+  // 0: Homepage (Dedicated Root), 1: Photographs, 2: Shorts, 3: Video Clips, 4: Bandhobi
   const [tabIndex, setTabIndex] = useState<number>(() => {
-    if (typeof window === 'undefined') return 2;
+    if (typeof window === 'undefined') return 0;
     const parsed = parseAppPathname();
     if (parsed.tab === 'PHOTOGRAPHY') return 1;
     if (parsed.tab === 'SHORTS') return 2;
     if (parsed.tab === 'CLIPS') return 3;
     if (parsed.tab === 'BANDHOBI') return 4;
-    return 2;
+    return 0;
   });
 
   const [photosSubfolder, setPhotosSubfolder] = useState<string>(() => {
@@ -164,8 +166,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   const [shortsSubfolder, setShortsSubfolder] = useState<string>(() => {
     if (typeof window === 'undefined') return 'Featured';
     const parsed = parseAppPathname();
-    if (parsed.tab === 'SHORTS') return parsed.subfolder || '2027';
-    if (parsed.tab === 'TRAILER') return 'Featured';
+    if (parsed.tab === 'SHORTS') return parsed.subfolder || 'Featured';
     return 'Featured';
   });
   const [clipsSubfolder, setClipsSubfolder] = useState<string>(() => {
@@ -314,7 +315,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     // Instantly highlight target nav button and update route
     setTabIndex(targetIndex);
     if (targetIndex === 1) setPhotosSubfolder('ALL');
-    else if (targetIndex === 2) setShortsSubfolder('2027');
+    else if (targetIndex === 2) setShortsSubfolder('Featured');
     else if (targetIndex === 3) setClipsSubfolder('ALL');
     else if (targetIndex === 4) setBandhobiSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
@@ -334,7 +335,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     transitionTimerRef.current.t1 = setTimeout(() => {
       setDisplayedTab(targetIndex);
       if (targetIndex === 1) setDisplayedPhotosSub('ALL');
-      else if (targetIndex === 2) setDisplayedShortsSub('2027');
+      else if (targetIndex === 2) setDisplayedShortsSub('Featured');
       else if (targetIndex === 3) setDisplayedClipsSub('ALL');
       else if (targetIndex === 4) setDisplayedBandhobiSub('Featured');
 
@@ -346,16 +347,14 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     }, 800);
   }, [tabIndex, TAB_VISUAL_ORDER]);
 
-  // Navigate directly to the real homepage (Shorts -> Featured showcase at root '/')
+  // Navigate directly to the real homepage (Cross-Format Showcase at root '/')
   const goToHome = useCallback(() => {
     handleClearSearch();
     if (transitionTimerRef.current.t1) clearTimeout(transitionTimerRef.current.t1);
     if (transitionTimerRef.current.t2) clearTimeout(transitionTimerRef.current.t2);
 
-    setTabIndex(2);
-    setShortsSubfolder('Featured');
-    setDisplayedTab(2);
-    setDisplayedShortsSub('Featured');
+    setTabIndex(0);
+    setDisplayedTab(0);
     setQuantumAnimClass('');
     setShuffleTrigger((prev) => prev + 1);
 
@@ -398,7 +397,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setTabIndex(1);
         setDisplayedTab(1);
       } else if (parsed.tab === 'SHORTS') {
-        const sub = parsed.subfolder || '2027';
+        const sub = parsed.subfolder || 'Featured';
         setShortsSubfolder(sub);
         setDisplayedShortsSub(sub);
         setTabIndex(2);
@@ -416,10 +415,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
         setTabIndex(4);
         setDisplayedTab(4);
       } else {
-        setShortsSubfolder('Featured');
-        setDisplayedShortsSub('Featured');
-        setTabIndex(2);
-        setDisplayedTab(2);
+        // HOME (Dedicated Root /)
+        setTabIndex(0);
+        setDisplayedTab(0);
       }
     };
 
@@ -516,6 +514,13 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
     }
     return sortMediaItemsDescending(list);
+  }, [rootMap]);
+
+  const allBandhobiPhotos = useMemo(() => {
+    const photosNode =
+      rootMap.get('bandhobiz')?.subfolders.get('Photographs') ||
+      rootMap.get('Bandhobi')?.subfolders.get('Photographs');
+    return photosNode ? photosNode.files : [];
   }, [rootMap]);
 
   // Active subfolder-filtered lists (ALL is shuffled, subfolders are strictly newest first)
@@ -717,7 +722,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       if (root === 'Shorts' || isShort) {
         setTabIndex(2);
         setDisplayedTab(2);
-        const subName = subfolders[0] || '2027';
+        const subName = subfolders[0] || 'Featured';
         setShortsSubfolder(subName);
         setDisplayedShortsSub(subName);
 
@@ -791,7 +796,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       ? SHORTS_SUBFOLDERS
       : tabIndex === 3
       ? CLIPS_SUBFOLDERS
-      : BANDHOBI_SUBFOLDERS;
+      : tabIndex === 4
+      ? BANDHOBI_SUBFOLDERS
+      : [];
 
   const currentSubfolder =
     tabIndex === 1
@@ -800,7 +807,9 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       ? shortsSubfolder
       : tabIndex === 3
       ? clipsSubfolder
-      : bandhobiSubfolder;
+      : tabIndex === 4
+      ? bandhobiSubfolder
+      : '';
 
   const handleSelectSubfolder = (sub: string) => {
     const currentSub =
@@ -1080,7 +1089,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               href="/"
               onClick={(e) => {
                 e.preventDefault();
-                if (tabIndex === 2 && shortsSubfolder === 'Featured' && displayedShortsSub === 'Featured') {
+                if (tabIndex === 0 && displayedTab === 0) {
                   return;
                 }
                 goToHome();
@@ -1132,11 +1141,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               href="/shorts"
               onClick={(e) => {
                 e.preventDefault();
-                if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
-                  handleSelectSubfolder('2027');
-                } else {
-                  switchTab(2);
-                }
+                switchTab(2);
               }}
               className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent no-underline ${
                 tabIndex === 2 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
@@ -1222,6 +1227,56 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
               >
                 // NO MEDIA FOUND
+              </div>
+            )
+          ) : displayedTab === 0 ? (
+            isPortrait ? (
+              /* Portrait Screen Dedicated Homepage: Mini Graph (Top) -> Cross-Format Sliding Reel (Center) -> 24h Statistic (Bottom) */
+              <div
+                className="w-full h-full flex flex-col justify-between items-center overflow-hidden py-1 gap-2"
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              >
+                {/* 1. First Graph: Mini Graph (Above Media Cards) */}
+                <div className="w-full flex justify-center shrink-0 pt-1 pb-1">
+                  <TacticalTelemetryGraph
+                    size="large"
+                    selectedDayIndex={portraitSelectedDay}
+                    onSelectDay={(dayIdx) => setPortraitSelectedDay(dayIdx)}
+                  />
+                </div>
+
+                {/* 2. Center: Cross-Format Showcase (3 Shorts + 3 Clips + 3 Vault Photos + 3 Bandhobi Photos) */}
+                <div className="w-full flex-1 flex items-center justify-start overflow-hidden min-h-[220px]">
+                  <HomepageCrossFormatShowcase
+                    shorts={allShortsFiles}
+                    clips={allClipsFiles}
+                    photos={allPhotosFiles}
+                    bandhobiPhotos={allBandhobiPhotos}
+                    randomSeed={shuffleTrigger}
+                    onOpenPhoto={(item, playlist, idx) => onOpenPhoto(item, playlist, idx)}
+                    onOpenVideo={(item, playlist) => onOpenVideo(item, playlist)}
+                    onOpenShort={(item, playlist, idx) => onOpenShort(item, playlist, idx, 'Shorts')}
+                  />
+                </div>
+
+                {/* 3. Second Graph: 24-Hour Diurnal Statistics (Underneath Media Cards) */}
+                <div className="w-full flex justify-center shrink-0 pt-1 pb-1">
+                  <DiurnalPhase24hSummary dayIndex={portraitSelectedDay} />
+                </div>
+              </div>
+            ) : (
+              /* Desktop Screen Dedicated Homepage: Full Middle Cross-Format Sliding Reel */
+              <div className="w-full h-full flex items-center justify-start overflow-hidden">
+                <HomepageCrossFormatShowcase
+                  shorts={allShortsFiles}
+                  clips={allClipsFiles}
+                  photos={allPhotosFiles}
+                  bandhobiPhotos={allBandhobiPhotos}
+                  randomSeed={shuffleTrigger}
+                  onOpenPhoto={(item, playlist, idx) => onOpenPhoto(item, playlist, idx)}
+                  onOpenVideo={(item, playlist) => onOpenVideo(item, playlist)}
+                  onOpenShort={(item, playlist, idx) => onOpenShort(item, playlist, idx, 'Shorts')}
+                />
               </div>
             )
           ) : displayedTab === 2 && displayedShortsSub === 'Featured' ? (
