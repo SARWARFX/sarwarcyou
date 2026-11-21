@@ -130,7 +130,7 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{
-        animationDelay: `${Math.min(delayIdx, 24) * 30}ms`,
+        animationDelay: `${Math.min(delayIdx, 24) * 24}ms`,
         borderRadius: 0,
         outline: 'none',
         border: 'none',
