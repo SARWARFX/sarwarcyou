@@ -123,11 +123,6 @@ export function normalizeRepoPath(path: string): string {
       ? 'Thumbnails/Video Clips/2027/webmedia-serial-427.webp'
       : 'Video Clips/2027/webmedia-serial-427.mp4';
   }
-  if (/Nidhi.*Agarwal/i.test(clean)) {
-    return isThumbnailPath
-      ? 'Thumbnails/Shorts/Older/webmedia-serial-340.webp'
-      : 'Shorts/Older/webmedia-serial-340.mp4';
-  }
   if (/^Images\/Bandhobis\/asha8\.mp4$/i.test(clean) || /^(?:Bandhobi|bandhobiz).*asha8\.mp4$/i.test(clean)) {
     return 'bandhobiz/Video Clips/asha8.mp4';
   }
