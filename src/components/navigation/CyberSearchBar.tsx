@@ -74,14 +74,15 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
     <form
       onSubmit={handleSubmit}
       onClick={() => inputRef.current?.focus()}
-      className={`group font-firjar shrink-0 relative flex items-center gap-2 h-[32px] px-2.5 bg-[#06080d]/80 hover:bg-[#0a0d14]/95 backdrop-blur-md transition-all duration-200 cursor-text select-none border-0 outline-none ring-0 ${
+      className={`group font-firjar shrink-0 relative flex items-center gap-1.5 sm:gap-2 h-[32px] bg-transparent transition-all duration-200 cursor-text select-none border-0 outline-none ring-0 ${
         isFocused || query
-          ? 'shadow-[0_0_16px_rgba(56,189,248,0.22)] bg-[#090d18]/95 w-36 xs:w-44 sm:w-64 max-w-[calc(100vw-215px)]'
-          : 'w-24 xs:w-32 sm:w-40'
+          ? 'w-36 xs:w-44 sm:w-64 max-w-[calc(100vw-215px)]'
+          : 'w-20 xs:w-28 sm:w-36'
       } ${className}`}
       style={{
         borderRadius: 0,
         fontFamily: "'Firjar', 'Science Gothic', sans-serif !important",
+        background: 'transparent',
       }}
       title="Search (/)"
     >
@@ -129,8 +130,8 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         }}
       />
 
-      {/* Shortcut hint [ / ] when empty and not focused, or Clear button when active */}
-      {query ? (
+      {/* Clear button when active query exists */}
+      {query && (
         <button
           type="button"
           onClick={handleClear}
@@ -140,13 +141,6 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
         >
           ✕
         </button>
-      ) : (
-        <span
-          className="font-firjar hidden sm:inline-block text-[10px] font-bold text-[#64748b] group-hover:text-white/50 tracking-wider shrink-0 transition-colors select-none"
-          style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
-        >
-          /
-        </span>
       )}
     </form>
   );
