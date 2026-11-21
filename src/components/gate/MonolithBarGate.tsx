@@ -1148,23 +1148,25 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
             >
               Video Clips
             </a>
-            <a
-              href="/shorts"
-              onClick={(e) => {
-                e.preventDefault();
-                if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
-                  handleSelectSubfolder('2027');
-                } else {
-                  switchTab(2);
-                }
-              }}
-              className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent no-underline ${
-                tabIndex === 2 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
-              }`}
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-            >
-              Shorts
-            </a>
+            {!isPortrait && (
+              <a
+                href="/shorts"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
+                    handleSelectSubfolder('2027');
+                  } else {
+                    switchTab(2);
+                  }
+                }}
+                className={`text-[12.5px] sm:text-[13px] tracking-wide transition-colors cursor-pointer p-0 bg-transparent no-underline ${
+                  tabIndex === 2 ? 'text-white font-bold' : 'text-[#64748b] font-medium hover:text-white'
+                }`}
+                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              >
+                Shorts
+              </a>
+            )}
             <a
               href="/bandhobiz"
               onClick={(e) => {
@@ -1186,15 +1188,39 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <TopMiddleNetworkStatus />
         </div>
 
-        {/* Right: Clean Tactical Telemetry Graph (Desktop Only - Zero Text Noise) */}
-        {!isPortrait && (
-          <div className="shrink-0">
+        {/* Right: Clean Tactical Telemetry Graph (Desktop/Tablet) OR Prominent SHORTS (Mobile Portrait) */}
+        <div className="shrink-0 flex items-center justify-end">
+          {!isPortrait ? (
             <TacticalTelemetryGraph
               onSelectDay={handleOpenTelemetryWithDay}
               onClick={handleOpenTelemetry}
             />
-          </div>
-        )}
+          ) : (
+            <a
+              href="/shorts"
+              onClick={(e) => {
+                e.preventDefault();
+                if (tabIndex === 2 && (shortsSubfolder === 'Featured' || displayedShortsSub === 'Featured')) {
+                  handleSelectSubfolder('2027');
+                } else {
+                  switchTab(2);
+                }
+              }}
+              className={`text-[12.5px] font-bold tracking-widest transition-all cursor-pointer p-0 bg-transparent no-underline flex items-center gap-1.5 pt-1 select-none ${
+                tabIndex === 2
+                  ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]'
+                  : 'text-[#64748b] hover:text-white'
+              }`}
+              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+              title="Shorts"
+            >
+              {tabIndex === 2 && (
+                <span className="w-1.5 h-1.5 bg-[#38bdf8] shadow-[0_0_6px_#38bdf8]" />
+              )}
+              <span>SHORTS</span>
+            </a>
+          )}
+        </div>
       </header>
 
       {/* MIDDLE PAGE SPACE: HOMEPAGE SLIDING SHORTS OR RECTANGULAR MEDIA GRID */}

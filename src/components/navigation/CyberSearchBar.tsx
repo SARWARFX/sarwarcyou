@@ -74,10 +74,10 @@ export const CyberSearchBar: React.FC<CyberSearchBarProps> = ({
     <form
       onSubmit={handleSubmit}
       onClick={() => inputRef.current?.focus()}
-      className={`group font-firjar shrink-0 relative flex items-center gap-2 h-[32px] px-2.5 bg-[#06080d]/85 hover:bg-[#0a0d14] backdrop-blur-md transition-all duration-200 cursor-text select-none ${
+      className={`group font-firjar shrink-0 relative flex items-center gap-2 h-[32px] px-2.5 bg-[#06080d]/80 hover:bg-[#0a0d14]/95 backdrop-blur-md transition-all duration-200 cursor-text select-none border-0 outline-none ring-0 ${
         isFocused || query
-          ? 'border border-[#38bdf8] shadow-[0_0_16px_rgba(56,189,248,0.3)] w-36 xs:w-44 sm:w-64 max-w-[calc(100vw-215px)]'
-          : 'border border-white/15 hover:border-[#38bdf8]/60 hover:shadow-[0_0_10px_rgba(56,189,248,0.15)] w-24 xs:w-32 sm:w-40'
+          ? 'shadow-[0_0_16px_rgba(56,189,248,0.22)] bg-[#090d18]/95 w-36 xs:w-44 sm:w-64 max-w-[calc(100vw-215px)]'
+          : 'w-24 xs:w-32 sm:w-40'
       } ${className}`}
       style={{
         borderRadius: 0,
