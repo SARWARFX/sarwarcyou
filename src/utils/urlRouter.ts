@@ -1271,7 +1271,7 @@ export interface ParsedAppRoute {
 export function resolveSubfolderSlug(tab: AppTabRoute, slug: string): string | null {
   const s = slug.toLowerCase().trim();
   if (tab === 'PHOTOGRAPHY') {
-    if (s === 'all') return 'ALL';
+    if (s === 'featured' || s === 'all') return 'Featured';
     if (s === 'favorite' || s === 'fav') return 'Favorite';
     if (s === '2027') return '2027';
     if (s === '2026') return '2026';
@@ -1309,7 +1309,7 @@ export function resolveSubfolderSlug(tab: AppTabRoute, slug: string): string | n
 export function getSubfolderHref(tabIndex: number, subfolder: string): string {
   const sub = subfolder.toLowerCase();
   if (tabIndex === 1) { // Photographs
-    return sub === 'all' ? '/photographs' : `/photographs/${sub}`;
+    return sub === 'featured' ? '/photographs' : `/photographs/${sub}`;
   }
   if (tabIndex === 2) { // Shorts
     return sub === 'featured' ? '/shorts' : `/shorts/${sub}`;
@@ -1322,19 +1322,19 @@ export function getSubfolderHref(tabIndex: number, subfolder: string): string {
     if (sub === 'video clips') return '/bandhobiz/videoclips';
     return `/bandhobiz/${sub}`;
   }
-  return '/';
+  return '/shorts';
 }
 
 /**
  * Parses modern clean pathnames such as:
- * - "/" -> Home (Cross-Format Showcase)
- * - "/shorts" -> Shorts Tab
+ * - "/" -> Home (Redirects to Shorts Featured)
+ * - "/shorts" -> Shorts Tab (Featured)
  * - "/shorts/2027" -> Shorts Tab + Subfolder 2027
  * - "/shorts/7mK9" -> Shorts Tab + Media 7mK9
  * - "/clips" or "/videoclips" -> Video Clips Tab
  * - "/clips/favorite" -> Video Clips Tab + Subfolder Favorite
  * - "/clips/x2P4" -> Video Clips Tab + Media x2P4
- * - "/photographs" or "/photos" -> Photographs Tab
+ * - "/photographs" or "/photos" -> Photographs Tab (Featured)
  * - "/photographs/2027" -> Photographs Tab + Subfolder 2027
  * - "/photographs/v9Q1" -> Photographs Tab + Media v9Q1
  * - "/bandhobiz" or "/bandhobi" -> bandhobiz Tab
@@ -1342,12 +1342,12 @@ export function getSubfolderHref(tabIndex: number, subfolder: string): string {
  */
 export function parseAppPathname(pathname?: string): ParsedAppRoute {
   if (typeof window === 'undefined') {
-    return { tab: 'HOME', subfolder: null, shortId: null, rawPath: '/', isNotFound: false };
+    return { tab: 'SHORTS', subfolder: 'Featured', shortId: null, rawPath: '/shorts', isNotFound: false };
   }
 
   const raw = (pathname ?? window.location.pathname).replace(/^\/+|\/+$/g, '').trim();
   if (!raw || raw === 'home' || raw === 'trailer') {
-    return { tab: 'HOME', subfolder: null, shortId: null, rawPath: '/', isNotFound: false };
+    return { tab: 'SHORTS', subfolder: 'Featured', shortId: null, rawPath: '/shorts', isNotFound: false };
   }
 
   const segments = raw.split('/').map((s) => s.trim()).filter(Boolean);
