@@ -14,7 +14,6 @@ interface CinemaScreenCardProps {
   item: StageMediaItem;
   slotIdx: number;
   isCenter: boolean;
-  isWall: boolean;
   isPlaybackReady: boolean;
   onReady: (slotIdx: number) => void;
   onClick: () => void;
@@ -30,16 +29,15 @@ interface CinemaScreenCardProps {
 /**
  * Individual Screen Card within the Cinema Theater:
  * - Center Main Stage (isCenter): Plays from 30% to 70% of duration in a continuous loop.
- * - The Two Cards Beside It (isWall): Plays from 40% to 60% of duration in a continuous loop.
- * - Outer Screens (!isCenter && !isWall): Displays static high-res thumbnail (0% background video decoders).
- * - Thin 2px bottom cyan progress line on active video screens.
+ * - All Four Surrounding Cards (Tier 1 & Tier 2): Play from 40% to 60% of duration in a continuous loop.
+ * - All 5 media cards play simultaneously in synchrony.
+ * - Thin 2px bottom cyan progress line on all 5 active video screens.
  * - Pure Cinema: ZERO borders, ZERO outlines, ZERO text labels.
  */
 const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
   item,
   slotIdx,
   isCenter,
-  isWall,
   isPlaybackReady,
   onReady,
   onClick,
@@ -55,15 +53,15 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
   const [progress, setProgress] = useState<number>(0);
   const [hasError, setHasError] = useState<boolean>(false);
 
-  const isVideoScreen = isCenter || isWall;
-  const videoSrc = isVideoScreen ? getVideoStreamUrl(item.url || item.path || '') : null;
+  const isVideoScreen = true;
+  const videoSrc = getVideoStreamUrl(item.url || item.path || '');
   const imageSrc =
     (item as any).thumbnail ||
     resolveStaticVideoThumbnail(item) ||
     item.poster ||
     getMediaUrl(item.url || item.path || '');
 
-  // Deep buffer verification for the 3 active video screens
+  // Deep buffer verification for all 5 active video screens
   const verifyBufferDepth = useCallback(
     (el: HTMLVideoElement | null) => {
       if (!el || !isVideoScreen) return;
@@ -258,13 +256,12 @@ const CinemaScreenCard: React.FC<CinemaScreenCardProps> = ({
  *     - Vertical (Portrait Mobile/Tablet): Width scaled up to 92vw (max 480px), stacked vertically.
  * - Exposure Geometry:
  *     - Main Center Screen: 100% visible, elevated in front (Z = +80px).
- *     - The 2 Cards Beside It (Tier 1): Exactly 50% exposed.
- *     - The 2 Outer Wings (Tier 2, 4th & 5th cards): Exactly 25% exposed.
+ *     - All 4 Surrounding Cards (Tier 1 & Tier 2): Exactly 50% exposed of their screen size.
  * - Video Playback Rules:
- *     - Main screen: Plays 30% to 70% in a continuous loop.
- *     - The two beside it: Plays 40% to 60% in a continuous loop.
- *     - All other cards: Static high-res thumbnails (0% background video decoders).
- * - Buffer Gate: Waits for the 3 active video screens to buffer before revealing for stutter-free playback.
+ *     - Main center screen: Plays 30% to 70% in a continuous loop.
+ *     - All other 4 screens: Play 40% to 60% in a continuous loop.
+ *     - All 5 media cards play simultaneously in synchrony.
+ * - Buffer Gate: Waits for all 5 active video screens to buffer before revealing for stutter-free playback.
  * - Interactive: Clicking any card smoothly rotates it to Center Stage.
  */
 export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = ({
@@ -325,8 +322,8 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
   const isPlaybackReadyRef = useRef<boolean>(false);
   const [displayProgress, setDisplayProgress] = useState<number>(10);
 
-  // Target threshold: 3 active video screens (Center + 2 Tier 1 walls)
-  const targetThreshold = 3;
+  // Target threshold: ALL 5 media cards play simultaneously (Center + 4 surrounding screens)
+  const targetThreshold = 5;
 
   useEffect(() => {
     setReadySlots(new Set());
@@ -370,7 +367,7 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
   }, []);
 
   // Compute Clean 5-Card Cinema Theater: EXACTLY 5 CARDS FOR ANY SCREEN
-  // Center Hero (100% visible) + 2 Tier 1 Walls (30% exposed) + 2 Tier 2 Wings (10% exposed)
+  // Center Hero (100% visible) + All Other 4 Cards (50% exposed each)
   const layout = useMemo(() => {
     const W_box = dimensions.width;
     const H_box = dimensions.height;
@@ -391,8 +388,8 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     if (isVertical) {
       /* PORTRAIT SCREEN: EXACTLY 5 CARDS VERTICAL 3D AUDITORIUM */
       const W_main = Math.min(
-        540,
-        Math.max(260, Math.min(W_box * 0.90, (H_box * 0.42) * (16 / 9)))
+        520,
+        Math.max(260, Math.min(W_box * 0.90, (H_box * 0.36) * (16 / 9)))
       );
       const H_main = W_main * (9 / 16);
 
@@ -401,10 +398,10 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
       const W1 = W_main * 0.88;
       const E1 = H_main / 2 + 0.50 * H1;
 
-      // Tier 2 card (outer Top & Bottom wings): 76% scale, EXACTLY 25% exposed along vertical Y-axis
+      // Tier 2 card (outer Top & Bottom wings): 76% scale, EXACTLY 50% exposed along vertical Y-axis
       const H2 = H_main * 0.76;
       const W2 = W_main * 0.76;
-      const E2 = E1 + 0.25 * H2;
+      const E2 = E1 + 0.50 * H2;
 
       const tiers: TierConfig[] = [
         {
@@ -412,9 +409,9 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
           cardW: W1,
           cardH: H1,
           centerPos: E1 - H1 / 2,
-          rotDeg: 30,
+          rotDeg: 28,
           zPos: -40,
-          opacity: 0.90,
+          opacity: 0.92,
           zIndex: 40,
           shadowClass: 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110',
           exposurePct: 0.50,
@@ -424,12 +421,12 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
           cardW: W2,
           cardH: H2,
           centerPos: E2 - H2 / 2,
-          rotDeg: 46,
+          rotDeg: 44,
           zPos: -100,
-          opacity: 0.75,
+          opacity: 0.82,
           zIndex: 30,
           shadowClass: 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
-          exposurePct: 0.25,
+          exposurePct: 0.50,
         },
       ];
 
@@ -437,8 +434,8 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
     } else {
       /* WIDE SCREEN: EXACTLY 5 CARDS HORIZONTAL 3D AUDITORIUM */
       const W_main = Math.min(
-        680,
-        Math.max(300, Math.min(W_box * 0.42, H_box * 0.60 * (16 / 9)))
+        560,
+        Math.max(280, Math.min(W_box * 0.36, H_box * 0.54 * (16 / 9)))
       );
       const H_main = W_main * (9 / 16);
 
@@ -447,10 +444,10 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
       const H1 = W1 * (9 / 16);
       const E1 = W_main / 2 + 0.50 * W1;
 
-      // Tier 2 card (outer Left & Right wings): 76% scale, EXACTLY 25% exposed along horizontal X-axis
+      // Tier 2 card (outer Left & Right wings): 76% scale, EXACTLY 50% exposed along horizontal X-axis
       const W2 = W_main * 0.76;
       const H2 = W2 * (9 / 16);
-      const E2 = E1 + 0.25 * W2;
+      const E2 = E1 + 0.50 * W2;
 
       const tiers: TierConfig[] = [
         {
@@ -458,9 +455,9 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
           cardW: W1,
           cardH: H1,
           centerPos: E1 - W1 / 2,
-          rotDeg: 32,
+          rotDeg: 30,
           zPos: -40,
-          opacity: 0.90,
+          opacity: 0.92,
           zIndex: 40,
           shadowClass: 'shadow-[0_10px_40px_rgba(0,0,0,0.85)] hover:brightness-110',
           exposurePct: 0.50,
@@ -470,12 +467,12 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
           cardW: W2,
           cardH: H2,
           centerPos: E2 - W2 / 2,
-          rotDeg: 48,
+          rotDeg: 46,
           zPos: -100,
-          opacity: 0.75,
+          opacity: 0.82,
           zIndex: 30,
           shadowClass: 'shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:brightness-125',
-          exposurePct: 0.25,
+          exposurePct: 0.50,
         },
       ];
 
@@ -593,7 +590,6 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
               item={item}
               slotIdx={0}
               isCenter={true}
-              isWall={false}
               isPlaybackReady={isPlaybackReady}
               onReady={handleVideoReady}
               onClick={() => handleCardClick(centerIndex)}
@@ -616,8 +612,6 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
             const item = clipPool[itemIdx];
             if (!item) return null;
 
-            const isWall = tier.k === 1;
-
             let transformStyle = '';
             if (isVertical) {
               const posY = dir * tier.centerPos;
@@ -635,7 +629,6 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
                 item={item}
                 slotIdx={slotOffset}
                 isCenter={false}
-                isWall={isWall}
                 isPlaybackReady={isPlaybackReady}
                 onReady={handleVideoReady}
                 onClick={() => handleCardClick(itemIdx)}
