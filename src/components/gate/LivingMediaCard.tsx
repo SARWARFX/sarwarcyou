@@ -13,14 +13,10 @@ export interface LivingMediaCardProps {
   featuredBadge?: string;
 }
 
-const CIRCUMFERENCE = 150.8; // 2 * Math.PI * 24
-
 /**
- * Pure Distraction-Free Media Card with Circular Percentage Loader
+ * Pure Distraction-Free Media Card:
  * - Zero outlines, zero borders, zero rounded corners
- * - Zero entrance animation (replaces slide/drop with circular percentage loader)
- * - Circular SVG progress dial traces 0% to 100% with live numeric readout
- * - Upon reaching 100%, content reveals immediately without entrance animation
+ * - Direct instant display: thumbnails are pre-buffered by the tab/page loading gate
  * - Micro video hover preview (10% to 35% continuous loop)
  */
 export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
@@ -28,8 +24,6 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
   aspectRatio,
   onClick,
 }) => {
-  const [loadProgress, setLoadProgress] = useState(0);
-  const [isReady, setIsReady] = useState(false);
   const [isPreviewActive, setIsPreviewActive] = useState(false);
   const [previewProgress, setPreviewProgress] = useState(0);
   const hoverTimerRef = useRef<number | null>(null);
@@ -56,55 +50,6 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       : aspectRatio === '16/9'
       ? 'aspect-video'
       : 'aspect-[3/4]';
-
-  // Circular Loader Progress & Image Readiness Gate
-  useEffect(() => {
-    setIsReady(false);
-    setLoadProgress(0);
-
-    let progress = 0;
-    let timer: number | null = null;
-    let isCancelled = false;
-
-    // Steady telemetry progression up to 92%
-    timer = window.setInterval(() => {
-      progress += Math.floor(Math.random() * 12) + 8;
-      if (progress > 92) {
-        progress = 92;
-        if (timer) clearInterval(timer);
-      }
-      if (!isCancelled) setLoadProgress(progress);
-    }, 45);
-
-    const img = new Image();
-    const handleLoaded = () => {
-      if (timer) clearInterval(timer);
-      if (isCancelled) return;
-      setLoadProgress(100);
-      setTimeout(() => {
-        if (!isCancelled) {
-          setIsReady(true);
-        }
-      }, 120);
-    };
-
-    img.onload = handleLoaded;
-    img.onerror = handleLoaded;
-    img.src = imageSrc;
-
-    // Safety fallback
-    const safetyTimer = window.setTimeout(() => {
-      if (!isCancelled && !img.complete) {
-        handleLoaded();
-      }
-    }, 3000);
-
-    return () => {
-      isCancelled = true;
-      if (timer) clearInterval(timer);
-      clearTimeout(safetyTimer);
-    };
-  }, [imageSrc]);
 
   // Clean up hover timer on unmount
   useEffect(() => {
@@ -185,68 +130,12 @@ export const LivingMediaCard: React.FC<LivingMediaCardProps> = ({
       }}
       className={`relative group cursor-pointer ${aspectClass} select-none bg-[#080b12] overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 w-full`}
     >
-      {/* Option 2: Tactical Reticle Circular Loader with Live Percentage */}
-      {!isReady && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#070a12] select-none pointer-events-none">
-          <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
-            {/* Tactical Reticle Crosshairs (12, 3, 6, 9 o'clock precision guides) */}
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              {/* Vertical Guide Line */}
-              <div className="absolute top-1 bottom-1 left-1/2 -translate-x-1/2 w-[1px] bg-gradient-to-b from-[#38bdf8]/40 via-transparent to-[#38bdf8]/40" />
-              {/* Horizontal Guide Line */}
-              <div className="absolute left-1 right-1 top-1/2 -translate-y-1/2 h-[1px] bg-gradient-to-r from-[#38bdf8]/40 via-transparent to-[#38bdf8]/40" />
-              {/* Outer Reticle Ticks at 12, 6, 9, 3 */}
-              <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
-              <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
-              <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 h-1.5 w-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
-              <div className="absolute -right-0.5 top-1/2 -translate-y-1/2 h-1.5 w-[1.5px] bg-[#38bdf8]/80 shadow-[0_0_4px_#38bdf8]" />
-            </div>
-
-            {/* Circular Dial SVG */}
-            <svg
-              className="w-full h-full -rotate-90"
-              viewBox="0 0 64 64"
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-            >
-              <circle
-                cx="32"
-                cy="32"
-                r="24"
-                className="stroke-white/10 fill-transparent"
-                strokeWidth="2.5"
-              />
-              <circle
-                cx="32"
-                cy="32"
-                r="24"
-                className="stroke-[#38bdf8] fill-transparent transition-[stroke-dashoffset] duration-75 ease-linear"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeDasharray={CIRCUMFERENCE}
-                strokeDashoffset={CIRCUMFERENCE - (loadProgress / 100) * CIRCUMFERENCE}
-                style={{ filter: 'drop-shadow(0 0 6px rgba(56,189,248,0.85))' }}
-              />
-            </svg>
-
-            {/* Center Monospace Percentage Counter */}
-            <span
-              className="absolute font-mono text-[11px] sm:text-[13px] font-bold text-white tracking-tighter"
-              style={{ textShadow: '0 0 8px rgba(56,189,248,0.8)' }}
-            >
-              {loadProgress}%
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Main Image: Reveals immediately at 100% readiness with zero entrance animation */}
+      {/* Main Image: Bufferless instant display */}
       <img
         src={imageSrc}
         alt=""
-        loading="lazy"
-        className={`w-full h-full object-cover filter saturate-[0.95] contrast-[1.05] ${
-          isReady ? 'opacity-100' : 'opacity-0'
-        }`}
+        loading="eager"
+        className="w-full h-full object-cover filter saturate-[0.95] contrast-[1.05]"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       />
 

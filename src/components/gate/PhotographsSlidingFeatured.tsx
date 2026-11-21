@@ -78,10 +78,22 @@ export const PhotographsSlidingFeatured: React.FC<PhotographsSlidingFeaturedProp
         item.thumbnail ||
         item.poster ||
         getMediaUrl(item.url || item.path || '');
+
+      let done = false;
+      const onImageLoaded = () => {
+        if (done) return;
+        done = true;
+        checkComplete();
+      };
+
       const img = new Image();
-      img.onload = checkComplete;
-      img.onerror = checkComplete;
+      img.onload = onImageLoaded;
+      img.onerror = onImageLoaded;
       img.src = src;
+
+      if (img.complete && img.naturalWidth > 0) {
+        onImageLoaded();
+      }
     });
 
     const safetyTimer = setTimeout(() => {

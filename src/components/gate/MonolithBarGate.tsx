@@ -14,7 +14,7 @@ import {
   getSubfolderHref,
 } from '../../utils/urlRouter';
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
-import { LivingMediaCard } from './LivingMediaCard';
+import { BufferedMediaGrid } from './BufferedMediaGrid';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
@@ -840,33 +840,26 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       }
 
       return (
-        <div
-          className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-6"
-          style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-        >
-          {itemsList.map((item: StageMediaItem, idx: number) => (
-            <LivingMediaCard
-              key={`${item.id || item.url || item.name}-${idx}`}
-              item={item}
-              aspectRatio={aspectRatio}
-              delayIdx={idx}
-              onClick={() => {
-                hapticMedium();
-                trackActivityEvent(1);
-                const isPhoto = item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
-                const isShort = item.mediaType === 'short' || (item.path || item.url || '').toLowerCase().includes('/shorts/');
-                if (viewTab === 1) onOpenPhoto(item, itemsList, idx);
-                else if (viewTab === 2) onOpenShort(item, itemsList, idx, 'Shorts');
-                else if (viewTab === 3) onOpenVideo(item, itemsList);
-                else if (viewTab === 4) {
-                  if (viewSub === 'Photographs' || isPhoto) onOpenPhoto(item, itemsList, idx);
-                  else if (viewSub === 'Shorts' || isShort) onOpenShort(item, itemsList, idx, 'Bandhobi');
-                  else onOpenVideo(item, itemsList);
-                }
-              }}
-            />
-          ))}
-        </div>
+        <BufferedMediaGrid
+          key={`page-${viewTab}-${viewSub}`}
+          pageKey={`page-${viewTab}-${viewSub}`}
+          itemsList={itemsList}
+          aspectRatio={aspectRatio}
+          onOpenItem={(item: StageMediaItem, list: StageMediaItem[], idx: number) => {
+            const isPhoto = item.type === 'image' || isPhotoExtension(item.path || item.url || item.name || '');
+            const isShort = item.mediaType === 'short' || (item.path || item.url || '').toLowerCase().includes('/shorts/');
+            if (viewTab === 1) onOpenPhoto(item, list, idx);
+            else if (viewTab === 2) onOpenShort(item, list, idx, 'Shorts');
+            else if (viewTab === 3) onOpenVideo(item, list);
+            else if (viewTab === 4) {
+              if (viewSub === 'Photographs' || isPhoto) onOpenPhoto(item, list, idx);
+              else if (viewSub === 'Shorts' || isShort) onOpenShort(item, list, idx, 'Bandhobi');
+              else onOpenVideo(item, list);
+            }
+          }}
+          hapticMedium={hapticMedium}
+          trackActivityEvent={trackActivityEvent}
+        />
       );
     },
     [allPhotosFiles, allShortsFiles, allClipsFiles, activeBandhobiList, rootMap, isPortrait, portraitSelectedDay, shuffleTrigger, onOpenPhoto, onOpenShort, onOpenVideo]
@@ -1230,21 +1223,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 </div>
               </div>
             ) : searchState.results.length > 0 ? (
-              /* Search Results: Exact Same Monolith Rectangular Grid as Photographs */
-              <div
-                className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-6"
-                style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-              >
-                {searchState.results.map((item: StageMediaItem, idx: number) => (
-                  <LivingMediaCard
-                    key={`${item.id}-${idx}`}
-                    item={item}
-                    aspectRatio="3/4"
-                    delayIdx={idx}
-                    onClick={() => onOpenPhoto(item, searchState.results, idx)}
-                  />
-                ))}
-              </div>
+              /* Search Results: Buffered Monolith Grid */
+              <BufferedMediaGrid
+                key={`search-${searchState.query}`}
+                pageKey={`search-${searchState.query}`}
+                itemsList={searchState.results}
+                aspectRatio="3/4"
+                onOpenItem={(item, list, idx) => onOpenPhoto(item, list, idx)}
+                hapticMedium={hapticMedium}
+                trackActivityEvent={trackActivityEvent}
+              />
             ) : (
               <div
                 className="font-firjar w-full flex-1 flex items-center justify-center py-24 text-white/40 text-xs tracking-widest uppercase font-bold"
