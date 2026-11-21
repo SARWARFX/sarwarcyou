@@ -933,61 +933,74 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     };
   }, [isModalOpen]);
 
-  // 1. Laptop Touchpad Two-Finger Wheel Gesture Engine (Chrome back/forward disabled on catalog)
+  // Gesture callback refs to prevent re-attaching listeners on every state change
+  const handleSwipeTabRef = useRef(handleSwipeTab);
+  handleSwipeTabRef.current = handleSwipeTab;
+
+  const handleSwipeSubfolderRef = useRef(handleSwipeSubfolder);
+  handleSwipeSubfolderRef.current = handleSwipeSubfolder;
+
+  // Persistent touchpad lock refs (survives tab/subfolder re-renders without reset)
+  const isWheelLockedRef = useRef<boolean>(false);
+  const wheelAccumulatorXRef = useRef<number>(0);
+  const wheelLockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 1. Laptop Touchpad Two-Finger Wheel Gesture Engine (Single deliberate action per physical swipe)
   useEffect(() => {
     if (isModalOpen || notFoundInfo.isOpen || showTelemetry) return;
     if (typeof window === 'undefined') return;
-
-    let wheelAccumulatorX = 0;
-    let isWheelLocked = false;
-    let wheelLockTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const handleWheel = (e: WheelEvent) => {
       const absDeltaX = Math.abs(e.deltaX);
       const absDeltaY = Math.abs(e.deltaY);
 
+      // If locked from a previous action in the current swipe, discard all residual momentum events
+      if (isWheelLockedRef.current) {
+        wheelAccumulatorXRef.current = 0;
+        // Extend lock while momentum events are still streaming from trackpad inertia
+        if (wheelLockTimerRef.current) clearTimeout(wheelLockTimerRef.current);
+        wheelLockTimerRef.current = setTimeout(() => {
+          isWheelLockedRef.current = false;
+          wheelAccumulatorXRef.current = 0;
+        }, 350);
+        return;
+      }
+
       // Horizontal dominance guard: horizontal scroll delta must clearly exceed vertical
       if (absDeltaX > 15 && absDeltaX > absDeltaY * 1.2) {
-        if (isWheelLocked) return;
-
-        wheelAccumulatorX += e.deltaX;
+        wheelAccumulatorXRef.current += e.deltaX;
         const isUpperZone = e.clientY <= window.innerHeight * 0.5;
-        const THRESHOLD = 65;
+        const THRESHOLD = 75;
 
-        if (Math.abs(wheelAccumulatorX) >= THRESHOLD) {
-          const isSwipeLeft = wheelAccumulatorX > 0; // deltaX > 0 is finger moving left -> NEXT
-          isWheelLocked = true;
-          wheelAccumulatorX = 0;
+        if (Math.abs(wheelAccumulatorXRef.current) >= THRESHOLD) {
+          const isSwipeLeft = wheelAccumulatorXRef.current > 0; // deltaX > 0 is finger moving left -> NEXT
+          // Engage persistent lock
+          isWheelLockedRef.current = true;
+          wheelAccumulatorXRef.current = 0;
 
           if (isUpperZone) {
-            handleSwipeTab(isSwipeLeft ? 'next' : 'prev');
+            handleSwipeTabRef.current(isSwipeLeft ? 'next' : 'prev');
           } else {
-            handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
+            handleSwipeSubfolderRef.current(isSwipeLeft ? 'next' : 'prev');
           }
 
-          if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
-          wheelLockTimeout = setTimeout(() => {
-            isWheelLocked = false;
-            wheelAccumulatorX = 0;
-          }, 550);
+          if (wheelLockTimerRef.current) clearTimeout(wheelLockTimerRef.current);
+          wheelLockTimerRef.current = setTimeout(() => {
+            isWheelLockedRef.current = false;
+            wheelAccumulatorXRef.current = 0;
+          }, 700);
         }
       } else {
-        wheelAccumulatorX = 0;
+        wheelAccumulatorXRef.current = 0;
       }
     };
 
     window.addEventListener('wheel', handleWheel, { passive: true });
     return () => {
       window.removeEventListener('wheel', handleWheel);
-      if (wheelLockTimeout) clearTimeout(wheelLockTimeout);
+      if (wheelLockTimerRef.current) clearTimeout(wheelLockTimerRef.current);
     };
-  }, [
-    isModalOpen,
-    notFoundInfo.isOpen,
-    showTelemetry,
-    handleSwipeTab,
-    handleSwipeSubfolder,
-  ]);
+  }, [isModalOpen, notFoundInfo.isOpen, showTelemetry]);
 
   // 2. Mobile & Tablet Touch Swipe Gesture Engine (50% Upper = Tabs, 50% Lower = Pages)
   useEffect(() => {
@@ -1016,16 +1029,16 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       const duration = Date.now() - touchStartTime;
 
       // Strict horizontal swipe check: horizontal delta must exceed vertical by 1.5x
-      if (absX > 40 && absX >= 1.5 * absY && duration < 600) {
+      if (absX > 45 && absX >= 1.5 * absY && duration < 600) {
         const isSwipeLeft = deltaX < 0; // finger swiped right-to-left -> NEXT
         const isUpperZone = touchStartY <= window.innerHeight * 0.5;
 
         if (isUpperZone) {
           // Upper half: Major Tabs
-          handleSwipeTab(isSwipeLeft ? 'next' : 'prev');
+          handleSwipeTabRef.current(isSwipeLeft ? 'next' : 'prev');
         } else {
           // Lower half: Subfolder Pages
-          handleSwipeSubfolder(isSwipeLeft ? 'next' : 'prev');
+          handleSwipeSubfolderRef.current(isSwipeLeft ? 'next' : 'prev');
         }
       }
     };
@@ -1036,13 +1049,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [
-    isModalOpen,
-    notFoundInfo.isOpen,
-    showTelemetry,
-    handleSwipeTab,
-    handleSwipeSubfolder,
-  ]);
+  }, [isModalOpen, notFoundInfo.isOpen, showTelemetry]);
 
   return (
     <div
