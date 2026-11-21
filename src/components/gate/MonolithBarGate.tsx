@@ -15,6 +15,7 @@ import {
 } from '../../utils/urlRouter';
 import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { BufferedMediaGrid } from './BufferedMediaGrid';
+import { InitializingArchiveLoader } from './InitializingArchiveLoader';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
@@ -1202,25 +1203,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <div className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4">
             {searchState.isLoading ? (
               /* High-Tech Cybernetic Text-as-Slider Loading */
-              <div className="w-full flex-1 flex items-center justify-center py-28 px-4">
-                <div
-                  className="relative inline-block font-bold uppercase select-none text-base sm:text-lg md:text-xl tracking-[0.22em] whitespace-nowrap"
-                  style={{ fontFamily: "'Science Gothic', sans-serif" }}
-                >
-                  {/* Base Layer */}
-                  <div className="opacity-25">
-                    <span className="text-white">INITIALIZING </span>
-                    <span className="text-[#38bdf8]">ARCHIVE</span>
-                  </div>
-
-                  {/* Active Progress Layer: Animated sweeping shimmer */}
-                  <div className="absolute inset-0 overflow-hidden animate-[pulse_1.5s_ease-in-out_infinite] w-3/4 border-r-2 border-[#38bdf8] shadow-[2px_0_10px_rgba(56,189,248,0.85)]">
-                    <div className="whitespace-nowrap">
-                      <span className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">INITIALIZING </span>
-                      <span className="text-[#38bdf8] drop-shadow-[0_0_12px_#38bdf8]">ARCHIVE</span>
-                    </div>
-                  </div>
-                </div>
+              <div className="w-full flex-1 flex items-center justify-center py-28 px-4 select-none">
+                <InitializingArchiveLoader progress={70} scheme="red" />
               </div>
             ) : searchState.results.length > 0 ? (
               /* Search Results: Buffered Monolith Grid */

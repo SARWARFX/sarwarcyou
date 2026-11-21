@@ -684,6 +684,20 @@ html, body, #root {
    DIRECT INSTANT SWITCHING (Tab & Page animations removed per user specification)
    ========================================================================== */
 
+@keyframes brandGradMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.animate-brand-grad-move {
+  background-size: 200% auto;
+  animation: brandGradMove 7s linear infinite;
+}
+
 /* ==========================================================================
    SARWAR.CYOU LUXURY AVANT-GARDE MOTION SYSTEM
    ========================================================================== */

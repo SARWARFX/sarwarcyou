@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import type { StageMediaItem } from '../../types';
 import { getMediaUrl } from '../../utils/imageUrlResolver';
+import { InitializingArchiveLoader } from './InitializingArchiveLoader';
 
 export interface BandhobiSlidingFeaturedPhotosProps {
   photos: StageMediaItem[];
@@ -109,34 +110,10 @@ export const BandhobiSlidingFeaturedPhotos: React.FC<BandhobiSlidingFeaturedPhot
       className="w-full h-full flex items-center justify-start overflow-hidden relative select-none pl-6 sm:pl-10"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
-      {/* High-Tech Cybernetic Text-as-Slider Loading: Color fills left-to-right as progress */}
+      {/* High-Tech Cybernetic Text-as-Slider Loading (Tab Switch: Blue Scheme) */}
       {!isPlaybackReady && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-transparent pointer-events-none select-none px-4">
-          <div
-            className="relative inline-block font-bold uppercase select-none text-base sm:text-lg md:text-xl tracking-[0.22em] whitespace-nowrap"
-            style={{ fontFamily: "'Science Gothic', sans-serif" }}
-          >
-            {/* Base Layer: Initial two-color dimmed state */}
-            <div className="opacity-25 transition-opacity duration-300">
-              <span className="text-white">INITIALIZING </span>
-              <span className="text-[#38bdf8]">ARCHIVE</span>
-            </div>
-
-            {/* Active Progress Layer: Fills in glowing vibrant colors from left to the very right edge */}
-            <div
-              className="absolute inset-y-0 left-0 overflow-hidden transition-[width] duration-300 ease-out"
-              style={{
-                width: `${displayProgress}%`,
-                borderRight: displayProgress < 100 ? '2px solid #38bdf8' : 'none',
-                boxShadow: displayProgress < 100 ? '2px 0 10px rgba(56,189,248,0.85)' : 'none',
-              }}
-            >
-              <div className="whitespace-nowrap">
-                <span className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">INITIALIZING </span>
-                <span className="text-[#38bdf8] drop-shadow-[0_0_12px_#38bdf8]">ARCHIVE</span>
-              </div>
-            </div>
-          </div>
+          <InitializingArchiveLoader progress={displayProgress} scheme="blue" />
         </div>
       )}
 

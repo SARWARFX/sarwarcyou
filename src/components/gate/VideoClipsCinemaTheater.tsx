@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import type { StageMediaItem } from '../../types';
 import { getVideoStreamUrl, getMediaUrl } from '../../utils/imageUrlResolver';
 import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
+import { InitializingArchiveLoader } from './InitializingArchiveLoader';
 
 export interface VideoClipsCinemaTheaterProps {
   clips: StageMediaItem[];
@@ -532,34 +533,10 @@ export const VideoClipsCinemaTheater: React.FC<VideoClipsCinemaTheaterProps> = (
       className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden select-none min-h-[360px] sm:min-h-[460px] md:min-h-[540px]"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
-      {/* High-Tech Cybernetic Text-as-Slider Loading: Color fills left-to-right as progress */}
+      {/* High-Tech Cybernetic Text-as-Slider Loading (Tab Switch: Blue Scheme) */}
       {!isPlaybackReady && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-transparent pointer-events-none select-none px-4">
-          <div
-            className="relative inline-block font-bold uppercase select-none text-base sm:text-lg md:text-xl tracking-[0.22em] whitespace-nowrap"
-            style={{ fontFamily: "'Science Gothic', sans-serif" }}
-          >
-            {/* Base Layer: Initial two-color dimmed state */}
-            <div className="opacity-25 transition-opacity duration-300">
-              <span className="text-white">INITIALIZING </span>
-              <span className="text-[#38bdf8]">ARCHIVE</span>
-            </div>
-
-            {/* Active Progress Layer: Fills in glowing vibrant colors from left to the very right edge */}
-            <div
-              className="absolute inset-y-0 left-0 overflow-hidden transition-[width] duration-300 ease-out"
-              style={{
-                width: `${displayProgress}%`,
-                borderRight: displayProgress < 100 ? '2px solid #38bdf8' : 'none',
-                boxShadow: displayProgress < 100 ? '2px 0 10px rgba(56,189,248,0.85)' : 'none',
-              }}
-            >
-              <div className="whitespace-nowrap">
-                <span className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">INITIALIZING </span>
-                <span className="text-[#38bdf8] drop-shadow-[0_0_12px_#38bdf8]">ARCHIVE</span>
-              </div>
-            </div>
-          </div>
+          <InitializingArchiveLoader progress={displayProgress} scheme="blue" />
         </div>
       )}
 
