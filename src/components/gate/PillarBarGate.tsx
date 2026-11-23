@@ -33,8 +33,10 @@ import {
 } from '../../utils/offlineManager';
 import {
   getCachedMediaRecords,
-  clearAllWebsiteData,
+  clearCachedMedia,
+  type CacheCategory,
 } from '../../utils/cachedMediaManager';
+import { ClearCacheConfirmDialog } from '../common/ClearCacheConfirmDialog';
 
 export interface PillarBarGateProps {
   items: StageMediaItem[];
@@ -242,6 +244,27 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
 
     return { cachedPhotos: p, cachedShorts: s, cachedClips: c };
   }, [cacheUpdateTrigger]);
+
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+
+  const handleExecuteClearCache = useCallback(
+    async (deleteAll: boolean) => {
+      if (deleteAll) {
+        await clearCachedMedia('All');
+      } else {
+        const cat: CacheCategory =
+          homeSubfolder === 'Photographs'
+            ? 'Photographs'
+            : homeSubfolder === 'Shorts'
+            ? 'Shorts'
+            : homeSubfolder === 'Video Clips'
+            ? 'Video Clips'
+            : 'All';
+        await clearCachedMedia(cat);
+      }
+    },
+    [homeSubfolder]
+  );
 
 
   // Screen orientation detection for portrait layout
@@ -1402,9 +1425,9 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
         {/* Bottom Right Corner: CLEAR CACHE (Available on Homepage cached tab when cached items exist) */}
         {tabIndex === 0 && (cachedPhotos.length > 0 || cachedShorts.length > 0 || cachedClips.length > 0) && !searchState.isActive && (
           <button
-            onClick={async () => {
+            onClick={() => {
               hapticMedium();
-              await clearAllWebsiteData();
+              setIsClearConfirmOpen(true);
             }}
             className="font-firjar text-[11.5px] sm:text-[12px] text-[#ef4444] hover:text-[#f87171] tracking-wider uppercase font-bold cursor-pointer transition-colors bg-transparent border-0 outline-none p-0 shrink-0 ml-4 whitespace-nowrap select-none"
             style={{ borderRadius: 0, outline: 'none', border: 'none', fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
@@ -1413,6 +1436,14 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
           </button>
         )}
       </footer>
+
+      {/* Clear Cache Confirmation Dialog */}
+      <ClearCacheConfirmDialog
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        currentPageName={homeSubfolder}
+        onConfirm={handleExecuteClearCache}
+      />
 
       {/* 24-HOUR DEEP DIURNAL TELEMETRY MATRIX VIEW */}
       {showTelemetry && (

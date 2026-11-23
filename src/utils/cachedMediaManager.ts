@@ -1,5 +1,6 @@
 import type { StageMediaItem } from '../types';
 import { getMediaUrl } from './imageUrlResolver';
+import { isVideoExtension } from './mediaTypeDetector';
 
 export interface CachedMediaRecord {
   id: string;
@@ -120,32 +121,78 @@ export function getTotalCachedStorageSize(): string {
   return formatBytes(total);
 }
 
+export type CacheCategory = 'Photographs' | 'Shorts' | 'Video Clips' | 'All';
+
 /**
- * Completely purges all cached media and browser data for the website
- * so the browser has no data about the website unless cached again.
+ * Selectively clears cached media records.
+ * NEVER deletes or modifies graphs or telemetry analytics data.
  */
-export async function clearAllWebsiteData(): Promise<void> {
+export async function clearCachedMedia(category: CacheCategory = 'All'): Promise<void> {
   if (typeof window === 'undefined') return;
 
+  const records = getCachedMediaRecords();
+  const isMatch = (item: StageMediaItem) => {
+    if (category === 'All') return true;
+    const isShort =
+      item.mediaType === 'short' ||
+      (item.path || item.url || '').toLowerCase().includes('/shorts/');
+    const isVid =
+      !isShort &&
+      (item.type === 'video' ||
+        item.mediaType === 'clip' ||
+        isVideoExtension(item.path || item.url || item.name || ''));
+
+    if (category === 'Shorts') return isShort;
+    if (category === 'Video Clips') return isVid;
+    if (category === 'Photographs') return !isShort && !isVid;
+    return true;
+  };
+
+  const toRemove = records.filter((r) => r.item && isMatch(r.item));
+  const remaining = records.filter((r) => !r.item || !isMatch(r.item));
+
+  // Purge specific asset bytes from CacheStorage
   try {
     if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
+      if (category === 'All') {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys.filter((k) => k.includes('media-cache')).map((k) => caches.delete(k))
+        );
+      } else {
+        const cache = await caches.open('sarwar-media-cache-v1');
+        for (const rec of toRemove) {
+          const assetUrl = getMediaUrl(rec.item.url || rec.item.path || rec.item.thumbnail || rec.item.poster || '');
+          if (assetUrl) {
+            await cache.delete(assetUrl);
+          }
+        }
+      }
     }
   } catch (err) {
     console.warn('Failed to clear CacheStorage:', err);
   }
 
+  // Update localStorage without touching graphs, telemetry, or analytics!
   try {
-    localStorage.clear();
-    sessionStorage.clear();
-    // Explicitly record that visitor purged cache
-    localStorage.setItem(CLEARED_FLAG_KEY, 'true');
+    if (remaining.length === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(CLEARED_FLAG_KEY, 'true');
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+    }
   } catch (err) {
-    console.warn('Failed to clear storage:', err);
+    console.warn('Failed to update localStorage:', err);
   }
 
   window.dispatchEvent(new CustomEvent('cached-media-updated'));
+}
+
+/**
+ * Backward compatibility alias: clears all media caches while protecting graph data.
+ */
+export async function clearAllWebsiteData(): Promise<void> {
+  await clearCachedMedia('All');
 }
 
 /**
