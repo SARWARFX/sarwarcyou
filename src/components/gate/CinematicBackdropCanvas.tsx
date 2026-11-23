@@ -307,28 +307,31 @@ export const CinematicBackdropCanvas: React.FC<{
     }
     let tunnelStars: TunnelStar[] = [];
 
-    const createTunnelStar = (): TunnelStar => {
+    const createTunnelStar = (randomInitialRadius = false): TunnelStar => {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 2.5 + 1.5;
+      const speed = Math.random() * 0.35 + 0.2; // Slowed down from 2.5-4.0 to smooth, calm drift
+      const cx = width * 0.5;
+      const cy = height * 0.5;
+      const maxR = Math.sqrt(cx * cx + cy * cy);
       return {
         angle,
-        radius: Math.random() * 40 * dpr,
+        radius: randomInitialRadius ? Math.random() * maxR : Math.random() * 25 * dpr,
         speed,
-        length: Math.random() * 18 + 8,
+        length: Math.random() * 12 + 6,
         color: Math.random() < 0.7 ? '#38bdf8' : '#a855f7',
       };
     };
 
     const initHyperspaceTunnel = () => {
-      const count = 180;
+      const count = 160;
       tunnelStars = [];
       for (let i = 0; i < count; i++) {
-        tunnelStars.push(createTunnelStar());
+        tunnelStars.push(createTunnelStar(true));
       }
     };
 
     const renderHyperspaceTunnel = () => {
-      ctx.fillStyle = 'rgba(3, 5, 10, 0.28)';
+      ctx.fillStyle = 'rgba(3, 5, 10, 0.22)';
       ctx.fillRect(0, 0, width, height);
 
       const cx = width * 0.5;
@@ -336,9 +339,10 @@ export const CinematicBackdropCanvas: React.FC<{
       const maxR = Math.sqrt(cx * cx + cy * cy);
 
       for (let s of tunnelStars) {
-        s.radius += s.speed * dpr * (s.radius / (60 * dpr) + 0.4);
+        // Smooth, gentle outward drift matching other calm ambient backgrounds
+        s.radius += s.speed * dpr * (s.radius / (350 * dpr) + 0.6);
         if (s.radius > maxR) {
-          Object.assign(s, createTunnelStar());
+          Object.assign(s, createTunnelStar(false));
         }
 
         const x1 = cx + Math.cos(s.angle) * s.radius;
