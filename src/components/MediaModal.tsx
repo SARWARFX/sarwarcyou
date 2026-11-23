@@ -19,6 +19,7 @@ import { useBackButton } from '../utils/backButtonManager';
 import { hapticMedium, hapticLight } from '../utils/hapticsManager';
 import { getMediaShortId, updateBrowserUrl } from '../utils/urlRouter';
 import { HeaderBrandLogo } from './updater/HeaderBrandLogo';
+import { addCachedMediaItem } from '../utils/cachedMediaManager';
 import {
   LaserCloseIcon,
   LaserPrevIcon,
@@ -168,6 +169,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setRotation(0);
       rotationRef.current = 0;
       if (items[next]) {
+        addCachedMediaItem(items[next]);
         updateBrowserUrl('/photographs/' + getMediaShortId(items[next]), true);
       }
     }
@@ -183,6 +185,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       setRotation(0);
       rotationRef.current = 0;
       if (items[prev]) {
+        addCachedMediaItem(items[prev]);
         updateBrowserUrl('/photographs/' + getMediaShortId(items[prev]), true);
       }
     }
@@ -214,6 +217,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const currentItem = hasItemList ? items[activeIdx] : null;
   const activeUrl = currentItem?.url || url;
   const activeTitle = currentItem?.title || title || (type === 'video' ? 'Video Stream' : 'Photograph');
+
+  useEffect(() => {
+    if (isOpen && currentItem) {
+      addCachedMediaItem(currentItem);
+    }
+  }, [isOpen, currentItem]);
 
   // Reset whenever displayed photo changes
   useEffect(() => {

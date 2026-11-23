@@ -130,7 +130,7 @@ export const CachedMediaVaultModal: React.FC<CachedMediaVaultModalProps> = ({
           handleClose();
         }
       }}
-      className={`fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none cursor-pointer overflow-hidden ${
+      className={`fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-6 select-none cursor-pointer overflow-hidden ${
         isClosing ? 'animate-holo-backdrop-out' : 'animate-holo-backdrop-in'
       }`}
       style={{
@@ -144,7 +144,7 @@ export const CachedMediaVaultModal: React.FC<CachedMediaVaultModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-2xl max-h-[85dvh] bg-[#06080e]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.85)] flex flex-col p-4 sm:p-6 relative overflow-hidden cursor-default ${
+        className={`w-full max-w-5xl lg:max-w-6xl h-[calc(100dvh-130px)] sm:h-[82vh] max-h-[860px] bg-[#06080e]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_30px_90px_rgba(0,0,0,0.92)] flex flex-col p-4 sm:p-7 relative overflow-hidden cursor-default ${
           isClosing ? 'animate-holo-beam-close' : 'animate-holo-beam-open'
         }`}
         style={{
@@ -165,14 +165,23 @@ export const CachedMediaVaultModal: React.FC<CachedMediaVaultModalProps> = ({
             // CACHED MEDIA
           </span>
 
-          <button
-            onClick={handleClearCache}
-            disabled={records.length === 0 || isClearing}
-            className="text-[10px] sm:text-[11.5px] font-bold tracking-wider uppercase text-[#ef4444] hover:text-white transition-colors cursor-pointer bg-transparent border-0 p-0 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
-            style={{ textShadow: '0 0 8px rgba(239, 68, 68, 0.4)' }}
-          >
-            CLEAR CACHE
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleClearCache}
+              disabled={records.length === 0 || isClearing}
+              className="text-[10px] sm:text-[11.5px] font-bold tracking-wider uppercase text-[#ef4444] hover:text-white transition-colors cursor-pointer bg-transparent border-0 p-0 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ textShadow: '0 0 8px rgba(239, 68, 68, 0.4)' }}
+            >
+              CLEAR CACHE
+            </button>
+            <button
+              onClick={handleClose}
+              className="text-white/60 hover:text-white transition-colors cursor-pointer text-base font-mono bg-transparent border-0 p-0 outline-none leading-none"
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Minimalist Subfolder-Style Category Switcher */}
@@ -216,7 +225,7 @@ export const CachedMediaVaultModal: React.FC<CachedMediaVaultModalProps> = ({
               // NO MEDIA CACHED
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 sm:gap-3.5">
               {activeRecords.map((rec, idx) => {
                 const item = rec.item;
                 const imageSrc =

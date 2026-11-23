@@ -1,10 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import type { StageMediaItem } from '../../types';
-import { getMediaUrl } from '../../utils/imageUrlResolver';
+import { getMediaUrl, getVideoStreamUrl } from '../../utils/imageUrlResolver';
+import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
+import { isVideoExtension } from '../../utils/mediaTypeDetector';
 import { InitializingArchiveLoader } from './InitializingArchiveLoader';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
-import { getFeaturedCachedPool } from '../../utils/cachedMediaManager';
+import { getCachedMediaRecords } from '../../utils/cachedMediaManager';
 import { CachedMediaVaultModal } from './CachedMediaVaultModal';
 
 export interface HomepageCachedFeaturedProps {
@@ -20,9 +22,12 @@ export interface HomepageCachedFeaturedProps {
 
 /**
  * Uniform Homepage Featured Page:
+ * - Rules: Picks up to 10 media cards from cached media.
+ * - Maximum 6 shorts (always playing, satisfying GPU hardware decoder limit) + remaining slots filled with cached images (photos).
+ * - Excludes landscape videos as cards are portrait (9:16).
  * - Wide Screen: Continuous sliding strip of 100% text-free cached media cards.
  * - Portrait Screen: Dual graphs (7-Day at top + 24-Hour at bottom) with the text-free sliding strip in middle.
- * - Tapping any media card opens the sleek, minimal dynamic Cached Media window.
+ * - Tapping any media card opens the enlarged Cached Media window.
  * - Zero rounded corners, zero outlines, zero card text.
  */
 export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
@@ -37,31 +42,73 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
 }) => {
   const [displayProgress, setDisplayProgress] = useState(0);
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
-  const [cachedItems, setCachedItems] = useState<StageMediaItem[]>([]);
+  const [cacheUpdateTrigger, setCacheUpdateTrigger] = useState(0);
   const [isVaultOpen, setIsVaultOpen] = useState(false);
 
-  // Load cached media or seed items
+  // Listen to cached-media-updated custom events
   useEffect(() => {
-    const pool = getFeaturedCachedPool(allItems);
-    setCachedItems(pool);
-
     const handleUpdate = () => {
-      setCachedItems(getFeaturedCachedPool(allItems));
+      setCacheUpdateTrigger((prev) => prev + 1);
     };
     window.addEventListener('cached-media-updated', handleUpdate);
     return () => window.removeEventListener('cached-media-updated', handleUpdate);
-  }, [allItems]);
+  }, []);
 
-  // Pick up to 20 cached items and shuffle
+  // Pick maximum 6 shorts and fill up to 10 total cards with cached photos
   const selectedBatch = useMemo(() => {
-    if (!cachedItems || cachedItems.length === 0) return [];
-    const pool = [...cachedItems];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+    const records = getCachedMediaRecords();
+    const shortsPool: StageMediaItem[] = [];
+    const photosPool: StageMediaItem[] = [];
+
+    const categorizeItem = (item: StageMediaItem) => {
+      const isShort =
+        item.mediaType === 'short' ||
+        (item.path || item.url || '').toLowerCase().includes('/shorts/');
+      const isVid =
+        !isShort &&
+        (item.type === 'video' ||
+          item.mediaType === 'clip' ||
+          isVideoExtension(item.path || item.url || item.name || ''));
+
+      // Skip landscape video clips from homepage showcase (portrait cards only)
+      if (isShort) {
+        shortsPool.push(item);
+      } else if (!isVid) {
+        photosPool.push(item);
+      }
+    };
+
+    records.forEach((r) => {
+      if (r && r.item) categorizeItem(r.item);
+    });
+
+    // Fallback seed from catalog pool if visitor is brand new and has no cached media yet
+    if (shortsPool.length === 0 && photosPool.length === 0 && allItems && allItems.length > 0) {
+      allItems.forEach((item) => categorizeItem(item));
     }
-    return pool.slice(0, 20);
-  }, [cachedItems, randomSeed]);
+
+    // Rule: Pick maximum 6 shorts
+    const maxShorts = 6;
+    const pickedShorts = shortsPool.slice(0, maxShorts);
+
+    // Remaining slots up to 10 total cards filled with images
+    const slotsForPhotos = Math.max(0, 10 - pickedShorts.length);
+    const pickedPhotos = photosPool.slice(0, slotsForPhotos);
+
+    const combined = [...pickedShorts, ...pickedPhotos];
+
+    // Shuffle slightly with randomSeed if provided
+    if (randomSeed !== undefined && combined.length > 0) {
+      const shuffled = [...combined];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled.slice(0, 10);
+    }
+
+    return combined.slice(0, 10);
+  }, [allItems, cacheUpdateTrigger, randomSeed]);
 
   // Duplicate for seamless infinite sliding loop
   const displayList = useMemo(() => {
@@ -69,7 +116,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
     return [...selectedBatch, ...selectedBatch];
   }, [selectedBatch]);
 
-  // Preload initial batch for bufferless reveal
+  // Fast preloading so cards are bufferless
   useEffect(() => {
     if (selectedBatch.length === 0) {
       setIsPlaybackReady(true);
@@ -79,8 +126,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
     setIsPlaybackReady(false);
     setDisplayProgress(0);
 
-    const initialBatch = selectedBatch.slice(0, Math.min(8, selectedBatch.length));
-    const total = initialBatch.length;
+    const total = selectedBatch.length;
     let loadedCount = 0;
     let isCancelled = false;
 
@@ -95,23 +141,44 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
           if (!isCancelled) {
             setIsPlaybackReady(true);
           }
-        }, 300);
+        }, 150);
       }
     };
 
-    initialBatch.forEach((item) => {
-      const src =
-        item.thumbnail ||
-        item.poster ||
-        getMediaUrl(item.url || item.path || '');
-      if (!src) {
-        checkComplete();
-        return;
+    selectedBatch.forEach((item) => {
+      const isShort =
+        item.mediaType === 'short' ||
+        (item.path || item.url || '').toLowerCase().includes('/shorts/');
+
+      if (isShort) {
+        // Video poster/thumbnail check
+        const poster =
+          item.thumbnail ||
+          resolveStaticVideoThumbnail(item) ||
+          item.poster ||
+          getMediaUrl(item.url || item.path || '');
+        if (!poster) {
+          checkComplete();
+          return;
+        }
+        const img = new Image();
+        img.onload = checkComplete;
+        img.onerror = checkComplete;
+        img.src = poster;
+      } else {
+        const src =
+          item.thumbnail ||
+          item.poster ||
+          getMediaUrl(item.url || item.path || '');
+        if (!src) {
+          checkComplete();
+          return;
+        }
+        const img = new Image();
+        img.onload = checkComplete;
+        img.onerror = checkComplete;
+        img.src = src;
       }
-      const img = new Image();
-      img.onload = checkComplete;
-      img.onerror = checkComplete;
-      img.src = src;
     });
 
     return () => {
@@ -121,6 +188,57 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
 
   const handleCardClick = () => {
     setIsVaultOpen(true);
+  };
+
+  // Helper to render media card content (Playing short video or photo image)
+  const renderCardContent = (item: StageMediaItem, idx: number) => {
+    const isShort =
+      item.mediaType === 'short' ||
+      (item.path || item.url || '').toLowerCase().includes('/shorts/');
+
+    if (isShort) {
+      const videoSrc = getVideoStreamUrl(item.url || item.path || '');
+      const posterSrc =
+        item.thumbnail ||
+        resolveStaticVideoThumbnail(item) ||
+        item.poster ||
+        getMediaUrl(item.url || item.path || '');
+
+      return (
+        <video
+          ref={(el) => {
+            if (el && el.paused) {
+              el.muted = true;
+              el.defaultMuted = true;
+              el.play().catch(() => {});
+            }
+          }}
+          src={videoSrc}
+          poster={posterSrc}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover block filter saturate-[0.98] contrast-[1.03]"
+          style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+        />
+      );
+    }
+
+    const imageSrc =
+      item.thumbnail ||
+      item.poster ||
+      getMediaUrl(item.url || item.path || '');
+
+    return (
+      <img
+        src={imageSrc}
+        alt=""
+        loading={idx < 6 ? 'eager' : 'lazy'}
+        className="w-full h-full object-cover block filter saturate-[0.98] contrast-[1.03]"
+        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+      />
+    );
   };
 
   // -------------------------------------------------------------
@@ -141,7 +259,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
           />
         </div>
 
-        {/* Middle: Text-Free Sliding Showcase */}
+        {/* Middle: Text-Free Sliding Showcase (Max 10 Cards, Always Playing Shorts) */}
         {displayList.length === 0 ? (
           <div
             onClick={handleCardClick}
@@ -171,33 +289,20 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
                 transform: 'translate3d(0, 0, 0)',
               }}
             >
-              {displayList.map((item, idx) => {
-                const imageSrc =
-                  item.thumbnail ||
-                  item.poster ||
-                  getMediaUrl(item.url || item.path || '');
-
-                return (
-                  <div
-                    key={`${item.id || item.url || item.name}-${idx}`}
-                    onClick={handleCardClick}
-                    className="w-[130px] sm:w-[155px] h-[210px] sm:h-[250px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] relative select-none"
-                    style={{
-                      borderRadius: 0,
-                      outline: 'none',
-                      border: 'none',
-                    }}
-                  >
-                    <img
-                      src={imageSrc}
-                      alt=""
-                      loading={idx < 6 ? 'eager' : 'lazy'}
-                      className="w-full h-full object-cover block filter saturate-[0.98] contrast-[1.03]"
-                      style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-                    />
-                  </div>
-                );
-              })}
+              {displayList.map((item, idx) => (
+                <div
+                  key={`${item.id || item.url || item.name}-${idx}`}
+                  onClick={handleCardClick}
+                  className="w-[130px] sm:w-[155px] h-[210px] sm:h-[250px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] relative select-none"
+                  style={{
+                    borderRadius: 0,
+                    outline: 'none',
+                    border: 'none',
+                  }}
+                >
+                  {renderCardContent(item, idx)}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -220,7 +325,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
   }
 
   // -------------------------------------------------------------
-  // WIDE SCREEN VIEW: Uniform Full-Width Sliding Strip of Text-Free Cards
+  // WIDE SCREEN VIEW: Uniform Full-Width Sliding Strip (Max 10 Cards)
   // -------------------------------------------------------------
   return (
     <div
@@ -242,7 +347,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
           // NO MEDIA CACHED
         </div>
       ) : (
-        /* Infinite Horizontal Sliding Strip of Text-Free Cached Media */
+        /* Infinite Horizontal Sliding Strip of Text-Free Cached Media (Max 10 Unique Cards) */
         <div
           className={`flex gap-4 sm:gap-6 w-max transition-opacity duration-700 ${
             isPlaybackReady
@@ -257,41 +362,23 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
             transform: 'translate3d(0, 0, 0)',
           }}
         >
-          {displayList.map((item, idx) => {
-            const imageSrc =
-              item.thumbnail ||
-              item.poster ||
-              getMediaUrl(item.url || item.path || '');
-
-            return (
-              <div
-                key={`${item.id || item.url || item.name}-${idx}`}
-                onClick={handleCardClick}
-                className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative select-none"
-                style={{
-                  borderRadius: 0,
-                  outline: 'none',
-                  border: 'none',
-                  willChange: 'transform',
-                  transform: 'translateZ(0)',
-                  backfaceVisibility: 'hidden',
-                }}
-              >
-                <img
-                  src={imageSrc}
-                  alt=""
-                  loading={idx < 8 ? 'eager' : 'lazy'}
-                  className="w-full h-full object-cover block filter saturate-[0.98] contrast-[1.03]"
-                  style={{
-                    borderRadius: 0,
-                    outline: 'none',
-                    border: 'none',
-                    transform: 'translateZ(0)',
-                  }}
-                />
-              </div>
-            );
-          })}
+          {displayList.map((item, idx) => (
+            <div
+              key={`${item.id || item.url || item.name}-${idx}`}
+              onClick={handleCardClick}
+              className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative select-none"
+              style={{
+                borderRadius: 0,
+                outline: 'none',
+                border: 'none',
+                willChange: 'transform',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden',
+              }}
+            >
+              {renderCardContent(item, idx)}
+            </div>
+          ))}
         </div>
       )}
 

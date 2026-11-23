@@ -1,4 +1,5 @@
 import type { StageMediaItem } from '../types';
+import { getMediaUrl } from './imageUrlResolver';
 
 export interface CachedMediaRecord {
   id: string;
@@ -77,9 +78,25 @@ export function addCachedMediaItem(item: StageMediaItem, explicitBytes?: number)
       fileSizeFormatted: formatBytes(estimatedBytes),
     };
 
-    const nextList = [newRecord, ...filtered].slice(0, 48);
+    const nextList = [newRecord, ...filtered].slice(0, 500);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
     window.dispatchEvent(new CustomEvent('cached-media-updated'));
+
+    // Cache actual asset bytes in CacheStorage to prevent re-fetching from server
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      const assetUrl = getMediaUrl(item.url || item.path || item.thumbnail || item.poster || '');
+      if (assetUrl && assetUrl.startsWith('http')) {
+        caches.open('sarwar-media-cache-v1').then((cache) => {
+          fetch(assetUrl, { mode: 'cors', credentials: 'omit' })
+            .then((res) => {
+              if (res.ok) {
+                cache.put(assetUrl, res);
+              }
+            })
+            .catch(() => {});
+        }).catch(() => {});
+      }
+    }
   } catch (err) {
     console.warn('Failed to save item to cached media vault:', err);
   }

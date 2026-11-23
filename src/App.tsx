@@ -829,6 +829,7 @@ function App() {
               onSelectItem={(item) => {
                 setTheaterState((prev) => ({ ...prev, item }));
                 addRecentMediaItem(item);
+                addCachedMediaItem(item);
               }}
               onSelectFolder={(folder) => {
                 if (folder.items.length > 0) {
@@ -857,6 +858,7 @@ function App() {
                 }));
                 if (shortsState.shorts[idx]) {
                   addRecentMediaItem(shortsState.shorts[idx]);
+                  addCachedMediaItem(shortsState.shorts[idx]);
                 }
               }}
             />
@@ -888,6 +890,7 @@ function App() {
                   const nextItem = prev.items[idx] || prev.item;
                   if (nextItem) {
                     addRecentMediaItem(nextItem);
+                    addCachedMediaItem(nextItem);
                   }
                   return {
                     ...prev,
