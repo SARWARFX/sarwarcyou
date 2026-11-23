@@ -17,7 +17,6 @@ import { MediaNotFoundDialog } from '../common/MediaNotFoundDialog';
 import { BufferedMediaGrid } from './BufferedMediaGrid';
 import { InitializingArchiveLoader } from './InitializingArchiveLoader';
 import { LaserSparkLogo } from '../brand/LaserSparkLogo';
-import { TopMiddleNetworkStatus } from '../navigation/TopMiddleNetworkStatus';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { HomepageSlidingShorts } from './HomepageSlidingShorts';
 import { PhotographsSlidingFeatured } from './PhotographsSlidingFeatured';
@@ -1168,10 +1167,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           </nav>
         </div>
 
-        {/* Center: Top-Middle Network Status (Silent on Wi-Fi) */}
-        <div className="flex-1 flex justify-center pt-1">
-          <TopMiddleNetworkStatus />
-        </div>
+        {/* Center: Spacer */}
+        <div className="flex-1" />
 
         {/* Right: Clean Tactical Telemetry Graph (Desktop/Tablet Only) */}
         {!isPortrait && (
