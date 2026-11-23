@@ -208,7 +208,7 @@ export const NetworkStatusDialog: React.FC = () => {
     );
   }
 
-  // 3. Green Signal: Unmetered Wi-Fi Connected
+  // 3. Green Signal: Wi-Fi Connected
   if (currentNetwork === 'wifi' && showWifiModal) {
     return (
       <div
@@ -225,11 +225,11 @@ export const NetworkStatusDialog: React.FC = () => {
         >
           <h3 className="text-base font-bold font-mono tracking-tight text-[#10b981] uppercase flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#10b981] inline-block" />
-            // UNMETERED WI-FI CONNECTED
+            // WI-FI CONNECTED
           </h3>
 
           <p className="text-xs text-neutral-300 font-sans leading-relaxed">
-            Your device is connected to an unmetered high-speed Wi-Fi network. High-bitrate media streaming, shorts, and video playback are fully optimized with unlimited data allowance. You are good to go with no worries.
+            Your device is connected to a Wi-Fi network. High-bitrate media streaming, shorts, and video playback are fully optimized with unlimited data allowance. You are good to go with no worries.
           </p>
 
           <div className="bg-[#030406] p-2.5 text-[11px] font-mono text-neutral-400 select-text flex items-center justify-between">
