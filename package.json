@@ -19,7 +19,6 @@
     "swr": "^2.5.1"
   },
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/fetch-jsonp": "^1.0.0",
     "@types/node": "^24.13.3",
