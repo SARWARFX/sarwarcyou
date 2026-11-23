@@ -1103,14 +1103,12 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               <LaserSparkLogo width={isPortrait ? 175 : 240} height={isPortrait ? 24 : 33} interactive={false} />
             </a>
 
-            {/* Desktop Only: Search Bar beside Logo */}
-            {!isPortrait && (
-              <CyberSearchBar
-                onSearch={handleWebImageSearch}
-                onClear={handleClearSearch}
-                isLoading={searchState.isLoading}
-              />
-            )}
+            {/* Universal Search Bar beside Logo for Any Screen */}
+            <CyberSearchBar
+              onSearch={handleWebImageSearch}
+              onClear={handleClearSearch}
+              isLoading={searchState.isLoading}
+            />
           </div>
 
           {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}
@@ -1175,16 +1173,8 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
           <TopMiddleNetworkStatus />
         </div>
 
-        {/* Right: In Portrait -> Search Box at Top Right Corner! In Landscape -> Tactical Telemetry Graph */}
-        {isPortrait ? (
-          <div className="shrink-0 flex items-center justify-end pt-0.5">
-            <CyberSearchBar
-              onSearch={handleWebImageSearch}
-              onClear={handleClearSearch}
-              isLoading={searchState.isLoading}
-            />
-          </div>
-        ) : (
+        {/* Right: Clean Tactical Telemetry Graph (Desktop/Tablet Only) */}
+        {!isPortrait && (
           <div className="shrink-0 flex items-center justify-end">
             <TacticalTelemetryGraph
               onSelectDay={handleOpenTelemetryWithDay}
