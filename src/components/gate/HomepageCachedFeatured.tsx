@@ -111,7 +111,11 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
   // Duplicate for seamless infinite sliding loop
   const displayList = useMemo(() => {
     if (selectedBatch.length === 0) return [];
-    return [...selectedBatch, ...selectedBatch];
+    let list = [...selectedBatch];
+    while (list.length < 20) {
+      list = [...list, ...selectedBatch];
+    }
+    return [...list, ...list];
   }, [selectedBatch]);
 
   // Fast preloading so cards are bufferless
@@ -340,6 +344,23 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
         <div className="w-full flex justify-center shrink-0 pt-1 pb-1">
           <DiurnalPhase24hSummary dayIndex={portraitSelectedDay} />
         </div>
+
+        <style>{`
+          @keyframes photosSlowSlide {
+            0% {
+              transform: translate3d(0, 0, 0);
+            }
+            100% {
+              transform: translate3d(-50%, 0, 0);
+            }
+          }
+          .animate-photos-slow-slide {
+            animation: photosSlowSlide 90s linear infinite;
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+          }
+        `}</style>
       </div>
     );
   }
@@ -400,6 +421,23 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
           ))}
         </div>
       )}
+
+      <style>{`
+        @keyframes photosSlowSlide {
+          0% {
+            transform: translate3d(0, 0, 0);
+          }
+          100% {
+            transform: translate3d(-50%, 0, 0);
+          }
+        }
+        .animate-photos-slow-slide {
+          animation: photosSlowSlide 90s linear infinite;
+          will-change: transform;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+        }
+      `}</style>
     </div>
   );
 };

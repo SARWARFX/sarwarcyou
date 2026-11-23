@@ -770,14 +770,7 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
 
   const handleSelectSubfolder = useCallback(
     (sub: string) => {
-      if (sub === currentSubfolder) {
-        if (tabIndex === 0 && sub !== 'Featured') {
-          // If clicking active cached subfolder on Homepage, toggle back to Featured showcase
-          setHomeSubfolder('Featured');
-          if (typeof window !== 'undefined') updateBrowserUrl('/');
-        }
-        return;
-      }
+      if (sub === currentSubfolder) return;
 
       if (sub === 'ALL' || sub === 'Featured') {
         setShuffleTrigger((prev) => prev + 1);
@@ -842,60 +835,36 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
           aspectRatio = '16/9';
         }
 
-        const handleClearCache = async () => {
-          hapticMedium();
-          await clearAllWebsiteData();
-        };
-
-        return (
-          <div className="w-full h-full flex flex-col">
-            {/* Minimalist Subfolder Header: Count & CLEAR CACHE */}
-            <div className="w-full flex items-center justify-between pb-4 select-none shrink-0">
-              <div
-                className="font-firjar text-[11px] sm:text-xs text-[#64748b] tracking-wider uppercase font-bold"
+        if (cachedItems.length === 0) {
+          return (
+            <div className="w-full flex-1 flex flex-col items-center justify-center py-24 select-none">
+              <span
+                className="font-firjar text-[#64748b] text-xs font-mono tracking-widest uppercase"
                 style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
               >
-                // CACHED {viewSub.toUpperCase()} ({cachedItems.length})
-              </div>
-              {cachedItems.length > 0 && (
-                <button
-                  onClick={handleClearCache}
-                  className="font-firjar text-[11px] sm:text-xs text-[#ef4444] hover:text-[#f87171] tracking-wider uppercase font-bold cursor-pointer transition-colors bg-transparent border-0 outline-none p-0"
-                  style={{ borderRadius: 0, outline: 'none', border: 'none', fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
-                >
-                  CLEAR CACHE
-                </button>
-              )}
+                // NO CACHED {viewSub.toUpperCase()}
+              </span>
+              <span className="text-[#475569] text-[11px] mt-2 font-mono tracking-wider">
+                MEDIA CACHES AUTOMATICALLY FOR 7 DAYS AS YOU BROWSE
+              </span>
             </div>
+          );
+        }
 
-            {cachedItems.length === 0 ? (
-              <div className="w-full flex-1 flex flex-col items-center justify-center py-24 select-none">
-                <span
-                  className="font-firjar text-[#64748b] text-xs font-mono tracking-widest uppercase"
-                  style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
-                >
-                  // NO CACHED {viewSub.toUpperCase()}
-                </span>
-                <span className="text-[#475569] text-[11px] mt-2 font-mono tracking-wider">
-                  MEDIA CACHES AUTOMATICALLY FOR 7 DAYS AS YOU BROWSE
-                </span>
-              </div>
-            ) : (
-              <BufferedMediaGrid
-                key={`cached-${viewSub}`}
-                pageKey={`cached-${viewSub}`}
-                itemsList={cachedItems}
-                aspectRatio={aspectRatio}
-                onOpenItem={(item: StageMediaItem, list: StageMediaItem[], idx: number) => {
-                  if (viewSub === 'Photographs') onOpenPhoto(item, list, idx);
-                  else if (viewSub === 'Shorts') onOpenShort(item, list, idx, 'Cached');
-                  else onOpenVideo(item, list);
-                }}
-                hapticMedium={hapticMedium}
-                trackActivityEvent={trackActivityEvent}
-              />
-            )}
-          </div>
+        return (
+          <BufferedMediaGrid
+            key={`cached-${viewSub}`}
+            pageKey={`cached-${viewSub}`}
+            itemsList={cachedItems}
+            aspectRatio={aspectRatio}
+            onOpenItem={(item: StageMediaItem, list: StageMediaItem[], idx: number) => {
+              if (viewSub === 'Photographs') onOpenPhoto(item, list, idx);
+              else if (viewSub === 'Shorts') onOpenShort(item, list, idx, 'Cached');
+              else onOpenVideo(item, list);
+            }}
+            hapticMedium={hapticMedium}
+            trackActivityEvent={trackActivityEvent}
+          />
         );
       }
 
@@ -1393,7 +1362,7 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
 
       {/* BOTTOM NAVIGATION BAR: DYNAMIC SUBFOLDERS (Pure text, zero borders, zero outlines) */}
       <footer
-        className="w-full px-6 sm:px-10 py-3 sm:py-4 shrink-0 z-20 flex items-center bg-transparent min-h-[44px]"
+        className="w-full px-6 sm:px-10 py-3 sm:py-4 shrink-0 z-20 flex items-center justify-between bg-transparent min-h-[44px]"
         style={{ borderRadius: 0, outline: 'none', border: 'none' }}
       >
         <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto scrollbar-none">
@@ -1429,6 +1398,20 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
             })
           )}
         </div>
+
+        {/* Bottom Right Corner: CLEAR CACHE (Available on Homepage cached tab when cached items exist) */}
+        {tabIndex === 0 && (cachedPhotos.length > 0 || cachedShorts.length > 0 || cachedClips.length > 0) && !searchState.isActive && (
+          <button
+            onClick={async () => {
+              hapticMedium();
+              await clearAllWebsiteData();
+            }}
+            className="font-firjar text-[11.5px] sm:text-[12px] text-[#ef4444] hover:text-[#f87171] tracking-wider uppercase font-bold cursor-pointer transition-colors bg-transparent border-0 outline-none p-0 shrink-0 ml-4 whitespace-nowrap select-none"
+            style={{ borderRadius: 0, outline: 'none', border: 'none', fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+          >
+            CLEAR CACHE
+          </button>
+        )}
       </footer>
 
       {/* 24-HOUR DEEP DIURNAL TELEMETRY MATRIX VIEW */}

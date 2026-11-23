@@ -2129,6 +2129,23 @@ html.theme-white aside[aria-label="Tactical Navigation Dock"] button.bg-white {
   animation: offlineStrobe 0.8s ease-in-out infinite;
 }
 
+/* Continuous Horizontal Slow Sliding Showcase Animation */
+@keyframes photosSlowSlide {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-photos-slow-slide {
+  animation: photosSlowSlide 90s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
 
 
 
