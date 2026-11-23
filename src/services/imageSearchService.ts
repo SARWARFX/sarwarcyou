@@ -8,8 +8,8 @@ import type { StageMediaItem } from '../types';
  */
 
 const CLOUDFLARE_SEARCH_WORKERS = [
-  'https://search.sarwar.cyou',
   'https://searchbox.msnfx9.workers.dev',
+  'https://search.sarwar.cyou',
 ];
 
 async function fetchFromDdgWorker(query: string, signal?: AbortSignal): Promise<StageMediaItem[]> {
@@ -122,6 +122,38 @@ async function fetchFromWikimedia(query: string, signal?: AbortSignal): Promise<
   }
 }
 
+async function fetchFromWikipedia(query: string, signal?: AbortSignal): Promise<StageMediaItem[]> {
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(
+      query
+    )}&gsrlimit=15&prop=pageimages&pithumbsize=1280&format=json&origin=*`;
+    const res = await fetch(url, { signal });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
+
+    return pages
+      .filter((p: any) => p.thumbnail?.source && !p.thumbnail.source.endsWith('.svg'))
+      .map((p: any, idx: number) => {
+        const imgUrl = p.thumbnail.source;
+        return {
+          id: `web-wiki-${p.pageid || idx}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          title: '',
+          name: '',
+          url: imgUrl,
+          thumbnail: imgUrl,
+          poster: imgUrl,
+          posterUrl: imgUrl,
+          category: 'Web Search',
+          type: 'image' as const,
+          mediaType: 'photo' as const,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
 export async function searchWebImages(query: string, signal?: AbortSignal): Promise<StageMediaItem[]> {
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
@@ -132,17 +164,20 @@ export async function searchWebImages(query: string, signal?: AbortSignal): Prom
     return ddgResults;
   }
 
-  // 2. Resilient Fallback: Flickr + Wikimedia Commons
-  const [flickrRes, wmRes] = await Promise.allSettled([
+  // 2. Resilient Fallback: Wikipedia High-Res Portraits + Flickr + Wikimedia Commons
+  const [wikiRes, flickrRes, wmRes] = await Promise.allSettled([
+    fetchFromWikipedia(cleanQuery, signal),
     fetchFromFlickr(cleanQuery, signal),
     fetchFromWikimedia(cleanQuery, signal),
   ]);
+  const wikiItems = wikiRes.status === 'fulfilled' ? wikiRes.value : [];
   const flickrItems = flickrRes.status === 'fulfilled' ? flickrRes.value : [];
   const wmItems = wmRes.status === 'fulfilled' ? wmRes.value : [];
 
   const interleaved: StageMediaItem[] = [];
-  const maxLen = Math.max(flickrItems.length, wmItems.length);
+  const maxLen = Math.max(wikiItems.length, flickrItems.length, wmItems.length);
   for (let i = 0; i < maxLen; i++) {
+    if (i < wikiItems.length) interleaved.push(wikiItems[i]);
     if (i < flickrItems.length) interleaved.push(flickrItems[i]);
     if (i < wmItems.length) interleaved.push(wmItems[i]);
   }
