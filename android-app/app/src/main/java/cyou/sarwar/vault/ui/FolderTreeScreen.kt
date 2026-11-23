@@ -58,7 +58,7 @@ fun FolderTreeScreen(
     }
 
     LaunchedEffect(Unit) {
-        refreshFolders(forceRefresh = false)
+        refreshFolders(force = false)
         // Clean any leftover update files from previous install
         UpdateChecker.cleanupPendingUpdate(context)
     }
