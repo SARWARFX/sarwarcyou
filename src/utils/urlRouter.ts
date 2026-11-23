@@ -1270,6 +1270,13 @@ export interface ParsedAppRoute {
  */
 export function resolveSubfolderSlug(tab: AppTabRoute, slug: string): string | null {
   const s = slug.toLowerCase().trim();
+  if (tab === 'HOME') {
+    if (s === 'featured') return 'Featured';
+    if (s === 'photographs' || s === 'photos' || s === 'images') return 'Photographs';
+    if (s === 'shorts' || s === 'reels') return 'Shorts';
+    if (s === 'videoclips' || s === 'video-clips' || s === 'clips' || s === 'video clips' || s === 'videos') return 'Video Clips';
+    return null;
+  }
   if (tab === 'PHOTOGRAPHY') {
     if (s === 'featured' || s === 'all') return 'Featured';
     if (s === 'favorite' || s === 'fav') return 'Favorite';
@@ -1307,8 +1314,14 @@ export function resolveSubfolderSlug(tab: AppTabRoute, slug: string): string | n
  * Builds standard canonical web URL for a subfolder page
  */
 export function getSubfolderHref(tabIndex: number, subfolder: string): string {
-  if (tabIndex === 0) return '/';
   const sub = subfolder.toLowerCase();
+  if (tabIndex === 0) { // Homepage / Cached
+    if (sub === 'featured') return '/';
+    if (sub === 'photographs' || sub === 'photos') return '/cached/photographs';
+    if (sub === 'shorts') return '/cached/shorts';
+    if (sub === 'video clips' || sub === 'clips' || sub === 'videoclips') return '/cached/clips';
+    return `/cached/${sub}`;
+  }
   if (tabIndex === 1) { // Photographs
     return sub === 'featured' ? '/photographs' : `/photographs/${sub}`;
   }
@@ -1383,6 +1396,10 @@ export function parseAppPathname(pathname?: string): ParsedAppRoute {
 
   if (root === 'shorts') {
     return parseTabAndSub('SHORTS');
+  }
+
+  if (root === 'cached' || root === 'cache') {
+    return parseTabAndSub('HOME');
   }
 
   if (root === 'clips' || root === 'videoclips' || root === 'videos') {

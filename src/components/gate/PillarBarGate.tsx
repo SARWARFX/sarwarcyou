@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
-import { isPhotoExtension } from '../../utils/mediaTypeDetector';
+import { isPhotoExtension, isVideoExtension } from '../../utils/mediaTypeDetector';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 import { hapticMedium } from '../../utils/hapticsManager';
 import { trackActivityEvent } from '../../utils/usageTelemetry';
@@ -31,6 +31,10 @@ import {
   subscribeBrowsingOffline,
   triggerOpenOfflineModal,
 } from '../../utils/offlineManager';
+import {
+  getCachedMediaRecords,
+  clearAllWebsiteData,
+} from '../../utils/cachedMediaManager';
 
 export interface PillarBarGateProps {
   items: StageMediaItem[];
@@ -101,6 +105,7 @@ function getFolderSegments(item: StageMediaItem): { root: string; subfolders: st
   return { root, subfolders: [subName] };
 }
 
+const HOMEPAGE_CACHED_SUBFOLDERS = ['Photographs', 'Shorts', 'Video Clips'];
 const PHOTO_SUBFOLDERS = ['Favorite', '2027', '2026', '2025', 'Older'];
 const SHORTS_SUBFOLDERS = ['2027', 'Older'];
 const CLIPS_SUBFOLDERS = ['Favorite', '2027', '2026', 'Older'];
@@ -156,6 +161,13 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
     return 0; // Default to Homepage
   });
 
+  const [homeSubfolder, setHomeSubfolder] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'Featured';
+    const parsed = parseAppPathname();
+    if (parsed.tab === 'HOME' && parsed.subfolder) return parsed.subfolder;
+    return 'Featured';
+  });
+
   const [photosSubfolder, setPhotosSubfolder] = useState<string>(() => {
     if (typeof window === 'undefined') return 'Featured';
     const parsed = parseAppPathname();
@@ -185,7 +197,7 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
   // Active subfolder for current tab
   const currentSubfolder =
     tabIndex === 0
-      ? 'Featured'
+      ? homeSubfolder
       : tabIndex === 1
       ? photosSubfolder
       : tabIndex === 2
@@ -193,6 +205,43 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
       : tabIndex === 3
       ? clipsSubfolder
       : bandhobiSubfolder;
+
+  // Real-time cached media records
+  const [cacheUpdateTrigger, setCacheUpdateTrigger] = useState<number>(0);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setCacheUpdateTrigger((prev) => prev + 1);
+    };
+    window.addEventListener('cached-media-updated', handleUpdate);
+    return () => window.removeEventListener('cached-media-updated', handleUpdate);
+  }, []);
+
+  const { cachedPhotos, cachedShorts, cachedClips } = useMemo(() => {
+    const records = getCachedMediaRecords();
+    const p: StageMediaItem[] = [];
+    const s: StageMediaItem[] = [];
+    const c: StageMediaItem[] = [];
+
+    records.forEach((r) => {
+      if (!r || !r.item) return;
+      const item = r.item;
+      const isShort =
+        item.mediaType === 'short' ||
+        (item.path || item.url || '').toLowerCase().includes('/shorts/');
+      const isVid =
+        !isShort &&
+        (item.type === 'video' ||
+          item.mediaType === 'clip' ||
+          isVideoExtension(item.path || item.url || item.name || ''));
+
+      if (isShort) s.push(item);
+      else if (isVid) c.push(item);
+      else p.push(item);
+    });
+
+    return { cachedPhotos: p, cachedShorts: s, cachedClips: c };
+  }, [cacheUpdateTrigger]);
 
 
   // Screen orientation detection for portrait layout
@@ -314,8 +363,9 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
     handleClearSearch();
 
     if (targetIndex === 0) {
-      if (tabIndex === 0) return;
+      if (tabIndex === 0 && homeSubfolder === 'Featured') return;
       setTabIndex(0);
+      setHomeSubfolder('Featured');
       setShuffleTrigger((prev) => prev + 1);
       if (typeof window !== 'undefined') {
         updateBrowserUrl('/');
@@ -327,7 +377,8 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
       if (currentSubfolder === 'Featured') return;
 
       // Clicked active tab while in a subfolder: Switch back to Featured
-      if (tabIndex === 1) setPhotosSubfolder('Featured');
+      if (tabIndex === 0) setHomeSubfolder('Featured');
+      else if (tabIndex === 1) setPhotosSubfolder('Featured');
       else if (tabIndex === 2) setShortsSubfolder('Featured');
       else if (tabIndex === 3) setClipsSubfolder('Featured');
       else if (tabIndex === 4) setBandhobiSubfolder('Featured');
@@ -335,7 +386,8 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
 
       if (typeof window !== 'undefined') {
         let route = '/shorts';
-        if (tabIndex === 1) route = '/photographs';
+        if (tabIndex === 0) route = '/';
+        else if (tabIndex === 1) route = '/photographs';
         else if (tabIndex === 2) route = '/shorts';
         else if (tabIndex === 3) route = '/clips';
         else if (tabIndex === 4) route = '/bandhobiz';
@@ -345,7 +397,8 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
     }
 
     setTabIndex(targetIndex);
-    if (targetIndex === 1) setPhotosSubfolder('Featured');
+    if (targetIndex === 0) setHomeSubfolder('Featured');
+    else if (targetIndex === 1) setPhotosSubfolder('Featured');
     else if (targetIndex === 2) setShortsSubfolder('Featured');
     else if (targetIndex === 3) setClipsSubfolder('Featured');
     else if (targetIndex === 4) setBandhobiSubfolder('Featured');
@@ -353,26 +406,28 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
 
     if (typeof window !== 'undefined') {
       let route = '/shorts';
-      if (targetIndex === 1) route = '/photographs';
+      if (targetIndex === 0) route = '/';
+      else if (targetIndex === 1) route = '/photographs';
       else if (targetIndex === 2) route = '/shorts';
       else if (targetIndex === 3) route = '/clips';
       else if (targetIndex === 4) route = '/bandhobiz';
       updateBrowserUrl(route);
     }
-  }, [tabIndex, currentSubfolder, handleClearSearch]);
+  }, [tabIndex, currentSubfolder, homeSubfolder, handleClearSearch]);
 
   // Navigate directly to Homepage at '/' (triggered via website logo)
   const goToHome = useCallback(() => {
     handleClearSearch();
-    if (tabIndex === 0) return;
+    if (tabIndex === 0 && homeSubfolder === 'Featured') return;
 
     setTabIndex(0);
+    setHomeSubfolder('Featured');
     setShuffleTrigger((prev) => prev + 1);
 
     if (typeof window !== 'undefined') {
       updateBrowserUrl('/');
     }
-  }, [tabIndex, handleClearSearch]);
+  }, [tabIndex, homeSubfolder, handleClearSearch]);
 
   // Synchronize state when browser Back / Forward (popstate) is clicked
   const itemsRef = useRef(items);
@@ -419,8 +474,9 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
         setBandhobiSubfolder(sub);
         setTabIndex(4);
       } else {
-        // Root / lands on Homepage
+        // Root / or /cached lands on Homepage
         setTabIndex(0);
+        setHomeSubfolder(parsed.subfolder || 'Featured');
       }
     };
 
@@ -701,7 +757,7 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
 
   const currentSubfolderList =
     tabIndex === 0
-      ? []
+      ? HOMEPAGE_CACHED_SUBFOLDERS
       : tabIndex === 1
       ? PHOTO_SUBFOLDERS
       : tabIndex === 2
@@ -712,17 +768,25 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
       ? BANDHOBI_SUBFOLDERS
       : [];
 
-
-
   const handleSelectSubfolder = useCallback(
     (sub: string) => {
-      if (sub === currentSubfolder) return;
+      if (sub === currentSubfolder) {
+        if (tabIndex === 0 && sub !== 'Featured') {
+          // If clicking active cached subfolder on Homepage, toggle back to Featured showcase
+          setHomeSubfolder('Featured');
+          if (typeof window !== 'undefined') updateBrowserUrl('/');
+        }
+        return;
+      }
 
       if (sub === 'ALL' || sub === 'Featured') {
         setShuffleTrigger((prev) => prev + 1);
       }
 
-      if (tabIndex === 1) {
+      if (tabIndex === 0) {
+        setHomeSubfolder(sub);
+        if (typeof window !== 'undefined') updateBrowserUrl(getSubfolderHref(0, sub));
+      } else if (tabIndex === 1) {
         setPhotosSubfolder(sub);
         if (typeof window !== 'undefined') updateBrowserUrl(getSubfolderHref(1, sub));
       } else if (tabIndex === 2) {
@@ -742,23 +806,96 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
   const renderViewContent = useCallback(
     (viewTab: number, viewSub: string) => {
       if (viewTab === 0) {
+        if (viewSub === 'Featured') {
+          return (
+            <HomepageCachedFeatured
+              allItems={items}
+              onOpenPhoto={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) =>
+                onOpenPhoto(item, playlist, idx)
+              }
+              onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number, folder?: string) =>
+                onOpenShort(item, playlist, idx, folder || 'Cached')
+              }
+              onOpenVideo={(item: StageMediaItem, playlist: StageMediaItem[]) =>
+                onOpenVideo(item, playlist)
+              }
+              isPortrait={isPortrait}
+              portraitSelectedDay={portraitSelectedDay}
+              setPortraitSelectedDay={setPortraitSelectedDay}
+              randomSeed={shuffleTrigger}
+            />
+          );
+        }
+
+        // Homepage Cached Subfolder Pages: Photographs, Shorts, Video Clips
+        let cachedItems: StageMediaItem[] = [];
+        let aspectRatio: '3/4' | '9/16' | '16/9' = '3/4';
+
+        if (viewSub === 'Photographs') {
+          cachedItems = cachedPhotos;
+          aspectRatio = '3/4';
+        } else if (viewSub === 'Shorts') {
+          cachedItems = cachedShorts;
+          aspectRatio = '9/16';
+        } else if (viewSub === 'Video Clips') {
+          cachedItems = cachedClips;
+          aspectRatio = '16/9';
+        }
+
+        const handleClearCache = async () => {
+          hapticMedium();
+          await clearAllWebsiteData();
+        };
+
         return (
-          <HomepageCachedFeatured
-            allItems={items}
-            onOpenPhoto={(item: StageMediaItem, playlist: StageMediaItem[], idx: number) =>
-              onOpenPhoto(item, playlist, idx)
-            }
-            onOpenShort={(item: StageMediaItem, playlist: StageMediaItem[], idx: number, folder?: string) =>
-              onOpenShort(item, playlist, idx, folder || 'Cached')
-            }
-            onOpenVideo={(item: StageMediaItem, playlist: StageMediaItem[]) =>
-              onOpenVideo(item, playlist)
-            }
-            isPortrait={isPortrait}
-            portraitSelectedDay={portraitSelectedDay}
-            setPortraitSelectedDay={setPortraitSelectedDay}
-            randomSeed={shuffleTrigger}
-          />
+          <div className="w-full h-full flex flex-col">
+            {/* Minimalist Subfolder Header: Count & CLEAR CACHE */}
+            <div className="w-full flex items-center justify-between pb-4 select-none shrink-0">
+              <div
+                className="font-firjar text-[11px] sm:text-xs text-[#64748b] tracking-wider uppercase font-bold"
+                style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+              >
+                // CACHED {viewSub.toUpperCase()} ({cachedItems.length})
+              </div>
+              {cachedItems.length > 0 && (
+                <button
+                  onClick={handleClearCache}
+                  className="font-firjar text-[11px] sm:text-xs text-[#ef4444] hover:text-[#f87171] tracking-wider uppercase font-bold cursor-pointer transition-colors bg-transparent border-0 outline-none p-0"
+                  style={{ borderRadius: 0, outline: 'none', border: 'none', fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+                >
+                  CLEAR CACHE
+                </button>
+              )}
+            </div>
+
+            {cachedItems.length === 0 ? (
+              <div className="w-full flex-1 flex flex-col items-center justify-center py-24 select-none">
+                <span
+                  className="font-firjar text-[#64748b] text-xs font-mono tracking-widest uppercase"
+                  style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+                >
+                  // NO CACHED {viewSub.toUpperCase()}
+                </span>
+                <span className="text-[#475569] text-[11px] mt-2 font-mono tracking-wider">
+                  MEDIA CACHES AUTOMATICALLY FOR 7 DAYS AS YOU BROWSE
+                </span>
+              </div>
+            ) : (
+              <BufferedMediaGrid
+                key={`cached-${viewSub}`}
+                pageKey={`cached-${viewSub}`}
+                itemsList={cachedItems}
+                aspectRatio={aspectRatio}
+                onOpenItem={(item: StageMediaItem, list: StageMediaItem[], idx: number) => {
+                  if (viewSub === 'Photographs') onOpenPhoto(item, list, idx);
+                  else if (viewSub === 'Shorts') onOpenShort(item, list, idx, 'Cached');
+                  else onOpenVideo(item, list);
+                }}
+                hapticMedium={hapticMedium}
+                trackActivityEvent={trackActivityEvent}
+              />
+            )}
+          </div>
         );
       }
 
@@ -880,7 +1017,7 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
         />
       );
     },
-    [items, allPhotosFiles, allShortsFiles, allClipsFiles, activeBandhobiList, rootMap, isPortrait, portraitSelectedDay, shuffleTrigger, onOpenPhoto, onOpenShort, onOpenVideo]
+    [items, allPhotosFiles, allShortsFiles, allClipsFiles, activeBandhobiList, cachedPhotos, cachedShorts, cachedClips, rootMap, isPortrait, portraitSelectedDay, shuffleTrigger, onOpenPhoto, onOpenShort, onOpenVideo]
   );
 
   // -------------------------------------------------------------

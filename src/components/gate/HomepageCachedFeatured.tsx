@@ -7,7 +7,6 @@ import { InitializingArchiveLoader } from './InitializingArchiveLoader';
 import { TacticalTelemetryGraph } from '../navigation/TacticalTelemetryGraph';
 import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
 import { getCachedMediaRecords } from '../../utils/cachedMediaManager';
-import { CachedMediaVaultModal } from './CachedMediaVaultModal';
 
 export interface HomepageCachedFeaturedProps {
   allItems: StageMediaItem[];
@@ -34,7 +33,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
   allItems,
   onOpenPhoto,
   onOpenShort,
-  onOpenVideo,
+  onOpenVideo: _onOpenVideo,
   isPortrait,
   portraitSelectedDay,
   setPortraitSelectedDay,
@@ -43,7 +42,6 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
   const [displayProgress, setDisplayProgress] = useState(0);
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
   const [cacheUpdateTrigger, setCacheUpdateTrigger] = useState(0);
-  const [isVaultOpen, setIsVaultOpen] = useState(false);
 
   // Listen to cached-media-updated custom events
   useEffect(() => {
@@ -186,8 +184,40 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
     };
   }, [selectedBatch]);
 
-  const handleCardClick = () => {
-    setIsVaultOpen(true);
+  const handleCardClick = (item: StageMediaItem) => {
+    const isShort =
+      item.mediaType === 'short' ||
+      (item.path || item.url || '').toLowerCase().includes('/shorts/');
+
+    if (isShort) {
+      const shortsInBatch = selectedBatch.filter(
+        (m) =>
+          m.mediaType === 'short' ||
+          (m.path || m.url || '').toLowerCase().includes('/shorts/')
+      );
+      const idx = shortsInBatch.findIndex(
+        (m) =>
+          (m.id && item.id && m.id === item.id) ||
+          (m.url && item.url && m.url === item.url) ||
+          (m.path && item.path && m.path === item.path)
+      );
+      onOpenShort(item, shortsInBatch, idx >= 0 ? idx : 0, 'Cached');
+    } else {
+      const photosInBatch = selectedBatch.filter(
+        (m) =>
+          !(
+            m.mediaType === 'short' ||
+            (m.path || m.url || '').toLowerCase().includes('/shorts/')
+          )
+      );
+      const idx = photosInBatch.findIndex(
+        (m) =>
+          (m.id && item.id && m.id === item.id) ||
+          (m.url && item.url && m.url === item.url) ||
+          (m.path && item.path && m.path === item.path)
+      );
+      onOpenPhoto(item, photosInBatch, idx >= 0 ? idx : 0);
+    }
   };
 
   // Helper to render media card content (Playing short video or photo image)
@@ -262,8 +292,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
         {/* Middle: Text-Free Sliding Showcase (Max 10 Cards, Always Playing Shorts) */}
         {displayList.length === 0 ? (
           <div
-            onClick={handleCardClick}
-            className="w-full flex-1 flex items-center justify-center text-center cursor-pointer text-[#64748b] text-xs font-mono tracking-widest uppercase select-none"
+            className="w-full flex-1 flex items-center justify-center text-center text-[#64748b] text-xs font-mono tracking-widest uppercase select-none"
           >
             // NO MEDIA CACHED
           </div>
@@ -292,7 +321,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
               {displayList.map((item, idx) => (
                 <div
                   key={`${item.id || item.url || item.name}-${idx}`}
-                  onClick={handleCardClick}
+                  onClick={() => handleCardClick(item)}
                   className="w-[130px] sm:w-[155px] h-[210px] sm:h-[250px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] relative select-none"
                   style={{
                     borderRadius: 0,
@@ -311,15 +340,6 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
         <div className="w-full flex justify-center shrink-0 pt-1 pb-1">
           <DiurnalPhase24hSummary dayIndex={portraitSelectedDay} />
         </div>
-
-        {/* Sleek Dynamic Modal Window */}
-        <CachedMediaVaultModal
-          isOpen={isVaultOpen}
-          onClose={() => setIsVaultOpen(false)}
-          onOpenPhoto={onOpenPhoto}
-          onOpenShort={onOpenShort}
-          onOpenVideo={onOpenVideo}
-        />
       </div>
     );
   }
@@ -341,8 +361,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
 
       {displayList.length === 0 ? (
         <div
-          onClick={handleCardClick}
-          className="w-full h-full flex items-center justify-center text-center cursor-pointer text-[#64748b] text-xs font-mono tracking-widest uppercase select-none"
+          className="w-full h-full flex items-center justify-center text-center text-[#64748b] text-xs font-mono tracking-widest uppercase select-none"
         >
           // NO MEDIA CACHED
         </div>
@@ -365,7 +384,7 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
           {displayList.map((item, idx) => (
             <div
               key={`${item.id || item.url || item.name}-${idx}`}
-              onClick={handleCardClick}
+              onClick={() => handleCardClick(item)}
               className="w-[155px] sm:w-[200px] md:w-[260px] h-[275px] sm:h-[356px] md:h-[462px] aspect-[9/16] bg-[#080b12] flex-shrink-0 cursor-pointer overflow-hidden transition-transform duration-300 hover:scale-[1.04] hover:z-20 relative select-none"
               style={{
                 borderRadius: 0,
@@ -381,15 +400,6 @@ export const HomepageCachedFeatured: React.FC<HomepageCachedFeaturedProps> = ({
           ))}
         </div>
       )}
-
-      {/* Sleek Dynamic Modal Window */}
-      <CachedMediaVaultModal
-        isOpen={isVaultOpen}
-        onClose={() => setIsVaultOpen(false)}
-        onOpenPhoto={onOpenPhoto}
-        onOpenShort={onOpenShort}
-        onOpenVideo={onOpenVideo}
-      />
     </div>
   );
 };
