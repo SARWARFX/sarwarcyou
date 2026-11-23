@@ -1256,16 +1256,20 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       {/* Retro Sci-Fi Video Stream Telemetry HUD Overlay */}
       {showTelemetry && (
         <div
-          className="fixed top-16 left-4 sm:top-20 sm:left-8 z-50 p-4 rounded-xl border border-white/40 font-mono text-xs text-neutral-300 select-text max-w-sm pointer-events-auto shadow-xl animate-fade-in"
+          className="fixed top-16 left-4 sm:top-20 sm:left-8 z-50 p-4 font-mono text-xs text-neutral-300 select-text max-w-sm pointer-events-auto shadow-xl animate-fade-in"
           style={{
-            background: 'rgba(4, 8, 16, 0.78)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: 0,
+            outline: 'none',
+            border: 'none',
+            background: 'rgba(10, 14, 23, 0.58)',
+            backdropFilter: 'blur(32px) saturate(190%)',
+            WebkitBackdropFilter: 'blur(32px) saturate(190%)',
+            boxShadow: '0 30px 80px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.2) inset',
             textShadow: '0 1px 4px #000, 0 0 8px #000',
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between border-b border-white/20 pb-2 mb-2.5">
+          <div className="flex items-center justify-between pb-2 mb-2.5">
             <span className="text-white font-bold tracking-widest text-[11px] flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-white animate-ping" />
               STREAM // TELEMETRY HUD

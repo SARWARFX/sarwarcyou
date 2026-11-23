@@ -10,10 +10,11 @@ export interface ClearCacheConfirmDialogProps {
 
 /**
  * Universal Outline-Free Glass Clear Cache Confirmation Dialog:
- * - 0px border radius, zero outlines, glass translucent backdrop.
+ * - 0px border radius, zero outlines, standard translucent glass backdrop.
+ * - Perfectly uniform with all site notifications (BatteryStatus, NetworkStatus, MediaNotFound).
  * - Confirms cache clearing for the active subfolder page.
  * - Features "Also delete other media caches" checkbox.
- * - GUARANTEES graphs and telemetry analytics data are NEVER deleted.
+ * - GUARANTEES graphs and telemetry analytics data are NOT affected.
  */
 export const ClearCacheConfirmDialog: React.FC<ClearCacheConfirmDialogProps> = ({
   isOpen,
@@ -71,52 +72,53 @@ export const ClearCacheConfirmDialog: React.FC<ClearCacheConfirmDialogProps> = (
           onClose();
         }
       }}
-      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 select-none animate-holo-backdrop-in"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[10px] select-none pointer-events-auto transition-opacity duration-200"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
       <div
-        className="w-full max-w-[420px] bg-[#0a0d14]/90 backdrop-blur-xl p-5 sm:p-6 text-left shadow-2xl relative transition-all"
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md p-6 sm:p-7 shadow-[0_30px_80px_rgba(0,0,0,0.75)] cursor-default text-white flex flex-col gap-4 animate-scale-in"
         style={{
           borderRadius: 0,
           outline: 'none',
           border: 'none',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          background: 'rgba(10, 14, 23, 0.58)',
+          backdropFilter: 'blur(32px) saturate(190%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(190%)',
+          boxShadow: '0 30px 80px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.2) inset',
         }}
       >
         {/* Top Header Strip: Tag & Close Button */}
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-bold font-mono tracking-tight text-[#ef4444] uppercase flex items-center gap-2">
             <span
-              className="inline-block w-2 h-2 bg-[#ef4444]"
+              className="inline-block w-2.5 h-2.5 bg-[#ef4444] shrink-0"
               style={{
                 borderRadius: 0,
                 boxShadow: '0 0 8px #ef4444',
               }}
             />
-            <span
-              className="font-firjar text-[11px] sm:text-xs text-[#ef4444] tracking-wider uppercase font-bold"
-              style={{ fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
-            >
-              // CLEAR CACHE
-            </span>
-          </div>
+            // CLEAR CACHE
+          </h3>
 
           <button
+            type="button"
             onClick={() => {
               hapticMedium();
               onClose();
             }}
             aria-label="Close dialog"
-            className="text-[#64748b] hover:text-white transition-colors cursor-pointer text-base leading-none p-1 bg-transparent border-none outline-none"
-            style={{ borderRadius: 0 }}
+            className="w-7 h-7 flex items-center justify-center text-white/55 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-base font-mono p-0"
+            style={{ borderRadius: 0, outline: 'none', border: 'none', background: 'transparent' }}
+            title="Close Notification"
           >
             ✕
           </button>
         </div>
 
         {/* Message / Details */}
-        <div className="py-2">
-          <p className="text-white text-sm font-medium leading-relaxed">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs sm:text-sm text-neutral-200 font-sans leading-relaxed">
             {isSpecificPage ? (
               <>
                 Are you sure you want to clear cached media for{' '}
@@ -126,8 +128,8 @@ export const ClearCacheConfirmDialog: React.FC<ClearCacheConfirmDialogProps> = (
               'Are you sure you want to clear all cached media across pages?'
             )}
           </p>
-          <p className="text-[#64748b] text-[11.5px] mt-2 font-mono leading-relaxed">
-            Graphs telemetry and 24-hour analytics data will never be deleted.
+          <p className="text-neutral-400 text-[11.5px] font-mono leading-relaxed">
+            Graph telemetry and 24-hour analytics data will not be affected.
           </p>
         </div>
 
@@ -138,7 +140,7 @@ export const ClearCacheConfirmDialog: React.FC<ClearCacheConfirmDialogProps> = (
               hapticMedium();
               setAlsoDeleteOther(!alsoDeleteOther);
             }}
-            className="flex items-center gap-3 py-3 cursor-pointer select-none group"
+            className="flex items-center gap-3 py-1 cursor-pointer select-none group"
           >
             <div
               className={`w-4 h-4 flex items-center justify-center transition-colors ${
@@ -170,23 +172,25 @@ export const ClearCacheConfirmDialog: React.FC<ClearCacheConfirmDialogProps> = (
         )}
 
         {/* Bottom Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4">
+        <div className="flex items-center justify-end gap-3 pt-2">
           <button
+            type="button"
             onClick={() => {
               hapticMedium();
               onClose();
             }}
             disabled={isClearing}
-            className="font-firjar px-4 py-2 text-xs uppercase font-medium text-[#94a3b8] hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border-0 outline-none"
-            style={{ borderRadius: 0, fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+            className="px-4 py-2 text-xs uppercase font-medium text-[#94a3b8] hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border-0 outline-none"
+            style={{ borderRadius: 0 }}
           >
             CANCEL
           </button>
           <button
+            type="button"
             onClick={handleConfirmClick}
             disabled={isClearing}
-            className="font-firjar px-5 py-2 text-xs uppercase font-bold text-white bg-[#ef4444] hover:bg-[#dc2626] transition-colors cursor-pointer border-0 outline-none flex items-center gap-2"
-            style={{ borderRadius: 0, fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+            className="px-5 py-2 text-xs uppercase font-bold text-white bg-[#ef4444] hover:bg-[#dc2626] transition-colors cursor-pointer border-0 outline-none flex items-center gap-2"
+            style={{ borderRadius: 0 }}
           >
             {isClearing ? 'CLEARING...' : 'CLEAR CACHE'}
           </button>
