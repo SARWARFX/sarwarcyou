@@ -7,7 +7,6 @@ export interface CachedMediaRecord {
   item: StageMediaItem;
   cachedAt: number;
   lastViewedAt: number; // Used for LRU (Least Recently Used) automatic pruning
-  expiresAt: number; // 7 days rolling TTL
   fileSizeBytes: number;
   fileSizeFormatted: string;
 }
@@ -23,7 +22,6 @@ export interface StorageQuotaInfo {
 
 const STORAGE_KEY = 'sarwar_cached_media_vault_v1';
 const CLEARED_FLAG_KEY = 'sarwar_cache_cleared';
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const CACHE_NAME = 'sarwar-media-cache-v1';
 
 function formatBytes(bytes: number): string {
@@ -101,8 +99,9 @@ export async function getStorageQuotaInfo(): Promise<StorageQuotaInfo> {
 }
 
 /**
- * Returns all non-expired cached media records from local storage.
- * Automatically evicts records older than 7 days.
+ * Returns all cached media records from local storage.
+ * Records persist indefinitely on the visitor's device,
+ * managed purely by device storage quota and LRU eviction.
  */
 export function getCachedMediaRecords(): CachedMediaRecord[] {
   if (typeof window === 'undefined') return [];
@@ -112,12 +111,11 @@ export function getCachedMediaRecords(): CachedMediaRecord[] {
     const list: CachedMediaRecord[] = JSON.parse(raw);
     if (!Array.isArray(list)) return [];
 
-    const now = Date.now();
     const valid = list.filter(
-      (rec) => rec && rec.expiresAt > now && rec.item && (rec.item.id || rec.item.url)
+      (rec) => rec && rec.item && (rec.item.id || rec.item.url || rec.item.path)
     );
 
-    // If any items were expired, save the cleaned list back
+    // If any corrupt items were removed, save the cleaned list back
     if (valid.length !== list.length) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(valid));
     }
@@ -267,10 +265,10 @@ async function cacheMediaBytesToStorage(item: StageMediaItem, estimatedBytes: nu
 }
 
 /**
- * Add an opened media item to the 7-day cache:
+ * Add an opened media item to the permanent client cache:
  * - Operates uniformly across both Wi-Fi and Cellular data (bandwidth is already spent).
  * - Caches images, short videos, and large video clips.
- * - Enforces dynamic device quota limits and LRU automatic eviction.
+ * - Stored indefinitely on device; managed purely by device storage quota and LRU eviction.
  */
 export function addCachedMediaItem(item: StageMediaItem, explicitBytes?: number): void {
   if (typeof window === 'undefined' || !item) return;
@@ -282,7 +280,6 @@ export function addCachedMediaItem(item: StageMediaItem, explicitBytes?: number)
 
     const records = getCachedMediaRecords();
     const now = Date.now();
-    const expiresAt = now + SEVEN_DAYS_MS;
 
     const isVid =
       item.type === 'video' ||
@@ -307,7 +304,6 @@ export function addCachedMediaItem(item: StageMediaItem, explicitBytes?: number)
       item,
       cachedAt: now,
       lastViewedAt: now,
-      expiresAt,
       fileSizeBytes: estimatedBytes,
       fileSizeFormatted: formatBytes(estimatedBytes),
     };

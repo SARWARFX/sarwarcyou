@@ -12,40 +12,6 @@ const CLOUDFLARE_SEARCH_WORKERS = [
   'https://searchbox.msnfx9.workers.dev',
 ];
 
-const SEARCH_CACHE_PREFIX = 'sarwar_search_cache_';
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-interface CachedSearchResult {
-  query: string;
-  results: StageMediaItem[];
-  expiresAt: number;
-}
-
-function getCachedSearch(query: string): StageMediaItem[] | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(SEARCH_CACHE_PREFIX + query.toLowerCase());
-    if (!raw) return null;
-    const data: CachedSearchResult = JSON.parse(raw);
-    if (data && data.expiresAt > Date.now() && Array.isArray(data.results)) {
-      return data.results;
-    }
-  } catch {}
-  return null;
-}
-
-function setCachedSearch(query: string, results: StageMediaItem[]): void {
-  if (typeof window === 'undefined' || !results || results.length === 0) return;
-  try {
-    const data: CachedSearchResult = {
-      query: query.toLowerCase(),
-      results,
-      expiresAt: Date.now() + SEVEN_DAYS_MS,
-    };
-    localStorage.setItem(SEARCH_CACHE_PREFIX + query.toLowerCase(), JSON.stringify(data));
-  } catch {}
-}
-
 async function fetchFromDdgWorker(query: string, signal?: AbortSignal): Promise<StageMediaItem[]> {
   for (const workerBase of CLOUDFLARE_SEARCH_WORKERS) {
     try {
@@ -160,16 +126,9 @@ export async function searchWebImages(query: string, signal?: AbortSignal): Prom
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
 
-  // Check 7-Day client search cache first for instant 0ms response
-  const cached = getCachedSearch(cleanQuery);
-  if (cached && cached.length > 0) {
-    return cached;
-  }
-
   // 1. Primary: Query the high-performance DuckDuckGo Cloudflare Worker
   const ddgResults = await fetchFromDdgWorker(cleanQuery, signal);
   if (ddgResults.length > 0) {
-    setCachedSearch(cleanQuery, ddgResults);
     return ddgResults;
   }
 
@@ -186,10 +145,6 @@ export async function searchWebImages(query: string, signal?: AbortSignal): Prom
   for (let i = 0; i < maxLen; i++) {
     if (i < flickrItems.length) interleaved.push(flickrItems[i]);
     if (i < wmItems.length) interleaved.push(wmItems[i]);
-  }
-
-  if (interleaved.length > 0) {
-    setCachedSearch(cleanQuery, interleaved);
   }
 
   return interleaved;
