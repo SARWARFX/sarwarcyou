@@ -26,6 +26,11 @@ import { DeepDiurnalTelemetryView } from '../telemetry/DeepDiurnalTelemetryView'
 import { DiurnalPhase24hSummary } from '../telemetry/DiurnalPhase24hSummary';
 import { CyberSearchBar } from '../navigation/CyberSearchBar';
 import { searchWebImages } from '../../services/imageSearchService';
+import {
+  isBrowsingOffline,
+  subscribeBrowsingOffline,
+  triggerOpenOfflineModal,
+} from '../../utils/offlineManager';
 
 export interface MonolithBarGateProps {
   items: StageMediaItem[];
@@ -244,6 +249,15 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
     path: string;
     tab?: 'SHORTS' | 'CLIPS' | 'PHOTOGRAPHY' | 'BANDHOBI' | 'TRAILER' | 'HOME' | 'TELEMETRY';
   }>({ isOpen: false, path: '' });
+
+  const [offlineBrowsing, setOfflineBrowsing] = useState<boolean>(() => isBrowsingOffline());
+
+  useEffect(() => {
+    const unsub = subscribeBrowsingOffline((val) => {
+      setOfflineBrowsing(val);
+    });
+    return unsub;
+  }, []);
 
   const [searchState, setSearchState] = useState<{
     isActive: boolean;
@@ -1108,6 +1122,18 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
               onClear={handleClearSearch}
               isLoading={searchState.isLoading}
             />
+
+            {/* Offline Text Indicator beside Search Box */}
+            {offlineBrowsing && (
+              <span
+                onClick={triggerOpenOfflineModal}
+                className="text-[11px] sm:text-[12px] font-mono font-bold tracking-[0.14em] uppercase text-[#ef4444] animate-pulse shrink-0 cursor-pointer select-none"
+                title="Browsing in Offline Mode (Click to open network dialog)"
+                style={{ borderRadius: 0 }}
+              >
+                OFFLINE
+              </span>
+            )}
           </div>
 
           {/* Major Folders (Pure text, zero lines, zero outlines, zero borders) */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { setBrowsingOffline, registerOpenOfflineModal } from '../../utils/offlineManager';
 
 export type NetworkType = 'offline' | 'cellular' | 'wifi';
 
@@ -25,7 +26,7 @@ export const NetworkStatusDialog: React.FC = () => {
   const [currentNetwork, setCurrentNetwork] = useState<NetworkType>(() => getNetworkType());
   const [showMeteredModal, setShowMeteredModal] = useState<boolean>(false);
   const [showWifiModal, setShowWifiModal] = useState<boolean>(false);
-  const [isChecking, setIsChecking] = useState<boolean>(false);
+  const [isOfflineModalDismissed, setIsOfflineModalDismissed] = useState<boolean>(false);
   const prevNetworkRef = useRef<NetworkType>(getNetworkType());
   const isMountedRef = useRef<boolean>(false);
 
@@ -37,6 +38,14 @@ export const NetworkStatusDialog: React.FC = () => {
     }, 4000);
     return () => clearTimeout(timer);
   }, [showWifiModal]);
+
+  // Allow reopening the offline modal if user clicks on OFFLINE text beside the search box
+  useEffect(() => {
+    const unreg = registerOpenOfflineModal(() => {
+      setIsOfflineModalDismissed(false);
+    });
+    return unreg;
+  }, []);
 
   useEffect(() => {
     // Grace period on initial load: browser startup / connection blips never trigger false alerts
@@ -58,19 +67,23 @@ export const NetworkStatusDialog: React.FC = () => {
 
       if (next !== prev) {
         prevNetworkRef.current = next;
-        if (next === 'cellular') {
-          // Alert user when switching into metered mobile data
+        if (next === 'offline') {
+          setIsOfflineModalDismissed(false);
+          setBrowsingOffline(false);
+          setShowMeteredModal(false);
+          setShowWifiModal(false);
+        } else if (next === 'cellular') {
+          setIsOfflineModalDismissed(false);
+          setBrowsingOffline(false);
           setShowMeteredModal(true);
           setShowWifiModal(false);
         } else if (next === 'wifi') {
-          // Alert user ONLY when actively switching from cellular mobile data to Wi-Fi
-          if (prev === 'cellular') {
+          setIsOfflineModalDismissed(false);
+          setBrowsingOffline(false);
+          if (prev === 'cellular' || prev === 'offline') {
             setShowWifiModal(true);
           }
           setShowMeteredModal(false);
-        } else if (next === 'offline') {
-          setShowMeteredModal(false);
-          setShowWifiModal(false);
         }
       }
     };
@@ -96,32 +109,13 @@ export const NetworkStatusDialog: React.FC = () => {
     };
   }, []);
 
-  const handleRetryConnection = useCallback(async () => {
-    setIsChecking(true);
-    if (navigator.onLine) {
-      try {
-        await fetch(window.location.origin + window.location.pathname, {
-          method: 'HEAD',
-          cache: 'no-store',
-        });
-        const net = getNetworkType();
-        setCurrentNetwork(net);
-        prevNetworkRef.current = net;
-        // Cleanly resume session without popup interruptions
-        if (net === 'cellular') setShowMeteredModal(true);
-      } catch {
-        setCurrentNetwork('offline');
-      }
-    } else {
-      setCurrentNetwork('offline');
-    }
-    setTimeout(() => {
-      setIsChecking(false);
-    }, 600);
+  const handleBrowseOffline = useCallback(() => {
+    setIsOfflineModalDismissed(true);
+    setBrowsingOffline(true);
   }, []);
 
-  // 1. Red Alert: Disconnected from the Internet
-  if (currentNetwork === 'offline') {
+  // 1. Red Alert: Disconnected from the Internet (Shown until visitor clicks BROWSE OFFLINE)
+  if (currentNetwork === 'offline' && !isOfflineModalDismissed) {
     return (
       <div
         role="alertdialog"
@@ -151,12 +145,11 @@ export const NetworkStatusDialog: React.FC = () => {
           <div className="flex items-center justify-end gap-3 pt-3">
             <button
               type="button"
-              disabled={isChecking}
-              onClick={handleRetryConnection}
-              className="py-2 px-4 bg-[#ef4444] text-white font-mono font-bold text-xs uppercase tracking-wider hover:bg-white hover:text-black transition-colors cursor-pointer disabled:opacity-50"
+              onClick={handleBrowseOffline}
+              className="py-2 px-4 bg-[#ef4444] text-white font-mono font-bold text-xs uppercase tracking-wider hover:bg-white hover:text-black transition-colors cursor-pointer"
               style={{ borderRadius: 0, outline: 'none', border: 'none' }}
             >
-              {isChecking ? 'Checking...' : 'Retry Connection'}
+              Browse Offline
             </button>
           </div>
         </div>
