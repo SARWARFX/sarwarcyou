@@ -1,5 +1,4 @@
 import React from 'react';
-import { hapticLight, hapticMedium } from '../../utils/hapticsManager';
 
 export interface MediaNotFoundDialogProps {
   isOpen: boolean;
@@ -12,16 +11,15 @@ export interface MediaNotFoundDialogProps {
 /**
  * 404 Route Not Found Dialog
  * - Centered at the middle of the website
- * - 20px Backdrop Blur
+ * - Pure Glassmorphic Hologram
  * - 100% Rectangular Geometry (0px border-radius, zero outlines)
- * - Deep Obsidian Color Scheme
  */
 export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
   isOpen,
   attemptedPath,
-  suggestedTab = 'TRAILER',
+  suggestedTab: _suggestedTab = 'TRAILER',
   onClose,
-  onNavigateTab,
+  onNavigateTab: _onNavigateTab,
 }) => {
   if (!isOpen) return null;
 
@@ -30,52 +28,49 @@ export const MediaNotFoundDialog: React.FC<MediaNotFoundDialogProps> = ({
       role="dialog"
       aria-modal="true"
       onClick={onClose}
-      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-[20px] transition-opacity duration-200 cursor-pointer select-none"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[10px] transition-opacity duration-200 cursor-pointer select-none pointer-events-auto"
       style={{ borderRadius: 0, outline: 'none', border: 'none' }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-[#090c12] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.95)] cursor-default text-white flex flex-col gap-4"
-        style={{ borderRadius: 0, outline: 'none', border: 'none' }}
+        className="relative w-full max-w-md p-6 sm:p-7 shadow-[0_30px_80px_rgba(0,0,0,0.75)] cursor-default text-white flex flex-col gap-4 animate-scale-in"
+        style={{
+          borderRadius: 0,
+          outline: 'none',
+          border: 'none',
+          background: 'rgba(10, 14, 23, 0.58)',
+          backdropFilter: 'blur(32px) saturate(190%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(190%)',
+          boxShadow: '0 30px 80px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.2) inset',
+        }}
       >
-        <h3 className="text-lg font-bold tracking-tight text-[#38bdf8] uppercase font-mono">
-          // ITEM NOT FOUND
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-bold tracking-tight text-[#38bdf8] uppercase font-mono flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-[#38bdf8] inline-block shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
+            // ITEM NOT FOUND
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center text-white/55 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-base font-mono p-0"
+            style={{ borderRadius: 0, outline: 'none', border: 'none', background: 'transparent' }}
+            title="Close Dialog"
+          >
+            ✕
+          </button>
+        </div>
 
-        <p className="text-xs text-neutral-300 font-sans leading-relaxed">
+        <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
           The requested media item does not exist in the vault or the route has been removed.
         </p>
 
-        <div className="bg-[#030406] p-2.5 text-[11px] font-mono text-neutral-300 break-all select-text">
+        <div className="bg-black/50 p-2.5 text-[11px] font-mono text-neutral-400 break-all select-text">
           {attemptedPath}
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-3">
-          {suggestedTab && suggestedTab !== 'TRAILER' && suggestedTab !== 'HOME' && suggestedTab !== 'TELEMETRY' && (
-            <button
-              type="button"
-              onClick={() => {
-                hapticMedium();
-                onNavigateTab(suggestedTab);
-              }}
-              className="py-2 px-4 bg-transparent text-neutral-300 hover:text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
-              style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-            >
-              Browse {suggestedTab === 'CLIPS' ? 'Video Clips' : suggestedTab === 'PHOTOGRAPHY' ? 'Photographs' : suggestedTab}
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              hapticLight();
-              onNavigateTab('HOME');
-            }}
-            className="py-2 px-4 bg-[#38bdf8] text-black font-mono font-bold text-xs uppercase tracking-wider hover:bg-white transition-colors cursor-pointer"
-            style={{ borderRadius: 0, outline: 'none', border: 'none' }}
-          >
-            Return Home
-          </button>
+        <div className="bg-[#030508]/45 p-2.5 text-[11px] font-mono text-neutral-400 flex items-center justify-between">
+          <span className="text-[#38bdf8] font-bold">ERROR // 404 ROUTE</span>
+          <span className="text-neutral-500">MEDIA MISSING</span>
         </div>
       </div>
     </div>

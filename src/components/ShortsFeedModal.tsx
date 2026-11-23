@@ -879,50 +879,62 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
             {/* In-Stage Safety Brake Modal Banner for < 5% Battery on Battery Power */}
             {isBatteryBrakeActive && idx === activeIndex && (
               <div
-                className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl pointer-events-auto select-none animate-fade-in"
+                className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[10px] pointer-events-auto select-none animate-fade-in"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div
-                  className="relative w-full max-w-md bg-[#090c12] p-6 sm:p-7 shadow-[0_30px_90px_rgba(0,0,0,0.98)] border border-red-500/50 text-white flex flex-col gap-4 animate-scale-in text-left"
-                  style={{ borderRadius: 0, outline: 'none' }}
+                  className="relative w-full max-w-md p-6 sm:p-7 shadow-[0_30px_80px_rgba(0,0,0,0.75)] text-white flex flex-col gap-4 animate-scale-in text-left"
+                  style={{
+                    borderRadius: 0,
+                    outline: 'none',
+                    border: 'none',
+                    background: 'rgba(10, 14, 23, 0.58)',
+                    backdropFilter: 'blur(32px) saturate(190%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(190%)',
+                    boxShadow: '0 30px 80px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.2) inset',
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs sm:text-sm font-bold font-mono tracking-tight uppercase flex items-center gap-2 text-[#ff0022]">
                       <span className="w-2.5 h-2.5 bg-[#ff0022] animate-ping inline-block shrink-0 shadow-[0_0_8px_#ff0022]" />
                       // CRITICAL BATTERY // &lt; 5%
                     </h3>
-                    <span className="text-[10px] font-mono px-2 py-0.5 bg-black/60 border border-white/10 text-neutral-400">
-                      #FF0022
-                    </span>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="w-7 h-7 flex items-center justify-center text-white/55 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-base font-mono p-0"
+                      style={{ borderRadius: 0, outline: 'none', border: 'none', background: 'transparent' }}
+                      title="Close Shorts"
+                    >
+                      ✕
+                    </button>
                   </div>
 
                   <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
                     Device is running on very low power emergency state (&lt; 5%). Shorts playback is locked to prevent sudden system crash. You may choose 'Play as Urgent' for a single emergency play.
                   </p>
 
-                  <div className="bg-[#030406] p-2.5 text-[11px] font-mono text-neutral-400 flex items-center justify-between border border-white/5">
+                  <div className="bg-[#030508]/45 p-2.5 text-[11px] font-mono text-neutral-400 flex items-center justify-between">
                     <span className="text-[#ff0022] font-bold">CRITICAL // {batteryState.level}%</span>
                     <span className="text-neutral-500">PLAYBACK LOCKED</span>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <div className="flex items-center justify-end pt-1">
                     <button
                       type="button"
                       onClick={handleUrgentPlay}
-                      className="py-2 px-4 font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border flex items-center gap-1.5 hover:bg-red-500/10 text-[#ff4455] border-[#ff0022] shadow-[0_0_12px_rgba(255,0,34,0.35)]"
-                      style={{ borderRadius: 0 }}
+                      className="py-2 px-4 font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 hover:bg-white hover:text-black"
+                      style={{
+                        borderRadius: 0,
+                        outline: 'none',
+                        border: 'none',
+                        backgroundColor: '#ff0022',
+                        color: '#ffffff',
+                        boxShadow: '0 0 16px rgba(255, 0, 34, 0.45)',
+                      }}
                     >
                       <span>⚡</span>
                       <span>Play as Urgent</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="py-2 px-5 font-mono font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer bg-[#ff0022] text-white hover:bg-white hover:text-black border-0"
-                      style={{ borderRadius: 0 }}
-                    >
-                      Close Shorts
                     </button>
                   </div>
                 </div>

@@ -657,8 +657,6 @@ function App() {
       style={{ isolation: 'isolate' }}
     >
       <CyberSplash />
-      <NetworkStatusDialog />
-      <BatteryStatusDialog />
 
       {/* Universal Animated Graphical Background (Entire Website) */}
       <CinematicBackdropCanvas isPaused={theaterState.isOpen} />
@@ -921,6 +919,9 @@ function App() {
           </Suspense>
         </PlayerErrorBoundary>
       )}
+      {/* Universal Topmost Floating Notifications (Visible above all media players & modals) */}
+      <NetworkStatusDialog />
+      <BatteryStatusDialog />
     </div>
   );
 }
