@@ -1436,7 +1436,7 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
 
         {/* Bottom Right Corner: Controls (INSTALL APP + CLEAR CACHE) */}
         <div className="flex items-center shrink-0 ml-auto pl-4">
-          {!appStandalone && (
+          {!appStandalone && tabIndex === 0 && !searchState.isActive && (
             <button
               onClick={() => {
                 hapticLight();
