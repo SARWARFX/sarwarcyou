@@ -4,7 +4,7 @@ import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
 import { isPhotoExtension, isVideoExtension } from '../../utils/mediaTypeDetector';
 import { sortMediaItemsDescending } from '../../utils/albumExtractor';
-import { hapticMedium } from '../../utils/hapticsManager';
+import { hapticMedium, hapticLight } from '../../utils/hapticsManager';
 import { trackActivityEvent } from '../../utils/usageTelemetry';
 import {
   parseAppPathname,
@@ -37,6 +37,8 @@ import {
   type CacheCategory,
 } from '../../utils/cachedMediaManager';
 import { ClearCacheConfirmDialog } from '../common/ClearCacheConfirmDialog';
+import { AddToHomeScreenDialog } from '../common/AddToHomeScreenDialog';
+import { isStandalone, subscribeInstallable } from '../../utils/pwaInstallManager';
 
 export interface PillarBarGateProps {
   items: StageMediaItem[];
@@ -326,6 +328,16 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
   }>({ isOpen: false, path: '' });
 
   const [offlineBrowsing, setOfflineBrowsing] = useState<boolean>(() => isBrowsingOffline());
+  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
+  const [appStandalone, setAppStandalone] = useState(() => isStandalone());
+
+  useEffect(() => {
+    setAppStandalone(isStandalone());
+    const unsub = subscribeInstallable(() => {
+      setAppStandalone(isStandalone());
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const unsub = subscribeBrowsingOffline((val) => {
@@ -1422,19 +1434,37 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
           )}
         </div>
 
-        {/* Bottom Right Corner: CLEAR CACHE (Available on Homepage cached tab when cached items exist) */}
-        {tabIndex === 0 && (cachedPhotos.length > 0 || cachedShorts.length > 0 || cachedClips.length > 0) && !searchState.isActive && (
-          <button
-            onClick={() => {
-              hapticMedium();
-              setIsClearConfirmOpen(true);
-            }}
-            className="font-firjar text-[11.5px] sm:text-[12px] text-[#ef4444] hover:text-[#f87171] tracking-wider uppercase font-bold cursor-pointer transition-colors bg-transparent border-0 outline-none p-0 shrink-0 ml-4 whitespace-nowrap select-none"
-            style={{ borderRadius: 0, outline: 'none', border: 'none', fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
-          >
-            CLEAR CACHE
-          </button>
-        )}
+        {/* Bottom Right Corner: Controls (INSTALL APP + CLEAR CACHE) */}
+        <div className="flex items-center shrink-0 ml-auto pl-4">
+          {!appStandalone && (
+            <button
+              onClick={() => {
+                hapticLight();
+                setIsInstallDialogOpen(true);
+              }}
+              className="font-firjar text-[11px] sm:text-[11.5px] text-[#38bdf8] hover:text-white tracking-wider uppercase font-bold cursor-pointer transition-colors bg-transparent border-0 outline-none p-0 whitespace-nowrap select-none flex items-center gap-1 mr-4"
+              style={{ borderRadius: 0, outline: 'none', border: 'none', fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+              title="Add Sarwar C You to Home Screen"
+            >
+              <span className="text-[#38bdf8] text-xs font-black">+</span>
+              <span>APP</span>
+            </button>
+          )}
+
+          {/* CLEAR CACHE (Available on Homepage cached tab when cached items exist) */}
+          {tabIndex === 0 && (cachedPhotos.length > 0 || cachedShorts.length > 0 || cachedClips.length > 0) && !searchState.isActive && (
+            <button
+              onClick={() => {
+                hapticMedium();
+                setIsClearConfirmOpen(true);
+              }}
+              className="font-firjar text-[11.5px] sm:text-[12px] text-[#ef4444] hover:text-[#f87171] tracking-wider uppercase font-bold cursor-pointer transition-colors bg-transparent border-0 outline-none p-0 whitespace-nowrap select-none"
+              style={{ borderRadius: 0, outline: 'none', border: 'none', fontFamily: "'Firjar', 'Science Gothic', sans-serif !important" }}
+            >
+              CLEAR CACHE
+            </button>
+          )}
+        </div>
       </footer>
 
       {/* Clear Cache Confirmation Dialog */}
@@ -1443,6 +1473,12 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
         onClose={() => setIsClearConfirmOpen(false)}
         currentPageName={homeSubfolder}
         onConfirm={handleExecuteClearCache}
+      />
+
+      {/* Add to Home Screen Dialog */}
+      <AddToHomeScreenDialog
+        isOpen={isInstallDialogOpen}
+        onClose={() => setIsInstallDialogOpen(false)}
       />
 
       {/* 24-HOUR DEEP DIURNAL TELEMETRY MATRIX VIEW */}
