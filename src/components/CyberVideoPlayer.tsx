@@ -13,6 +13,7 @@ import {
 import type { StageMediaItem, MediaFolderEntry } from '../types';
 import { downloadBrandedVideo } from '../utils/downloadMedia';
 import { getMediaUrl, getDirectHfVideoUrl } from '../utils/imageUrlResolver';
+import { addCachedMediaItem, getCachedAssetBlobUrl } from '../utils/cachedMediaManager';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { CyberMediaSidebar } from './CyberMediaSidebar';
 import { lockToLandscape, unlockOrientation } from '../utils/orientationManager';
@@ -223,6 +224,36 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     setHasPlaybackError(false);
     fallbackAttemptedRef.current = {};
   }, [item?.id, item?.url, isOpen]);
+
+  // Local Cached Media Resolution & Instant Offline Playback
+  const [cachedBlobUrl, setCachedBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+    if (!isOpen || !item) {
+      setCachedBlobUrl(null);
+      return;
+    }
+
+    // Auto-cache video on open (Wi-Fi or cellular, quota-aware)
+    addCachedMediaItem(item);
+
+    const primaryUrl = getMediaUrl(item.url || item.path || item.id);
+    const directUrl = getDirectHfVideoUrl(item);
+    const targetUrl = sourceOverride || primaryUrl || directUrl;
+
+    if (targetUrl) {
+      getCachedAssetBlobUrl(targetUrl).then((blobUrl) => {
+        if (!isCancelled && blobUrl) {
+          setCachedBlobUrl(blobUrl);
+        }
+      });
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, item, sourceOverride]);
 
   // A-B Loop State
   const [loopA, setLoopA] = useState<number | null>(null);
@@ -1076,7 +1107,8 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   const primaryStreamUrl = getMediaUrl(item.url || item.path || item.id);
   const directHfUrl = getDirectHfVideoUrl(item);
-  const streamUrl = sourceOverride || primaryStreamUrl || directHfUrl;
+  const rawStreamUrl = sourceOverride || primaryStreamUrl || directHfUrl;
+  const streamUrl = cachedBlobUrl || rawStreamUrl;
 
   // Vertical timeline scrub handling (adapted from ShortsView with live square reticle dot)
 

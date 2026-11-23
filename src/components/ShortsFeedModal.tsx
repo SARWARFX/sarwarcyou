@@ -3,6 +3,7 @@ import { AlertTriangle, Loader2, Heart, FastForward } from 'lucide-react';
 import type { StageMediaItem } from '../types';
 import { getVideoStreamUrl, getDirectHfVideoUrl, getMediaUrl } from '../utils/imageUrlResolver';
 import { getThumbnailUrl } from '../utils/thumbnailResolver';
+import { addCachedMediaItem } from '../utils/cachedMediaManager';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 import { useBackButton } from '../utils/backButtonManager';
@@ -104,6 +105,13 @@ export const ShortsFeedModal: React.FC<ShortsFeedModalProps> = ({
     setIsUrgentPlaybackOverride(false);
     resetUrgentPlayback();
   }, [isOpen, activeIndex]);
+
+  // Instantly cache opened short across any network (Wi-Fi or cellular)
+  useEffect(() => {
+    if (isOpen && shorts && shorts[activeIndex]) {
+      addCachedMediaItem(shorts[activeIndex]);
+    }
+  }, [isOpen, activeIndex, shorts]);
 
   const isBatteryBrakeActive =
     batteryState.isSupported && !batteryState.charging && batteryState.level < 5 && !isUrgentPlaybackOverride;
