@@ -1,0 +1,121 @@
+name: Build & Release StreamVault Android App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/build-android-app.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Build & Package Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.6'
+
+      - name: Decode Signing Keystore
+        id: decode_keystore
+        run: |
+          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > android-app/app/release-key.jks
+            echo "keystore_decoded=true" >> $GITHUB_OUTPUT
+          elif [ -f "release-key.jks" ]; then
+            cp release-key.jks android-app/app/release-key.jks
+            echo "keystore_decoded=true" >> $GITHUB_OUTPUT
+          else
+            echo "keystore_decoded=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Android Release APK
+        run: |
+          cd android-app
+          gradle assembleRelease \
+            -PversionCode=${{ github.run_number }} \
+            -PversionName="1.0.${{ github.run_number }}" --no-daemon --stacktrace
+          cd ..
+        env:
+          CI: true
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Prepare Release Assets
+        run: |
+          cp android-app/app/build/outputs/apk/release/app-release.apk StreamVault.apk
+          cp android-app/app/build/outputs/apk/release/app-release.apk SARWARCYOU.apk
+          cp android-app/app/build/outputs/apk/release/app-release.apk SARWARCYOU-v${{ github.run_number }}.apk
+
+      - name: Clean Keystore
+        if: always()
+        run: rm -f android-app/app/release-key.jks
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamVault-v${{ github.run_number }}
+          path: StreamVault.apk
+          retention-days: 30
+
+      - name: Publish Versioned GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: "v1.0.${{ github.run_number }}"
+          name: "StreamVault v1.0.${{ github.run_number }}"
+          body: |
+            ### StreamVault v1.0.${{ github.run_number }} (Direct Download)
+
+            - **Version:** `1.0.${{ github.run_number }}` (versionCode: `${{ github.run_number }}`)
+            - **Native Android APK:** [`StreamVault.apk`](https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/StreamVault.apk)
+            - **Commit:** ${{ github.sha }}
+
+            #### Features:
+            - Pure OLED Black (`#000000`) theme with center-expanded media folders & subfolders.
+            - Direct playback via native Samsung Gallery (`image/*`) and Samsung Video Player (`video/*`).
+            - Offline media caching support.
+            - Pre-authenticated Hugging Face uploader with live byte counter, MB/s speed, ETA timer, and post-upload verification.
+            - 1-click in-app background updater: zero manual APK downloads or file manager cleanup needed.
+          files: |
+            StreamVault.apk
+            SARWARCYOU.apk
+            SARWARCYOU-v${{ github.run_number }}.apk
+
+      - name: Update Latest Release Tag (apk-latest)
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: apk-latest
+          name: "StreamVault Android App (Latest Build)"
+          body: |
+            ### StreamVault Android App (Latest Build)
+
+            - **Latest Version:** `1.0.${{ github.run_number }}` (versionCode: `${{ github.run_number }}`)
+            - **Direct Download Link:** [Download StreamVault.apk](https://github.com/${{ github.repository }}/releases/download/apk-latest/StreamVault.apk)
+            - **Commit:** ${{ github.sha }}
+          files: |
+            StreamVault.apk
+            SARWARCYOU.apk
+            SARWARCYOU-v${{ github.run_number }}.apk
