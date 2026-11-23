@@ -1307,6 +1307,7 @@ export function resolveSubfolderSlug(tab: AppTabRoute, slug: string): string | n
  * Builds standard canonical web URL for a subfolder page
  */
 export function getSubfolderHref(tabIndex: number, subfolder: string): string {
+  if (tabIndex === 0) return '/';
   const sub = subfolder.toLowerCase();
   if (tabIndex === 1) { // Photographs
     return sub === 'featured' ? '/photographs' : `/photographs/${sub}`;
@@ -1342,12 +1343,12 @@ export function getSubfolderHref(tabIndex: number, subfolder: string): string {
  */
 export function parseAppPathname(pathname?: string): ParsedAppRoute {
   if (typeof window === 'undefined') {
-    return { tab: 'SHORTS', subfolder: 'Featured', shortId: null, rawPath: '/shorts', isNotFound: false };
+    return { tab: 'HOME', subfolder: 'Featured', shortId: null, rawPath: '/', isNotFound: false };
   }
 
   const raw = (pathname ?? window.location.pathname).replace(/^\/+|\/+$/g, '').trim();
   if (!raw || raw === 'home' || raw === 'trailer') {
-    return { tab: 'SHORTS', subfolder: 'Featured', shortId: null, rawPath: '/shorts', isNotFound: false };
+    return { tab: 'HOME', subfolder: 'Featured', shortId: null, rawPath: '/', isNotFound: false };
   }
 
   const segments = raw.split('/').map((s) => s.trim()).filter(Boolean);

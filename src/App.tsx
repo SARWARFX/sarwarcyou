@@ -20,6 +20,7 @@ const AmbientWallpaper = lazy(() => import('./components/AmbientWallpaper').then
 import { getActiveAccent, applyAccentToDom } from './utils/themeAccentManager';
 import { PlayerErrorBoundary } from './components/PlayerErrorBoundary';
 import { CyberSplash } from './components/CyberSplash';
+import { addCachedMediaItem } from './utils/cachedMediaManager';
 import { NetworkStatusDialog } from './components/common/NetworkStatusDialog';
 import { BatteryStatusDialog } from './components/common/BatteryStatusDialog';
 import { CinematicBackdropCanvas } from './components/gate/CinematicBackdropCanvas';
@@ -227,6 +228,7 @@ function App() {
       indexHint?: number
     ) => {
       trackActivityEvent(1);
+      addCachedMediaItem(item);
       const isShort = Boolean(
         item.mediaType === 'short' ||
         item.category?.toLowerCase().includes('short') ||
