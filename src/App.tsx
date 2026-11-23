@@ -24,12 +24,12 @@ import { addCachedMediaItem } from './utils/cachedMediaManager';
 import { NetworkStatusDialog } from './components/common/NetworkStatusDialog';
 import { BatteryStatusDialog } from './components/common/BatteryStatusDialog';
 import { CinematicBackdropCanvas } from './components/gate/CinematicBackdropCanvas';
-import { MonolithBarGate } from './components/gate/MonolithBarGate';
+import { PillarBarGate } from './components/gate/PillarBarGate';
 import {
   ACTIVE_INTERFACE,
   ENABLE_CSPR_SHOWCASE,
   ENABLE_TRAILER_GATE,
-  ENABLE_MONOLITH_GATE,
+  ENABLE_PILLAR_GATE,
   ENABLE_AURA_FLOW,
   ENABLE_CASCADE_SHELL,
   ENABLE_SILENT_HILL_SHELL,
@@ -457,8 +457,8 @@ function App() {
       setShortsState({ isOpen: false, shorts: [], initialIndex: 0 });
       setLightboxState({ isOpen: false, item: null, items: [], initialIndex: 0 });
 
-      // 3. If albumQuery is present in URL, restore the previous album viewAllState (disabled in Monolith Gate)
-      if (albumQuery && !ENABLE_MONOLITH_GATE && ACTIVE_INTERFACE !== 'MONOLITH_GATE') {
+      // 3. If albumQuery is present in URL, restore the previous album viewAllState (disabled in Pillar Gate)
+      if (albumQuery && !ENABLE_PILLAR_GATE && ACTIVE_INTERFACE !== 'PILLAR_GATE') {
         const isShortsAlbum = albumQuery.toLowerCase() === 'shorts' || getAlbumSlug(albumQuery) === 'shorts';
         if (isShortsAlbum) {
           handleOpenViewAll('Shorts', rawFeed.shorts, 'shorts', undefined, undefined, undefined, false);
@@ -495,8 +495,8 @@ function App() {
     if (isLoading || !data || !rawFeed || rawFeed.allMediaPool.length === 0 || !isDynamicReady) return;
     if (hasInitializedUrlRef.current) return;
 
-    // In Monolith Gate mode, direct links or album queries land cleanly on the nav bar category tabs instead of launching the legacy FullAlbumViewModal
-    if (ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE') {
+    // In Pillar Gate mode, direct links or album queries land cleanly on the nav bar category tabs instead of launching the legacy FullAlbumViewModal
+    if (ENABLE_PILLAR_GATE || ACTIVE_INTERFACE === 'PILLAR_GATE') {
       hasInitializedUrlRef.current = true;
       setViewAllState({ isOpen: false, title: '', items: [] });
       return;
@@ -622,7 +622,7 @@ function App() {
         replace: true,
       });
     } else {
-      if (!ENABLE_MONOLITH_GATE && ACTIVE_INTERFACE !== 'MONOLITH_GATE') {
+      if (!ENABLE_PILLAR_GATE && ACTIVE_INTERFACE !== 'PILLAR_GATE') {
         syncUrlState({
           album: null,
           mediaItem: null,
@@ -698,10 +698,10 @@ function App() {
             onOpenShort={handleOpenShort}
           />
         </>
-      ) : ENABLE_MONOLITH_GATE || ACTIVE_INTERFACE === 'MONOLITH_GATE' ? (
+      ) : ENABLE_PILLAR_GATE || ACTIVE_INTERFACE === 'PILLAR_GATE' ? (
         <>
-          {/* 1. Direct Data Monolith Bars Vault Gate with SARWAR.CYOU Signature */}
-          <MonolithBarGate
+          {/* 1. Direct Data Pillar Bars Vault Gate with SARWAR.CYOU Signature */}
+          <PillarBarGate
             items={rawFeed.allMediaPool}
             initialAlbum={initialAlbumTarget}
             isModalOpen={

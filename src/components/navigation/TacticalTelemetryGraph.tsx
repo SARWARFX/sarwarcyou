@@ -129,7 +129,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
             }}
             title={`${day.isToday ? 'Today' : day.dayLetter}: ${day.timeFormatted} (Click to inspect 24h statistic)`}
           >
-          {/* Row containing: [Rotated 90° Anti-Clockwise Time (Left)] + [Solid Monolith Bar (Right)] */}
+          {/* Row containing: [Rotated 90° Anti-Clockwise Time (Left)] + [Solid Pillar Bar (Right)] */}
           <div
             className={`flex items-end gap-1 sm:gap-1.5 ${
               isLarge ? 'h-[82px] sm:h-[92px]' : 'h-[62px] sm:h-[70px]'
@@ -179,7 +179,7 @@ export const TacticalTelemetryGraph: React.FC<TacticalTelemetryGraphProps> = ({
               </span>
             </div>
 
-            {/* Solid vertical monolith bar on the right side of the text */}
+            {/* Solid vertical pillar bar on the right side of the text */}
             <div
               className={`${
                 isLarge ? 'w-3 sm:w-3.5 h-[82px] sm:h-[92px]' : 'w-2.5 sm:w-[11px] h-[62px] sm:h-[70px]'

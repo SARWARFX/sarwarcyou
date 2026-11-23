@@ -5,7 +5,7 @@ import { LaserSparkLogo } from '../brand/LaserSparkLogo';
 export interface HeaderBrandLogoProps {
   className?: string;
   trackingClass?: string;
-  variant?: 'monolith' | 'cspr' | 'minimal';
+  variant?: 'pillar' | 'cspr' | 'minimal';
   onTrigger?: () => void;
 }
 

@@ -34,7 +34,7 @@ const DIURNAL_WINDOWS_24 = [
 /**
  * Clean & Minimalist 24-Hour Diurnal Telemetry Modal
  * - Displays clicked day from mini graph
- * - Each column: Time count at top -> Monolith Bar -> Time-to-time at bottom
+ * - Each column: Time count at top -> Pillar Bar -> Time-to-time at bottom
  * - Zero word labels, zero day switcher buttons, zero redundant close button (backdrop click & Esc close)
  * - Proportional bar height on mobile (95px), tablet (150px), and desktop (200px)
  * - All Science Gothic typography, zero rounded corners, zero outlines
@@ -188,7 +188,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
           </span>
         </div>
 
-        {/* 8 Columns: Time on top -> Monolith Bar -> Time-to-Time Window at Bottom */}
+        {/* 8 Columns: Time on top -> Pillar Bar -> Time-to-Time Window at Bottom */}
         <div className="diurnal-grid grid grid-cols-8 gap-1 sm:gap-2.5 md:gap-3.5 items-end w-full pb-0.5">
           {DIURNAL_WINDOWS_24.map((cat, idx) => {
             const mins = activeDay?.phasesMins[idx] || 0;
@@ -238,7 +238,7 @@ export const DeepDiurnalTelemetryView: React.FC<DeepDiurnalTelemetryViewProps> =
                   {formatTime(mins)}
                 </span>
 
-                {/* 2. Vertical Monolith Bar (Responsive: 95px mobile, 150px tablet, 200px desktop) */}
+                {/* 2. Vertical Pillar Bar (Responsive: 95px mobile, 150px tablet, 200px desktop) */}
                 <div
                   className="diurnal-bar-container w-3 sm:w-4.5 md:w-6 bg-white/[0.04] flex items-end relative overflow-hidden"
                   style={{ borderRadius: 0, outline: 'none', border: 'none' }}

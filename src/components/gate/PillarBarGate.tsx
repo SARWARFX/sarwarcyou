@@ -32,7 +32,7 @@ import {
   triggerOpenOfflineModal,
 } from '../../utils/offlineManager';
 
-export interface MonolithBarGateProps {
+export interface PillarBarGateProps {
   items: StageMediaItem[];
   onOpenPhoto: (item: StageMediaItem, playlist: StageMediaItem[], index: number) => void;
   onOpenVideo: (item: StageMediaItem, playlist: StageMediaItem[]) => void;
@@ -126,7 +126,7 @@ export const BANDHOBI_FEATURED_PHOTO_FILENAMES: string[] = [
 ];
 export const BANDHOBI_FEATURED_PHOTO_KEYS = BANDHOBI_FEATURED_PHOTO_FILENAMES;
 
-export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
+export const PillarBarGate: React.FC<PillarBarGateProps> = ({
   items,
   onOpenPhoto,
   onOpenVideo,
@@ -1223,7 +1223,7 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
                 <InitializingArchiveLoader progress={70} scheme="red" />
               </div>
             ) : searchState.results.length > 0 ? (
-              /* Search Results: Buffered Monolith Grid */
+              /* Search Results: Buffered Pillar Grid */
               <BufferedMediaGrid
                 key={`search-${searchState.query}`}
                 pageKey={`search-${searchState.query}`}
@@ -1305,4 +1305,4 @@ export const MonolithBarGate: React.FC<MonolithBarGateProps> = ({
   );
 };
 
-export default MonolithBarGate;
+export default PillarBarGate;
