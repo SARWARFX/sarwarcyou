@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useState, useEffect } from 'react';
 import type { StageMediaItem } from '../../types';
 import { getMediaUrl } from '../../utils/imageUrlResolver';
 import { InitializingArchiveLoader } from './InitializingArchiveLoader';
+import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 
 export interface PhotographsSlidingFeaturedProps {
   photos: StageMediaItem[];
@@ -11,7 +12,7 @@ export interface PhotographsSlidingFeaturedProps {
 
 /**
  * Photographs Featured Showcase:
- * - Dynamically picks 20 random photographs from the vault
+ * - Showcases the 20 latest uploaded photographs from the Photographs tab's pages
  * - High-Tech Cybernetic Text-as-Slider loader ensures bufferless readiness
  * - Slides smoothly and infinitely from right to left in a continuous loop
  * - Zero rounded corners, zero outlines, zero text
@@ -21,22 +22,18 @@ export interface PhotographsSlidingFeaturedProps {
 export const PhotographsSlidingFeatured: React.FC<PhotographsSlidingFeaturedProps> = ({
   photos,
   onOpenPhoto,
-  randomSeed,
+  randomSeed: _randomSeed,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [displayProgress, setDisplayProgress] = useState(0);
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
 
-  // Pick 20 random photographs dynamically on visit or randomSeed change
+  // Pick the 20 latest uploaded photographs strictly ordered descending (newest first)
   const selected20 = useMemo(() => {
     if (!photos || photos.length === 0) return [];
-    const pool = [...photos];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    return pool.slice(0, 20);
-  }, [photos, randomSeed]);
+    const sorted = sortMediaItemsDescending(photos);
+    return sorted.slice(0, 20);
+  }, [photos]);
 
   // Duplicate the 20 photos for a seamless infinite loop
   const displayList = useMemo(() => {
