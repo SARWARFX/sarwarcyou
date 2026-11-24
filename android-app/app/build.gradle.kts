@@ -14,8 +14,8 @@ android {
         applicationId = "cyou.sarwar.vault"
         minSdk = 26
         targetSdk = 34
-        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 1
-        versionName = (project.findProperty("versionName") as? String) ?: "1.0.0"
+        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 3
+        versionName = (project.findProperty("versionName") as? String) ?: "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

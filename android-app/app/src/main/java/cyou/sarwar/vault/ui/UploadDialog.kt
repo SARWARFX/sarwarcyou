@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +32,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadDialog(
+    availablePaths: List<String>,
+    initialPath: String? = null,
     onDismissRequest: () -> Unit,
     onUploadSuccess: () -> Unit
 ) {
@@ -44,9 +45,28 @@ fun UploadDialog(
     var selectedFileName by remember { mutableStateOf("") }
     var selectedFileSize by remember { mutableLongStateOf(0L) }
 
-    val mainFolders = listOf("Photographs", "Shorts", "Video Clips", "bandhobiz")
-    var selectedFolder by remember { mutableStateOf("Photographs") }
-    var subFolderName by remember { mutableStateOf("") }
+    val safePaths = if (availablePaths.isNotEmpty()) availablePaths else listOf(
+        "Photographs/Older",
+        "Photographs/Favorite",
+        "Photographs/2025",
+        "Photographs/2026",
+        "Photographs/2027",
+        "Shorts/Older",
+        "Shorts/2027",
+        "Video Clips/Favorite",
+        "Video Clips/Older",
+        "Video Clips/2026",
+        "Video Clips/2025",
+        "Video Clips/2027",
+        "Bandhobi/Photographs",
+        "Bandhobi/Shorts",
+        "Bandhobi/Video Clips"
+    )
+
+    var selectedPath by remember {
+        mutableStateOf(if (initialPath != null && safePaths.contains(initialPath)) initialPath else safePaths.first())
+    }
+    var dropdownExpanded by remember { mutableStateOf(false) }
 
     var isUploading by remember { mutableStateOf(false) }
     var uploadProgress by remember { mutableStateOf<UploadProgress?>(null) }
@@ -60,18 +80,6 @@ fun UploadDialog(
             val (name, size) = queryFileInfo(context, uri)
             selectedFileName = name
             selectedFileSize = size
-
-            // Auto-detect target folder if possible
-            val lower = name.lowercase()
-            if (lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mov")) {
-                if (selectedFolder == "Photographs") {
-                    selectedFolder = "Shorts"
-                }
-            } else if (lower.endsWith(".jpg") || lower.endsWith(".png") || lower.endsWith(".webp")) {
-                if (selectedFolder != "Photographs" && selectedFolder != "bandhobiz") {
-                    selectedFolder = "Photographs"
-                }
-            }
         }
     }
 
@@ -81,15 +89,15 @@ fun UploadDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = Color(0xFF0A0A0A),
+                .padding(14.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF090909),
             tonalElevation = 8.dp
         ) {
             Column(
                 modifier = Modifier
-                    .border(1.dp, Color(0xFF222222), RoundedCornerShape(12.dp))
-                    .padding(20.dp)
+                    .border(1.dp, Color(0xFF222222), RoundedCornerShape(10.dp))
+                    .padding(18.dp)
             ) {
                 // Header
                 Row(
@@ -102,13 +110,13 @@ fun UploadDialog(
                             imageVector = Icons.Default.CloudUpload,
                             contentDescription = null,
                             tint = Color(0xFF00F2FE),
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "VAULT UPLOAD",
                             color = Color.White,
-                            fontSize = 17.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
                             letterSpacing = 1.sp
@@ -129,14 +137,121 @@ fun UploadDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // File Selection Area
+                // Strict Destination Policy Notice
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF141414), RoundedCornerShape(8.dp))
-                        .border(1.dp, if (selectedUri != null) Color(0xFF00F2FE) else Color(0xFF2B2B2B), RoundedCornerShape(8.dp))
+                        .background(Color(0xFF121212), RoundedCornerShape(4.dp))
+                        .border(1.dp, Color(0xFF222222), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Destination policy: Direct upload to existing subfolders only.",
+                        color = Color(0xFF999999),
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Strict Destination Subfolder Selector (No freeform text box)
+                Text(
+                    text = "DESTINATION SUBFOLDER",
+                    color = Color(0xFF777777),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = dropdownExpanded && !isUploading,
+                    onExpandedChange = { if (!isUploading) dropdownExpanded = it }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                            .background(Color(0xFF141414), RoundedCornerShape(6.dp))
+                            .border(1.dp, Color(0xFF2E2E2E), RoundedCornerShape(6.dp))
+                            .clickable(enabled = !isUploading) { dropdownExpanded = true }
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = selectedPath,
+                                color = Color(0xFF00F2FE),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Icon(
+                                imageVector = if (dropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+
+                    ExposedDropdownMenu(
+                        expanded = dropdownExpanded && !isUploading,
+                        onDismissRequest = { dropdownExpanded = false },
+                        modifier = Modifier
+                            .background(Color(0xFF111111))
+                            .border(1.dp, Color(0xFF222222))
+                    ) {
+                        safePaths.forEach { path ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = path,
+                                        color = if (path == selectedPath) Color(0xFF00F2FE) else Color.White,
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = if (path == selectedPath) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                onClick = {
+                                    selectedPath = path
+                                    dropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // File Selection Area
+                Text(
+                    text = "SELECT MEDIA FILE",
+                    color = Color(0xFF777777),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF141414), RoundedCornerShape(6.dp))
+                        .border(
+                            1.dp,
+                            if (selectedUri != null) Color(0xFF00F2FE) else Color(0xFF2E2E2E),
+                            RoundedCornerShape(6.dp)
+                        )
                         .clickable(enabled = !isUploading) {
                             filePicker.launch("*/*")
                         }
@@ -149,13 +264,13 @@ fun UploadDialog(
                                 imageVector = Icons.Default.AddPhotoAlternate,
                                 contentDescription = null,
                                 tint = Color(0xFF00F2FE),
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "SELECT MEDIA FILE",
+                                text = "TAP TO CHOOSE FILE",
                                 color = Color(0xFFCCCCCC),
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 fontFamily = FontFamily.Monospace
                             )
@@ -169,14 +284,14 @@ fun UploadDialog(
                                 imageVector = Icons.Default.InsertDriveFile,
                                 contentDescription = null,
                                 tint = Color(0xFF00F2FE),
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = selectedFileName,
                                     color = Color.White,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     fontWeight = FontWeight.Medium
@@ -184,7 +299,7 @@ fun UploadDialog(
                                 Text(
                                     text = formatBytes(selectedFileSize),
                                     color = Color(0xFF888888),
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontFamily = FontFamily.Monospace
                                 )
                             }
@@ -192,114 +307,28 @@ fun UploadDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Target Main Folder Selector
-                Text(
-                    text = "TARGET FOLDER",
-                    color = Color(0xFF777777),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    mainFolders.forEach { folder ->
-                        val isSelected = selectedFolder == folder
-                        val display = when (folder) {
-                            "Photographs" -> "Photos"
-                            "Video Clips" -> "Clips"
-                            "bandhobiz" -> "Bandhobi"
-                            else -> folder
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(
-                                    if (isSelected) Color(0xFF00F2FE).copy(alpha = 0.15f) else Color(0xFF141414),
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isSelected) Color(0xFF00F2FE) else Color(0xFF262626),
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .clickable(enabled = !isUploading) { selectedFolder = folder }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = display,
-                                color = if (isSelected) Color(0xFF00F2FE) else Color(0xFFAAAAAA),
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Subfolder Name (Optional / Auto)
-                Text(
-                    text = "SUBFOLDER (OPTIONAL)",
-                    color = Color(0xFF777777),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = subFolderName,
-                    onValueChange = { subFolderName = it },
-                    enabled = !isUploading,
-                    placeholder = {
-                        Text(
-                            text = "e.g. Vacation, Favorites...",
-                            color = Color(0xFF444444),
-                            fontSize = 12.sp
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF00F2FE),
-                        unfocusedBorderColor = Color(0xFF2B2B2B),
-                        focusedContainerColor = Color(0xFF141414),
-                        unfocusedContainerColor = Color(0xFF141414)
-                    )
-                )
-
                 // Upload Telemetry & Progress
                 if (isUploading && uploadProgress != null) {
                     val p = uploadProgress!!
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF141414), RoundedCornerShape(8.dp))
-                            .border(1.dp, Color(0xFF222222), RoundedCornerShape(8.dp))
+                            .background(Color(0xFF141414), RoundedCornerShape(6.dp))
+                            .border(1.dp, Color(0xFF222222), RoundedCornerShape(6.dp))
                             .padding(12.dp)
                     ) {
                         LinearProgressIndicator(
                             progress = { p.progressFraction },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(6.dp),
+                                .height(5.dp),
                             color = Color(0xFF00F2FE),
-                            trackColor = Color(0xFF252525),
+                            trackColor = Color(0xFF222222),
                         )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -361,17 +390,18 @@ fun UploadDialog(
                     }
                 }
 
-                // Error alert if any
+                // Error alert
                 if (errorMessage != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = errorMessage ?: "",
-                        color = Color(0xFFFF4444),
-                        fontSize = 11.sp
+                        color = Color(0xFFFF5555),
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 // Action Button
                 Button(
@@ -385,8 +415,7 @@ fun UploadDialog(
                                 context = context,
                                 fileUri = uri,
                                 fileName = selectedFileName,
-                                targetFolder = selectedFolder,
-                                subFolder = subFolderName.ifBlank { null }
+                                destinationSubPath = selectedPath
                             ).collect { progress ->
                                 uploadProgress = progress
                                 if (progress.error != null) {
@@ -404,17 +433,17 @@ fun UploadDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(6.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF00F2FE),
                         contentColor = Color.Black,
-                        disabledContainerColor = Color(0xFF1E1E1E),
+                        disabledContainerColor = Color(0xFF1A1A1A),
                         disabledContentColor = Color(0xFF555555)
                     )
                 ) {
                     Text(
                         text = if (isUploading) "UPLOADING TO VAULT..." else "START UPLOAD",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
                         letterSpacing = 1.sp

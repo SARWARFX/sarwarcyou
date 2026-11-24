@@ -4,13 +4,15 @@ import android.content.Context
 import android.net.Uri
 import cyou.sarwar.vault.data.UploadProgress
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
-import okio.*
+import okio.BufferedSink
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -49,27 +51,35 @@ class HuggingFaceUploader(
         context: Context,
         fileUri: Uri,
         fileName: String,
-        targetFolder: String,
-        subFolder: String?
-    ): Flow<UploadProgress> = flow {
-        var inputStream: InputStream? = null
+        destinationSubPath: String // e.g. "Photographs/Older" or "Bandhobi/Photographs"
+    ): Flow<UploadProgress> = callbackFlow {
+        var tempFile: File? = null
         try {
+            // 1. Copy selected URI stream to temporary cache file safely
             val contentResolver = context.contentResolver
-            inputStream = contentResolver.openInputStream(fileUri)
-                ?: throw IllegalStateException("Unable to open selected file")
+            val inputStream = contentResolver.openInputStream(fileUri)
+                ?: throw IllegalStateException("Could not read selected media file")
 
-            // 1. Copy to temporary file in app cache to compute sha256 and size reliably
-            val tempFile = File(context.cacheDir, "upload_tmp_${System.currentTimeMillis()}_$fileName")
-            tempFile.outputStream().use { out ->
-                inputStream.copyTo(out)
+            val safeFileName = fileName.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val cacheFile = File(context.cacheDir, "upload_${System.currentTimeMillis()}_$safeFileName")
+            tempFile = cacheFile
+
+            inputStream.use { input ->
+                cacheFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
             }
-            val fileSize = tempFile.length()
 
-            emit(UploadProgress(0L, fileSize, 0f, 0.0, 0, false, false))
+            val fileSize = cacheFile.length()
+            if (fileSize == 0L) {
+                throw IllegalStateException("Selected file is empty")
+            }
 
-            // Compute SHA-256 for LFS
+            trySend(UploadProgress(0L, fileSize, 0f, 0.0, 0, false, false))
+
+            // Compute SHA-256 for Git-LFS
             val digest = MessageDigest.getInstance("SHA-256")
-            tempFile.inputStream().use { stream ->
+            cacheFile.inputStream().use { stream ->
                 val buffer = ByteArray(64 * 1024)
                 var bytes = stream.read(buffer)
                 while (bytes >= 0) {
@@ -79,12 +89,11 @@ class HuggingFaceUploader(
             }
             val sha256Hex = digest.digest().joinToString("") { "%02x".format(it) }
 
-            // Target path in dataset
-            val cleanSub = subFolder?.trim()?.replace('/', '_')
-            val repoPath = if (!cleanSub.isNullOrEmpty()) {
-                "$targetFolder/$cleanSub/$fileName"
+            // Target path in dataset: map Bandhobi to dataset folder bandhobiz
+            val repoPath = if (destinationSubPath.startsWith("Bandhobi/", ignoreCase = true)) {
+                destinationSubPath.replaceFirst("Bandhobi/", "bandhobiz/", ignoreCase = true) + "/$fileName"
             } else {
-                "$targetFolder/$fileName"
+                "$destinationSubPath/$fileName"
             }
 
             // 2. Query LFS batch endpoint
@@ -109,7 +118,7 @@ class HuggingFaceUploader(
             val batchResponse = client.newCall(batchRequest).execute()
             val batchBody = batchResponse.body?.string().orEmpty()
             if (!batchResponse.isSuccessful) {
-                throw IllegalStateException("LFS Batch failed (${batchResponse.code}): $batchBody")
+                throw IllegalStateException("LFS server responded with code ${batchResponse.code}")
             }
 
             val batchJson = JSONObject(batchBody)
@@ -119,7 +128,7 @@ class HuggingFaceUploader(
 
             var uploadHref: String? = null
             var verifyHref: String? = null
-            var uploadHeaders = mutableMapOf<String, String>()
+            val uploadHeaders = mutableMapOf<String, String>()
 
             if (actions != null) {
                 val uploadAction = actions.optJSONObject("upload")
@@ -149,7 +158,7 @@ class HuggingFaceUploader(
                     override fun contentLength() = fileSize
 
                     override fun writeTo(sink: BufferedSink) {
-                        tempFile.inputStream().use { fileIn ->
+                        cacheFile.inputStream().use { fileIn ->
                             val buffer = ByteArray(64 * 1024)
                             var uploaded = 0L
                             var read = fileIn.read(buffer)
@@ -160,27 +169,25 @@ class HuggingFaceUploader(
 
                                 val now = System.currentTimeMillis()
                                 val timeDelta = (now - lastTime).coerceAtLeast(1)
-                                if (timeDelta >= 300 || uploaded == fileSize) {
+                                if (timeDelta >= 250 || uploaded == fileSize) {
                                     val bytesDelta = uploaded - lastBytes
                                     val speed = (bytesDelta.toDouble() / (timeDelta.toDouble() / 1000.0))
                                     val remainingBytes = fileSize - uploaded
                                     val eta = if (speed > 0) (remainingBytes / speed).toLong() else 0L
                                     val fraction = if (fileSize > 0) uploaded.toFloat() / fileSize else 0f
 
-                                    // Emit progress
-                                    kotlinx.coroutines.runBlocking {
-                                        emit(
-                                            UploadProgress(
-                                                bytesWritten = uploaded,
-                                                totalBytes = fileSize,
-                                                progressFraction = fraction,
-                                                speedBytesPerSec = speed,
-                                                etaSeconds = eta,
-                                                isComplete = uploaded == fileSize,
-                                                isVerified = false
-                                            )
+                                    // Non-blocking, safe channel send
+                                    trySend(
+                                        UploadProgress(
+                                            bytesWritten = uploaded,
+                                            totalBytes = fileSize,
+                                            progressFraction = fraction,
+                                            speedBytesPerSec = speed,
+                                            etaSeconds = eta,
+                                            isComplete = uploaded == fileSize,
+                                            isVerified = false
                                         )
-                                    }
+                                    )
                                     lastTime = now
                                     lastBytes = uploaded
                                 }
@@ -201,10 +208,9 @@ class HuggingFaceUploader(
 
                 val uploadResp = client.newCall(putBuilder.build()).execute()
                 if (!uploadResp.isSuccessful) {
-                    throw IllegalStateException("Upload failed (${uploadResp.code}): ${uploadResp.body?.string()}")
+                    throw IllegalStateException("Upload failed with HTTP ${uploadResp.code}")
                 }
 
-                // Call verify if required
                 if (verifyHref != null) {
                     val verifyPayload = JSONObject().apply {
                         put("oid", sha256Hex)
@@ -218,19 +224,19 @@ class HuggingFaceUploader(
                         .build()
                     val verifyResp = client.newCall(verifyReq).execute()
                     if (!verifyResp.isSuccessful) {
-                        throw IllegalStateException("LFS Verify failed: ${verifyResp.body?.string()}")
+                        throw IllegalStateException("LFS verification failed: HTTP ${verifyResp.code}")
                     }
                 }
             } else {
-                // File already in Hugging Face LFS storage!
-                emit(UploadProgress(fileSize, fileSize, 1f, 0.0, 0, true, false))
+                // File content was already present upstream
+                trySend(UploadProgress(fileSize, fileSize, 1f, 0.0, 0, true, false))
             }
 
-            // 4. Commit to dataset via ndjson
+            // 4. Commit file to Hugging Face dataset via ndjson
             val headerLine = JSONObject().apply {
                 put("key", "header")
                 put("value", JSONObject().apply {
-                    put("summary", "Upload $fileName via SarwarStreamVault Android")
+                    put("summary", "Upload $fileName via StreamVault App")
                 })
             }
             val lfsFileLine = JSONObject().apply {
@@ -253,12 +259,13 @@ class HuggingFaceUploader(
 
             val commitResp = client.newCall(commitReq).execute()
             if (!commitResp.isSuccessful) {
-                throw IllegalStateException("Commit failed (${commitResp.code}): ${commitResp.body?.string()}")
+                throw IllegalStateException("Commit failed with HTTP ${commitResp.code}")
             }
 
-            // 5. Post-upload verification check
+            // 5. Verification check
+            val encodedRepoPath = repoPath.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
             val verifyHeadReq = Request.Builder()
-                .url("$RESOLVE_BASE_URL$repoPath")
+                .url("$RESOLVE_BASE_URL$encodedRepoPath")
                 .header("Authorization", "Bearer $token")
                 .head()
                 .build()
@@ -270,10 +277,10 @@ class HuggingFaceUploader(
                     verified = true
                     break
                 }
-                kotlinx.coroutines.delay(1000)
+                kotlinx.coroutines.delay(800)
             }
 
-            emit(
+            trySend(
                 UploadProgress(
                     bytesWritten = fileSize,
                     totalBytes = fileSize,
@@ -284,11 +291,9 @@ class HuggingFaceUploader(
                     isVerified = verified
                 )
             )
-
-            // Cleanup temp file
-            tempFile.delete()
+            close()
         } catch (e: Exception) {
-            emit(
+            trySend(
                 UploadProgress(
                     bytesWritten = 0,
                     totalBytes = 0,
@@ -297,11 +302,16 @@ class HuggingFaceUploader(
                     etaSeconds = 0,
                     isComplete = false,
                     isVerified = false,
-                    error = e.localizedMessage ?: e.message ?: "Upload error"
+                    error = e.localizedMessage ?: "Upload error occurred"
                 )
             )
+            close(e)
         } finally {
-            try { inputStream?.close() } catch (ignored: Exception) {}
+            try { tempFile?.delete() } catch (ignored: Exception) {}
+        }
+
+        awaitClose {
+            try { tempFile?.delete() } catch (ignored: Exception) {}
         }
     }.flowOn(Dispatchers.IO)
 }
