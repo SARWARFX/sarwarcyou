@@ -15,7 +15,7 @@ const CLOUDFLARE_SEARCH_WORKERS = [
 async function fetchFromDdgWorker(query: string, signal?: AbortSignal): Promise<StageMediaItem[]> {
   for (const workerBase of CLOUDFLARE_SEARCH_WORKERS) {
     try {
-      const endpoint = `${workerBase}/search?q=${encodeURIComponent(query)}&v=100`;
+      const endpoint = `${workerBase}/search?q=${encodeURIComponent(query)}&v=30d`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 
