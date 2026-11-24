@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="black">#000000</color>
-    <color name="neon_cyan">#00F2FE</color>
-    <color name="electric_blue">#4FACFE</color>
-    <color name="laser_red">#FF0055</color>
-    <color name="dark_surface">#0A0E17</color>
-    <color name="text_muted">#64748B</color>
-</resources>
