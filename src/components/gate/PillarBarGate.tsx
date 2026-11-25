@@ -123,6 +123,7 @@ export const BANDHOBI_FEATURED_PHOTO_FILENAMES: string[] = [
   'FAV_Farhana2.png',
   'FAV_Farhana.jpg',
   'FAV_f26140392.jpg',
+  'FAV_Eva 2025 (6).jpg',
   'FAV_Eva8.jpg',
   'FAV_Eva6.jpg',
   'FAV_Eva5.jpg',
