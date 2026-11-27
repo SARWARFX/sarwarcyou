@@ -97,11 +97,11 @@ export function normalizeRepoPath(path: string): string {
 
   const isThumbnailPath = /^(?:\.thumbnails\/|Thumbnails\/|thumbnails\/)/i.test(clean);
 
-  // Map any "Jacqueline" references (e.g. Sh.Jacqueline, Jacqueline .mp4) to canonical dataset path "Shorts/Shorts 2027/Jacqueline .mp4"
-  if (/Jacqueline/i.test(clean)) {
+  // Only normalize explicit legacy shorthand references to Jacqueline short video (never hijack Photographs or Video Clips)
+  if (/^Sh\.Jacqueline/i.test(clean) || /^(?:Shorts\/)?(?:Shorts%202027\/|Shorts\s+2027\/)Jacqueline\s*\.mp4$/i.test(clean)) {
     clean = isThumbnailPath
-      ? 'Thumbnails/Shorts/Shorts 2027/Jacqueline .webp'
-      : 'Shorts/Shorts 2027/Jacqueline .mp4';
+      ? 'Thumbnails/Shorts/2027/Jacqueline .webp'
+      : 'Shorts/2027/Jacqueline .mp4';
   }
 
   if (isThumbnailPath) {
