@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useState, useEffect } from 'react';
 import type { StageMediaItem } from '../../types';
 import { getMediaUrl } from '../../utils/imageUrlResolver';
 import { InitializingArchiveLoader } from './InitializingArchiveLoader';
+import { sortMediaItemsDescending } from '../../utils/albumExtractor';
 
 export interface PhotographsSlidingFeaturedProps {
   photos: StageMediaItem[];
@@ -11,8 +12,7 @@ export interface PhotographsSlidingFeaturedProps {
 
 /**
  * Photographs Featured Showcase:
- * - Showcases 20 randomly selected photographs distributed across all its subfolders
- * - Ensures the showcase is completely diverse rather than mirroring the newest subfolder
+ * - Showcases the latest uploaded photographs strictly ordered descending (newest first, not random)
  * - High-Tech Cybernetic Text-as-Slider loader ensures bufferless readiness
  * - Slides smoothly and infinitely from right to left in a continuous loop
  * - Zero rounded corners, zero outlines, zero text
@@ -22,76 +22,25 @@ export interface PhotographsSlidingFeaturedProps {
 export const PhotographsSlidingFeatured: React.FC<PhotographsSlidingFeaturedProps> = ({
   photos,
   onOpenPhoto,
-  randomSeed,
+  randomSeed: _randomSeed,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [displayProgress, setDisplayProgress] = useState(0);
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
 
-  // Helper to extract the subfolder name of a photograph
-  const getSubfolderKey = (item: StageMediaItem): string => {
-    if (item.innerFolder && item.innerFolder !== 'Photographs') return item.innerFolder;
-    if (item.parentAlbum && item.parentAlbum !== 'Photographs') return item.parentAlbum;
-    if (item.path) {
-      const parts = item.path.split('/');
-      if (parts.length > 2) return parts[1]; // e.g. Photographs/Older/foo.jpg -> Older
-    }
-    if (item.category && item.category !== 'Photographs') return item.category;
-    return 'General';
-  };
-
-  // Pick 20 randomized photographs distributed across all available subfolders
+  // Pick the 20 latest uploaded photographs strictly ordered descending (newest first)
   const selected20 = useMemo(() => {
     if (!photos || photos.length === 0) return [];
+    const sorted = sortMediaItemsDescending(photos);
+    return sorted.slice(0, 20);
+  }, [photos]);
 
-    // 1. Group photographs by subfolder
-    const subfolderMap = new Map<string, StageMediaItem[]>();
-    for (const p of photos) {
-      const sub = getSubfolderKey(p);
-      if (!subfolderMap.has(sub)) {
-        subfolderMap.set(sub, []);
-      }
-      subfolderMap.get(sub)!.push(p);
-    }
-
-    // 2. Shuffle each subfolder's item pool
-    const subfolderPools: StageMediaItem[][] = [];
-    for (const list of subfolderMap.values()) {
-      const copy = [...list];
-      for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-      }
-      subfolderPools.push(copy);
-    }
-
-    // 3. Balanced round-robin sampling across all subfolders
-    const picked: StageMediaItem[] = [];
-    const targetCount = Math.min(20, photos.length);
-    let activePools = subfolderPools.filter((p) => p.length > 0);
-
-    while (picked.length < targetCount && activePools.length > 0) {
-      for (let i = 0; i < activePools.length && picked.length < targetCount; i++) {
-        const pool = activePools[i];
-        if (pool.length > 0) {
-          picked.push(pool.shift()!);
-        }
-      }
-      activePools = activePools.filter((p) => p.length > 0);
-    }
-
-    // 4. Final shuffle so different subfolder images are intermixed in the showcase strip
-    for (let i = picked.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [picked[i], picked[j]] = [picked[j], picked[i]];
-    }
-
-    return picked;
-  }, [photos, randomSeed]);
-
-  // Duplicate the 20 photos for a seamless infinite loop
+  // Duplicate for a seamless infinite loop
   const displayList = useMemo(() => {
     if (selected20.length === 0) return [];
+    if (selected20.length < 6) {
+      return [...selected20, ...selected20, ...selected20, ...selected20];
+    }
     return [...selected20, ...selected20];
   }, [selected20]);
 

@@ -554,6 +554,14 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
       }
     }
 
+    // Ensure all subfolders strictly display latest media first (newest first)
+    for (const rootNode of map.values()) {
+      rootNode.files = sortMediaItemsDescending(rootNode.files);
+      for (const subNode of rootNode.subfolders.values()) {
+        subNode.files = sortMediaItemsDescending(subNode.files);
+      }
+    }
+
     return map;
   }, [items]);
 
@@ -962,39 +970,50 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
       let itemsList: StageMediaItem[] = [];
       let aspectRatio: '3/4' | '9/16' | '16/9' = '16/9';
 
+      const getSubNode = (hubKey: string, subKey: string) => {
+        const rootNode = rootMap.get(hubKey);
+        if (!rootNode) return undefined;
+        if (rootNode.subfolders.has(subKey)) return rootNode.subfolders.get(subKey);
+        const subLower = subKey.toLowerCase();
+        for (const [k, v] of rootNode.subfolders.entries()) {
+          if (k.toLowerCase() === subLower) return v;
+        }
+        return undefined;
+      };
+
       if (viewTab === 1) {
         aspectRatio = '3/4';
         if (viewSub === 'Featured' || viewSub === 'ALL') itemsList = allPhotosFiles;
         else {
-          const node = rootMap.get('Photographs')?.subfolders.get(viewSub);
+          const node = getSubNode('Photographs', viewSub);
           itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allPhotosFiles;
         }
       } else if (viewTab === 2) {
         aspectRatio = '9/16';
         if (viewSub === 'Featured') itemsList = allShortsFiles;
         else {
-          const node = rootMap.get('Shorts')?.subfolders.get(viewSub);
+          const node = getSubNode('Shorts', viewSub);
           itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allShortsFiles;
         }
       } else if (viewTab === 3) {
         aspectRatio = '16/9';
         if (viewSub === 'Featured' || viewSub === 'ALL') itemsList = allClipsFiles;
         else {
-          const node = rootMap.get('Video Clips')?.subfolders.get(viewSub);
+          const node = getSubNode('Video Clips', viewSub);
           itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allClipsFiles;
         }
       } else if (viewTab === 4) {
         if (viewSub === 'Photographs') {
           aspectRatio = '3/4';
-          const node = rootMap.get('bandhobiz')?.subfolders.get('Photographs') || rootMap.get('Bandhobi')?.subfolders.get('Photographs');
+          const node = getSubNode('bandhobiz', 'Photographs') || getSubNode('Bandhobi', 'Photographs');
           itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
         } else if (viewSub === 'Shorts') {
           aspectRatio = '9/16';
-          const node = rootMap.get('bandhobiz')?.subfolders.get('Shorts') || rootMap.get('Bandhobi')?.subfolders.get('Shorts');
+          const node = getSubNode('bandhobiz', 'Shorts') || getSubNode('Bandhobi', 'Shorts');
           itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
         } else {
           aspectRatio = '16/9';
-          const node = rootMap.get('bandhobiz')?.subfolders.get('Video Clips') || rootMap.get('Bandhobi')?.subfolders.get('Video Clips');
+          const node = getSubNode('bandhobiz', 'Video Clips') || getSubNode('Bandhobi', 'Video Clips');
           itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
         }
       }
