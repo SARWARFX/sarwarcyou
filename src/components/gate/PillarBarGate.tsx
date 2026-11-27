@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import type { StageMediaItem } from '../../types';
 import { MIDNIGHT_OBSIDIAN_THEME } from './themeManager';
 import { CinematicBackdropCanvas } from './CinematicBackdropCanvas';
@@ -210,6 +210,27 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
       : tabIndex === 3
       ? clipsSubfolder
       : bandhobiSubfolder;
+
+  // Scroll position preservation per subfolder page (guarantees zero jump-to-top on modal close)
+  const pageScrollPositionsRef = useRef<Map<string, number>>(new Map());
+  const activeScrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleContainerScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget.scrollTop;
+    const pageId = `${tabIndex}-${currentSubfolder}`;
+    pageScrollPositionsRef.current.set(pageId, top);
+  }, [tabIndex, currentSubfolder]);
+
+  // Restore exact scroll position when returning from modal or switching pages
+  useLayoutEffect(() => {
+    const container = activeScrollContainerRef.current;
+    if (!container) return;
+    const pageId = `${tabIndex}-${currentSubfolder}`;
+    const savedTop = pageScrollPositionsRef.current.get(pageId);
+    if (savedTop !== undefined && savedTop > 0) {
+      container.scrollTop = savedTop;
+    }
+  }, [tabIndex, currentSubfolder, isModalOpen]);
 
   // Real-time cached media records
   const [cacheUpdateTrigger, setCacheUpdateTrigger] = useState<number>(0);
@@ -986,35 +1007,35 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
         if (viewSub === 'Featured' || viewSub === 'ALL') itemsList = allPhotosFiles;
         else {
           const node = getSubNode('Photographs', viewSub);
-          itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allPhotosFiles;
+          itemsList = node && node.files.length > 0 ? node.files : allPhotosFiles;
         }
       } else if (viewTab === 2) {
         aspectRatio = '9/16';
         if (viewSub === 'Featured') itemsList = allShortsFiles;
         else {
           const node = getSubNode('Shorts', viewSub);
-          itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allShortsFiles;
+          itemsList = node && node.files.length > 0 ? node.files : allShortsFiles;
         }
       } else if (viewTab === 3) {
         aspectRatio = '16/9';
         if (viewSub === 'Featured' || viewSub === 'ALL') itemsList = allClipsFiles;
         else {
           const node = getSubNode('Video Clips', viewSub);
-          itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : allClipsFiles;
+          itemsList = node && node.files.length > 0 ? node.files : allClipsFiles;
         }
       } else if (viewTab === 4) {
         if (viewSub === 'Photographs') {
           aspectRatio = '3/4';
           const node = getSubNode('bandhobiz', 'Photographs') || getSubNode('Bandhobi', 'Photographs');
-          itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
+          itemsList = node && node.files.length > 0 ? node.files : [];
         } else if (viewSub === 'Shorts') {
           aspectRatio = '9/16';
           const node = getSubNode('bandhobiz', 'Shorts') || getSubNode('Bandhobi', 'Shorts');
-          itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
+          itemsList = node && node.files.length > 0 ? node.files : [];
         } else {
           aspectRatio = '16/9';
           const node = getSubNode('bandhobiz', 'Video Clips') || getSubNode('Bandhobi', 'Video Clips');
-          itemsList = node && node.files.length > 0 ? sortMediaItemsDescending<StageMediaItem>(node.files) : [];
+          itemsList = node && node.files.length > 0 ? node.files : [];
         }
       }
 
@@ -1406,6 +1427,8 @@ export const PillarBarGate: React.FC<PillarBarGateProps> = ({
         ) : (
           /* Instant Switch Container (Zero tab/page animation, direct loading gate) */
           <div
+            ref={activeScrollContainerRef}
+            onScroll={handleContainerScroll}
             key={`view-${tabIndex}-${currentSubfolder}`}
             className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-none px-6 sm:px-10 py-4"
             style={{ borderRadius: 0, outline: 'none', border: 'none' }}

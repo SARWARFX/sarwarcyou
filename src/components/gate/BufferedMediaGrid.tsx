@@ -6,6 +6,9 @@ import { resolveStaticVideoThumbnail } from '../../utils/thumbnailResolver';
 import { getMediaUrl } from '../../utils/imageUrlResolver';
 import { isPhotoExtension } from '../../utils/mediaTypeDetector';
 
+// Global memory cache of already buffered subfolder pages to prevent reloading or unmounting on modal close
+const bufferedPagesCache = new Set<string>();
+
 export interface BufferedMediaGridProps {
   itemsList: StageMediaItem[];
   aspectRatio: '3/4' | '9/16' | '16/9';
@@ -21,6 +24,8 @@ export interface BufferedMediaGridProps {
  * - Actively preloads all thumbnail images into the browser cache before revealing the grid.
  * - Text color fills smoothly 0% -> 100% left-to-right as thumbnails genuinely load.
  * - Once 100% loaded, content reveals immediately bufferless with zero blank cards.
+ * - Once a pageKey is buffered, it remains permanently buffered in memory so opening/closing
+ *   video, short, or photo viewers never re-triggers loading or resets the visitor's scroll position.
  */
 export const BufferedMediaGrid: React.FC<BufferedMediaGridProps> = ({
   itemsList,
@@ -30,12 +35,15 @@ export const BufferedMediaGrid: React.FC<BufferedMediaGridProps> = ({
   hapticMedium,
   trackActivityEvent,
 }) => {
-  const [isReady, setIsReady] = useState(false);
-  const [displayProgress, setDisplayProgress] = useState(0);
+  const isAlreadyBuffered = bufferedPagesCache.has(pageKey);
+  const [isReady, setIsReady] = useState(isAlreadyBuffered);
+  const [displayProgress, setDisplayProgress] = useState(isAlreadyBuffered ? 100 : 0);
 
   useEffect(() => {
-    if (!itemsList || itemsList.length === 0) {
+    if (!itemsList || itemsList.length === 0 || bufferedPagesCache.has(pageKey)) {
       setIsReady(true);
+      setDisplayProgress(100);
+      bufferedPagesCache.add(pageKey);
       return;
     }
 
@@ -57,6 +65,7 @@ export const BufferedMediaGrid: React.FC<BufferedMediaGridProps> = ({
         setDisplayProgress(100);
         setTimeout(() => {
           if (!isCancelled) {
+            bufferedPagesCache.add(pageKey);
             setIsReady(true);
           }
         }, 320);
@@ -99,7 +108,10 @@ export const BufferedMediaGrid: React.FC<BufferedMediaGridProps> = ({
       if (!isCancelled && loadedCount < total) {
         setDisplayProgress(100);
         setTimeout(() => {
-          if (!isCancelled) setIsReady(true);
+          if (!isCancelled) {
+            bufferedPagesCache.add(pageKey);
+            setIsReady(true);
+          }
         }, 250);
       }
     }, 3200);
