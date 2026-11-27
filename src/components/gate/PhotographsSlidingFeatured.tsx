@@ -12,7 +12,8 @@ export interface PhotographsSlidingFeaturedProps {
 
 /**
  * Photographs Featured Showcase:
- * - Showcases the latest uploaded photographs strictly ordered descending (newest first, not random)
+ * - Curates 10 latest photos + 10 random photos interleaved across the slider
+ * - Balances fresh latest uploads with diverse discoveries from the archive
  * - High-Tech Cybernetic Text-as-Slider loader ensures bufferless readiness
  * - Slides smoothly and infinitely from right to left in a continuous loop
  * - Zero rounded corners, zero outlines, zero text
@@ -22,18 +23,45 @@ export interface PhotographsSlidingFeaturedProps {
 export const PhotographsSlidingFeatured: React.FC<PhotographsSlidingFeaturedProps> = ({
   photos,
   onOpenPhoto,
-  randomSeed: _randomSeed,
+  randomSeed,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [displayProgress, setDisplayProgress] = useState(0);
   const [isPlaybackReady, setIsPlaybackReady] = useState(false);
 
-  // Pick the 20 latest uploaded photographs strictly ordered descending (newest first)
+  // Pick 10 latest photos + 10 random photos from the remaining collection
   const selected20 = useMemo(() => {
     if (!photos || photos.length === 0) return [];
     const sorted = sortMediaItemsDescending(photos);
-    return sorted.slice(0, 20);
-  }, [photos]);
+
+    // 1. Pick 10 latest photos strictly descending
+    const latest10 = sorted.slice(0, 10);
+    const latestKeySet = new Set(
+      latest10.map((p) => p.id || p.path || p.url || p.name)
+    );
+
+    // 2. Pick 10 random photos from the remaining archive pool
+    const remaining = sorted.filter(
+      (p) => !latestKeySet.has(p.id || p.path || p.url || p.name)
+    );
+
+    const shuffledRemaining = [...remaining];
+    for (let i = shuffledRemaining.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledRemaining[i], shuffledRemaining[j]] = [shuffledRemaining[j], shuffledRemaining[i]];
+    }
+    const random10 = shuffledRemaining.slice(0, 10);
+
+    // 3. Interleave: 1 latest, 1 random for dynamic variety across the sliding strip
+    const combined: StageMediaItem[] = [];
+    const maxLen = Math.max(latest10.length, random10.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < latest10.length) combined.push(latest10[i]);
+      if (i < random10.length) combined.push(random10[i]);
+    }
+
+    return combined.length > 0 ? combined : sorted.slice(0, 20);
+  }, [photos, randomSeed]);
 
   // Duplicate for a seamless infinite loop
   const displayList = useMemo(() => {
